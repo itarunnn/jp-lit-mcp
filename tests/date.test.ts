@@ -81,6 +81,38 @@ describe("normalizeIssuedAt", () => {
       issuedAtPrecision: "unknown"
     });
   });
+
+  it("day=00 は unknown に落とす", () => {
+    expect(normalizeIssuedAt("1905-04-00")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1905-04-00",
+      issuedAtPrecision: "unknown"
+    });
+  });
+
+  it("30日月の31日は unknown に落とす", () => {
+    expect(normalizeIssuedAt("1905-04-31")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1905-04-31",
+      issuedAtPrecision: "unknown"
+    });
+  });
+
+  it("うるう年の2月29日は day 精度で返す", () => {
+    expect(normalizeIssuedAt("2000-02-29")).toEqual({
+      issuedAt: "2000-02-29",
+      issuedAtLabel: "2000-02-29",
+      issuedAtPrecision: "day"
+    });
+  });
+
+  it("うるう年でない年の2月29日は unknown に落とす", () => {
+    expect(normalizeIssuedAt("1900-02-29")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1900-02-29",
+      issuedAtPrecision: "unknown"
+    });
+  });
 });
 
 describe("compactStrings", () => {

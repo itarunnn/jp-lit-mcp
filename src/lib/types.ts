@@ -16,27 +16,32 @@ export interface UnknownDateInfo {
 
 export type DateInfo = KnownDateInfo | UnknownDateInfo;
 
-export interface DateFields {
-  issuedAt: string | null;
-  issuedAtLabel: string | null;
-  issuedAtPrecision: IssuedAtPrecision;
+export interface KnownDateFields {
+  issued_at: string;
+  issued_at_label: string;
+  issued_at_precision: Exclude<IssuedAtPrecision, "unknown">;
 }
+
+export interface UnknownDateFields {
+  issued_at: null;
+  issued_at_label: string | null;
+  issued_at_precision: "unknown";
+}
+
+export type DateFields = KnownDateFields | UnknownDateFields;
 
 export interface PersonRole {
   name: string;
   role: string | null;
 }
 
-export interface SearchItem {
+export interface SearchItemBase {
   source: SourceName;
   source_id: string;
   title: string;
   subtitle: string | null;
   authors: PersonRole[];
   publisher: string | null;
-  issued_at: DateFields["issuedAt"];
-  issued_at_label: DateFields["issuedAtLabel"];
-  issued_at_precision: DateFields["issuedAtPrecision"];
   summary: string | null;
   url: string | null;
   availability: {
@@ -45,7 +50,9 @@ export interface SearchItem {
   };
 }
 
-export interface RecordItem extends SearchItem {
+export type SearchItem = SearchItemBase & DateFields;
+
+export interface RecordItemBase extends SearchItemBase {
   alternative_titles: string[];
   publication_place: string | null;
   language: string | null;
@@ -63,3 +70,5 @@ export interface RecordItem extends SearchItem {
   source_metadata: Record<string, unknown>;
   raw: Record<string, unknown>;
 }
+
+export type RecordItem = RecordItemBase & DateFields;
