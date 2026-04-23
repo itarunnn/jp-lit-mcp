@@ -10,6 +10,27 @@ export class UpstreamHttpError extends Error {
   }
 }
 
+export class UnsupportedPayloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnsupportedPayloadError";
+  }
+}
+
+function isJsonContentType(contentType: string | null): boolean {
+  if (!contentType) {
+    return true;
+  }
+
+  const normalized = contentType.toLowerCase();
+
+  return (
+    normalized.includes("application/json") ||
+    normalized.includes("+json") ||
+    normalized.includes("text/json")
+  );
+}
+
 export async function fetchJson<T>(
   input: string | URL,
   init?: RequestInit
@@ -20,5 +41,22 @@ export async function fetchJson<T>(
     throw new UpstreamHttpError(response.status, response.statusText);
   }
 
-  return response.json() as Promise<T>;
+  const contentType = response.headers?.get("content-type") ?? null;
+  if (!isJsonContentType(contentType)) {
+    throw new UnsupportedPayloadError(
+      `JSON payload required but received ${contentType}`
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new UnsupportedPayloadError(
+        "JSON payload required but upstream returned non-JSON content"
+      );
+    }
+
+    throw error;
+  }
 }

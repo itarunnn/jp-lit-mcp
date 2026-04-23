@@ -78,9 +78,12 @@
 
 ## v1 実装メモ
 
-- Task 5 の adapter は live XML 解析までは入れず、fixture ベースで「OpenSearch / internal json を JSON 化した後の形」を前提に mapper を作っている。
-- 検索は OpenSearch ベースで `any`, `cnt`, `idx` を使う。
-- 詳細は `f-token` ベースの internal json URL を使う。
+- Task 5 の `fetchJson` は JSON 専用ラッパー。
+- 検索 adapter は公式 OpenSearch の URL 構成 (`any`, `cnt`, `idx`) を使うが、Task 5 時点では live の RSS/XML を直接 parse していない。
+- そのため `search()` が現時点で受け付けるのは、fixture のような flatten 済み JSON だけでなく、OpenSearch XML を別工程で JSON-compatible に変換した payload まで。
+- 公式 OpenSearch endpoint にそのまま live access して XML が返った場合は、`NDL Search OpenSearch XML parsing is not implemented in Task 5` という明示的なエラーにしている。
+- 詳細取得は `f-token` ベースの internal json URL を使う前提で、こちらは JSON 応答を期待している。
+- 次タスクで XML パーサを入れる場合も、mapper 自体は namespaced / nested な JSON-compatible 形を受けられるようにしてあるため、adapter 側に XML -> object 変換を足す形で繋げやすい。
 
 ## 参照元
 

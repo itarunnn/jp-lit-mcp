@@ -82,6 +82,95 @@ describe("NDL Search mappers", () => {
     });
     expect(record.raw).toEqual(recordFixture);
   });
+
+  it("channel.item が単体 object でも namespaced/nested 値を読める", async () => {
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse({
+      channel: {
+        totalResults: "1",
+        item: {
+          link: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000001",
+          "dc:title": {
+            "rdf:Description": {
+              "rdf:value": "こころ"
+            }
+          },
+          "dc:creator": [
+            {
+              "rdf:Description": {
+                "rdf:value": "夏目 漱石"
+              }
+            },
+            "校訂者A"
+          ],
+          "dcterms:publisher": {
+            name: "岩波書店"
+          },
+          "dcterms:issued": {
+            "rdf:Description": {
+              "rdf:value": "1914"
+            }
+          },
+          "dcterms:abstract": {
+            "rdf:Description": {
+              "rdf:value": "長編小説。"
+            }
+          },
+          dpid: "iss-ndl-opac"
+        }
+      }
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      {
+        source: "ndl_search",
+        source_id: "R100000002-I000000001",
+        title: "こころ",
+        subtitle: null,
+        authors: [
+          { name: "夏目 漱石", role: "author" },
+          { name: "校訂者A", role: "author" }
+        ],
+        publisher: "岩波書店",
+        issued_at: "1914",
+        issued_at_label: "1914",
+        issued_at_precision: "year",
+        summary: "長編小説。",
+        url: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000001",
+        availability: {
+          online: false,
+          digital_collection: false
+        }
+      }
+    ]);
+  });
+
+  it("source_id が取れない場合も衝突しにくい fallback を作る", async () => {
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const payload = {
+      items: [
+        {
+          "dc:title": "タイトルのみ",
+          "dc:creator": "著者A",
+          "dcterms:issued": "1910"
+        }
+      ]
+    };
+
+    const first = mapNdlSearchSearchResponse(payload);
+    const second = mapNdlSearchSearchResponse(payload);
+
+    expect(first.items[0]?.source_id).toMatch(/^fallback:/);
+    expect(first.items[0]?.source_id).not.toBe("unknown");
+    expect(first.items[0]?.source_id).toBe(second.items[0]?.source_id);
+  });
 });
 
 describe("createNdlSearchAdapter", () => {
@@ -112,14 +201,21 @@ describe("createNdlSearchAdapter", () => {
     });
     const record = await adapter.getRecord("R100000039-I1000732");
 
-    expect(fetch).toHaveBeenNthCalledWith(
-      1,
-      "https://ndlsearch.ndl.go.jp/api/opensearch?any=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3&cnt=5&idx=6"
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    const recordUrl = new URL(fetch.mock.calls[1][0] as string);
+
+    expect(searchUrl.origin + searchUrl.pathname).toBe(
+      "https://ndlsearch.ndl.go.jp/api/opensearch"
     );
-    expect(fetch).toHaveBeenNthCalledWith(
-      2,
-      "https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=R100000039-I1000732"
+    expect(searchUrl.searchParams.get("any")).toBe("夏目漱石");
+    expect(searchUrl.searchParams.get("cnt")).toBe("5");
+    expect(searchUrl.searchParams.get("idx")).toBe("6");
+    expect(recordUrl.origin + recordUrl.pathname).toBe(
+      "https://ndlsearch.ndl.go.jp/api/bib/external/search"
     );
+    expect(recordUrl.searchParams.get("cs")).toBe("bib");
+    expect(recordUrl.searchParams.get("f-token")).toBe("R100000039-I1000732");
     expect(searchResult.items[0]?.source_id).toBe("R100000039-I1000732");
     expect(record?.source_id).toBe("R100000039-I1000732");
   });
@@ -164,5 +260,37 @@ describe("createNdlSearchAdapter", () => {
         page: 1
       })
     ).rejects.toThrow("Upstream request failed: 503 Service Unavailable");
+  });
+
+  it("OpenSearch が XML を返した場合は未実装を明示した例外を投げる", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/rss+xml; charset=utf-8"
+              : null;
+          }
+        },
+        json: async () => {
+          throw new SyntaxError("Unexpected token <");
+        }
+      })
+    );
+
+    const { createNdlSearchAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlSearchAdapter();
+
+    await expect(
+      adapter.search({
+        query: "夏目漱石",
+        limit: 10,
+        page: 1
+      })
+    ).rejects.toThrow(/OpenSearch XML parsing is not implemented/i);
   });
 });

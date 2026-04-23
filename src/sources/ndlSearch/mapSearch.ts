@@ -4,6 +4,27 @@ import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import type { SearchResult } from "../types.js";
 
 type JsonRecord = Record<string, unknown>;
+const NESTED_VALUE_KEYS = [
+  "rdf:value",
+  "value",
+  "#text",
+  "text",
+  "name",
+  "label",
+  "title",
+  "literal",
+  "content",
+  "foaf:name",
+  "rdf:resource"
+] as const;
+const NESTED_CONTAINER_KEYS = [
+  "rdf:Description",
+  "foaf:Agent",
+  "dc:title",
+  "dcterms:title",
+  "dc:creator",
+  "dcterms:creator"
+] as const;
 
 function asRecord(value: unknown): JsonRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -13,27 +34,60 @@ function asRecord(value: unknown): JsonRecord | null {
   return value as JsonRecord;
 }
 
+function stableSerialize(value: unknown): string {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableSerialize(entry)).join(",")}]`;
+  }
+
+  const record = asRecord(value);
+  if (!record) {
+    return JSON.stringify(String(value));
+  }
+
+  const entries = Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`);
+
+  return `{${entries.join(",")}}`;
+}
+
 function pickNestedValue(record: JsonRecord): unknown {
-  for (const key of [
-    "name",
-    "value",
-    "text",
-    "label",
-    "title",
-    "literal",
-    "content",
-    "rdf:value",
-    "#text"
-  ]) {
+  for (const key of NESTED_VALUE_KEYS) {
     if (key in record) {
       return record[key];
+    }
+  }
+
+  for (const key of NESTED_CONTAINER_KEYS) {
+    if (key in record) {
+      return record[key];
+    }
+  }
+
+  for (const value of Object.values(record)) {
+    const nested = readNdlSearchString(value);
+
+    if (nested) {
+      return nested;
     }
   }
 
   return null;
 }
 
-export function readNdlSearchString(value: unknown): string | null {
+export function readNdlSearchString(
+  value: unknown,
+  seen: Set<object> = new Set()
+): string | null {
   if (typeof value === "string") {
     return normalizeText(value);
   }
@@ -59,7 +113,33 @@ export function readNdlSearchString(value: unknown): string | null {
     return null;
   }
 
-  return readNdlSearchString(pickNestedValue(record));
+  if (seen.has(record)) {
+    return null;
+  }
+
+  seen.add(record);
+
+  for (const key of NESTED_VALUE_KEYS) {
+    if (key in record) {
+      return readNdlSearchString(record[key], seen);
+    }
+  }
+
+  for (const key of NESTED_CONTAINER_KEYS) {
+    if (key in record) {
+      return readNdlSearchString(record[key], seen);
+    }
+  }
+
+  for (const nestedValue of Object.values(record)) {
+    const nested = readNdlSearchString(nestedValue, seen);
+
+    if (nested) {
+      return nested;
+    }
+  }
+
+  return null;
 }
 
 export function readNdlSearchStringList(value: unknown): string[] {
@@ -105,11 +185,20 @@ function readAuthors(value: unknown): PersonRole[] {
   });
 }
 
+function createFallbackSourceId(record: JsonRecord): string {
+  const serialized = stableSerialize(record);
+  const encoded = Buffer.from(serialized, "utf-8").toString("base64url");
+
+  return `fallback:${encoded.slice(0, 48)}`;
+}
+
 function deriveSourceId(record: JsonRecord, url: string | null): string {
   const directId =
     readNdlSearchString(record.id) ??
     readNdlSearchString(record.itemno) ??
-    readNdlSearchString(record.token);
+    readNdlSearchString(record.token) ??
+    readNdlSearchString(record["dc:identifier"]) ??
+    readNdlSearchString(record["dcterms:identifier"]);
 
   if (directId) {
     return directId;
@@ -128,12 +217,16 @@ function deriveSourceId(record: JsonRecord, url: string | null): string {
     }
   }
 
-  return "unknown";
+  return createFallbackSourceId(record);
 }
 
 function resolveItems(payload: JsonRecord): unknown[] {
   if (Array.isArray(payload.items)) {
     return payload.items;
+  }
+
+  if ("item" in payload) {
+    return Array.isArray(payload.item) ? payload.item : [payload.item];
   }
 
   const channel = asRecord(payload.channel);
@@ -147,6 +240,10 @@ function resolveItems(payload: JsonRecord): unknown[] {
 
   if (Array.isArray(channel.item)) {
     return channel.item;
+  }
+
+  if ("item" in channel) {
+    return [channel.item];
   }
 
   return [];
@@ -173,7 +270,9 @@ function toIssuedFields(value: string | null) {
 export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
   const record = asRecord(entry) ?? {};
   const url =
-    readNdlSearchString(record.url) ?? readNdlSearchString(record.link);
+    readNdlSearchString(record.url) ??
+    readNdlSearchString(record.link) ??
+    readNdlSearchString(record["rdfs:seeAlso"]);
   const providerId =
     readNdlSearchString(record.providerId) ??
     readNdlSearchString(record.dpid) ??
@@ -187,17 +286,30 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
   return {
     source: "ndl_search",
     source_id: deriveSourceId(record, url),
-    title: readNdlSearchString(record.title) ?? "Untitled",
-    subtitle: readNdlSearchString(record.subtitle),
-    authors: readAuthors(record.authors ?? record.creator ?? record["dc:creator"]),
+    title:
+      readNdlSearchString(record.title) ??
+      readNdlSearchString(record["dc:title"]) ??
+      readNdlSearchString(record["dcterms:title"]) ??
+      "Untitled",
+    subtitle:
+      readNdlSearchString(record.subtitle) ??
+      readNdlSearchString(record["dcndl:volumeTitle"]),
+    authors: readAuthors(
+      record.authors ??
+        record.creator ??
+        record["dc:creator"] ??
+        record["dcterms:creator"]
+    ),
     publisher:
       readNdlSearchString(record.publisher) ??
-      readNdlSearchString(record["dcterms:publisher"]),
+      readNdlSearchString(record["dcterms:publisher"]) ??
+      readNdlSearchString(record["dc:publisher"]),
     ...issuedFields,
     summary:
       readNdlSearchString(record.summary) ??
       readNdlSearchString(record.description) ??
-      readNdlSearchString(record["dcterms:abstract"]),
+      readNdlSearchString(record["dcterms:abstract"]) ??
+      readNdlSearchString(record["dc:description"]),
     url,
     availability: {
       online:
@@ -217,7 +329,9 @@ export function mapNdlSearchSearchResponse(payload: unknown): SearchResult {
   const totalValue =
     readNdlSearchString(record.total) ??
     readNdlSearchString(record.totalResults) ??
-    readNdlSearchString(asRecord(record.channel)?.totalResults);
+    readNdlSearchString(record["openSearch:totalResults"]) ??
+    readNdlSearchString(asRecord(record.channel)?.totalResults) ??
+    readNdlSearchString(asRecord(record.channel)?.["openSearch:totalResults"]);
   const total = Number(totalValue);
 
   return {
