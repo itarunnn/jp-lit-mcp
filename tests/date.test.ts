@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeIssuedAt } from "../src/lib/date.js";
+import { compactStrings } from "../src/lib/normalize.js";
 
 describe("normalizeIssuedAt", () => {
   it("exact ISO date を day 精度で返す", () => {
@@ -41,5 +42,14 @@ describe("normalizeIssuedAt", () => {
       issuedAtLabel: null,
       issuedAtPrecision: "unknown"
     });
+  });
+});
+
+describe("compactStrings", () => {
+  it("空文字や空白を除去してトリム済み配列を返す", () => {
+    expect(compactStrings(["  foo ", null, " ", undefined, "bar"])).toEqual([
+      "foo",
+      "bar"
+    ]);
   });
 });
