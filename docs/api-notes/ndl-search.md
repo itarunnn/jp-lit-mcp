@@ -53,6 +53,29 @@
 - 出版年月日は `dcterms:issued`。自由記述側は `dcterms:date`
 - 目次は `dcterms:tableOfContents/rdf:Description/dcterms:title`
 
+## 利用条件メモ
+
+- 利用申請の要否
+  - `https://ndlsearch.ndl.go.jp/en/help/api/` では、利用形態によっては事前申請が必要とされている。
+  - 営利企業・営利団体は、メタデータ提供機関側でライセンス済みのデータを使う場合を除き、原則として申請が必要。
+  - 個人・非営利団体でも、営利利用に当たる場合は同様に申請が必要。
+  - 非営利利用で利益を得ない場合は、原則として申請不要。ただし API 提供対象データプロバイダごとの条件確認が前提。
+- 継続利用時の連絡に関する注意
+  - 継続的に API を利用する場合は、利用実態把握のため申請フォームから利用内容と連絡先を知らせてほしい、と案内されている。
+  - 連絡先を出しておくと、API 変更通知（日本語）が送られる。
+- クレジット表記に関する注意
+  - API を使う Web サイトやアプリには、NDL Search API を利用している旨のクレジット表記が必要。
+  - メタデータ提供元データベースや提供機関のクレジットが必要なデータでは、その表記も必要。
+- 過大アクセス時の制限可能性
+  - 同時アクセス数はサーバ負荷防止のため制限される。
+  - 特定 IP から大量リクエストが継続した場合、サイトへのアクセスを遮断する可能性がある。
+- 免責の趣旨
+  - 国立国会図書館は相応の注意を払って情報を提供するが、掲載情報やリソースの利用により行われた行為について責任を負わないとしている。
+  - また、外部サイトや外部提供メタデータの正確性・適法性・安全性を保証せず、内容や URL の変更、中断、保守停止の可能性も明記している。
+- API 提供対象データの前提
+  - `https://ndlsearch.ndl.go.jp/help/api/specifications` には、NDL Search で検索できるデータのうち、許諾が得られたもののみ API 提供対象とある。
+  - 実装側では「検索できるものがすべて API で使える」とはみなさず、データプロバイダごとの利用条件確認が必要。
+
 ## v1 実装メモ
 
 - Task 5 の adapter は live XML 解析までは入れず、fixture ベースで「OpenSearch / internal json を JSON 化した後の形」を前提に mapper を作っている。
@@ -61,6 +84,7 @@
 
 ## 参照元
 
+- APIのご利用について: https://ndlsearch.ndl.go.jp/en/help/api/
 - API仕様の概要: https://ndlsearch.ndl.go.jp/help/api/specifications
 - 外部提供インタフェース仕様書（第1.4版, 2026-03-31）: https://ndlsearch.ndl.go.jp/file/help/api/specifications/ndlsearch_api_20260331.pdf
 - 外部提供インタフェース仕様書 附録1（2026-03-31）: https://ndlsearch.ndl.go.jp/file/help/api/specifications/ndlsearch_api_ap1_20260331.pdf
