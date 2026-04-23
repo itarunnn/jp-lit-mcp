@@ -7,9 +7,15 @@ export interface SourceRegistry {
 }
 
 export function createSourceRegistry(adapters: SourceAdapter[]): SourceRegistry {
-  const adaptersBySource = new Map<SourceName, SourceAdapter>(
-    adapters.map((adapter) => [adapter.source, adapter])
-  );
+  const adaptersBySource = new Map<SourceName, SourceAdapter>();
+
+  for (const adapter of adapters) {
+    if (adaptersBySource.has(adapter.source)) {
+      throw new Error(`Duplicate source: ${adapter.source}`);
+    }
+
+    adaptersBySource.set(adapter.source, adapter);
+  }
 
   return {
     get(source) {

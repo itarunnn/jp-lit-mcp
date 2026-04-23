@@ -9,6 +9,12 @@ const dummyAdapter: SourceAdapter = {
   getRecord: async () => null
 };
 
+const ndlDigitalAdapter: SourceAdapter = {
+  source: "ndl_digital",
+  search: async () => ({ total: 0, items: [] }),
+  getRecord: async () => null
+};
+
 describe("createSourceRegistry", () => {
   it("source 名から adapter を引ける", () => {
     const registry = createSourceRegistry([dummyAdapter]);
@@ -22,9 +28,27 @@ describe("createSourceRegistry", () => {
     expect(registry.list()).toEqual(["ndl_search"]);
   });
 
+  it("複数 adapter の source 一覧を返す", () => {
+    const registry = createSourceRegistry([dummyAdapter, ndlDigitalAdapter]);
+
+    expect(registry.list()).toEqual(["ndl_search", "ndl_digital"]);
+  });
+
   it("未対応 source で例外を投げる", () => {
     const registry = createSourceRegistry([dummyAdapter]);
 
     expect(() => registry.get("ndl_digital")).toThrow("Unsupported source");
+  });
+
+  it("同じ source の adapter 重複登録で例外を投げる", () => {
+    expect(() =>
+      createSourceRegistry([
+        dummyAdapter,
+        {
+          ...dummyAdapter,
+          search: async () => ({ total: 1, items: [] })
+        }
+      ])
+    ).toThrow("Duplicate source");
   });
 });
