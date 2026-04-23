@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { InvalidRequestError } from "../src/lib/errors.js";
 import { createSearchService } from "../src/services/searchService.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
@@ -94,5 +95,33 @@ describe("createSearchService", () => {
       createSearchItem("ndl_search", "1", "吾輩は猫である"),
       createSearchItem("ndl_search", "2", "こころ")
     ]);
+  });
+
+  it("横断検索で page が 2 以上なら InvalidRequestError を投げる", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+      }),
+      getRecord: async () => null
+    };
+    const ndlDigitalAdapter: SourceAdapter = {
+      source: "ndl_digital",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_digital", "2", "坊っちゃん")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter, ndlDigitalAdapter]);
+
+    await expect(
+      service.search({
+        query: "夏目漱石",
+        limit: 10,
+        page: 2
+      })
+    ).rejects.toThrow(InvalidRequestError);
   });
 });

@@ -1,4 +1,5 @@
 import type { SourceName } from "../lib/types.js";
+import { InvalidRequestError } from "../lib/errors.js";
 import type { SourceAdapter } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
 
@@ -16,6 +17,12 @@ export function createSearchService(adapters: SourceAdapter[]) {
     async search(input: SearchInput) {
       if (input.source) {
         return registry.get(input.source).search(input);
+      }
+
+      if (input.page > 1) {
+        throw new InvalidRequestError(
+          "Cross-source search supports only page=1 in v1"
+        );
       }
 
       const results = await Promise.all(
