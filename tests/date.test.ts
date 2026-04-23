@@ -43,6 +43,44 @@ describe("normalizeIssuedAt", () => {
       issuedAtPrecision: "unknown"
     });
   });
+
+  it("/ 区切りの year-month を month 精度で返す", () => {
+    expect(normalizeIssuedAt("1934/5")).toEqual({
+      issuedAt: "1934-05",
+      issuedAtLabel: "1934/5",
+      issuedAtPrecision: "month"
+    });
+  });
+
+  it("前後空白は trim 後に正規化する", () => {
+    expect(normalizeIssuedAt(" 1905-04-01 ")).toEqual({
+      issuedAt: "1905-04-01",
+      issuedAtLabel: "1905-04-01",
+      issuedAtPrecision: "day"
+    });
+  });
+
+  it("無効月は unknown に落とす", () => {
+    expect(normalizeIssuedAt("1934-13")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1934-13",
+      issuedAtPrecision: "unknown"
+    });
+
+    expect(normalizeIssuedAt("1934-00")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1934-00",
+      issuedAtPrecision: "unknown"
+    });
+  });
+
+  it("無効日は unknown に落とす", () => {
+    expect(normalizeIssuedAt("1905-02-31")).toEqual({
+      issuedAt: null,
+      issuedAtLabel: "1905-02-31",
+      issuedAtPrecision: "unknown"
+    });
+  });
 });
 
 describe("compactStrings", () => {

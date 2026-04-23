@@ -2,7 +2,21 @@ export type SourceName = "ndl_search" | "ndl_digital";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 
-export interface DateInfo {
+export interface KnownDateInfo {
+  issuedAt: string;
+  issuedAtLabel: string;
+  issuedAtPrecision: Exclude<IssuedAtPrecision, "unknown">;
+}
+
+export interface UnknownDateInfo {
+  issuedAt: null;
+  issuedAtLabel: string | null;
+  issuedAtPrecision: "unknown";
+}
+
+export type DateInfo = KnownDateInfo | UnknownDateInfo;
+
+export interface DateFields {
   issuedAt: string | null;
   issuedAtLabel: string | null;
   issuedAtPrecision: IssuedAtPrecision;
@@ -20,9 +34,9 @@ export interface SearchItem {
   subtitle: string | null;
   authors: PersonRole[];
   publisher: string | null;
-  issued_at: string | null;
-  issued_at_label: string | null;
-  issued_at_precision: IssuedAtPrecision;
+  issued_at: DateFields["issuedAt"];
+  issued_at_label: DateFields["issuedAtLabel"];
+  issued_at_precision: DateFields["issuedAtPrecision"];
   summary: string | null;
   url: string | null;
   availability: {
