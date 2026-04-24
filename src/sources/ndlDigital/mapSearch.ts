@@ -20,7 +20,7 @@ export function mapNdlDigitalSearchResponse(payload: unknown): SearchResult {
     .map((item) => toNdlDigitalSearchItem(item));
 
   return {
-    total: items.length === base.items.length ? base.total : items.length,
+    total: base.total,
     items
   };
 }

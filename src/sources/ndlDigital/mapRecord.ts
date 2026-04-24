@@ -35,14 +35,32 @@ function inferViewerUrl(raw: Record<string, unknown>): string | null {
   }
 }
 
-export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem {
-  const base = mapNdlSearchRecordResponse(payload);
-  const raw = base.raw;
-  const providerId =
+function readProviderId(raw: Record<string, unknown>): string | null {
+  return (
     readNdlSearchString(raw.providerId) ??
     readNdlSearchString(raw.provider_id) ??
-    readNdlSearchString(raw.dpid) ??
-    "ndl-dl";
+    readNdlSearchString(raw.dpid)
+  );
+}
+
+function isNdlDigitalRecord(raw: Record<string, unknown>): boolean {
+  const providerId = readProviderId(raw);
+  if (providerId !== "ndl-dl") {
+    return false;
+  }
+
+  return readNdlSearchBoolean(raw.digitalCollection) ||
+    readNdlSearchBoolean(raw.digital_collection);
+}
+
+export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null {
+  const base = mapNdlSearchRecordResponse(payload);
+  const raw = base.raw;
+  if (!isNdlDigitalRecord(raw)) {
+    return null;
+  }
+
+  const providerId = readProviderId(raw) ?? "ndl-dl";
   const providerName =
     readNdlSearchString(raw.providerName) ??
     readNdlSearchString(raw.provider_name) ??

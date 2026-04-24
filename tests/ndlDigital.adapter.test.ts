@@ -46,6 +46,34 @@ describe("NDL Digital mappers", () => {
     ]);
   });
 
+  it("検索 total は digital filter 後の件数に潰さず upstream total を保持する", async () => {
+    const { mapNdlDigitalSearchResponse } = await import(
+      "../src/sources/ndlDigital/mapSearch.js"
+    );
+
+    const result = mapNdlDigitalSearchResponse({
+      totalResults: 10,
+      items: [
+        {
+          id: "digital-item",
+          title: "デジタル資料",
+          digitalCollection: true,
+          providerId: "ndl-dl"
+        },
+        {
+          id: "other-item",
+          title: "他 provider 資料",
+          digitalCollection: false,
+          providerId: "other-provider"
+        }
+      ]
+    });
+
+    expect(result.total).toBe(10);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.source_id).toBe("digital-item");
+  });
+
   it("詳細結果を共通 RecordItem に正規化し content_access を埋める", async () => {
     const recordFixture = readFixture("record-response.json");
     const { mapNdlDigitalRecordResponse } = await import(
@@ -83,6 +111,48 @@ describe("NDL Digital mappers", () => {
       provider_name: "国立国会図書館デジタルコレクション"
     });
     expect(record.raw).toEqual(recordFixture);
+  });
+
+  it("providerId が明示的に ndl-dl 以外なら null を返す", async () => {
+    const recordFixture = {
+      ...(readFixture("record-response.json") as Record<string, unknown>),
+      providerId: "other-provider"
+    };
+    const { mapNdlDigitalRecordResponse } = await import(
+      "../src/sources/ndlDigital/mapRecord.js"
+    );
+
+    expect(mapNdlDigitalRecordResponse(recordFixture)).toBeNull();
+  });
+
+  it("digitalCollection が欠落していたら安全側で null を返す", async () => {
+    const recordFixture = {
+      ...(readFixture("record-response.json") as Record<string, unknown>)
+    };
+    delete recordFixture.digitalCollection;
+    const { mapNdlDigitalRecordResponse } = await import(
+      "../src/sources/ndlDigital/mapRecord.js"
+    );
+
+    expect(mapNdlDigitalRecordResponse(recordFixture)).toBeNull();
+  });
+
+  it("viewerUrl がなくても dl.ndl.go.jp の URL から fallback する", async () => {
+    const recordFixture = {
+      ...(readFixture("record-response.json") as Record<string, unknown>),
+      viewerUrl: undefined,
+      url: "https://dl.ndl.go.jp/pid/7654321"
+    };
+    const { mapNdlDigitalRecordResponse } = await import(
+      "../src/sources/ndlDigital/mapRecord.js"
+    );
+
+    const record = mapNdlDigitalRecordResponse(recordFixture);
+
+    expect(record).not.toBeNull();
+    expect(record?.content_access.viewer_url).toBe(
+      "https://dl.ndl.go.jp/pid/7654321"
+    );
   });
 });
 
@@ -164,5 +234,37 @@ describe("createNdlDigitalAdapter", () => {
     const adapter = createNdlDigitalAdapter();
 
     await expect(adapter.getRecord("missing-token")).resolves.toBeNull();
+  });
+
+  it("search() は upstream 500 をそのまま失敗として返す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        headers: {
+          get() {
+            return "application/json; charset=utf-8";
+          }
+        }
+      })
+    );
+
+    const { createNdlDigitalAdapter } = await import(
+      "../src/sources/ndlDigital/adapter.js"
+    );
+    const adapter = createNdlDigitalAdapter();
+
+    await expect(
+      adapter.search({
+        query: "夏目漱石",
+        limit: 5,
+        page: 1
+      })
+    ).rejects.toMatchObject({
+      name: "UpstreamHttpError",
+      status: 500
+    });
   });
 });
