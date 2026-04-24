@@ -1,0 +1,22 @@
+{
+  "totalResults": 1,
+  "items": [
+    {
+      "id": "R100000039-I1000732",
+      "title": "吾輩は猫である",
+      "subtitle": "初版",
+      "authors": [
+        {
+          "name": "夏目 漱石"
+        }
+      ],
+      "publisher": "大倉書店",
+      "issued": "1905",
+      "summary": "長編小説。",
+      "url": "https://ndlsearch.ndl.go.jp/books/R100000039-I1000732",
+      "online": false,
+      "digitalCollection": true,
+      "providerId": "ndl-dl"
+    }
+  ]
+}
