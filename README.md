@@ -45,6 +45,40 @@ npm test
 npm run build
 ```
 
+## MCP 登録例
+
+Codex / ChatGPT 系の MCP 設定では、stdio でこのサーバーを起動します。例:
+
+```json
+{
+  "mcpServers": {
+    "ndl-jp-lit": {
+      "command": "npm",
+      "args": ["run", "dev"],
+      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "env": {
+        "NDL_SEARCH_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch",
+        "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch"
+      }
+    }
+  }
+}
+```
+
+ローカルに `npm` パスの問題がある場合は、`command` を `node` に変えて `tsx` 経由で `src/index.ts` を起動する形でも構いません。
+
+## 公開ツール
+
+- `jp_lit_search`
+  - 引数: `query`, `source?`, `limit?`, `page?`
+- `jp_lit_get_record`
+  - 引数: `source`, `source_id`
+
+補足:
+
+- `source` は `ndl_search` または `ndl_digital` を取ります。
+- `ndl_digital` は内部的には `dpid=ndl-dl` を付けた NDL Search API を利用します。
+
 ## fixture について
 
 - `tests/fixtures/ndl-search/*.json`
