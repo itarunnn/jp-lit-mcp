@@ -31,15 +31,24 @@ function isJsonContentType(contentType: string | null): boolean {
   );
 }
 
-export async function fetchJson<T>(
+async function fetchOkResponse(
   input: string | URL,
   init?: RequestInit
-): Promise<T> {
+): Promise<Response> {
   const response = init ? await fetch(input, init) : await fetch(input);
 
   if (!response.ok) {
     throw new UpstreamHttpError(response.status, response.statusText);
   }
+
+  return response;
+}
+
+export async function fetchJson<T>(
+  input: string | URL,
+  init?: RequestInit
+): Promise<T> {
+  const response = await fetchOkResponse(input, init);
 
   const contentType = response.headers?.get("content-type") ?? null;
   if (!isJsonContentType(contentType)) {
@@ -59,4 +68,16 @@ export async function fetchJson<T>(
 
     throw error;
   }
+}
+
+export async function fetchText(
+  input: string | URL,
+  init?: RequestInit
+): Promise<{ text: string; contentType: string | null }> {
+  const response = await fetchOkResponse(input, init);
+
+  return {
+    text: await response.text(),
+    contentType: response.headers?.get("content-type") ?? null
+  };
 }
