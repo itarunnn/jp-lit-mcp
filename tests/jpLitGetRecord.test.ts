@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { NotFoundError } from "../src/lib/errors.js";
+import { recordInputSchema } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
 import { createRecordService } from "../src/services/recordService.js";
 import type { SourceAdapter } from "../src/sources/types.js";
+import { createJpLitGetRecordTool } from "../src/tools/jpLitGetRecord.js";
 
 function createRecordItem(sourceId: string): RecordItem {
   return {
@@ -42,6 +44,27 @@ function createRecordItem(sourceId: string): RecordItem {
 }
 
 describe("createRecordService", () => {
+  it("record 入力スキーマで source と source_id を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "ndl_digital",
+      source_id: "123"
+    });
+
+    expect(parsed).toEqual({
+      source: "ndl_digital",
+      source_id: "123"
+    });
+  });
+
+  it("record 入力スキーマで空の source_id を拒否する", () => {
+    const parsed = recordInputSchema.safeParse({
+      source: "ndl_digital",
+      source_id: ""
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
   it("source と source_id から詳細を返す", async () => {
     const adapter: SourceAdapter = {
       source: "ndl_digital",
@@ -56,6 +79,29 @@ describe("createRecordService", () => {
     });
 
     expect(result).toEqual(createRecordItem("abc"));
+  });
+
+  it("tool handler が source_id を sourceId に変換して structuredContent を返す", async () => {
+    const adapter: SourceAdapter = {
+      source: "ndl_digital",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async (sourceId) => createRecordItem(sourceId)
+    };
+    const service = createRecordService([adapter]);
+    const tool = createJpLitGetRecordTool(service);
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_id: "abc"
+    });
+
+    expect(result.structuredContent).toEqual(createRecordItem("abc"));
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify(result.structuredContent, null, 2)
+      }
+    ]);
   });
 
   it("未取得時は NotFoundError を投げる", async () => {

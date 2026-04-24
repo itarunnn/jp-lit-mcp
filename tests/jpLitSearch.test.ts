@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { InvalidRequestError } from "../src/lib/errors.js";
+import { searchInputSchema } from "../src/lib/schemas.js";
 import { createSearchService } from "../src/services/searchService.js";
+import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
 
@@ -30,6 +32,28 @@ function createSearchItem(
 }
 
 describe("createSearchService", () => {
+  it("search 入力スキーマで source 省略時に既定値を補完する", () => {
+    const parsed = searchInputSchema.parse({ query: "夏目漱石" });
+
+    expect(parsed).toEqual({
+      query: "夏目漱石",
+      source: undefined,
+      limit: 10,
+      page: 1
+    });
+  });
+
+  it("search 入力スキーマで不正な source / limit / page を拒否する", () => {
+    const parsed = searchInputSchema.safeParse({
+      query: "夏目漱石",
+      source: "unknown_source",
+      limit: 0,
+      page: 0
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
   it("source 指定ありで単一 source 検索を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
@@ -60,6 +84,32 @@ describe("createSearchService", () => {
       total: 1,
       items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
     });
+  });
+
+  it("tool handler が schema を通して検索結果を structuredContent で返す", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter]);
+    const tool = createJpLitSearchTool(service);
+
+    const result = await tool({ query: "夏目漱石", source: "ndl_search" });
+
+    expect(result.structuredContent).toEqual({
+      total: 1,
+      items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+    });
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify(result.structuredContent, null, 2)
+      }
+    ]);
   });
 
   it("source 未指定では全 source を横断検索して件数を合算する", async () => {
