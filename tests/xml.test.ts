@@ -1,7 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchText, UpstreamHttpError } from "../src/lib/http.js";
-import { parseXml, projectOpenSearchXml } from "../src/lib/xml.js";
+import {
+  fetchText,
+  UnsupportedPayloadError,
+  UpstreamHttpError
+} from "../src/lib/http.js";
+import {
+  InvalidXmlError,
+  parseXml,
+  parseXmlPayload,
+  projectOpenSearchXml
+} from "../src/lib/xml.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,13 +31,16 @@ describe("xml helpers", () => {
     });
   });
 
-  it("channel/item を JSON-compatible projection に落とせる", () => {
+  it("channel/item を一定 shape に投影し、attributes と複数 item を保持する", () => {
     const xml = `<?xml version="1.0"?>
-      <rss>
-        <channel>
-          <openSearch:totalResults>1</openSearch:totalResults>
-          <item>
+      <rss version="2.0" xml:lang="ja">
+        <channel data-source="ndl">
+          <openSearch:totalResults>2</openSearch:totalResults>
+          <item data-kind="book">
             <title>国立国会図書館年報</title>
+          </item>
+          <item data-kind="journal">
+            <title>国文学論集</title>
           </item>
         </channel>
       </rss>`;
@@ -36,11 +48,95 @@ describe("xml helpers", () => {
     const projected = projectOpenSearchXml(xml);
 
     expect(projected).toEqual({
-      channel: {
-        "openSearch:totalResults": "1",
-        item: {
-          title: "国立国会図書館年報"
+      rss: {
+        "@_version": "2.0",
+        "@_xml:lang": "ja",
+        channel: {
+          "@_data-source": "ndl",
+          "openSearch:totalResults": "2",
+          item: [
+            {
+              "@_data-kind": "book",
+              title: "国立国会図書館年報"
+            },
+            {
+              "@_data-kind": "journal",
+              title: "国文学論集"
+            }
+          ]
         }
+      },
+      channel: {
+        "@_data-source": "ndl",
+        "openSearch:totalResults": "2",
+        item: [
+          {
+            "@_data-kind": "book",
+            title: "国立国会図書館年報"
+          },
+          {
+            "@_data-kind": "journal",
+            title: "国文学論集"
+          }
+        ]
+      },
+      items: [
+        {
+          "@_data-kind": "book",
+          title: "国立国会図書館年報"
+        },
+        {
+          "@_data-kind": "journal",
+          title: "国文学論集"
+        }
+      ]
+    });
+  });
+
+  it("壊れた XML は InvalidXmlError を投げる", () => {
+    expect(() => parseXml("<rss><channel><item></channel></rss>")).toThrow(
+      InvalidXmlError
+    );
+  });
+
+  it("XML payload guard は content-type 不一致と JSON body を拒否する", () => {
+    const xml =
+      '<?xml version="1.0"?><rss><channel><title>test</title></channel></rss>';
+
+    expect(() =>
+      parseXmlPayload({
+        text: xml,
+        contentType: "text/html; charset=utf-8"
+      })
+    ).toThrow(UnsupportedPayloadError);
+
+    expect(() =>
+      parseXmlPayload({
+        text: '{"ok":true}',
+        contentType: "application/json"
+      })
+    ).toThrow(UnsupportedPayloadError);
+
+    expect(() =>
+      parseXmlPayload({
+        text: '{"ok":true}',
+        contentType: null
+      })
+    ).toThrow(UnsupportedPayloadError);
+  });
+
+  it("XML payload guard は XML content-type の payload を通す", () => {
+    const xml =
+      '<?xml version="1.0"?><rss><channel><title>test</title></channel></rss>';
+
+    const parsed = parseXmlPayload({
+      text: xml,
+      contentType: "application/rss+xml; charset=utf-8"
+    });
+
+    expect(parsed.rss).toEqual({
+      channel: {
+        title: "test"
       }
     });
   });
