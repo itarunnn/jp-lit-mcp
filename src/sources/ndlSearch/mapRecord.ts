@@ -17,45 +17,183 @@ function asRecord(value: unknown): JsonRecord | null {
   return value as JsonRecord;
 }
 
+function readMetaEntries(value: unknown): JsonRecord[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => {
+      const record = asRecord(entry);
+
+      return record ? [record] : [];
+    });
+  }
+
+  const record = asRecord(value);
+
+  return record ? [record] : [];
+}
+
+function readMetaValue(meta: JsonRecord | null, key: string): string | null {
+  if (!meta) {
+    return null;
+  }
+
+  for (const entry of readMetaEntries(meta[key])) {
+    const value = readNdlSearchString(entry.v ?? entry.value ?? entry);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function readMetaLabel(meta: JsonRecord | null, key: string): string | null {
+  if (!meta) {
+    return null;
+  }
+
+  for (const entry of readMetaEntries(meta[key])) {
+    const value = readNdlSearchString(entry.l ?? entry.label ?? entry);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function readMetaList(meta: JsonRecord | null, key: string): string[] {
+  if (!meta) {
+    return [];
+  }
+
+  return readMetaEntries(meta[key]).flatMap((entry) =>
+    readNdlSearchStringList(entry.v ?? entry.value ?? entry)
+  );
+}
+
+function normalizeRecordPayload(record: JsonRecord): {
+  normalized: JsonRecord;
+  raw: JsonRecord;
+} {
+  if (!Array.isArray(record.list) || record.list.length === 0) {
+    return {
+      normalized: record,
+      raw: record
+    };
+  }
+
+  const listRecord = asRecord(record.list[0]) ?? {};
+  const topMeta = asRecord(listRecord.meta);
+  const itemRecord = Array.isArray(listRecord.items)
+    ? asRecord(listRecord.items[0])
+    : asRecord(listRecord.items);
+  const itemMeta = asRecord(itemRecord?.meta);
+  const sourceId = readNdlSearchString(listRecord.id ?? itemRecord?.id);
+  const viewerUrl =
+    readMetaValue(itemMeta, "k30012") ?? readMetaValue(itemMeta, "k31000");
+  const providerName = readMetaValue(itemMeta, "k80404");
+  const digitalCollection =
+    readMetaValue(itemMeta, "k39022") !== null ||
+    viewerUrl !== null ||
+    providerName !== null;
+  const identifiers: JsonRecord = {};
+  const issn = readMetaValue(topMeta, "k00220");
+  const issnl = readMetaValue(topMeta, "k28569");
+  const ndljp = readMetaValue(itemMeta, "k31000");
+
+  if (issn) {
+    identifiers.issn = issn;
+  }
+
+  if (issnl) {
+    identifiers.issnl = issnl;
+  }
+
+  if (ndljp) {
+    identifiers.ndljp = ndljp;
+  }
+
+  return {
+    normalized: {
+      id: sourceId,
+      title:
+        readMetaValue(topMeta, "t02451") ?? readMetaValue(topMeta, "t02450"),
+      authors: readMetaList(topMeta, "t0245c").map((name) => ({
+        name,
+        role: "author"
+      })),
+      publisher: readMetaValue(topMeta, "t02600"),
+      url: sourceId
+        ? `https://ndlsearch.ndl.go.jp/books/${sourceId}`
+        : undefined,
+      online: viewerUrl !== null,
+      digitalCollection,
+      alternativeTitles: readMetaList(topMeta, "t02460"),
+      publicationPlace: readMetaLabel(topMeta, "t02600"),
+      language: readMetaValue(topMeta, "k00410"),
+      materialType: readMetaValue(topMeta, "k09022"),
+      identifiers,
+      tableOfContents: [],
+      hasPageImages: viewerUrl !== null,
+      hasTextCoordinates: false,
+      viewerUrl,
+      accessNote: readMetaValue(itemMeta, "k39020"),
+      providerId: digitalCollection ? "ndl-dl" : null,
+      providerName
+    },
+    raw: record
+  };
+}
+
 export function mapNdlSearchRecordResponse(payload: unknown): RecordItem {
-  const record = asRecord(payload) ?? {};
-  const base = mapNdlSearchSearchEntry(record);
+  const { normalized, raw } = normalizeRecordPayload(asRecord(payload) ?? {});
+  const base = mapNdlSearchSearchEntry(normalized);
 
   return {
     ...base,
     alternative_titles: readNdlSearchStringList(
-      record.alternativeTitles ?? record.alternative_titles
+      normalized.alternativeTitles ?? normalized.alternative_titles
     ),
     publication_place: readNdlSearchString(
-      record.publicationPlace ?? record.publication_place
+      normalized.publicationPlace ?? normalized.publication_place
     ),
-    language: readNdlSearchString(record.language),
+    language: readNdlSearchString(normalized.language),
     material_type: readNdlSearchString(
-      record.materialType ?? record.material_type
+      normalized.materialType ?? normalized.material_type
     ),
-    extent: readNdlSearchString(record.extent),
-    subjects: readNdlSearchStringList(record.subjects ?? record.subject),
-    identifiers: readNdlSearchObject(record.identifiers),
+    extent: readNdlSearchString(normalized.extent),
+    subjects: readNdlSearchStringList(
+      normalized.subjects ?? normalized.subject
+    ),
+    identifiers: readNdlSearchObject(normalized.identifiers),
     table_of_contents: readNdlSearchStringList(
-      record.tableOfContents ?? record.table_of_contents
+      normalized.tableOfContents ?? normalized.table_of_contents
     ),
     content_access: {
       has_page_images: readNdlSearchBoolean(
-        record.hasPageImages ?? record.has_page_images
+        normalized.hasPageImages ?? normalized.has_page_images
       ),
       has_text_coordinates: readNdlSearchBoolean(
-        record.hasTextCoordinates ?? record.has_text_coordinates
+        normalized.hasTextCoordinates ?? normalized.has_text_coordinates
       ),
-      viewer_url: readNdlSearchString(record.viewerUrl ?? record.viewer_url),
-      access_note: readNdlSearchString(record.accessNote ?? record.access_note)
+      viewer_url: readNdlSearchString(
+        normalized.viewerUrl ?? normalized.viewer_url
+      ),
+      access_note: readNdlSearchString(
+        normalized.accessNote ?? normalized.access_note
+      )
     },
     source_metadata: {
-      provider_id: readNdlSearchString(record.providerId ?? record.provider_id),
-      provider_name: readNdlSearchString(
-        record.providerName ?? record.provider_name ?? record.provider
+      provider_id: readNdlSearchString(
+        normalized.providerId ?? normalized.provider_id
       ),
-      raw_url: readNdlSearchString(record.rawUrl ?? record.raw_url)
+      provider_name: readNdlSearchString(
+        normalized.providerName ?? normalized.provider_name ?? normalized.provider
+      ),
+      raw_url: readNdlSearchString(normalized.rawUrl ?? normalized.raw_url)
     },
-    raw: record
+    raw
   };
 }

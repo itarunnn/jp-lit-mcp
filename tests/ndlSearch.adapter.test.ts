@@ -10,12 +10,52 @@ function readFixture(name: string): unknown {
   );
 }
 
+function readTextFixture(name: string): string {
+  return readFileSync(
+    new URL(`./fixtures/ndl-search/${name}`, import.meta.url),
+    "utf-8"
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("NDL Search mappers", () => {
+  it("OpenSearch XML を mapper が読める shape に投影できる", async () => {
+    const xml = readTextFixture("search-response.xml");
+    const { projectNdlSearchOpenSearchXml } = await import(
+      "../src/sources/ndlSearch/projectOpenSearch.js"
+    );
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse(projectNdlSearchOpenSearchXml(xml));
+
+    expect(result.total).toBe(542);
+    expect(result.items).toEqual([
+      {
+        source: "ndl_search",
+        source_id: "R100000039-I1000732",
+        title: "国立国会図書館年報",
+        subtitle: null,
+        authors: [{ name: "国立国会図書館総務部", role: "author" }],
+        publisher: "国立国会図書館",
+        issued_at: null,
+        issued_at_label: null,
+        issued_at_precision: "unknown",
+        summary: null,
+        url: "https://ndlsearch.ndl.go.jp/books/R100000039-I1000732",
+        availability: {
+          online: false,
+          digital_collection: true
+        }
+      }
+    ]);
+  });
+
   it("検索結果を共通 SearchItem に正規化する", async () => {
     const searchFixture = readFixture("search-response.json");
     const { mapNdlSearchSearchResponse } = await import(
@@ -86,6 +126,86 @@ describe("NDL Search mappers", () => {
       provider_name: "国立国会図書館デジタルコレクション"
     });
     expect(record.raw).toEqual(recordFixture);
+  });
+
+  it("detail endpoint の live JSON shape を共通 RecordItem に正規化する", async () => {
+    const recordFixture = readFixture("record-response.json") as Record<
+      string,
+      unknown
+    >;
+    const liveRecordFixture = (recordFixture._fixture as { liveResponseExtract: unknown })
+      .liveResponseExtract;
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    const record = mapNdlSearchRecordResponse(liveRecordFixture);
+
+    expect(record).toMatchObject({
+      source: "ndl_search",
+      source_id: "R100000039-I1000732",
+      title: "国立国会図書館年報",
+      authors: [{ name: "国立国会図書館総務部", role: "author" }],
+      publisher: "国立国会図書館",
+      alternative_titles: ["Annual report of the National Diet Library"],
+      publication_place: "日本",
+      language: "jpn",
+      material_type: "電子書籍・電子雑誌",
+      identifiers: {
+        issn: "1349-0621",
+        issnl: "0385-325X",
+        ndljp: "info:ndljp/pid/1000732"
+      },
+      content_access: {
+        has_page_images: true,
+        has_text_coordinates: false,
+        viewer_url: "https://dl.ndl.go.jp/pid/1000732",
+        access_note: "インターネット公開"
+      }
+    });
+    expect(record.source_metadata).toMatchObject({
+      provider_id: "ndl-dl",
+      provider_name: "国立国会図書館デジタルコレクション"
+    });
+  });
+
+  it("record XML を mapper が読める shape に投影できる", async () => {
+    const xml = readTextFixture("record-response.xml");
+    const { projectNdlSearchOpenSearchXml } = await import(
+      "../src/sources/ndlSearch/projectOpenSearch.js"
+    );
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    const record = mapNdlSearchRecordResponse(projectNdlSearchOpenSearchXml(xml));
+
+    expect(record).toMatchObject({
+      source: "ndl_search",
+      source_id: "R100000039-I1000732",
+      title: "国立国会図書館年報",
+      authors: [{ name: "国立国会図書館総務部", role: "author" }],
+      publisher: "国立国会図書館",
+      alternative_titles: ["Annual report of the National Diet Library"],
+      publication_place: "日本",
+      language: "jpn",
+      material_type: "電子書籍・電子雑誌",
+      identifiers: {
+        issn: "1349-0621",
+        issnl: "0385-325X",
+        ndljp: "info:ndljp/pid/1000732"
+      },
+      content_access: {
+        has_page_images: true,
+        has_text_coordinates: false,
+        viewer_url: "https://dl.ndl.go.jp/pid/1000732",
+        access_note: "インターネット公開"
+      }
+    });
+    expect(record.source_metadata).toMatchObject({
+      provider_id: "ndl-dl",
+      provider_name: "国立国会図書館デジタルコレクション"
+    });
   });
 
   it("channel.item が単体 object でも namespaced/nested 値を読める", async () => {
@@ -280,6 +400,64 @@ describe("createNdlSearchAdapter", () => {
     expect(record?.source_id).toBe("R100000039-I1000732");
   });
 
+  it("search() / getRecord() は XML payload を live fallback で正規化する", async () => {
+    const searchXml = readTextFixture("search-response.xml");
+    const recordXml = readTextFixture("record-response.xml");
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/rss+xml; charset=utf-8"
+              : null;
+          }
+        },
+        json: async () => {
+          throw new SyntaxError("Unexpected token <");
+        },
+        text: async () => searchXml
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/rss+xml; charset=utf-8"
+              : null;
+          }
+        },
+        json: async () => {
+          throw new SyntaxError("Unexpected token <");
+        },
+        text: async () => recordXml
+      });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createNdlSearchAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlSearchAdapter();
+
+    const searchResult = await adapter.search({
+      query: "国立国会図書館年報",
+      limit: 3,
+      page: 1
+    });
+    const record = await adapter.getRecord("R100000039-I1000732");
+
+    expect(searchResult.total).toBe(542);
+    expect(searchResult.items[0]?.source_id).toBe("R100000039-I1000732");
+    expect(record).toMatchObject({
+      source_id: "R100000039-I1000732",
+      content_access: {
+        viewer_url: "https://dl.ndl.go.jp/pid/1000732",
+        access_note: "インターネット公開"
+      }
+    });
+  });
+
   it("upstream 404 の詳細取得は null を返す", async () => {
     vi.stubGlobal(
       "fetch",
@@ -322,7 +500,7 @@ describe("createNdlSearchAdapter", () => {
     ).rejects.toThrow("Upstream request failed: 503 Service Unavailable");
   });
 
-  it("OpenSearch が XML を返した場合は未実装を明示した例外を投げる", async () => {
+  it("XML でも JSON でもない search payload は UnsupportedPayloadError を投げる", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -330,13 +508,11 @@ describe("createNdlSearchAdapter", () => {
         headers: {
           get(name: string) {
             return name.toLowerCase() === "content-type"
-              ? "application/rss+xml; charset=utf-8"
+              ? "text/html; charset=utf-8"
               : null;
           }
         },
-        json: async () => {
-          throw new SyntaxError("Unexpected token <");
-        }
+        text: async () => "<html><body>bad payload</body></html>"
       })
     );
 
@@ -351,6 +527,6 @@ describe("createNdlSearchAdapter", () => {
         limit: 10,
         page: 1
       })
-    ).rejects.toThrow(/OpenSearch XML parsing is not implemented/i);
+    ).rejects.toThrow(/payload required/i);
   });
 });

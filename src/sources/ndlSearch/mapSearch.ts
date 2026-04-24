@@ -132,6 +132,11 @@ export function readNdlSearchString(
     }
   }
 
+  const prefixed = readStringFromPrefixedKey(record);
+  if (prefixed) {
+    return prefixed;
+  }
+
   for (const nestedValue of Object.values(record)) {
     const nested = readNdlSearchString(nestedValue, seen);
 
@@ -153,6 +158,22 @@ export function readNdlSearchStringList(value: unknown): string[] {
   const text = readNdlSearchString(value);
 
   return text ? [text] : [];
+}
+
+function readStringFromPrefixedKey(record: JsonRecord): string | null {
+  for (const [key, value] of Object.entries(record)) {
+    if (!key.startsWith("@_")) {
+      continue;
+    }
+
+    const text = readNdlSearchString(value);
+
+    if (text) {
+      return text;
+    }
+  }
+
+  return null;
 }
 
 export function readNdlSearchBoolean(value: unknown): boolean {
@@ -307,6 +328,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       readNdlSearchString(record["dcndl:volumeTitle"]),
     authors: readAuthors(
       record.authors ??
+        record.author ??
         record.creator ??
         record["dc:creator"] ??
         record["dcterms:creator"]
@@ -329,6 +351,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       digital_collection:
         readNdlSearchBoolean(record.digitalCollection) ||
         readNdlSearchBoolean(record.digital_collection) ||
+        readNdlSearchStringList(record.category).includes("デジタル") ||
         providerId?.startsWith("ndl-dl") === true
     }
   };
