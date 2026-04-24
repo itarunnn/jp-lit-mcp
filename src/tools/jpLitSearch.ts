@@ -6,13 +6,20 @@ type SearchService = ReturnType<typeof createSearchService>;
 export function createJpLitSearchTool(searchService: SearchService) {
   return async (input: unknown) => {
     const parsed = searchInputSchema.parse(input);
-    const result = await searchService.search({
+    const searchResult = await searchService.search({
       query: parsed.query,
       source: parsed.source,
       limit: parsed.limit,
       page: parsed.page
     });
-    const structuredContent = result as unknown as Record<string, unknown>;
+    const structuredContent = {
+      query: parsed.query,
+      source: parsed.source ?? null,
+      page: parsed.page,
+      limit: parsed.limit,
+      total: searchResult.total,
+      items: searchResult.items
+    } as Record<string, unknown>;
 
     return {
       content: [

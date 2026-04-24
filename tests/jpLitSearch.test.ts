@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { InvalidRequestError } from "../src/lib/errors.js";
 import { searchInputSchema } from "../src/lib/schemas.js";
 import { createSearchService } from "../src/services/searchService.js";
+import { resolveAdapterOptionsFromEnv } from "../src/server.js";
 import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
@@ -101,6 +102,10 @@ describe("createSearchService", () => {
     const result = await tool({ query: "夏目漱石", source: "ndl_search" });
 
     expect(result.structuredContent).toEqual({
+      query: "夏目漱石",
+      source: "ndl_search",
+      page: 1,
+      limit: 10,
       total: 1,
       items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
     });
@@ -110,6 +115,47 @@ describe("createSearchService", () => {
         text: JSON.stringify(result.structuredContent, null, 2)
       }
     ]);
+  });
+
+  it("tool handler は source 未指定でも query/source/page/limit を返す", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter]);
+    const tool = createJpLitSearchTool(service);
+
+    const result = await tool({ query: "夏目漱石" });
+
+    expect(result.structuredContent).toMatchObject({
+      query: "夏目漱石",
+      source: null,
+      page: 1,
+      limit: 10,
+      total: 1
+    });
+  });
+
+  it("server 用の環境変数から adapter URL を解決する", () => {
+    const config = resolveAdapterOptionsFromEnv({
+      NDL_SEARCH_BASE_URL: "https://search.example.test/api/opensearch",
+      NDL_DIGITAL_BASE_URL: "https://digital.example.test/api/opensearch"
+    });
+
+    expect(config).toEqual({
+      ndlSearch: {
+        searchBaseUrl: "https://search.example.test/api/opensearch",
+        recordBaseUrl: "https://search.example.test/api/bib/external/search"
+      },
+      ndlDigital: {
+        searchBaseUrl: "https://digital.example.test/api/opensearch",
+        recordBaseUrl: "https://digital.example.test/api/bib/external/search"
+      }
+    });
   });
 
   it("source 未指定では全 source を横断検索して件数を合算する", async () => {

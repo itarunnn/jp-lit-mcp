@@ -9,8 +9,44 @@ import { createNdlSearchAdapter } from "./sources/ndlSearch/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 
-export function createServer() {
-  const adapters = [createNdlSearchAdapter(), createNdlDigitalAdapter()];
+interface ServerEnv {
+  NDL_SEARCH_BASE_URL?: string;
+  NDL_DIGITAL_BASE_URL?: string;
+}
+
+function resolveAdapterUrls(baseUrl: string | undefined) {
+  if (!baseUrl) {
+    return {};
+  }
+
+  const url = new URL(baseUrl);
+  const origin = `${url.origin}/`;
+  const searchBaseUrl =
+    /\/api\/opensearch\/?$/.test(url.pathname) ||
+    /\/api\/bib\/external\/search\/?$/.test(url.pathname)
+      ? new URL("/api/opensearch", origin).toString()
+      : url.toString();
+  const recordBaseUrl = new URL("/api/bib/external/search", origin).toString();
+
+  return {
+    searchBaseUrl,
+    recordBaseUrl
+  };
+}
+
+export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
+  return {
+    ndlSearch: resolveAdapterUrls(env.NDL_SEARCH_BASE_URL),
+    ndlDigital: resolveAdapterUrls(env.NDL_DIGITAL_BASE_URL)
+  };
+}
+
+export function createServer(env: ServerEnv = process.env) {
+  const adapterOptions = resolveAdapterOptionsFromEnv(env);
+  const adapters = [
+    createNdlSearchAdapter(adapterOptions.ndlSearch),
+    createNdlDigitalAdapter(adapterOptions.ndlDigital)
+  ];
   const searchTool = createJpLitSearchTool(createSearchService(adapters));
   const recordTool = createJpLitGetRecordTool(createRecordService(adapters));
 
