@@ -45,6 +45,15 @@ npm test
 npm run build
 ```
 
+### MCP smoke check
+
+```bash
+npm run smoke:mcp
+```
+
+- `jp_lit_search` と `jp_lit_get_record` が MCP ツールとして公開されているかをローカルで確認します。
+- この確認は in-memory transport を使うため、外部 API への疎通は見ません。
+
 ## MCP 登録例
 
 Codex / ChatGPT 系の MCP 設定では、stdio でこのサーバーを起動します。例:
