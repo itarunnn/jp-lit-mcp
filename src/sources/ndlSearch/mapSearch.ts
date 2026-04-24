@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { PersonRole, SearchItem } from "../../lib/types.js";
 import { normalizeIssuedAt } from "../../lib/date.js";
 import { compactStrings, normalizeText } from "../../lib/normalize.js";
@@ -187,9 +188,9 @@ function readAuthors(value: unknown): PersonRole[] {
 
 function createFallbackSourceId(record: JsonRecord): string {
   const serialized = stableSerialize(record);
-  const encoded = Buffer.from(serialized, "utf-8").toString("base64url");
+  const digest = createHash("sha256").update(serialized).digest("hex");
 
-  return `fallback:${encoded.slice(0, 48)}`;
+  return `fallback:sha256:${digest}`;
 }
 
 function deriveSourceId(record: JsonRecord, url: string | null): string {
@@ -220,6 +221,16 @@ function deriveSourceId(record: JsonRecord, url: string | null): string {
   return createFallbackSourceId(record);
 }
 
+function resolveChannel(payload: JsonRecord): JsonRecord | null {
+  const directChannel = asRecord(payload.channel);
+
+  if (directChannel) {
+    return directChannel;
+  }
+
+  return asRecord(asRecord(payload.rss)?.channel);
+}
+
 function resolveItems(payload: JsonRecord): unknown[] {
   if (Array.isArray(payload.items)) {
     return payload.items;
@@ -229,7 +240,7 @@ function resolveItems(payload: JsonRecord): unknown[] {
     return Array.isArray(payload.item) ? payload.item : [payload.item];
   }
 
-  const channel = asRecord(payload.channel);
+  const channel = resolveChannel(payload);
   if (!channel) {
     return [];
   }
@@ -326,12 +337,13 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
 export function mapNdlSearchSearchResponse(payload: unknown): SearchResult {
   const record = asRecord(payload) ?? {};
   const items = resolveItems(record).map((entry) => mapNdlSearchSearchEntry(entry));
+  const channel = resolveChannel(record);
   const totalValue =
     readNdlSearchString(record.total) ??
     readNdlSearchString(record.totalResults) ??
     readNdlSearchString(record["openSearch:totalResults"]) ??
-    readNdlSearchString(asRecord(record.channel)?.totalResults) ??
-    readNdlSearchString(asRecord(record.channel)?.["openSearch:totalResults"]);
+    readNdlSearchString(channel?.totalResults) ??
+    readNdlSearchString(channel?.["openSearch:totalResults"]);
   const total = Number(totalValue);
 
   return {

@@ -149,27 +149,68 @@ describe("NDL Search mappers", () => {
     ]);
   });
 
-  it("source_id が取れない場合も衝突しにくい fallback を作る", async () => {
+  it("rss.channel 形の payload でも検索結果と total を拾える", async () => {
     const { mapNdlSearchSearchResponse } = await import(
       "../src/sources/ndlSearch/mapSearch.js"
     );
 
-    const payload = {
+    const result = mapNdlSearchSearchResponse({
+      rss: {
+        channel: {
+          "openSearch:totalResults": "1",
+          item: {
+            link: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000099",
+            "dc:title": "坊っちゃん",
+            "dc:creator": "夏目 漱石",
+            "dcterms:issued": "1906"
+          }
+        }
+      }
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        source: "ndl_search",
+        source_id: "R100000002-I000000099",
+        title: "坊っちゃん",
+        authors: [{ name: "夏目 漱石", role: "author" }],
+        issued_at: "1906",
+        issued_at_label: "1906",
+        issued_at_precision: "year",
+        url: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000099"
+      })
+    ]);
+  });
+
+  it("source_id が取れない場合は異なる長文 payload でも fallback が衝突しにくい", async () => {
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const sharedPrefix = "shared-prefix-".repeat(8);
+    const first = mapNdlSearchSearchResponse({
       items: [
         {
           "dc:title": "タイトルのみ",
-          "dc:creator": "著者A",
+          "dc:creator": `${sharedPrefix}author-a`,
           "dcterms:issued": "1910"
         }
       ]
-    };
-
-    const first = mapNdlSearchSearchResponse(payload);
-    const second = mapNdlSearchSearchResponse(payload);
+    });
+    const second = mapNdlSearchSearchResponse({
+      items: [
+        {
+          "dc:title": "タイトルのみ",
+          "dc:creator": `${sharedPrefix}author-b`,
+          "dcterms:issued": "1910"
+        }
+      ]
+    });
 
     expect(first.items[0]?.source_id).toMatch(/^fallback:/);
-    expect(first.items[0]?.source_id).not.toBe("unknown");
-    expect(first.items[0]?.source_id).toBe(second.items[0]?.source_id);
+    expect(second.items[0]?.source_id).toMatch(/^fallback:/);
+    expect(first.items[0]?.source_id).not.toBe(second.items[0]?.source_id);
   });
 });
 
@@ -181,10 +222,24 @@ describe("createNdlSearchAdapter", () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
         json: async () => searchFixture
       })
       .mockResolvedValueOnce({
         ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
         json: async () => recordFixture
       });
     vi.stubGlobal("fetch", fetch);
