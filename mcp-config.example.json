@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "ndl-jp-lit": {
+      "command": "npm",
+      "args": ["run", "dev"],
+      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "env": {
+        "NDL_SEARCH_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch",
+        "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch"
+      }
+    }
+  }
+}
