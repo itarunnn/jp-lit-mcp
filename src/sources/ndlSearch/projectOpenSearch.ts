@@ -100,7 +100,7 @@ function projectItem(value: unknown): JsonRecord {
     url,
     online: accessNote !== null,
     digitalCollection,
-    providerId: digitalCollection ? "ndl-dl" : null,
+    providerId: null,
     providerName,
     alternativeTitles: compactStrings(
       readNdlSearchStringList(item["dcndl:alternative"])

@@ -18,6 +18,7 @@ const NESTED_VALUE_KEYS = [
   "foaf:name",
   "rdf:resource"
 ] as const;
+const ATTRIBUTE_VALUE_KEYS = ["@_rdf:resource"] as const;
 const NESTED_CONTAINER_KEYS = [
   "rdf:Description",
   "foaf:Agent",
@@ -59,30 +60,6 @@ function stableSerialize(value: unknown): string {
     .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`);
 
   return `{${entries.join(",")}}`;
-}
-
-function pickNestedValue(record: JsonRecord): unknown {
-  for (const key of NESTED_VALUE_KEYS) {
-    if (key in record) {
-      return record[key];
-    }
-  }
-
-  for (const key of NESTED_CONTAINER_KEYS) {
-    if (key in record) {
-      return record[key];
-    }
-  }
-
-  for (const value of Object.values(record)) {
-    const nested = readNdlSearchString(value);
-
-    if (nested) {
-      return nested;
-    }
-  }
-
-  return null;
 }
 
 export function readNdlSearchString(
@@ -137,7 +114,11 @@ export function readNdlSearchString(
     return prefixed;
   }
 
-  for (const nestedValue of Object.values(record)) {
+  for (const [key, nestedValue] of Object.entries(record)) {
+    if (key.startsWith("@_")) {
+      continue;
+    }
+
     const nested = readNdlSearchString(nestedValue, seen);
 
     if (nested) {
@@ -161,12 +142,12 @@ export function readNdlSearchStringList(value: unknown): string[] {
 }
 
 function readStringFromPrefixedKey(record: JsonRecord): string | null {
-  for (const [key, value] of Object.entries(record)) {
-    if (!key.startsWith("@_")) {
+  for (const key of ATTRIBUTE_VALUE_KEYS) {
+    if (!(key in record)) {
       continue;
     }
 
-    const text = readNdlSearchString(value);
+    const text = readNdlSearchString(record[key]);
 
     if (text) {
       return text;

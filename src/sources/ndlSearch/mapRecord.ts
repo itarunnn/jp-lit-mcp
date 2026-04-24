@@ -31,36 +31,34 @@ function readMetaEntries(value: unknown): JsonRecord[] {
   return record ? [record] : [];
 }
 
-function readMetaValue(meta: JsonRecord | null, key: string): string | null {
+function readMetaField(
+  meta: JsonRecord | null,
+  key: string,
+  fields: string[]
+): string | null {
   if (!meta) {
     return null;
   }
 
   for (const entry of readMetaEntries(meta[key])) {
-    const value = readNdlSearchString(entry.v ?? entry.value ?? entry);
+    for (const field of fields) {
+      const value = readNdlSearchString(entry[field]);
 
-    if (value) {
-      return value;
+      if (value) {
+        return value;
+      }
     }
   }
 
   return null;
 }
 
+function readMetaValue(meta: JsonRecord | null, key: string): string | null {
+  return readMetaField(meta, key, ["v", "value"]);
+}
+
 function readMetaLabel(meta: JsonRecord | null, key: string): string | null {
-  if (!meta) {
-    return null;
-  }
-
-  for (const entry of readMetaEntries(meta[key])) {
-    const value = readNdlSearchString(entry.l ?? entry.label ?? entry);
-
-    if (value) {
-      return value;
-    }
-  }
-
-  return null;
+  return readMetaField(meta, key, ["l", "label"]);
 }
 
 function readMetaList(meta: JsonRecord | null, key: string): string[] {
@@ -69,7 +67,29 @@ function readMetaList(meta: JsonRecord | null, key: string): string[] {
   }
 
   return readMetaEntries(meta[key]).flatMap((entry) =>
-    readNdlSearchStringList(entry.v ?? entry.value ?? entry)
+    readNdlSearchStringList(entry.v ?? entry.value)
+  );
+}
+
+function normalizeViewerUrl(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+
+    return url.hostname === "dl.ndl.go.jp" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function readMetaViewerUrl(meta: JsonRecord | null): string | null {
+  return (
+    normalizeViewerUrl(readMetaValue(meta, "k30012")) ??
+    normalizeViewerUrl(readMetaField(meta, "k30012", ["i"])) ??
+    normalizeViewerUrl(readMetaField(meta, "k31000", ["i"]))
   );
 }
 
@@ -91,8 +111,7 @@ function normalizeRecordPayload(record: JsonRecord): {
     : asRecord(listRecord.items);
   const itemMeta = asRecord(itemRecord?.meta);
   const sourceId = readNdlSearchString(listRecord.id ?? itemRecord?.id);
-  const viewerUrl =
-    readMetaValue(itemMeta, "k30012") ?? readMetaValue(itemMeta, "k31000");
+  const viewerUrl = readMetaViewerUrl(itemMeta);
   const providerName = readMetaValue(itemMeta, "k80404");
   const digitalCollection =
     readMetaValue(itemMeta, "k39022") !== null ||
@@ -140,7 +159,7 @@ function normalizeRecordPayload(record: JsonRecord): {
       hasTextCoordinates: false,
       viewerUrl,
       accessNote: readMetaValue(itemMeta, "k39020"),
-      providerId: digitalCollection ? "ndl-dl" : null,
+      providerId: null,
       providerName
     },
     raw: record

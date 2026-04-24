@@ -32,7 +32,8 @@ describe("NDL Search mappers", () => {
       "../src/sources/ndlSearch/mapSearch.js"
     );
 
-    const result = mapNdlSearchSearchResponse(projectNdlSearchOpenSearchXml(xml));
+    const projected = projectNdlSearchOpenSearchXml(xml);
+    const result = mapNdlSearchSearchResponse(projected);
 
     expect(result.total).toBe(542);
     expect(result.items).toEqual([
@@ -54,6 +55,12 @@ describe("NDL Search mappers", () => {
         }
       }
     ]);
+    expect(projected.items[0]).toMatchObject({
+      providerId: null,
+      viewerUrl: "https://dl.ndl.go.jp/pid/1000732",
+      hasPageImages: true,
+      digitalCollection: true
+    });
   });
 
   it("検索結果を共通 SearchItem に正規化する", async () => {
@@ -164,8 +171,83 @@ describe("NDL Search mappers", () => {
       }
     });
     expect(record.source_metadata).toMatchObject({
-      provider_id: "ndl-dl",
+      provider_id: null,
       provider_name: "国立国会図書館デジタルコレクション"
+    });
+  });
+
+  it("k30012 欠落時は k31000.i を安全に viewer_url fallback として使う", async () => {
+    const recordFixture = readFixture("record-response.json") as Record<
+      string,
+      unknown
+    >;
+    const liveRecordFixture = JSON.parse(
+      JSON.stringify((recordFixture._fixture as { liveResponseExtract: unknown }).liveResponseExtract)
+    ) as {
+      list?: Array<{
+        items?: Array<{
+          meta?: Record<string, unknown>;
+        }>;
+      }>;
+    };
+    const itemMeta = liveRecordFixture.list?.[0]?.items?.[0]?.meta;
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    expect(itemMeta).toBeTruthy();
+    delete itemMeta?.k30012;
+
+    const record = mapNdlSearchRecordResponse(liveRecordFixture);
+
+    expect(record.availability).toMatchObject({
+      online: true,
+      digital_collection: true
+    });
+    expect(record.content_access).toMatchObject({
+      has_page_images: true,
+      viewer_url: "https://dl.ndl.go.jp/pid/1000732"
+    });
+  });
+
+  it("k30012 も k31000.i も無い場合は viewer 判定を立てない", async () => {
+    const recordFixture = readFixture("record-response.json") as Record<
+      string,
+      unknown
+    >;
+    const liveRecordFixture = JSON.parse(
+      JSON.stringify((recordFixture._fixture as { liveResponseExtract: unknown }).liveResponseExtract)
+    ) as {
+      list?: Array<{
+        items?: Array<{
+          meta?: Record<string, unknown>;
+        }>;
+      }>;
+    };
+    const itemMeta = liveRecordFixture.list?.[0]?.items?.[0]?.meta;
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    expect(itemMeta).toBeTruthy();
+    delete itemMeta?.k30012;
+    delete itemMeta?.k39020;
+    itemMeta!.k31000 = [
+      {
+        v: "info:ndljp/pid/1000732"
+      }
+    ];
+
+    const record = mapNdlSearchRecordResponse(liveRecordFixture);
+
+    expect(record.availability).toMatchObject({
+      online: false,
+      digital_collection: true
+    });
+    expect(record.content_access).toMatchObject({
+      has_page_images: false,
+      viewer_url: null,
+      access_note: null
     });
   });
 
@@ -203,7 +285,7 @@ describe("NDL Search mappers", () => {
       }
     });
     expect(record.source_metadata).toMatchObject({
-      provider_id: "ndl-dl",
+      provider_id: null,
       provider_name: "国立国会図書館デジタルコレクション"
     });
   });
@@ -305,6 +387,97 @@ describe("NDL Search mappers", () => {
         issued_at_precision: "year",
         url: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000099"
       })
+    ]);
+  });
+
+  it("複数 item と複数属性ノードでも許可された属性だけを値として読む", async () => {
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse({
+      channel: {
+        totalResults: "2",
+        item: [
+          {
+            "rdfs:seeAlso": [
+              {
+                "@_xml:lang": "ja",
+                "@_rdf:resource":
+                  "https://ndlsearch.ndl.go.jp/books/R100000002-I000000123"
+              }
+            ],
+            "dc:title": "多属性テスト1",
+            "dc:creator": [{ "#text": "著者1" }],
+            "dcterms:publisher": [
+              {
+                "@_xml:lang": "ja",
+                "@_xsi:type": "ignored"
+              },
+              {
+                "#text": "版元A"
+              }
+            ],
+            category: ["デジタル"]
+          },
+          {
+            link: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000124",
+            "dc:title": "多属性テスト2",
+            "dc:creator": [
+              {
+                "@_role": "ignored",
+                "#text": "著者2"
+              }
+            ],
+            "dcterms:abstract": [
+              {
+                "@_xml:lang": "ja"
+              },
+              {
+                "#text": "抄録B"
+              }
+            ]
+          }
+        ]
+      }
+    });
+
+    expect(result.total).toBe(2);
+    expect(result.items).toEqual([
+      {
+        source: "ndl_search",
+        source_id: "R100000002-I000000123",
+        title: "多属性テスト1",
+        subtitle: null,
+        authors: [{ name: "著者1", role: "author" }],
+        publisher: "版元A",
+        issued_at: null,
+        issued_at_label: null,
+        issued_at_precision: "unknown",
+        summary: null,
+        url: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000123",
+        availability: {
+          online: false,
+          digital_collection: true
+        }
+      },
+      {
+        source: "ndl_search",
+        source_id: "R100000002-I000000124",
+        title: "多属性テスト2",
+        subtitle: null,
+        authors: [{ name: "著者2", role: "author" }],
+        publisher: null,
+        issued_at: null,
+        issued_at_label: null,
+        issued_at_precision: "unknown",
+        summary: "抄録B",
+        url: "https://ndlsearch.ndl.go.jp/books/R100000002-I000000124",
+        availability: {
+          online: false,
+          digital_collection: false
+        }
+      }
     ]);
   });
 
