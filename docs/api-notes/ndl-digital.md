@@ -10,6 +10,8 @@
 - Record fixture の live 元
   - `https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=R100000039-I1000732`
 - Task 6 時点の adapter は OpenSearch XML parse を持たないため、fixture は NDL Search 側と同様に compatibility projection と live 応答抜粋を同居させた。
+- Task 8 品質差し戻し対応で、top-level compatibility projection も `_fixture.liveResponseExtract` と同じ資料サンプルへ揃えた。
+  - `search-response.json` は `R100000039-I1012769`、`record-response.json` は `R100000039-I1000732` の live 抜粋に合わせて dummy 値を除去した
 
 ## live 応答から fixture へ落とした手順
 

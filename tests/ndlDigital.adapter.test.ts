@@ -24,20 +24,20 @@ describe("NDL Digital mappers", () => {
 
     const result = mapNdlDigitalSearchResponse(searchFixture);
 
-    expect(result.total).toBe(1);
+    expect(result.total).toBe(92);
     expect(result.items).toEqual([
       {
         source: "ndl_digital",
-        source_id: "R100000039-I1000732",
-        title: "吾輩は猫である",
-        subtitle: "初版",
-        authors: [{ name: "夏目 漱石", role: "author" }],
-        publisher: "大倉書店",
-        issued_at: "1905",
-        issued_at_label: "1905",
-        issued_at_precision: "year",
-        summary: "長編小説。",
-        url: "https://ndlsearch.ndl.go.jp/books/R100000039-I1000732",
+        source_id: "R100000039-I1012769",
+        title: "国立国会図書館年報",
+        subtitle: "昭和63年度",
+        authors: [{ name: "国立国会図書館", role: "author" }],
+        publisher: "国立国会図書館",
+        issued_at: "1989-12-22",
+        issued_at_label: "1989-12-22",
+        issued_at_precision: "day",
+        summary: null,
+        url: "https://ndlsearch.ndl.go.jp/books/R100000039-I1012769",
         availability: {
           online: false,
           digital_collection: true
@@ -85,25 +85,28 @@ describe("NDL Digital mappers", () => {
     expect(record).toMatchObject({
       source: "ndl_digital",
       source_id: "R100000039-I1000732",
-      title: "吾輩は猫である",
-      issued_at: "1905",
-      issued_at_precision: "year",
-      alternative_titles: ["我輩は猫である"],
-      publication_place: "東京",
+      title: "国立国会図書館年報",
+      authors: [{ name: "国立国会図書館総務部", role: "author" }],
+      publisher: "国立国会図書館",
+      issued_at: null,
+      issued_at_precision: "unknown",
+      alternative_titles: ["Annual report of the National Diet Library"],
+      publication_place: "日本",
       language: "jpn",
-      material_type: "book",
-      extent: "390p",
-      subjects: ["日本小説", "明治文学"],
+      material_type: "電子書籍・電子雑誌",
+      extent: null,
+      subjects: [],
       identifiers: {
-        jpno: "43017703",
-        ndlBibId: "000000000001"
+        issn: "1349-0621",
+        issnl: "0385-325X",
+        ndljp: "info:ndljp/pid/1000732"
       },
       table_of_contents: [],
       content_access: {
         has_page_images: true,
         has_text_coordinates: false,
-        viewer_url: "https://dl.ndl.go.jp/pid/1234567",
-        access_note: "国立国会図書館内限定"
+        viewer_url: "https://dl.ndl.go.jp/pid/1000732",
+        access_note: "インターネット公開"
       }
     });
     expect(record.source_metadata).toMatchObject({

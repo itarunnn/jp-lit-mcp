@@ -1,19 +1,19 @@
 {
-  "totalResults": 1,
+  "totalResults": 92,
   "items": [
     {
-      "id": "R100000039-I1000732",
-      "title": "吾輩は猫である",
-      "subtitle": "初版",
+      "id": "R100000039-I1012769",
+      "title": "国立国会図書館年報",
+      "subtitle": "昭和63年度",
       "authors": [
         {
-          "name": "夏目 漱石"
+          "name": "国立国会図書館"
         }
       ],
-      "publisher": "大倉書店",
-      "issued": "1905",
-      "summary": "長編小説。",
-      "url": "https://ndlsearch.ndl.go.jp/books/R100000039-I1000732",
+      "publisher": "国立国会図書館",
+      "issued": "1989-12-22",
+      "summary": null,
+      "url": "https://ndlsearch.ndl.go.jp/books/R100000039-I1012769",
       "online": false,
       "digitalCollection": true,
       "providerId": "ndl-dl"

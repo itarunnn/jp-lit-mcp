@@ -11,6 +11,8 @@
 - Task 5 時点の adapter は OpenSearch XML を live parse しないため、fixture は 2 層構成にした。
   - top-level: 既存 mapper / 既存テストが読む flat な compatibility projection
   - `_fixture.liveResponseExtract`: 2026-04-24 に取得した live 応答の JSON-compatible 抜粋
+- Task 8 品質差し戻し対応で、top-level compatibility projection も `_fixture.liveResponseExtract` と同じ資料サンプルへ揃えた。
+  - `record-response.json` の token / title / viewer 系ダミー値は除去し、`R100000039-I1000732 = 国立国会図書館年報` の live 抜粋ベースへ更新した
 
 ## live 応答から fixture へ落とした手順
 
