@@ -76,8 +76,11 @@
 - live 応答抜粋として残したフィールド
   - `list[0].id`
   - `list[0].meta.t0245c`
+  - `list[0].meta.k00220`
   - `list[0].meta.t02450`
   - `list[0].meta.t02451`
+  - `list[0].meta.k28569`
+  - `list[0].meta.t02460`
   - `list[0].meta.k09022`
   - `list[0].meta.k00410`
   - `list[0].meta.t02600`
@@ -91,6 +94,12 @@
   - `list[0].items[].meta.k31000`
   - `list[0].items[].meta.k39027`
   - `list[0].items[].meta.k39029`
+
+### record fixture の追跡対応
+
+- `alternativeTitles[0]` は `list[0].meta.t02460[0].v` を抜粋したもの
+- `identifiers.issn` は `list[0].meta.k00220[0].v` を抜粋したもの
+- `identifiers.issnl` は `list[0].meta.k28569[0].v` を抜粋したもの
 
 ## API / 実装メモ
 
