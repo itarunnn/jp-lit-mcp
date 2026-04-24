@@ -1,7 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { searchInputSchema, recordInputSchema } from "./lib/schemas.js";
+import {
+  recordInputSchema,
+  recordOutputSchema,
+  searchInputSchema,
+  searchOutputSchema
+} from "./lib/schemas.js";
 import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
@@ -14,19 +19,55 @@ interface ServerEnv {
   NDL_DIGITAL_BASE_URL?: string;
 }
 
+const SEARCH_ENDPOINT_PATH = "/api/opensearch";
+const RECORD_ENDPOINT_PATH = "/api/bib/external/search";
+
+function stripTrailingSlash(pathname: string) {
+  if (pathname === "/") {
+    return pathname;
+  }
+
+  return pathname.replace(/\/+$/, "");
+}
+
+function replaceKnownEndpointPath(pathname: string, targetPath: string) {
+  const normalizedPathname = stripTrailingSlash(pathname);
+
+  if (normalizedPathname.endsWith(SEARCH_ENDPOINT_PATH)) {
+    return `${normalizedPathname.slice(0, -SEARCH_ENDPOINT_PATH.length)}${targetPath}`;
+  }
+
+  if (normalizedPathname.endsWith(RECORD_ENDPOINT_PATH)) {
+    return `${normalizedPathname.slice(0, -RECORD_ENDPOINT_PATH.length)}${targetPath}`;
+  }
+
+  return null;
+}
+
+function withPathname(url: URL, pathname: string) {
+  const nextUrl = new URL(url.toString());
+
+  nextUrl.pathname = pathname;
+  nextUrl.search = "";
+  nextUrl.hash = "";
+
+  return nextUrl.toString();
+}
+
 function resolveAdapterUrls(baseUrl: string | undefined) {
   if (!baseUrl) {
     return {};
   }
 
   const url = new URL(baseUrl);
-  const origin = `${url.origin}/`;
+  const searchPathname = replaceKnownEndpointPath(url.pathname, SEARCH_ENDPOINT_PATH);
+  const recordPathname = replaceKnownEndpointPath(url.pathname, RECORD_ENDPOINT_PATH);
   const searchBaseUrl =
-    /\/api\/opensearch\/?$/.test(url.pathname) ||
-    /\/api\/bib\/external\/search\/?$/.test(url.pathname)
-      ? new URL("/api/opensearch", origin).toString()
-      : url.toString();
-  const recordBaseUrl = new URL("/api/bib/external/search", origin).toString();
+    searchPathname === null ? url.toString() : withPathname(url, searchPathname);
+  const recordBaseUrl = withPathname(
+    url,
+    recordPathname ?? RECORD_ENDPOINT_PATH
+  );
 
   return {
     searchBaseUrl,
@@ -66,7 +107,8 @@ export function createServer(env: ServerEnv = process.env) {
     "jp_lit_search",
     {
       description: "日本語文献ポータルを検索する",
-      inputSchema: searchInputSchema.shape
+      inputSchema: searchInputSchema,
+      outputSchema: searchOutputSchema
     },
     searchTool
   );
@@ -75,7 +117,8 @@ export function createServer(env: ServerEnv = process.env) {
     "jp_lit_get_record",
     {
       description: "文献レコード詳細を取得する",
-      inputSchema: recordInputSchema.shape
+      inputSchema: recordInputSchema,
+      outputSchema: recordOutputSchema
     },
     recordTool
   );

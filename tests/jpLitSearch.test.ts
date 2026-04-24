@@ -1,9 +1,11 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 
 import { InvalidRequestError } from "../src/lib/errors.js";
 import { searchInputSchema } from "../src/lib/schemas.js";
 import { createSearchService } from "../src/services/searchService.js";
-import { resolveAdapterOptionsFromEnv } from "../src/server.js";
+import { createServer, resolveAdapterOptionsFromEnv } from "../src/server.js";
 import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
@@ -156,6 +158,63 @@ describe("createSearchService", () => {
         recordBaseUrl: "https://digital.example.test/api/bib/external/search"
       }
     });
+  });
+
+  it("path prefix 付きの base URL でも adapter URL の prefix を保持する", () => {
+    const config = resolveAdapterOptionsFromEnv({
+      NDL_SEARCH_BASE_URL: "https://search.example.test/prefix/api/opensearch",
+      NDL_DIGITAL_BASE_URL:
+        "https://digital.example.test/custom/api/bib/external/search"
+    });
+
+    expect(config).toEqual({
+      ndlSearch: {
+        searchBaseUrl: "https://search.example.test/prefix/api/opensearch",
+        recordBaseUrl:
+          "https://search.example.test/prefix/api/bib/external/search"
+      },
+      ndlDigital: {
+        searchBaseUrl: "https://digital.example.test/custom/api/opensearch",
+        recordBaseUrl:
+          "https://digital.example.test/custom/api/bib/external/search"
+      }
+    });
+  });
+
+  it("createServer 経由で tools/list に outputSchema を公開する", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-search-test-client",
+      version: "1.0.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const searchTool = tools.find((tool) => tool.name === "jp_lit_search");
+      const recordTool = tools.find((tool) => tool.name === "jp_lit_get_record");
+
+      expect(searchTool?.outputSchema?.properties).toMatchObject({
+        query: { type: "string" },
+        source: {},
+        page: { type: "integer" },
+        limit: { type: "integer" },
+        total: { type: "integer" },
+        items: { type: "array" }
+      });
+      expect(recordTool?.outputSchema?.properties).toMatchObject({
+        source: {},
+        source_id: { type: "string" },
+        title: { type: "string" },
+        content_access: { type: "object" }
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("source 未指定では全 source を横断検索して件数を合算する", async () => {
