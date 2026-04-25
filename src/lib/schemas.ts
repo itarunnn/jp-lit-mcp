@@ -38,10 +38,24 @@ export const searchItemSchema = z.object({
   issued_at_precision: issuedAtPrecisionSchema,
   summary: z.string().nullable(),
   url: z.string().nullable(),
-  availability: availabilitySchema
+  availability: availabilitySchema,
+  duplicate_key: z.string().nullable(),
+  duplicate_count: z.number().int().positive()
 });
 
-export const recordItemSchema = searchItemSchema.extend({
+export const recordItemSchema = z.object({
+  source: sourceSchema,
+  source_id: z.string(),
+  title: z.string(),
+  subtitle: z.string().nullable(),
+  authors: z.array(personRoleSchema),
+  publisher: z.string().nullable(),
+  issued_at: z.string().nullable(),
+  issued_at_label: z.string().nullable(),
+  issued_at_precision: issuedAtPrecisionSchema,
+  summary: z.string().nullable(),
+  url: z.string().nullable(),
+  availability: availabilitySchema,
   alternative_titles: z.array(z.string()),
   publication_place: z.string().nullable(),
   language: z.string().nullable(),

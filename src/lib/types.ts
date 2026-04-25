@@ -53,11 +53,25 @@ export interface SearchItemBase {
     online: boolean;
     digital_collection: boolean;
   };
+  duplicate_key: string | null;
+  duplicate_count: number;
 }
 
 export type SearchItem = SearchItemBase & DateFields;
 
-export interface RecordItemBase extends SearchItemBase {
+export interface RecordItemBase {
+  source: SourceName;
+  source_id: string;
+  title: string;
+  subtitle: string | null;
+  authors: PersonRole[];
+  publisher: string | null;
+  summary: string | null;
+  url: string | null;
+  availability: {
+    online: boolean;
+    digital_collection: boolean;
+  };
   alternative_titles: string[];
   publication_place: string | null;
   language: string | null;

@@ -30,7 +30,9 @@ function createSearchItem(
     availability: {
       online: source === "ndl_digital",
       digital_collection: true
-    }
+    },
+    duplicate_key: null,
+    duplicate_count: 1
   };
 }
 
@@ -371,6 +373,83 @@ describe("createSearchService", () => {
       createSearchItem("ndl_digital", "5", "digital-2"),
       createSearchItem("cinii_books", "7", "book-2")
     ]);
+  });
+
+  it("横断検索では複数 source に跨る同一候補へ duplicate 情報を付ける", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [
+          {
+            ...createSearchItem("ndl_search", "1", "吾輩は猫である"),
+            authors: [{ name: "夏目漱石", role: "author" }],
+            issued_at: "1905"
+          }
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const ciniiBooksAdapter: SourceAdapter = {
+      source: "cinii_books",
+      search: async () => ({
+        total: 1,
+        items: [
+          {
+            ...createSearchItem("cinii_books", "2", "吾輩は猫である"),
+            authors: [{ name: "夏目 漱石", role: "author" }],
+            issued_at: "1905"
+          }
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter, ciniiBooksAdapter]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toMatchObject({
+      source: "ndl_search",
+      duplicate_count: 2
+    });
+    expect(result.items[1]).toMatchObject({
+      source: "cinii_books",
+      duplicate_count: 2
+    });
+    expect(result.items[0]?.duplicate_key).toBeTruthy();
+    expect(result.items[0]?.duplicate_key).toBe(result.items[1]?.duplicate_key);
+  });
+
+  it("単一 source 検索では duplicate 情報を既定値のまま返す", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [
+          {
+            ...createSearchItem("ndl_search", "1", "吾輩は猫である"),
+            duplicate_key: "unexpected",
+            duplicate_count: 99
+          }
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      source: "ndl_search",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.items).toEqual([createSearchItem("ndl_search", "1", "吾輩は猫である")]);
   });
 
   it("横断検索で page が 2 以上なら InvalidRequestError を投げる", async () => {

@@ -2,6 +2,7 @@ import type { SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
 import type { SourceAdapter } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
+import type { SearchItem } from "../lib/types.js";
 
 interface SearchInput {
   query: string;
@@ -52,13 +53,104 @@ function roundRobinMerge<T>(groups: T[][], limit: number) {
   return merged;
 }
 
+function normalizeText(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[‐-―ー]/g, "-");
+}
+
+function normalizeAuthorNames(item: SearchItem) {
+  return item.authors
+    .map((author) => normalizeText(author.name))
+    .filter(Boolean)
+    .sort()
+    .join("|");
+}
+
+function buildDuplicateKey(item: SearchItem) {
+  const title = normalizeText(item.title);
+  if (!title) {
+    return null;
+  }
+
+  const authors = normalizeAuthorNames(item);
+  const issuedAt = item.issued_at ?? item.issued_at_label ?? "";
+  const publisher = normalizeText(item.publisher);
+
+  return [title, authors, issuedAt, publisher].join("::");
+}
+
+function annotateDuplicateCandidates(items: SearchItem[]) {
+  const groups = new Map<
+    string,
+    {
+      count: number;
+      sources: Set<SourceName>;
+    }
+  >();
+
+  for (const item of items) {
+    const key = buildDuplicateKey(item);
+    if (!key) {
+      continue;
+    }
+
+    const entry = groups.get(key) ?? {
+      count: 0,
+      sources: new Set<SourceName>()
+    };
+
+    entry.count += 1;
+    entry.sources.add(item.source);
+    groups.set(key, entry);
+  }
+
+  return items.map((item) => {
+    const key = buildDuplicateKey(item);
+    const group = key ? groups.get(key) : null;
+
+    if (!key || !group || group.count < 2 || group.sources.size < 2) {
+      return {
+        ...item,
+        duplicate_key: null,
+        duplicate_count: 1
+      };
+    }
+
+    return {
+      ...item,
+      duplicate_key: key,
+      duplicate_count: group.count
+    };
+  });
+}
+
+function withDefaultDuplicateInfo(items: SearchItem[]) {
+  return items.map((item) => ({
+    ...item,
+    duplicate_key: null,
+    duplicate_count: 1
+  }));
+}
+
 export function createSearchService(adapters: SourceAdapter[]) {
   const registry = createSourceRegistry(adapters);
 
   return {
     async search(input: SearchInput) {
       if (input.source) {
-        return registry.get(input.source).search(input);
+        const result = await registry.get(input.source).search(input);
+
+        return {
+          total: result.total,
+          items: withDefaultDuplicateInfo(result.items)
+        };
       }
 
       if (input.page > 1) {
@@ -71,12 +163,14 @@ export function createSearchService(adapters: SourceAdapter[]) {
         listCrossSources(registry).map((source) => registry.get(source).search(input))
       );
 
+      const mergedItems = roundRobinMerge(
+        results.map((result) => result.items),
+        input.limit
+      );
+
       return {
         total: results.reduce((sum, result) => sum + result.total, 0),
-        items: roundRobinMerge(
-          results.map((result) => result.items),
-          input.limit
-        )
+        items: annotateDuplicateCandidates(mergedItems)
       };
     }
   };

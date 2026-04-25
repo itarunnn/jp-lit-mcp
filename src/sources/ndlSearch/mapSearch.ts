@@ -334,7 +334,9 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
         readNdlSearchBoolean(record.digital_collection) ||
         readNdlSearchStringList(record.category).includes("デジタル") ||
         providerId?.startsWith("ndl-dl") === true
-    }
+    },
+    duplicate_key: null,
+    duplicate_count: 1
   };
 }
 

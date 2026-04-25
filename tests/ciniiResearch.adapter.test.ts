@@ -41,7 +41,9 @@ describe("CiNii Research mappers", () => {
         availability: {
           online: false,
           digital_collection: false
-        }
+        },
+        duplicate_key: null,
+        duplicate_count: 1
       }
     ]);
   });
