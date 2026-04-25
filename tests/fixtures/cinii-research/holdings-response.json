@@ -1,0 +1,37 @@
+{
+  "@id": "https://ci.nii.ac.jp/books/opensearch/holder?ncid=BA83739643&format=json",
+  "@graph": [
+    {
+      "title": "CiNii Books Holder - BA83739643",
+      "description": "CiNii Books Holder - BA83739643",
+      "link": {
+        "@id": "https://ci.nii.ac.jp/books/opensearch/holder?ncid=BA83739643&format=json"
+      },
+      "items": [
+        {
+          "title": "北京日本学研究センター 図書資料館",
+          "link": {
+            "@id": "https://ci.nii.ac.jp/library/FA018360"
+          },
+          "@id": "https://ci.nii.ac.jp/library/FA018360",
+          "@type": "item",
+          "rdfs:seeAlso": {
+            "@id": "https://ci.nii.ac.jp/library/FA018360.json"
+          },
+          "dc:date": "2026-04-26T00:04:15+09:00"
+        }
+      ],
+      "@id": "https://ci.nii.ac.jp/books/opensearch/holder?ncid=BA83739643&format=json",
+      "@type": "channel",
+      "dc:date": "2026-04-26T00:04:15+09:00",
+      "opensearch:totalResults": "1"
+    }
+  ],
+  "@context": {
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "opensearch": "http://a9.com/-/spec/opensearch/1.1/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "@vocab": "http://purl.org/rss/1.0/"
+  }
+}

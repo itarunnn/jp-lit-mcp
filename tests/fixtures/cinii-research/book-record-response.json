@@ -1,0 +1,99 @@
+{
+  "@context": {
+    "@vocab": "https://cir.nii.ac.jp/schema/1.0/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "prism": "http://prismstandard.org/namespaces/basic/2.0/",
+    "cinii": "http://ci.nii.ac.jp/ns/1.0/",
+    "datacite": "https://schema.datacite.org/meta/kernel-4/",
+    "ndl": "http://ndl.go.jp/dcndl/terms/",
+    "jpcoar": "https://github.com/JPCOAR/schema/blob/master/2.0/"
+  },
+  "@id": "https://cir.nii.ac.jp/crid/1971993809689508364.json",
+  "@type": "Book",
+  "productIdentifier": [
+    {
+      "identifier": {
+        "@type": "NCID",
+        "@value": "BA83739643"
+      }
+    },
+    {
+      "identifier": {
+        "@type": "ISBN",
+        "@value": "7806572856"
+      }
+    },
+    {
+      "identifier": {
+        "@type": "URI",
+        "@value": "https://ci.nii.ac.jp/ncid/BA83739643#entity"
+      }
+    }
+  ],
+  "resourceType": "図書(book)",
+  "dc:title": [
+    {
+      "@language": "zh",
+      "@value": "我是猫"
+    }
+  ],
+  "dc:language": "zh",
+  "creator": [
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1981712336528661376",
+      "@type": "Researcher",
+      "foaf:name": [
+        {
+          "@value": "于雷"
+        }
+      ]
+    },
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1981712336528661377",
+      "@type": "Researcher",
+      "foaf:name": [
+        {
+          "@value": "夏目漱石"
+        }
+      ]
+    }
+  ],
+  "dc:date": "2001",
+  "dcterms:publisher": [
+    {
+      "dc:publisher": "译林出版社",
+      "publicationPlace": "南京",
+      "prism:publicationDate": "2001"
+    }
+  ],
+  "dcterms:subject": [
+    {
+      "subjectScheme": "CTSH",
+      "notation": [
+        {
+          "@language": "zh",
+          "@value": "长篇小说"
+        }
+      ]
+    }
+  ],
+  "cinii:size": "21cm",
+  "url": [
+    {
+      "@id": "https://ci.nii.ac.jp/ncid/BA83739643#entity"
+    }
+  ],
+  "dataSourceIdentifier": [
+    {
+      "@type": "NACSIS_CAT",
+      "@value": "BA83739643"
+    },
+    {
+      "@type": "CIB",
+      "@value": "BA83739643"
+    }
+  ]
+}

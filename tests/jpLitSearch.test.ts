@@ -168,7 +168,9 @@ describe("createSearchService", () => {
   it("server 用の環境変数から adapter URL を解決する", () => {
     const config = resolveAdapterOptionsFromEnv({
       NDL_SEARCH_BASE_URL: "https://search.example.test/api/opensearch",
-      NDL_DIGITAL_BASE_URL: "https://digital.example.test/api/opensearch"
+      NDL_DIGITAL_BASE_URL: "https://digital.example.test/api/opensearch",
+      CINII_BOOKS_HOLDINGS_BASE_URL:
+        "https://ci.example.test/books/opensearch/holder"
     });
 
     expect(config).toEqual({
@@ -180,7 +182,9 @@ describe("createSearchService", () => {
         searchBaseUrl: "https://digital.example.test/api/opensearch",
         recordBaseUrl: "https://digital.example.test/api/bib/external/search"
       },
-      ciniiResearch: {}
+      ciniiResearch: {
+        holdingsBaseUrl: "https://ci.example.test/books/opensearch/holder"
+      }
     });
   });
 

@@ -267,4 +267,102 @@ describe("createCiniiResearchAdapter", () => {
     });
     expect(fetch.mock.calls[0][0]).toContain("/opensearch/books");
   });
+
+  it("cinii_books の詳細取得では holdings を source_metadata に載せる", async () => {
+    const recordFixture = readFixture("book-record-response.json");
+    const holdingsFixture = readFixture("holdings-response.json");
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
+        text: async () => JSON.stringify(recordFixture)
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
+        text: async () => JSON.stringify(holdingsFixture)
+      });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiBooksAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiBooksAdapter();
+
+    const record = await adapter.getRecord("1971993809689508364");
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1][0]).toContain(
+      "https://ci.nii.ac.jp/books/opensearch/holder?ncid=BA83739643&format=json"
+    );
+    expect(record).toMatchObject({
+      source: "cinii_books",
+      identifiers: {
+        ncid: "BA83739643",
+        isbn: "7806572856"
+      },
+      source_metadata: {
+        holdings: [
+          {
+            library_name: "北京日本学研究センター 図書資料館",
+            library_url: "https://ci.nii.ac.jp/library/FA018360",
+            library_json_url: "https://ci.nii.ac.jp/library/FA018360.json"
+          }
+        ],
+        holding_count: 1
+      }
+    });
+  });
+
+  it("cinii_books の holdings 取得が失敗しても書誌 detail は返す", async () => {
+    const recordFixture = readFixture("book-record-response.json");
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
+        text: async () => JSON.stringify(recordFixture)
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable"
+      });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiBooksAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiBooksAdapter();
+
+    const record = await adapter.getRecord("1971993809689508364");
+
+    expect(record).toMatchObject({
+      source: "cinii_books",
+      source_id: "1971993809689508364"
+    });
+    expect(record?.source_metadata).toMatchObject({
+      holding_count: null,
+      holdings: []
+    });
+  });
 });

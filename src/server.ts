@@ -24,6 +24,7 @@ interface ServerEnv {
   NDL_DIGITAL_BASE_URL?: string;
   CINII_RESEARCH_BASE_URL?: string;
   CINII_RESEARCH_RECORD_BASE_URL?: string;
+  CINII_BOOKS_HOLDINGS_BASE_URL?: string;
   CINII_RESEARCH_APP_ID?: string;
 }
 
@@ -96,6 +97,11 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
       ...(env.CINII_RESEARCH_RECORD_BASE_URL
         ? {
             recordBaseUrl: env.CINII_RESEARCH_RECORD_BASE_URL
+          }
+        : {}),
+      ...(env.CINII_BOOKS_HOLDINGS_BASE_URL
+        ? {
+            holdingsBaseUrl: env.CINII_BOOKS_HOLDINGS_BASE_URL
           }
         : {}),
       ...(env.CINII_RESEARCH_APP_ID
