@@ -27,10 +27,10 @@
 
 ## Task 1: API 調査と fixture 方針の確定
 
-- 公式仕様の確認
-- search endpoint / detail endpoint の切り分け
-- 必須フィールドの対応表作成
-- fixture の採取方針決定
+- [x] 公式仕様の確認
+- [x] search endpoint / detail endpoint の切り分け
+- [x] 必須フィールドの対応表作成
+- [x] fixture の採取方針決定
 
 ## Task 2: adapter の骨格と mapper テスト
 
@@ -41,23 +41,23 @@
 
 RED:
 
-- search の正規化テスト
-- record の正規化テスト
-- source registry / searchService / recordService から参照できること
+- [x] search の正規化テスト
+- [x] record の正規化テスト
+- [x] source registry / searchService / recordService から参照できること
 
 ## Task 3: MCP 公開面への統合
 
-- `source` schema に `cinii_research` を追加
-- `jp_lit_search` / `jp_lit_get_record` から利用可能にする
-- 既存横断検索で `page=1` が維持されることを確認
+- [x] `source` schema に `cinii_research` を追加
+- [x] `jp_lit_search` / `jp_lit_get_record` から利用可能にする
+- [x] 既存横断検索で `page=1` が維持されることを確認
 
 ## Task 4: 文書化と検証
 
-- README の source 一覧更新
-- `docs/api-notes/cinii-research.md` 追加
-- `npm test`
-- `npm run build`
-- 必要なら live smoke を追加
+- [x] README の source 一覧更新
+- [x] `docs/api-notes/cinii-research.md` 追加
+- [x] `npm test`
+- [x] `npm run build`
+- [x] live smoke を追加せず既存 `SMOKE_LIVE` で `cinii_research` を検証
 
 ## 想定リスク
 
@@ -67,8 +67,25 @@ RED:
 
 ## 完了条件
 
-- `source: "cinii_research"` で検索できる
-- 返却が既存の共通スキーマに乗る
-- detail 取得ができる
-- テストとビルドが通る
-- source 固有メタデータが `source_metadata` / `raw` に残る
+- [x] `source: "cinii_research"` で検索できる
+- [x] 返却が既存の共通スキーマに乗る
+- [x] detail 取得ができる
+- [x] テストとビルドが通る
+- [x] source 固有メタデータが `source_metadata` / `raw` に残る
+
+## 実績メモ
+
+- `cinii_research` adapter を追加
+- search は `OpenSearch articles + format=json` を使用
+- detail は `crid/{crid}.json` を使用
+- `CINII_RESEARCH_APP_ID` を optional env として追加
+- fixture / adapter test / schema test を追加
+- 2026-04-25 に live smoke 確認
+  - `cinii_research / 夏目漱石 -> 1573387450265380480`
+  - detail 取得成功
+
+## 次の改善候補
+
+- `articles` 固定ではなく source/type 指定を広げる
+- detail title の fallback を `publicationName` より精密にする
+- DOI / handle / OpenURL 系 identifier 正規化を強化する
