@@ -27,6 +27,7 @@
   - `dc:title`
   - `prism:publicationName`
   - 上の順で fallback
+- detail では `dc:title` があれば優先し、無い場合だけ `publicationName` fallback を使う
 - `authors`
   - search: `dc:creator[]`
   - detail: `creator[].foaf:name[]`
@@ -35,8 +36,19 @@
 - `identifiers`
   - `productIdentifier[].identifier`
   - `dataSourceIdentifier[]`
+  - `URI`, `NAID`, `IRDB`, `CIA` などの型をそのまま正規化して保持
 - `material_type`
-  - detail の `@type`
+  - detail の `resourceType`
+  - 無い場合だけ `@type`
+
+## 2026-04-25 精度改善メモ
+
+- detail で `dc:title` を優先するよう更新
+- `description[].notation[]` から summary を抽出
+- `publication.dc:publisher` を publisher に反映
+- `dcterms:subject[].notation[]` と `foaf:topic` を subjects に反映
+- `publication` の `volume`, `number`, `startingPage`, `endingPage` を `source_metadata` に保持
+- `url[]` を `source_metadata.urls` に保持
 
 ## 既知の制約
 

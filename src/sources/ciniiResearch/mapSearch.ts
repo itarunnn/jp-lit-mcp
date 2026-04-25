@@ -197,3 +197,7 @@ export function readCiniiString(payload: unknown) {
 export function readCiniiStringList(payload: unknown) {
   return readStringList(payload);
 }
+
+export function readCiniiAuthors(payload: unknown) {
+  return readAuthors(payload);
+}

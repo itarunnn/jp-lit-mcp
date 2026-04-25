@@ -13,6 +13,22 @@
   },
   "@id": "https://cir.nii.ac.jp/crid/1573387450265380480.json",
   "@type": "Article",
+  "resourceType": "図書(book)",
+  "dc:title": [
+    {
+      "@value": "行人"
+    }
+  ],
+  "description": [
+    {
+      "type": "Other",
+      "notation": [
+        {
+          "@value": "夏目漱石による作品。"
+        }
+      ]
+    }
+  ],
   "productIdentifier": [
     {
       "identifier": {
@@ -39,8 +55,32 @@
         "@value": "行人"
       }
     ],
-    "prism:publicationDate": "1965"
+    "dc:publisher": [
+      {
+        "@value": "岩波書店"
+      }
+    ],
+    "prism:publicationDate": "1965",
+    "prism:volume": "1",
+    "prism:number": "2",
+    "prism:startingPage": "1",
+    "prism:endingPage": "250"
   },
+  "url": [
+    {
+      "@id": "https://example.test/cinii/1573387450265380480"
+    }
+  ],
+  "dcterms:subject": [
+    {
+      "subjectScheme": "Other",
+      "notation": [
+        {
+          "@value": "日本文学"
+        }
+      ]
+    }
+  ],
   "relatedProduct": [
     {
       "@id": "https://cir.nii.ac.jp/crid/1520853832926541568",
@@ -59,6 +99,10 @@
     {
       "@type": "CIA",
       "@value": "10019109559"
+    },
+    {
+      "@type": "IRDB",
+      "@value": "oai:irdb.example/123"
     }
   ]
 }

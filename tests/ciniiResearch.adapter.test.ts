@@ -59,15 +59,18 @@ describe("CiNii Research mappers", () => {
       source_id: "1573387450265380480",
       title: "行人",
       authors: [{ name: "夏目漱石", role: "author" }],
-      publisher: null,
+      publisher: "岩波書店",
       issued_at: "1965",
       issued_at_label: "1965",
       issued_at_precision: "year",
       language: null,
-      material_type: "Article",
+      material_type: "図書(book)",
+      summary: "夏目漱石による作品。",
+      subjects: ["日本文学"],
       identifiers: {
         naid: "10019109559",
-        data_source_cia: "10019109559"
+        data_source_cia: "10019109559",
+        data_source_irdb: "oai:irdb.example/123"
       },
       table_of_contents: [],
       content_access: {
@@ -79,7 +82,13 @@ describe("CiNii Research mappers", () => {
     });
     expect(record.source_metadata).toMatchObject({
       publication_name: "行人",
+      publication_publisher: "岩波書店",
       publication_date: "1965",
+      volume: "1",
+      number: "2",
+      starting_page: "1",
+      ending_page: "250",
+      urls: ["https://example.test/cinii/1573387450265380480"],
       related_count: 1
     });
   });
