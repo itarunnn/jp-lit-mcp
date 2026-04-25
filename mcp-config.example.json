@@ -6,7 +6,9 @@
       "cwd": "J:\\apps\\ndl-jp-lit-mcp",
       "env": {
         "NDL_SEARCH_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch",
-        "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch"
+        "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch",
+        "CINII_RESEARCH_BASE_URL": "https://cir.nii.ac.jp/opensearch/articles",
+        "CINII_RESEARCH_RECORD_BASE_URL": "https://cir.nii.ac.jp/crid"
       }
     }
   }

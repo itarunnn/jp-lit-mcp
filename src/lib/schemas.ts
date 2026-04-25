@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const sourceSchema = z.enum(["ndl_search", "ndl_digital"]);
+export const sourceSchema = z.enum([
+  "ndl_search",
+  "ndl_digital",
+  "cinii_research"
+]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 
 const personRoleSchema = z.object({

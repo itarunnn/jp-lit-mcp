@@ -65,6 +65,15 @@ describe("createRecordService", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("record 入力スキーマで cinii_research source を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "cinii_research",
+      source_id: "1573387450265380480"
+    });
+
+    expect(parsed.source).toBe("cinii_research");
+  });
+
   it("source と source_id から詳細を返す", async () => {
     const adapter: SourceAdapter = {
       source: "ndl_digital",

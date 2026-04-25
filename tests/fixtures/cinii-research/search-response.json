@@ -1,0 +1,48 @@
+{
+  "@context": {
+    "@vocab": "http://purl.org/rss/1.0/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "prism": "http://prismstandard.org/namespaces/basic/2.0/",
+    "ndl": "http://ndl.go.jp/dcndl/terms",
+    "opensearch": "http://a9.com/-/spec/opensearch/1.1/",
+    "cir": "https://cir.nii.ac.jp/schema/1.0/",
+    "@language": "ja"
+  },
+  "@id": "https://cir.nii.ac.jp/opensearch/articles?q=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3&count=2&format=json",
+  "@type": "channel",
+  "title": "CiNii Research articles - 夏目漱石 2 json",
+  "description": "CiNii Research articles - 夏目漱石 2 json",
+  "link": {
+    "@id": "https://cir.nii.ac.jp/opensearch/articles?q=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3&count=2&format=json"
+  },
+  "dc:date": "2026-04-25T22:06:54.467+09:00",
+  "opensearch:totalResults": 3903,
+  "opensearch:startIndex": 1,
+  "opensearch:itemsPerPage": 2,
+  "items": [
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1573387450265380480",
+      "@type": "item",
+      "link": {
+        "@id": "https://cir.nii.ac.jp/crid/1573387450265380480"
+      },
+      "rdfs:seeAlso": {
+        "@id": "https://cir.nii.ac.jp/crid/1573387450265380480.json"
+      },
+      "dc:creator": [
+        "夏目漱石"
+      ],
+      "dc:type": "Article",
+      "prism:publicationName": "行人",
+      "prism:publicationDate": "1965",
+      "dc:identifier": [
+        {
+          "@type": "cir:NAID",
+          "@value": "10019109559"
+        }
+      ]
+    }
+  ]
+}

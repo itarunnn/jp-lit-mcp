@@ -1,0 +1,64 @@
+{
+  "@context": {
+    "@vocab": "https://cir.nii.ac.jp/schema/1.0/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "prism": "http://prismstandard.org/namespaces/basic/2.0/",
+    "cinii": "http://ci.nii.ac.jp/ns/1.0/",
+    "datacite": "https://schema.datacite.org/meta/kernel-4/",
+    "ndl": "http://ndl.go.jp/dcndl/terms/",
+    "jpcoar": "https://github.com/JPCOAR/schema/blob/master/2.0/"
+  },
+  "@id": "https://cir.nii.ac.jp/crid/1573387450265380480.json",
+  "@type": "Article",
+  "productIdentifier": [
+    {
+      "identifier": {
+        "@type": "NAID",
+        "@value": "10019109559"
+      }
+    }
+  ],
+  "creator": [
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1583387450265380480",
+      "@type": "Researcher",
+      "foaf:name": [
+        {
+          "@language": "ja",
+          "@value": "夏目漱石"
+        }
+      ]
+    }
+  ],
+  "publication": {
+    "prism:publicationName": [
+      {
+        "@value": "行人"
+      }
+    ],
+    "prism:publicationDate": "1965"
+  },
+  "relatedProduct": [
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1520853832926541568",
+      "@type": "Article",
+      "relationType": [
+        "isCitedBy"
+      ],
+      "jpcoar:relatedTitle": [
+        {
+          "@value": "慢性的な抑鬱病像を呈した初老期女性の境界関係について--アンテ・フェストゥム的焦燥感との関連を中心として"
+        }
+      ]
+    }
+  ],
+  "dataSourceIdentifier": [
+    {
+      "@type": "CIA",
+      "@value": "10019109559"
+    }
+  ]
+}

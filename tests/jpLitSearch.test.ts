@@ -57,6 +57,15 @@ describe("createSearchService", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("search 入力スキーマで cinii_research source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "cinii_research"
+    });
+
+    expect(parsed.source).toBe("cinii_research");
+  });
+
   it("source 指定ありで単一 source 検索を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
@@ -156,7 +165,8 @@ describe("createSearchService", () => {
       ndlDigital: {
         searchBaseUrl: "https://digital.example.test/api/opensearch",
         recordBaseUrl: "https://digital.example.test/api/bib/external/search"
-      }
+      },
+      ciniiResearch: {}
     });
   });
 
@@ -177,7 +187,8 @@ describe("createSearchService", () => {
         searchBaseUrl: "https://digital.example.test/custom/api/opensearch",
         recordBaseUrl:
           "https://digital.example.test/custom/api/bib/external/search"
-      }
+      },
+      ciniiResearch: {}
     });
   });
 

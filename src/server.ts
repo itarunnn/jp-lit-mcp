@@ -9,6 +9,7 @@ import {
 } from "./lib/schemas.js";
 import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
+import { createCiniiResearchAdapter } from "./sources/ciniiResearch/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import { createNdlSearchAdapter } from "./sources/ndlSearch/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
@@ -17,6 +18,9 @@ import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 interface ServerEnv {
   NDL_SEARCH_BASE_URL?: string;
   NDL_DIGITAL_BASE_URL?: string;
+  CINII_RESEARCH_BASE_URL?: string;
+  CINII_RESEARCH_RECORD_BASE_URL?: string;
+  CINII_RESEARCH_APP_ID?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/opensearch";
@@ -78,7 +82,24 @@ function resolveAdapterUrls(baseUrl: string | undefined) {
 export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
   return {
     ndlSearch: resolveAdapterUrls(env.NDL_SEARCH_BASE_URL),
-    ndlDigital: resolveAdapterUrls(env.NDL_DIGITAL_BASE_URL)
+    ndlDigital: resolveAdapterUrls(env.NDL_DIGITAL_BASE_URL),
+    ciniiResearch: {
+      ...(env.CINII_RESEARCH_BASE_URL
+        ? {
+            searchBaseUrl: env.CINII_RESEARCH_BASE_URL
+          }
+        : {}),
+      ...(env.CINII_RESEARCH_RECORD_BASE_URL
+        ? {
+            recordBaseUrl: env.CINII_RESEARCH_RECORD_BASE_URL
+          }
+        : {}),
+      ...(env.CINII_RESEARCH_APP_ID
+        ? {
+            appId: env.CINII_RESEARCH_APP_ID
+          }
+        : {})
+    }
   };
 }
 
@@ -86,7 +107,8 @@ export function createServer(env: ServerEnv = process.env) {
   const adapterOptions = resolveAdapterOptionsFromEnv(env);
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
-    createNdlDigitalAdapter(adapterOptions.ndlDigital)
+    createNdlDigitalAdapter(adapterOptions.ndlDigital),
+    createCiniiResearchAdapter(adapterOptions.ciniiResearch)
   ];
   const searchTool = createJpLitSearchTool(createSearchService(adapters));
   const recordTool = createJpLitGetRecordTool(createRecordService(adapters));
