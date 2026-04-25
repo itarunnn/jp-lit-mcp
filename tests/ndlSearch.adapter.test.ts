@@ -251,6 +251,71 @@ describe("NDL Search mappers", () => {
     });
   });
 
+  it("live JSON detail で複数 items がある場合は digital item を優先して content_access を拾う", async () => {
+    const sourceId = "R100000002-I000001061332";
+    const payload = {
+      list: [
+        {
+          id: sourceId,
+          meta: {
+            t02451: [{ v: "ああ八月十五日 : 終戦の思い出. 第2集" }],
+            t0245c: [{ v: "八幡師友会" }],
+            t02600: [{ v: "八幡師友会", l: "北九州" }],
+            k00410: [{ v: "jpn" }],
+            k09022: [{ v: "図書" }],
+            t02604: [{ v: "1964" }]
+          },
+          items: [
+            {
+              id: sourceId,
+              type: ["ndl"],
+              meta: {
+                k80404: [{ v: "国立国会図書館サーチ" }]
+              }
+            },
+            {
+              id: sourceId,
+              type: ["ndl", "digital", "accessible"],
+              meta: {
+                k39020: [{ v: "インターネット公開" }],
+                k39022: [{ v: "デジタル" }],
+                k30012: [{ v: "https://dl.ndl.go.jp/pid/1234567" }],
+                k80404: [{ v: "国立国会図書館デジタルコレクション" }],
+                k31000: [
+                  {
+                    v: "info:ndljp/pid/1234567",
+                    i: "https://dl.ndl.go.jp/pid/1234567"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    };
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    const record = mapNdlSearchRecordResponse(payload);
+
+    expect(record).toMatchObject({
+      source_id: sourceId,
+      availability: {
+        online: true,
+        digital_collection: true
+      },
+      content_access: {
+        has_page_images: true,
+        viewer_url: "https://dl.ndl.go.jp/pid/1234567",
+        access_note: "インターネット公開"
+      },
+      source_metadata: {
+        provider_name: "国立国会図書館デジタルコレクション"
+      }
+    });
+  });
+
   it("record XML を mapper が読める shape に投影できる", async () => {
     const xml = readTextFixture("record-response.xml");
     const { projectNdlSearchOpenSearchXml } = await import(

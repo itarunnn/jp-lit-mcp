@@ -1,6 +1,13 @@
 # NDL Search API メモ
 
-確認日: 2026-04-24
+確認日: 2026-04-25
+
+## Task 4 live XML 対応の方針
+
+- OpenSearch XML は `fast-xml-parser` で object 化し、`projectNdlSearchOpenSearchXml` で mapper 互換 shape に投影する。
+- adapter は content-type と payload 先頭を見て XML / JSON を分岐する。
+- XML 投影では `viewerUrl` と `category=デジタル` を優先し、`dcndl:provider` 単独では `digitalCollection=true` を立てない。
+- detail endpoint は XML / JSON の両方を `mapNdlSearchRecordResponse` に流し、既存の正規化ロジックを再利用する。
 
 ## Task 8 fixture の方針
 
@@ -110,8 +117,8 @@
   - `https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=[token]`
 - OpenSearch の主要パラメータ
   - `any`, `title`, `creator`, `publisher`, `dpid`, `cnt`, `idx`
-- OpenSearch XML をそのまま受けた場合、現実装は `NDL Search OpenSearch XML parsing is not implemented...` を返す。
-- そのため Task 8 fixture は「live 応答抜粋を保持した JSON-compatible sample」であり、完全な XML dump ではない。
+- OpenSearch XML の live parse は 2026-04-25 時点で実装済み。
+- JSON fixture は互換テストと live 応答抜粋の追跡用として引き続き保持する。
 
 ## 参照元
 

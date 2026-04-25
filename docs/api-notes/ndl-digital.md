@@ -1,6 +1,14 @@
 # NDL Digital API メモ
 
-確認日: 2026-04-24
+確認日: 2026-04-25
+
+## Task 4 live XML 対応の方針
+
+- `ndl_digital` source は引き続き `NDL Search API + dpid=ndl-dl` を使う。
+- OpenSearch XML は `projectNdlSearchOpenSearchXml` を再利用して mapper 互換 shape に投影する。
+- search は `dpid=ndl-dl` を付けた live XML / JSON の両方を受ける。
+- detail は XML / JSON の両方を受けるが、`providerId` が無い XML は `digitalCollection=true` かつ `providerName=国立国会図書館デジタルコレクション` のときだけ通す。
+- 上の fallback で通した場合でも、`source_metadata.provider_id` は推定値を埋めず `null` のまま返す。
 
 ## Task 8 fixture の前提
 
@@ -108,7 +116,7 @@
 ## `dpid=ndl-dl` メモ
 
 - `ndl-dl` は国立国会図書館デジタルコレクションの provider ID。
-- Task 8 でも `ndl-digital` adapter は OpenSearch URL に `dpid=ndl-dl` を付けるだけで、record 取得先は NDL Search detail endpoint のまま。
+- live XML 対応後も `ndl-digital` adapter は OpenSearch URL に `dpid=ndl-dl` を付けるだけで、record 取得先は NDL Search detail endpoint のまま。
 - `ndl-dl-online` や `ndl-dl-open` は別 provider ID であり、この adapter では直接扱わない。
 
 ## content_access 判定メモ
@@ -122,6 +130,13 @@
 - `access_note`
   - fixture 互換 flat field では top-level `accessNote`
   - live 抜粋側では `items[].meta.k39020`, `k39027`, `k39029`
+
+## 実装メモ
+
+- OpenSearch XML の live parse は 2026-04-25 時点で実装済み。
+- `dcndl:provider` 単独では `digitalCollection=true` を立てない。
+- `providerId` が明示的に `ndl-dl` 以外なら record は弾く。
+- JSON fixture は互換テストと live 応答抜粋の追跡用として継続する。
 
 ## 参照元
 

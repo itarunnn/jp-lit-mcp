@@ -93,6 +93,63 @@ function readMetaViewerUrl(meta: JsonRecord | null): string | null {
   );
 }
 
+function readItemTypes(item: JsonRecord | null): string[] {
+  if (!item) {
+    return [];
+  }
+
+  return readNdlSearchStringList(item.type);
+}
+
+function scoreItemRecord(item: JsonRecord | null): number {
+  if (!item) {
+    return -1;
+  }
+
+  const meta = asRecord(item.meta);
+  const itemTypes = readItemTypes(item);
+  let score = 0;
+
+  if (readMetaViewerUrl(meta)) {
+    score += 4;
+  }
+
+  if (readMetaValue(meta, "k39022")) {
+    score += 3;
+  }
+
+  if (readMetaValue(meta, "k80404")) {
+    score += 2;
+  }
+
+  if (itemTypes.includes("digital")) {
+    score += 2;
+  }
+
+  if (itemTypes.includes("accessible")) {
+    score += 1;
+  }
+
+  return score;
+}
+
+function selectPreferredItemRecord(value: unknown): JsonRecord | null {
+  const entries = Array.isArray(value) ? value : value == null ? [] : [value];
+  const records = entries.flatMap((entry) => {
+    const record = asRecord(entry);
+
+    return record ? [record] : [];
+  });
+
+  if (records.length === 0) {
+    return null;
+  }
+
+  return records.reduce((best, current) =>
+    scoreItemRecord(current) > scoreItemRecord(best) ? current : best
+  );
+}
+
 function normalizeRecordPayload(record: JsonRecord): {
   normalized: JsonRecord;
   raw: JsonRecord;
@@ -106,9 +163,7 @@ function normalizeRecordPayload(record: JsonRecord): {
 
   const listRecord = asRecord(record.list[0]) ?? {};
   const topMeta = asRecord(listRecord.meta);
-  const itemRecord = Array.isArray(listRecord.items)
-    ? asRecord(listRecord.items[0])
-    : asRecord(listRecord.items);
+  const itemRecord = selectPreferredItemRecord(listRecord.items);
   const itemMeta = asRecord(itemRecord?.meta);
   const sourceId = readNdlSearchString(listRecord.id ?? itemRecord?.id);
   const viewerUrl = readMetaViewerUrl(itemMeta);

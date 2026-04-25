@@ -51,12 +51,18 @@ function readProviderName(raw: Record<string, unknown>): string | null {
   );
 }
 
-function isNdlDigitalRecord(raw: Record<string, unknown>): boolean {
+function isNdlDigitalRecord(
+  raw: Record<string, unknown>,
+  base: RecordItem
+): boolean {
   const providerId = readProviderId(raw);
-  const providerName = readProviderName(raw);
+  const providerName =
+    readProviderName(raw) ?? base.source_metadata.provider_name ?? null;
+  const hasNestedItems = Array.isArray(raw.list) && raw.list.length > 0;
   const isDigitalCollection =
     readNdlSearchBoolean(raw.digitalCollection) ||
-    readNdlSearchBoolean(raw.digital_collection);
+    readNdlSearchBoolean(raw.digital_collection) ||
+    (hasNestedItems && base.availability.digital_collection);
 
   if (providerId !== null) {
     return providerId === "ndl-dl" && isDigitalCollection;
@@ -71,17 +77,18 @@ function isNdlDigitalRecord(raw: Record<string, unknown>): boolean {
 export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null {
   const base = mapNdlSearchRecordResponse(payload);
   const raw = base.raw;
-  if (!isNdlDigitalRecord(raw)) {
+  if (!isNdlDigitalRecord(raw, base)) {
     return null;
   }
 
   const providerId = readProviderId(raw);
   const providerName =
     readProviderName(raw) ??
+    base.source_metadata.provider_name ??
     (providerId?.startsWith("ndl-dl")
       ? "国立国会図書館デジタルコレクション"
       : null);
-  const viewerUrl = inferViewerUrl(raw);
+  const viewerUrl = inferViewerUrl(raw) ?? base.content_access.viewer_url;
   const accessNote =
     base.content_access.access_note ??
     readNdlSearchString(raw.accessNote) ??
