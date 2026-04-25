@@ -3,16 +3,31 @@ import {
   UpstreamHttpError
 } from "../../lib/http.js";
 import type { SourceAdapter } from "../types.js";
-import { mapCiniiResearchRecordResponse } from "./mapRecord.js";
-import { mapCiniiResearchSearchResponse } from "./mapSearch.js";
+import type { SourceName } from "../../lib/types.js";
+import { mapCiniiRecordResponseForSource } from "./mapRecord.js";
+import { mapCiniiSearchResponseForSource } from "./mapSearch.js";
 
 const DEFAULT_SEARCH_BASE_URL = "https://cir.nii.ac.jp/opensearch/articles";
 const DEFAULT_RECORD_BASE_URL = "https://cir.nii.ac.jp/crid";
 
 interface CiniiResearchAdapterOptions {
+  source?: "cinii_research" | "cinii_articles" | "cinii_books";
+  searchType?: "articles" | "books";
   searchBaseUrl?: string;
   recordBaseUrl?: string;
   appId?: string;
+}
+
+function normalizeSearchBaseUrl(
+  searchBaseUrl: string | undefined,
+  searchType: "articles" | "books"
+) {
+  const base = searchBaseUrl ?? DEFAULT_SEARCH_BASE_URL;
+  const url = new URL(base);
+
+  url.pathname = url.pathname.replace(/\/(articles|books)\/?$/, `/${searchType}`);
+
+  return url.toString();
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -76,11 +91,16 @@ function normalizeRecordBaseUrl(recordBaseUrl: string, sourceId: string) {
 export function createCiniiResearchAdapter(
   options: CiniiResearchAdapterOptions = {}
 ): SourceAdapter {
-  const searchBaseUrl = options.searchBaseUrl ?? DEFAULT_SEARCH_BASE_URL;
+  const source = options.source ?? "cinii_research";
+  const searchType = options.searchType ?? "articles";
+  const searchBaseUrl = normalizeSearchBaseUrl(
+    options.searchBaseUrl,
+    searchType
+  );
   const recordBaseUrl = options.recordBaseUrl ?? DEFAULT_RECORD_BASE_URL;
 
   return {
-    source: "cinii_research",
+    source,
     async search({ query, limit, page }) {
       const url = new URL(searchBaseUrl);
       url.searchParams.set("q", query);
@@ -91,16 +111,19 @@ export function createCiniiResearchAdapter(
         url.searchParams.set("appid", options.appId);
       }
 
-      return mapCiniiResearchSearchResponse(
-        await fetchJsonPayload(url.toString(), "application/json")
+      return mapCiniiSearchResponseForSource(
+        await fetchJsonPayload(url.toString(), "application/json"),
+        source
       );
     },
     async getRecord(sourceId) {
       const url = normalizeRecordBaseUrl(recordBaseUrl, sourceId);
 
       try {
-        return mapCiniiResearchRecordResponse(
-          await fetchJsonPayload(url, "application/json, application/ld+json")
+        return mapCiniiRecordResponseForSource(
+          await fetchJsonPayload(url.toString(), "application/json")
+            .catch(() => fetchJsonPayload(url, "application/json, application/ld+json")),
+          source
         );
       } catch (error) {
         if (error instanceof UpstreamHttpError && error.status === 404) {
@@ -111,4 +134,24 @@ export function createCiniiResearchAdapter(
       }
     }
   };
+}
+
+export function createCiniiArticlesAdapter(
+  options: Omit<CiniiResearchAdapterOptions, "source" | "searchType"> = {}
+): SourceAdapter {
+  return createCiniiResearchAdapter({
+    ...options,
+    source: "cinii_articles",
+    searchType: "articles"
+  });
+}
+
+export function createCiniiBooksAdapter(
+  options: Omit<CiniiResearchAdapterOptions, "source" | "searchType"> = {}
+): SourceAdapter {
+  return createCiniiResearchAdapter({
+    ...options,
+    source: "cinii_books",
+    searchType: "books"
+  });
 }

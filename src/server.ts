@@ -9,7 +9,11 @@ import {
 } from "./lib/schemas.js";
 import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
-import { createCiniiResearchAdapter } from "./sources/ciniiResearch/adapter.js";
+import {
+  createCiniiArticlesAdapter,
+  createCiniiBooksAdapter,
+  createCiniiResearchAdapter
+} from "./sources/ciniiResearch/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import { createNdlSearchAdapter } from "./sources/ndlSearch/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
@@ -108,7 +112,9 @@ export function createServer(env: ServerEnv = process.env) {
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
     createNdlDigitalAdapter(adapterOptions.ndlDigital),
-    createCiniiResearchAdapter(adapterOptions.ciniiResearch)
+    createCiniiResearchAdapter(adapterOptions.ciniiResearch),
+    createCiniiArticlesAdapter(adapterOptions.ciniiResearch),
+    createCiniiBooksAdapter(adapterOptions.ciniiResearch)
   ];
   const searchTool = createJpLitSearchTool(createSearchService(adapters));
   const recordTool = createJpLitGetRecordTool(createRecordService(adapters));

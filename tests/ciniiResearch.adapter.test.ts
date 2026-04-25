@@ -173,4 +173,98 @@ describe("createCiniiResearchAdapter", () => {
 
     await expect(adapter.getRecord("missing-crid")).resolves.toBeNull();
   });
+
+  it("cinii_articles source を articles 検索として公開できる", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(searchFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiArticlesAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiArticlesAdapter();
+
+    const result = await adapter.search({
+      query: "夏目漱石",
+      limit: 2,
+      page: 1
+    });
+
+    expect(adapter.source).toBe("cinii_articles");
+    expect(result.items[0]?.source).toBe("cinii_articles");
+    expect(fetch.mock.calls[0][0]).toContain("/opensearch/articles");
+  });
+
+  it("cinii_books source を books 検索として公開できる", async () => {
+    const bookFixture = {
+      "@id": "https://cir.nii.ac.jp/opensearch/books?q=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3&count=1&format=json",
+      "@type": "channel",
+      "opensearch:totalResults": 2792,
+      items: [
+        {
+          "@id": "https://cir.nii.ac.jp/crid/1971993809689508364",
+          title: "我是猫",
+          link: {
+            "@id": "https://cir.nii.ac.jp/crid/1971993809689508364"
+          },
+          "dc:creator": ["于雷", "夏目漱石"],
+          "dc:publisher": "译林出版社",
+          "dc:type": "Book",
+          "prism:publicationDate": "2001",
+          "dc:identifier": [
+            {
+              "@type": "cir:NCID",
+              "@value": "BA83739643"
+            },
+            {
+              "@type": "cir:ISBN",
+              "@value": "7806572856"
+            }
+          ]
+        }
+      ]
+    };
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(bookFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiBooksAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiBooksAdapter();
+
+    const result = await adapter.search({
+      query: "夏目漱石",
+      limit: 1,
+      page: 1
+    });
+
+    expect(adapter.source).toBe("cinii_books");
+    expect(result.items[0]).toMatchObject({
+      source: "cinii_books",
+      source_id: "1971993809689508364",
+      title: "我是猫",
+      publisher: "译林出版社"
+    });
+    expect(fetch.mock.calls[0][0]).toContain("/opensearch/books");
+  });
 });

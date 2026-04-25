@@ -15,6 +15,18 @@ const ndlDigitalAdapter: SourceAdapter = {
   getRecord: async () => null
 };
 
+const ciniiArticlesAdapter: SourceAdapter = {
+  source: "cinii_articles",
+  search: async () => ({ total: 0, items: [] }),
+  getRecord: async () => null
+};
+
+const ciniiBooksAdapter: SourceAdapter = {
+  source: "cinii_books",
+  search: async () => ({ total: 0, items: [] }),
+  getRecord: async () => null
+};
+
 describe("createSourceRegistry", () => {
   it("source 名から adapter を引ける", () => {
     const registry = createSourceRegistry([dummyAdapter]);
@@ -29,9 +41,19 @@ describe("createSourceRegistry", () => {
   });
 
   it("複数 adapter の source 一覧を返す", () => {
-    const registry = createSourceRegistry([dummyAdapter, ndlDigitalAdapter]);
+    const registry = createSourceRegistry([
+      dummyAdapter,
+      ndlDigitalAdapter,
+      ciniiArticlesAdapter,
+      ciniiBooksAdapter
+    ]);
 
-    expect(registry.list()).toEqual(["ndl_search", "ndl_digital"]);
+    expect(registry.list()).toEqual([
+      "ndl_search",
+      "ndl_digital",
+      "cinii_articles",
+      "cinii_books"
+    ]);
   });
 
   it("未対応 source で例外を投げる", () => {

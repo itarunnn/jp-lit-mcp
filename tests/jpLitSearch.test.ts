@@ -66,6 +66,20 @@ describe("createSearchService", () => {
     expect(parsed.source).toBe("cinii_research");
   });
 
+  it("search 入力スキーマで cinii_articles / cinii_books source を受け付ける", () => {
+    const articles = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "cinii_articles"
+    });
+    const books = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "cinii_books"
+    });
+
+    expect(articles.source).toBe("cinii_articles");
+    expect(books.source).toBe("cinii_books");
+  });
+
   it("source 指定ありで単一 source 検索を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",

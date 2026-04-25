@@ -3,7 +3,9 @@ import { z } from "zod";
 export const sourceSchema = z.enum([
   "ndl_search",
   "ndl_digital",
-  "cinii_research"
+  "cinii_research",
+  "cinii_articles",
+  "cinii_books"
 ]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 

@@ -1,4 +1,9 @@
-export type SourceName = "ndl_search" | "ndl_digital" | "cinii_research";
+export type SourceName =
+  | "ndl_search"
+  | "ndl_digital"
+  | "cinii_research"
+  | "cinii_articles"
+  | "cinii_books";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 

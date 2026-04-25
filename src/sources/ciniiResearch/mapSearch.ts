@@ -1,5 +1,5 @@
 import { normalizeIssuedAt } from "../../lib/date.js";
-import type { SearchItem } from "../../lib/types.js";
+import type { SearchItem, SourceName } from "../../lib/types.js";
 import { normalizeText } from "../../lib/normalize.js";
 import type { SearchResult } from "../types.js";
 
@@ -136,7 +136,22 @@ function toIssuedFields(value: string | null) {
   };
 }
 
-export function mapCiniiResearchSearchEntry(entry: unknown): SearchItem {
+function toCiniiSource(source: SourceName): SearchItem["source"] {
+  if (
+    source === "cinii_research" ||
+    source === "cinii_articles" ||
+    source === "cinii_books"
+  ) {
+    return source;
+  }
+
+  return "cinii_research";
+}
+
+export function mapCiniiResearchSearchEntry(
+  entry: unknown,
+  source: SourceName = "cinii_research"
+): SearchItem {
   const record = asRecord(entry) ?? {};
   const issuedSource =
     readString(record["prism:publicationDate"]) ??
@@ -147,7 +162,7 @@ export function mapCiniiResearchSearchEntry(entry: unknown): SearchItem {
     null;
 
   return {
-    source: "cinii_research",
+    source: toCiniiSource(source),
     source_id: readCrid(record),
     title:
       readString(record.title) ??
@@ -174,9 +189,16 @@ export function mapCiniiResearchSearchEntry(entry: unknown): SearchItem {
 }
 
 export function mapCiniiResearchSearchResponse(payload: unknown): SearchResult {
+  return mapCiniiSearchResponseForSource(payload, "cinii_research");
+}
+
+export function mapCiniiSearchResponseForSource(
+  payload: unknown,
+  source: SourceName
+): SearchResult {
   const record = asRecord(payload) ?? {};
   const items = Array.isArray(record.items)
-    ? record.items.map((entry) => mapCiniiResearchSearchEntry(entry))
+    ? record.items.map((entry) => mapCiniiResearchSearchEntry(entry, source))
     : [];
   const total = Number(record["opensearch:totalResults"]);
 

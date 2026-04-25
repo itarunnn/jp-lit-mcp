@@ -1,4 +1,4 @@
-import type { RecordItem } from "../../lib/types.js";
+import type { RecordItem, SourceName } from "../../lib/types.js";
 import {
   readCiniiAuthors,
   mapCiniiResearchSearchEntry,
@@ -87,6 +87,13 @@ function readDataSourceIdentifiers(value: unknown): Record<string, unknown> {
 }
 
 export function mapCiniiResearchRecordResponse(payload: unknown): RecordItem {
+  return mapCiniiRecordResponseForSource(payload, "cinii_research");
+}
+
+export function mapCiniiRecordResponseForSource(
+  payload: unknown,
+  source: SourceName
+): RecordItem {
   const record = asRecord(payload) ?? {};
   const base = mapCiniiResearchSearchEntry({
     ...record,
@@ -105,7 +112,7 @@ export function mapCiniiResearchRecordResponse(payload: unknown): RecordItem {
       readCiniiString(readPublication(record)["prism:publicationName"]) ??
       record["prism:publicationName"],
     description: readDescription(record.description) ?? record.description
-  });
+  }, source);
   const publication = readPublication(record);
   const startingPage = readCiniiString(publication["prism:startingPage"]);
   const endingPage = readCiniiString(publication["prism:endingPage"]);
