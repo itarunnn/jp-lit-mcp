@@ -277,7 +277,99 @@ describe("createSearchService", () => {
     expect(result.total).toBe(3);
     expect(result.items).toEqual([
       createSearchItem("ndl_search", "1", "吾輩は猫である"),
-      createSearchItem("ndl_search", "2", "こころ")
+      createSearchItem("ndl_digital", "3", "坊っちゃん")
+    ]);
+  });
+
+  it("横断検索では cinii_research alias を除外する", async () => {
+    const ciniiResearchAdapter: SourceAdapter = {
+      source: "cinii_research",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("cinii_research", "1", "alias result")]
+      }),
+      getRecord: async () => null
+    };
+    const ciniiArticlesAdapter: SourceAdapter = {
+      source: "cinii_articles",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("cinii_articles", "2", "article result")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([
+      ciniiResearchAdapter,
+      ciniiArticlesAdapter
+    ]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      createSearchItem("cinii_articles", "2", "article result")
+    ]);
+  });
+
+  it("横断検索では source ごとにラウンドロビンで結果を混在させる", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 3,
+        items: [
+          createSearchItem("ndl_search", "1", "ndl-1"),
+          createSearchItem("ndl_search", "2", "ndl-2"),
+          createSearchItem("ndl_search", "3", "ndl-3")
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const ndlDigitalAdapter: SourceAdapter = {
+      source: "ndl_digital",
+      search: async () => ({
+        total: 2,
+        items: [
+          createSearchItem("ndl_digital", "4", "digital-1"),
+          createSearchItem("ndl_digital", "5", "digital-2")
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const ciniiBooksAdapter: SourceAdapter = {
+      source: "cinii_books",
+      search: async () => ({
+        total: 2,
+        items: [
+          createSearchItem("cinii_books", "6", "book-1"),
+          createSearchItem("cinii_books", "7", "book-2")
+        ]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([
+      ndlSearchAdapter,
+      ndlDigitalAdapter,
+      ciniiBooksAdapter
+    ]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      limit: 6,
+      page: 1
+    });
+
+    expect(result.total).toBe(7);
+    expect(result.items).toEqual([
+      createSearchItem("ndl_search", "1", "ndl-1"),
+      createSearchItem("ndl_digital", "4", "digital-1"),
+      createSearchItem("cinii_books", "6", "book-1"),
+      createSearchItem("ndl_search", "2", "ndl-2"),
+      createSearchItem("ndl_digital", "5", "digital-2"),
+      createSearchItem("cinii_books", "7", "book-2")
     ]);
   });
 
