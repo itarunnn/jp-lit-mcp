@@ -50,11 +50,31 @@ async function runLiveSmoke(client: Client) {
         source?: string;
         source_id?: string;
         title?: string;
+        source_metadata?: {
+          holding_count?: number | null;
+          holdings?: Array<{
+            library_name?: string;
+            library_url?: string;
+          }>;
+        };
       }
     | undefined;
 
   if (!recordData?.source_id || !recordData?.source) {
     throw new Error("Live smoke record returned no structured record.");
+  }
+
+  if (recordData.source === "cinii_books") {
+    const holdingCount = recordData.source_metadata?.holding_count;
+    const holdings = recordData.source_metadata?.holdings;
+
+    if (
+      typeof holdingCount !== "number" ||
+      !Array.isArray(holdings) ||
+      holdings.length === 0
+    ) {
+      throw new Error("Live smoke cinii_books record returned no holdings.");
+    }
   }
 
   console.log(

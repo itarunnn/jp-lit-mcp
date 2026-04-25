@@ -75,6 +75,7 @@ $env:SMOKE_LIVE="1"; npm run smoke:mcp
 - `jp_lit_search` で live 検索し、先頭結果を `jp_lit_get_record` で引き直します。
 - 既定値は `source=ndl_search`, `query=菊池寛` です。
 - `SMOKE_LIVE_SOURCE`, `SMOKE_LIVE_QUERY` で上書きできます。
+- `SMOKE_LIVE_SOURCE=cinii_books` のときは、`source_metadata.holding_count` と `source_metadata.holdings[]` も確認します。
 
 ## live 対応状況
 
