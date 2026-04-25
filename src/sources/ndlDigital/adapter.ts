@@ -1,9 +1,10 @@
 import {
   UnsupportedPayloadError,
-  UpstreamHttpError,
-  fetchJson
+  UpstreamHttpError
 } from "../../lib/http.js";
+import { assertXmlPayload } from "../../lib/xml.js";
 import type { SourceAdapter } from "../types.js";
+import { projectNdlSearchOpenSearchXml } from "../ndlSearch/projectOpenSearch.js";
 import { mapNdlDigitalRecordResponse } from "./mapRecord.js";
 import { mapNdlDigitalSearchResponse } from "./mapSearch.js";
 
@@ -14,6 +15,60 @@ const DEFAULT_RECORD_BASE_URL =
 interface NdlDigitalAdapterOptions {
   searchBaseUrl?: string;
   recordBaseUrl?: string;
+}
+
+function isJsonContentType(contentType: string | null): boolean {
+  if (!contentType) {
+    return false;
+  }
+
+  const normalized = contentType.toLowerCase();
+
+  return (
+    normalized.includes("application/json") ||
+    normalized.includes("+json") ||
+    normalized.includes("text/json")
+  );
+}
+
+async function fetchNdlDigitalPayload(url: string): Promise<unknown> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new UpstreamHttpError(response.status, response.statusText);
+  }
+
+  const contentType = response.headers?.get("content-type") ?? null;
+  if (typeof response.text !== "function") {
+    if (isJsonContentType(contentType) && typeof response.json === "function") {
+      return (await response.json()) as unknown;
+    }
+
+    throw new UnsupportedPayloadError(
+      "Response body reader is unavailable for the received payload"
+    );
+  }
+
+  const text = await response.text();
+  const trimmed = text.trimStart();
+
+  if (
+    isJsonContentType(contentType) ||
+    trimmed.startsWith("{") ||
+    trimmed.startsWith("[")
+  ) {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      throw new UnsupportedPayloadError(
+        "JSON payload required but upstream returned non-JSON content"
+      );
+    }
+  }
+
+  assertXmlPayload({ text, contentType });
+
+  return projectNdlSearchOpenSearchXml(text);
 }
 
 export function createNdlDigitalAdapter(
@@ -31,20 +86,9 @@ export function createNdlDigitalAdapter(
       url.searchParams.set("idx", String((page - 1) * limit + 1));
       url.searchParams.set("dpid", "ndl-dl");
 
-      let payload: unknown;
-      try {
-        payload = await fetchJson<unknown>(url.toString());
-      } catch (error) {
-        if (error instanceof UnsupportedPayloadError) {
-          throw new UnsupportedPayloadError(
-            "NDL Search OpenSearch XML parsing is not implemented in Task 6 for ndl_digital. search() currently expects a JSON-compatible OpenSearch representation filtered with dpid=ndl-dl."
-          );
-        }
-
-        throw error;
-      }
-
-      return mapNdlDigitalSearchResponse(payload);
+      return mapNdlDigitalSearchResponse(
+        await fetchNdlDigitalPayload(url.toString())
+      );
     },
     async getRecord(sourceId) {
       const url = new URL(recordBaseUrl);
@@ -52,7 +96,7 @@ export function createNdlDigitalAdapter(
       url.searchParams.set("f-token", sourceId);
 
       try {
-        const payload = await fetchJson<unknown>(url.toString());
+        const payload = await fetchNdlDigitalPayload(url.toString());
 
         return mapNdlDigitalRecordResponse(payload);
       } catch (error) {

@@ -85,7 +85,7 @@ function projectItem(value: unknown): JsonRecord {
   const accessNote = readNdlSearchString(item["dcndl:access"]);
   const providerName = readNdlSearchString(item["dcndl:provider"]);
   const digitalCollection =
-    categories.includes("デジタル") || viewerUrl !== null || providerName !== null;
+    categories.includes("デジタル") || viewerUrl !== null;
 
   return {
     id: extractSourceId(url),
@@ -93,10 +93,16 @@ function projectItem(value: unknown): JsonRecord {
       readNdlSearchString(item["dc:title"]) ??
       readNdlSearchString(item.title) ??
       "Untitled",
+    subtitle:
+      readNdlSearchString(item["dcndl:volumeTitle"]) ??
+      readNdlSearchString(item["dcndl:volume"]),
     authors: toAuthors(item["dc:creator"] ?? item.author),
     publisher:
       readNdlSearchString(item["dc:publisher"]) ??
       readNdlSearchString(item["dcterms:publisher"]),
+    issued:
+      readNdlSearchString(item["dcterms:issued"]) ??
+      readNdlSearchString(item["dc:date"]),
     url,
     online: accessNote !== null,
     digitalCollection,

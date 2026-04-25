@@ -43,14 +43,29 @@ function readProviderId(raw: Record<string, unknown>): string | null {
   );
 }
 
+function readProviderName(raw: Record<string, unknown>): string | null {
+  return (
+    readNdlSearchString(raw.providerName) ??
+    readNdlSearchString(raw.provider_name) ??
+    readNdlSearchString(raw.provider)
+  );
+}
+
 function isNdlDigitalRecord(raw: Record<string, unknown>): boolean {
   const providerId = readProviderId(raw);
-  if (providerId !== "ndl-dl") {
-    return false;
+  const providerName = readProviderName(raw);
+  const isDigitalCollection =
+    readNdlSearchBoolean(raw.digitalCollection) ||
+    readNdlSearchBoolean(raw.digital_collection);
+
+  if (providerId !== null) {
+    return providerId === "ndl-dl" && isDigitalCollection;
   }
 
-  return readNdlSearchBoolean(raw.digitalCollection) ||
-    readNdlSearchBoolean(raw.digital_collection);
+  return (
+    isDigitalCollection &&
+    providerName === "国立国会図書館デジタルコレクション"
+  );
 }
 
 export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null {
@@ -60,12 +75,10 @@ export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null
     return null;
   }
 
-  const providerId = readProviderId(raw) ?? "ndl-dl";
+  const providerId = readProviderId(raw);
   const providerName =
-    readNdlSearchString(raw.providerName) ??
-    readNdlSearchString(raw.provider_name) ??
-    readNdlSearchString(raw.provider) ??
-    (providerId.startsWith("ndl-dl")
+    readProviderName(raw) ??
+    (providerId?.startsWith("ndl-dl")
       ? "国立国会図書館デジタルコレクション"
       : null);
   const viewerUrl = inferViewerUrl(raw);

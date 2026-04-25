@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:openSearch="http://a9.com/-/spec/opensearchrss/1.0/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:dcterms="http://purl.org/dc/terms/"
+     xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <channel>
+    <title>国立国会図書館年報 ndl-dl - 国立国会図書館サーチ OpenSearch</title>
+    <link>https://ndlsearch.ndl.go.jp/</link>
+    <description>NDL Digital OpenSearch response sample</description>
+    <openSearch:totalResults>92</openSearch:totalResults>
+    <openSearch:startIndex>1</openSearch:startIndex>
+    <openSearch:itemsPerPage>3</openSearch:itemsPerPage>
+    <item>
+      <title>国立国会図書館年報</title>
+      <link>https://ndlsearch.ndl.go.jp/books/R100000039-I1012769</link>
+      <author>国立国会図書館</author>
+      <category>雑誌</category>
+      <category>デジタル</category>
+      <dc:title>国立国会図書館年報</dc:title>
+      <dcndl:volumeTitle>昭和63年度</dcndl:volumeTitle>
+      <dc:publisher>国立国会図書館</dc:publisher>
+      <dcterms:issued>1989-12-22</dcterms:issued>
+      <dc:identifier xsi:type="dcndl:ISSN">0385-325X</dc:identifier>
+      <dc:identifier xsi:type="dcndl:NDLJP">info:ndljp/pid/1012769</dc:identifier>
+      <rdfs:seeAlso rdf:resource="https://dl.ndl.go.jp/pid/1012769" />
+    </item>
+  </channel>
+</rss>
