@@ -83,6 +83,20 @@ describe("createSearchService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
+  it("search 入力スキーマで ndl_catalog / ndl_articles source を受け付ける", () => {
+    const catalog = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "ndl_catalog"
+    });
+    const articles = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "ndl_articles"
+    });
+
+    expect(catalog.source).toBe("ndl_catalog");
+    expect(articles.source).toBe("ndl_articles");
+  });
+
   it("source 指定ありで単一 source 検索を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
@@ -147,10 +161,10 @@ describe("createSearchService", () => {
 
   it("tool handler は source 未指定でも query/source/page/limit を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
-      source: "ndl_search",
+      source: "ndl_catalog",
       search: async () => ({
         total: 1,
-        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+        items: [createSearchItem("ndl_catalog", "1", "吾輩は猫である")]
       }),
       getRecord: async () => null
     };
@@ -250,13 +264,13 @@ describe("createSearchService", () => {
   });
 
   it("source 未指定では全 source を横断検索して件数を合算する", async () => {
-    const ndlSearchAdapter: SourceAdapter = {
-      source: "ndl_search",
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
       search: async () => ({
         total: 2,
         items: [
-          createSearchItem("ndl_search", "1", "吾輩は猫である"),
-          createSearchItem("ndl_search", "2", "こころ")
+          createSearchItem("ndl_catalog", "1", "吾輩は猫である"),
+          createSearchItem("ndl_catalog", "2", "こころ")
         ]
       }),
       getRecord: async () => null
@@ -269,7 +283,7 @@ describe("createSearchService", () => {
       }),
       getRecord: async () => null
     };
-    const service = createSearchService([ndlSearchAdapter, ndlDigitalAdapter]);
+    const service = createSearchService([ndlCatalogAdapter, ndlDigitalAdapter]);
 
     const result = await service.search({
       query: "夏目漱石",
@@ -279,7 +293,7 @@ describe("createSearchService", () => {
 
     expect(result.total).toBe(3);
     expect(result.items).toEqual([
-      createSearchItem("ndl_search", "1", "吾輩は猫である"),
+      createSearchItem("ndl_catalog", "1", "吾輩は猫である"),
       createSearchItem("ndl_digital", "3", "坊っちゃん")
     ]);
   });
@@ -319,14 +333,14 @@ describe("createSearchService", () => {
   });
 
   it("横断検索では source ごとにラウンドロビンで結果を混在させる", async () => {
-    const ndlSearchAdapter: SourceAdapter = {
-      source: "ndl_search",
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
       search: async () => ({
         total: 3,
         items: [
-          createSearchItem("ndl_search", "1", "ndl-1"),
-          createSearchItem("ndl_search", "2", "ndl-2"),
-          createSearchItem("ndl_search", "3", "ndl-3")
+          createSearchItem("ndl_catalog", "1", "ndl-1"),
+          createSearchItem("ndl_catalog", "2", "ndl-2"),
+          createSearchItem("ndl_catalog", "3", "ndl-3")
         ]
       }),
       getRecord: async () => null
@@ -354,7 +368,7 @@ describe("createSearchService", () => {
       getRecord: async () => null
     };
     const service = createSearchService([
-      ndlSearchAdapter,
+      ndlCatalogAdapter,
       ndlDigitalAdapter,
       ciniiBooksAdapter
     ]);
@@ -367,23 +381,23 @@ describe("createSearchService", () => {
 
     expect(result.total).toBe(7);
     expect(result.items).toEqual([
-      createSearchItem("ndl_search", "1", "ndl-1"),
+      createSearchItem("ndl_catalog", "1", "ndl-1"),
       createSearchItem("ndl_digital", "4", "digital-1"),
       createSearchItem("cinii_books", "6", "book-1"),
-      createSearchItem("ndl_search", "2", "ndl-2"),
+      createSearchItem("ndl_catalog", "2", "ndl-2"),
       createSearchItem("ndl_digital", "5", "digital-2"),
       createSearchItem("cinii_books", "7", "book-2")
     ]);
   });
 
   it("横断検索では複数 source に跨る同一候補へ duplicate 情報を付ける", async () => {
-    const ndlSearchAdapter: SourceAdapter = {
-      source: "ndl_search",
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
       search: async () => ({
         total: 1,
         items: [
           {
-            ...createSearchItem("ndl_search", "1", "吾輩は猫である"),
+            ...createSearchItem("ndl_catalog", "1", "吾輩は猫である"),
             authors: [{ name: "夏目漱石", role: "author" }],
             issued_at: "1905"
           }
@@ -405,7 +419,7 @@ describe("createSearchService", () => {
       }),
       getRecord: async () => null
     };
-    const service = createSearchService([ndlSearchAdapter, ciniiBooksAdapter]);
+    const service = createSearchService([ndlCatalogAdapter, ciniiBooksAdapter]);
 
     const result = await service.search({
       query: "夏目漱石",
@@ -415,7 +429,7 @@ describe("createSearchService", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      source: "ndl_search",
+      source: "ndl_catalog",
       duplicate_count: 2,
       related_records: [
         {
@@ -431,7 +445,7 @@ describe("createSearchService", () => {
       duplicate_count: 2,
       related_records: [
         {
-          source: "ndl_search",
+          source: "ndl_catalog",
           source_id: "1",
           title: "吾輩は猫である",
           url: null
@@ -470,11 +484,19 @@ describe("createSearchService", () => {
   });
 
   it("横断検索で page が 2 以上なら InvalidRequestError を投げる", async () => {
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_catalog", "1", "吾輩は猫である")]
+      }),
+      getRecord: async () => null
+    };
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
       search: async () => ({
         total: 1,
-        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+        items: [createSearchItem("ndl_search", "9", "all-result")]
       }),
       getRecord: async () => null
     };
@@ -486,7 +508,11 @@ describe("createSearchService", () => {
       }),
       getRecord: async () => null
     };
-    const service = createSearchService([ndlSearchAdapter, ndlDigitalAdapter]);
+    const service = createSearchService([
+      ndlCatalogAdapter,
+      ndlSearchAdapter,
+      ndlDigitalAdapter
+    ]);
 
     await expect(
       service.search({
@@ -495,5 +521,36 @@ describe("createSearchService", () => {
         page: 2
       })
     ).rejects.toThrow(InvalidRequestError);
+  });
+
+  it("横断検索の既定 source から ndl_search は除外する", async () => {
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_search", "9", "all-result")]
+      }),
+      getRecord: async () => null
+    };
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_catalog", "1", "catalog-result")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter, ndlCatalogAdapter]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      createSearchItem("ndl_catalog", "1", "catalog-result")
+    ]);
   });
 });

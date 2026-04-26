@@ -15,7 +15,11 @@ import {
   createCiniiResearchAdapter
 } from "./sources/ciniiResearch/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
-import { createNdlSearchAdapter } from "./sources/ndlSearch/adapter.js";
+import {
+  createNdlArticlesAdapter,
+  createNdlCatalogAdapter,
+  createNdlSearchAdapter
+} from "./sources/ndlSearch/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 
@@ -117,7 +121,9 @@ export function createServer(env: ServerEnv = process.env) {
   const adapterOptions = resolveAdapterOptionsFromEnv(env);
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
+    createNdlCatalogAdapter(adapterOptions.ndlSearch),
     createNdlDigitalAdapter(adapterOptions.ndlDigital),
+    createNdlArticlesAdapter(adapterOptions.ndlSearch),
     createCiniiResearchAdapter(adapterOptions.ciniiResearch),
     createCiniiArticlesAdapter(adapterOptions.ciniiResearch),
     createCiniiBooksAdapter(adapterOptions.ciniiResearch)

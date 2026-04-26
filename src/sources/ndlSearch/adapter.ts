@@ -3,6 +3,7 @@ import {
   UpstreamHttpError
 } from "../../lib/http.js";
 import { assertXmlPayload } from "../../lib/xml.js";
+import type { RecordItem, SearchItem, SourceName } from "../../lib/types.js";
 import type { SourceAdapter } from "../types.js";
 import { mapNdlSearchRecordResponse } from "./mapRecord.js";
 import { mapNdlSearchSearchResponse } from "./mapSearch.js";
@@ -13,8 +14,17 @@ const DEFAULT_RECORD_BASE_URL =
   "https://ndlsearch.ndl.go.jp/api/bib/external/search";
 
 interface NdlSearchAdapterOptions {
+  source?: "ndl_search" | "ndl_catalog" | "ndl_articles";
+  providerId?: string;
   searchBaseUrl?: string;
   recordBaseUrl?: string;
+}
+
+function withSource<T extends SearchItem | RecordItem>(item: T, source: SourceName): T {
+  return {
+    ...item,
+    source
+  };
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -74,18 +84,30 @@ async function fetchNdlSearchPayload(url: string): Promise<unknown> {
 export function createNdlSearchAdapter(
   options: NdlSearchAdapterOptions = {}
 ): SourceAdapter {
+  const source = options.source ?? "ndl_search";
+  const providerId = options.providerId;
   const searchBaseUrl = options.searchBaseUrl ?? DEFAULT_SEARCH_BASE_URL;
   const recordBaseUrl = options.recordBaseUrl ?? DEFAULT_RECORD_BASE_URL;
 
   return {
-    source: "ndl_search",
+    source,
     async search({ query, limit, page }) {
       const url = new URL(searchBaseUrl);
       url.searchParams.set("any", query);
       url.searchParams.set("cnt", String(limit));
       url.searchParams.set("idx", String((page - 1) * limit + 1));
+      if (providerId) {
+        url.searchParams.set("dpid", providerId);
+      }
 
-      return mapNdlSearchSearchResponse(await fetchNdlSearchPayload(url.toString()));
+      const result = mapNdlSearchSearchResponse(
+        await fetchNdlSearchPayload(url.toString())
+      );
+
+      return {
+        total: result.total,
+        items: result.items.map((item) => withSource(item, source))
+      };
     },
     async getRecord(sourceId) {
       const url = new URL(recordBaseUrl);
@@ -93,9 +115,11 @@ export function createNdlSearchAdapter(
       url.searchParams.set("f-token", sourceId);
 
       try {
-        return mapNdlSearchRecordResponse(
+        const record = mapNdlSearchRecordResponse(
           await fetchNdlSearchPayload(url.toString())
         );
+
+        return withSource(record, source);
       } catch (error) {
         if (error instanceof UpstreamHttpError && error.status === 404) {
           return null;
@@ -105,4 +129,24 @@ export function createNdlSearchAdapter(
       }
     }
   };
+}
+
+export function createNdlCatalogAdapter(
+  options: Omit<NdlSearchAdapterOptions, "source" | "providerId"> = {}
+): SourceAdapter {
+  return createNdlSearchAdapter({
+    ...options,
+    source: "ndl_catalog",
+    providerId: "iss-ndl-opac"
+  });
+}
+
+export function createNdlArticlesAdapter(
+  options: Omit<NdlSearchAdapterOptions, "source" | "providerId"> = {}
+): SourceAdapter {
+  return createNdlSearchAdapter({
+    ...options,
+    source: "ndl_articles",
+    providerId: "zassaku"
+  });
 }

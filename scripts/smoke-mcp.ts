@@ -5,7 +5,7 @@ import { createServer } from "../src/server.js";
 
 async function runLiveSmoke(client: Client) {
   const liveQuery = process.env.SMOKE_LIVE_QUERY ?? "菊池寛";
-  const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_search";
+  const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_catalog";
 
   const searchResult = await client.callTool({
     name: "jp_lit_search",

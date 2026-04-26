@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export const sourceSchema = z.enum([
   "ndl_search",
+  "ndl_catalog",
   "ndl_digital",
+  "ndl_articles",
   "cinii_research",
   "cinii_articles",
   "cinii_books"

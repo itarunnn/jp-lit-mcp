@@ -1,5 +1,5 @@
 import type { createRecordService } from "../services/recordService.js";
-import { recordInputSchema } from "../lib/schemas.js";
+import { recordInputSchema, recordOutputSchema } from "../lib/schemas.js";
 import type { RecordOutput } from "../lib/schemas.js";
 
 type RecordService = ReturnType<typeof createRecordService>;
@@ -11,7 +11,7 @@ export function createJpLitGetRecordTool(recordService: RecordService) {
       source: parsed.source,
       sourceId: parsed.source_id
     });
-    const structuredContent: RecordOutput = result;
+    const structuredContent: RecordOutput = recordOutputSchema.parse(result);
 
     return {
       content: [

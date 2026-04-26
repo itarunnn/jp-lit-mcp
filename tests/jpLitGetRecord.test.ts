@@ -88,6 +88,20 @@ describe("createRecordService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
+  it("record 入力スキーマで ndl_catalog / ndl_articles source を受け付ける", () => {
+    const catalog = recordInputSchema.parse({
+      source: "ndl_catalog",
+      source_id: "R100000002-I000000001"
+    });
+    const articles = recordInputSchema.parse({
+      source: "ndl_articles",
+      source_id: "R000000004-I000000001"
+    });
+
+    expect(catalog.source).toBe("ndl_catalog");
+    expect(articles.source).toBe("ndl_articles");
+  });
+
   it("source と source_id から詳細を返す", async () => {
     const adapter: SourceAdapter = {
       source: "ndl_digital",

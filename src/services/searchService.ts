@@ -12,8 +12,9 @@ interface SearchInput {
 }
 
 const CROSS_SOURCE_ORDER: SourceName[] = [
-  "ndl_search",
+  "ndl_catalog",
   "ndl_digital",
+  "ndl_articles",
   "cinii_articles",
   "cinii_books"
 ];

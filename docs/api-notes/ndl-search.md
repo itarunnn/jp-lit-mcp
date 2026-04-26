@@ -117,6 +117,11 @@
   - `https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=[token]`
 - OpenSearch の主要パラメータ
   - `any`, `title`, `creator`, `publisher`, `dpid`, `cnt`, `idx`
+- 2026-04-26 時点の provider 固定 source
+  - `ndl_catalog` = `dpid=iss-ndl-opac`
+  - `ndl_articles` = `dpid=zassaku`
+  - `ndl_digital` = `dpid=ndl-dl`
+  - `ndl_search` = `dpid` 未指定の広い互換 source
 - OpenSearch XML の live parse は 2026-04-25 時点で実装済み。
 - JSON fixture は互換テストと live 応答抜粋の追跡用として引き続き保持する。
 

@@ -653,6 +653,86 @@ describe("createNdlSearchAdapter", () => {
     expect(record?.source_id).toBe("R100000039-I1000732");
   });
 
+  it("ndl_catalog source は iss-ndl-opac を付けて検索し source 名を固定する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const recordFixture = readFixture("record-response.json");
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
+        json: async () => searchFixture
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: {
+          get(name: string) {
+            return name.toLowerCase() === "content-type"
+              ? "application/json; charset=utf-8"
+              : null;
+          }
+        },
+        json: async () => recordFixture
+      });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createNdlCatalogAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlCatalogAdapter();
+
+    const searchResult = await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1
+    });
+    const record = await adapter.getRecord("R100000039-I1000732");
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(adapter.source).toBe("ndl_catalog");
+    expect(searchUrl.searchParams.get("dpid")).toBe("iss-ndl-opac");
+    expect(searchResult.items[0]?.source).toBe("ndl_catalog");
+    expect(record?.source).toBe("ndl_catalog");
+  });
+
+  it("ndl_articles source は zassaku を付けて検索し source 名を固定する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      json: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createNdlArticlesAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlArticlesAdapter();
+
+    const result = await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(adapter.source).toBe("ndl_articles");
+    expect(searchUrl.searchParams.get("dpid")).toBe("zassaku");
+    expect(result.items[0]?.source).toBe("ndl_articles");
+  });
+
   it("search() / getRecord() は XML payload を live fallback で正規化する", async () => {
     const searchXml = readTextFixture("search-response.xml");
     const recordXml = readTextFixture("record-response.xml");
