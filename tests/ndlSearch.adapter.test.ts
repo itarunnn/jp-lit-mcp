@@ -733,6 +733,38 @@ describe("createNdlSearchAdapter", () => {
     expect(result.items[0]?.source).toBe("ndl_articles");
   });
 
+  it("ndl_articles_online source は zassaku-online を付けて検索し source 名を固定する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      json: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createNdlArticlesOnlineAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlArticlesOnlineAdapter();
+
+    const result = await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(adapter.source).toBe("ndl_articles_online");
+    expect(searchUrl.searchParams.get("dpid")).toBe("zassaku-online");
+    expect(result.items[0]?.source).toBe("ndl_articles_online");
+  });
+
   it("search() / getRecord() は XML payload を live fallback で正規化する", async () => {
     const searchXml = readTextFixture("search-response.xml");
     const recordXml = readTextFixture("record-response.xml");

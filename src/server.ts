@@ -17,6 +17,7 @@ import {
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import {
   createNdlArticlesAdapter,
+  createNdlArticlesOnlineAdapter,
   createNdlCatalogAdapter,
   createNdlSearchAdapter
 } from "./sources/ndlSearch/adapter.js";
@@ -124,6 +125,7 @@ export function createServer(env: ServerEnv = process.env) {
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
     createNdlDigitalAdapter(adapterOptions.ndlDigital),
     createNdlArticlesAdapter(adapterOptions.ndlSearch),
+    createNdlArticlesOnlineAdapter(adapterOptions.ndlSearch),
     createCiniiResearchAdapter(adapterOptions.ciniiResearch),
     createCiniiArticlesAdapter(adapterOptions.ciniiResearch),
     createCiniiBooksAdapter(adapterOptions.ciniiResearch)

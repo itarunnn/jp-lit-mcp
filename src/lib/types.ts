@@ -3,6 +3,7 @@ export type SourceName =
   | "ndl_catalog"
   | "ndl_digital"
   | "ndl_articles"
+  | "ndl_articles_online"
   | "cinii_research"
   | "cinii_articles"
   | "cinii_books";

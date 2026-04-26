@@ -14,7 +14,11 @@ const DEFAULT_RECORD_BASE_URL =
   "https://ndlsearch.ndl.go.jp/api/bib/external/search";
 
 interface NdlSearchAdapterOptions {
-  source?: "ndl_search" | "ndl_catalog" | "ndl_articles";
+  source?:
+    | "ndl_search"
+    | "ndl_catalog"
+    | "ndl_articles"
+    | "ndl_articles_online";
   providerId?: string;
   searchBaseUrl?: string;
   recordBaseUrl?: string;
@@ -148,5 +152,15 @@ export function createNdlArticlesAdapter(
     ...options,
     source: "ndl_articles",
     providerId: "zassaku"
+  });
+}
+
+export function createNdlArticlesOnlineAdapter(
+  options: Omit<NdlSearchAdapterOptions, "source" | "providerId"> = {}
+): SourceAdapter {
+  return createNdlSearchAdapter({
+    ...options,
+    source: "ndl_articles_online",
+    providerId: "zassaku-online"
   });
 }

@@ -83,7 +83,7 @@ describe("createSearchService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
-  it("search 入力スキーマで ndl_catalog / ndl_articles source を受け付ける", () => {
+  it("search 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
     const catalog = searchInputSchema.parse({
       query: "夏目漱石",
       source: "ndl_catalog"
@@ -92,9 +92,14 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: "ndl_articles"
     });
+    const articlesOnline = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "ndl_articles_online"
+    });
 
     expect(catalog.source).toBe("ndl_catalog");
     expect(articles.source).toBe("ndl_articles");
+    expect(articlesOnline.source).toBe("ndl_articles_online");
   });
 
   it("source 指定ありで単一 source 検索を返す", async () => {
@@ -356,6 +361,14 @@ describe("createSearchService", () => {
       }),
       getRecord: async () => null
     };
+    const ndlArticlesOnlineAdapter: SourceAdapter = {
+      source: "ndl_articles_online",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_articles_online", "8", "online-1")]
+      }),
+      getRecord: async () => null
+    };
     const ciniiBooksAdapter: SourceAdapter = {
       source: "cinii_books",
       search: async () => ({
@@ -370,6 +383,7 @@ describe("createSearchService", () => {
     const service = createSearchService([
       ndlCatalogAdapter,
       ndlDigitalAdapter,
+      ndlArticlesOnlineAdapter,
       ciniiBooksAdapter
     ]);
 
@@ -379,14 +393,14 @@ describe("createSearchService", () => {
       page: 1
     });
 
-    expect(result.total).toBe(7);
+    expect(result.total).toBe(8);
     expect(result.items).toEqual([
       createSearchItem("ndl_catalog", "1", "ndl-1"),
       createSearchItem("ndl_digital", "4", "digital-1"),
+      createSearchItem("ndl_articles_online", "8", "online-1"),
       createSearchItem("cinii_books", "6", "book-1"),
       createSearchItem("ndl_catalog", "2", "ndl-2"),
-      createSearchItem("ndl_digital", "5", "digital-2"),
-      createSearchItem("cinii_books", "7", "book-2")
+      createSearchItem("ndl_digital", "5", "digital-2")
     ]);
   });
 
