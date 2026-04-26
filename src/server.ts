@@ -14,6 +14,7 @@ import {
   createCiniiBooksAdapter,
   createCiniiResearchAdapter
 } from "./sources/ciniiResearch/adapter.js";
+import { createJapanSearchAdapter } from "./sources/japanSearch/adapter.js";
 import { createJstageArticlesAdapter } from "./sources/jstage/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import {
@@ -34,6 +35,8 @@ interface ServerEnv {
   CINII_RESEARCH_APP_ID?: string;
   JSTAGE_BASE_URL?: string;
   JSTAGE_ARTICLE_BASE_URL?: string;
+  JAPAN_SEARCH_BASE_URL?: string;
+  JAPAN_SEARCH_ITEM_BASE_URL?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/opensearch";
@@ -129,6 +132,18 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
             articleBaseUrl: env.JSTAGE_ARTICLE_BASE_URL
           }
         : {})
+    },
+    japanSearch: {
+      ...(env.JAPAN_SEARCH_BASE_URL
+        ? {
+            searchBaseUrl: env.JAPAN_SEARCH_BASE_URL
+          }
+        : {}),
+      ...(env.JAPAN_SEARCH_ITEM_BASE_URL
+        ? {
+            itemBaseUrl: env.JAPAN_SEARCH_ITEM_BASE_URL
+          }
+        : {})
     }
   };
 }
@@ -144,6 +159,7 @@ export function createServer(env: ServerEnv = process.env) {
     createCiniiResearchAdapter(adapterOptions.ciniiResearch),
     createCiniiArticlesAdapter(adapterOptions.ciniiResearch),
     createJstageArticlesAdapter(adapterOptions.jstage),
+    createJapanSearchAdapter(adapterOptions.japanSearch),
     createCiniiBooksAdapter(adapterOptions.ciniiResearch)
   ];
   const searchTool = createJpLitSearchTool(createSearchService(adapters));

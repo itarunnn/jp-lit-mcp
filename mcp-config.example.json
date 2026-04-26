@@ -11,7 +11,9 @@
         "CINII_RESEARCH_RECORD_BASE_URL": "https://cir.nii.ac.jp/crid",
         "CINII_BOOKS_HOLDINGS_BASE_URL": "https://ci.nii.ac.jp/books/opensearch/holder",
         "JSTAGE_BASE_URL": "https://api.jstage.jst.go.jp/searchapi/do",
-        "JSTAGE_ARTICLE_BASE_URL": "https://www.jstage.jst.go.jp"
+        "JSTAGE_ARTICLE_BASE_URL": "https://www.jstage.jst.go.jp",
+        "JAPAN_SEARCH_BASE_URL": "https://jpsearch.go.jp/api/item/search/jps-cross",
+        "JAPAN_SEARCH_ITEM_BASE_URL": "https://jpsearch.go.jp/api/item"
       }
     }
   }

@@ -1,0 +1,57 @@
+{
+  "id": "ukansai-R100000114_I000002469_00",
+  "common": {
+    "id": "ukansai-R100000114_I000002469_00",
+    "title": "[夏目漱石書簡]",
+    "titleYomi": "ナツメ ソウセキ ショカン",
+    "linkUrl": "https://www.iiif.ku-orcas.kansai-u.ac.jp/books/207849153",
+    "thumbnailUrl": [
+      "https://www.iiif.ku-orcas.kansai-u.ac.jp/iiif/2/207849153%2F207849153-0001.tif/full/110,/0/default.jpg"
+    ],
+    "contentsUrl": [
+      "https://www.iiif.ku-orcas.kansai-u.ac.jp/iiif/books/207849153/manifest.json"
+    ],
+    "iiifUrl": "https://www.iiif.ku-orcas.kansai-u.ac.jp/iiif/books/207849153/manifest.json",
+    "contentsType": "image",
+    "contentsRightsType": "pdm",
+    "contentsAccess": "internet",
+    "category": ["book"],
+    "contributor": ["夏目漱石著.--[自筆]."],
+    "provider": "libukansai",
+    "ownerOrg": "ndl",
+    "database": "ukansai",
+    "apiType": "ok",
+    "access": "PUBLIC",
+    "dclass": "913"
+  },
+  "rdfindex": {
+    "type": ["古書・古文書"]
+  },
+  "ukansai-rdf:RDF": {
+    "dcndl:BibAdminResource_rdf:about-u": "https://ndlsearch.ndl.go.jp/books/R100000114-I207849153",
+    "dcndl:BibResource": {
+      "dc:title": {
+        "rdf:Description": {
+          "rdf:value-s": "[夏目漱石書簡]",
+          "dcndl:transcription-s": "ナツメ ソウセキ ショカン"
+        }
+      },
+      "dcterms:creator": {
+        "foaf:Agent": {
+          "foaf:name-s": "夏目漱石"
+        }
+      },
+      "dc:creator-s": "夏目漱石著.--[自筆].",
+      "dcterms:description-s": "コレクション : 関西大学東アジアデジタルアーカイブ",
+      "dcterms:extent-s": "手紙：20.2㎝×199.5㎝封筒：21.6㎝×16.7㎝",
+      "dcndl:materialType_rdfs:label-s": "静止画資料",
+      "dcterms:rights-s": "PDM",
+      "dcterms:audience-s": "一般",
+      "rdfs:seeAlso_rdf:resource-u": [
+        "https://www.iiif.ku-orcas.kansai-u.ac.jp/books/207849153",
+        "https://www.iiif.ku-orcas.kansai-u.ac.jp/iiif/books/207849153/manifest.json"
+      ]
+    }
+  }
+}
+

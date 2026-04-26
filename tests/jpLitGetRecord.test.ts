@@ -97,6 +97,15 @@ describe("createRecordService", () => {
     expect(parsed.source).toBe("jstage_articles");
   });
 
+  it("record 入力スキーマで japan_search source を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "japan_search",
+      source_id: "ukansai-R100000114_I000002469_00"
+    });
+
+    expect(parsed.source).toBe("japan_search");
+  });
+
   it("record 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
     const catalog = recordInputSchema.parse({
       source: "ndl_catalog",

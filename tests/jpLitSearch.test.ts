@@ -92,6 +92,15 @@ describe("createSearchService", () => {
     expect(parsed.source).toBe("jstage_articles");
   });
 
+  it("search 入力スキーマで japan_search source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "japan_search"
+    });
+
+    expect(parsed.source).toBe("japan_search");
+  });
+
   it("search 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
     const catalog = searchInputSchema.parse({
       query: "夏目漱石",
@@ -216,7 +225,8 @@ describe("createSearchService", () => {
       ciniiResearch: {
         holdingsBaseUrl: "https://ci.example.test/books/opensearch/holder"
       },
-      jstage: {}
+      jstage: {},
+      japanSearch: {}
     });
   });
 
@@ -239,7 +249,8 @@ describe("createSearchService", () => {
           "https://digital.example.test/custom/api/bib/external/search"
       },
       ciniiResearch: {},
-      jstage: {}
+      jstage: {},
+      japanSearch: {}
     });
   });
 
