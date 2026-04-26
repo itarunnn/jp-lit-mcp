@@ -54,7 +54,8 @@ describe("NDL Digital mappers", () => {
           digital_collection: true
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
   });
@@ -86,7 +87,8 @@ describe("NDL Digital mappers", () => {
           digital_collection: true
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
   });

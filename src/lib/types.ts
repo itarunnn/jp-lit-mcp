@@ -40,6 +40,13 @@ export interface PersonRole {
   role: string | null;
 }
 
+export interface RelatedSearchRecord {
+  source: SourceName;
+  source_id: string;
+  title: string;
+  url: string | null;
+}
+
 export interface SearchItemBase {
   source: SourceName;
   source_id: string;
@@ -55,6 +62,7 @@ export interface SearchItemBase {
   };
   duplicate_key: string | null;
   duplicate_count: number;
+  related_records: RelatedSearchRecord[];
 }
 
 export type SearchItem = SearchItemBase & DateFields;

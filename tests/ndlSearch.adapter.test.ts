@@ -54,7 +54,8 @@ describe("NDL Search mappers", () => {
           digital_collection: true
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
     expect(projected.items[0]).toMatchObject({
@@ -92,7 +93,8 @@ describe("NDL Search mappers", () => {
           digital_collection: true
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
   });
@@ -422,7 +424,8 @@ describe("NDL Search mappers", () => {
           digital_collection: false
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
   });
@@ -532,7 +535,8 @@ describe("NDL Search mappers", () => {
           digital_collection: true
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       },
       {
         source: "ndl_search",
@@ -551,7 +555,8 @@ describe("NDL Search mappers", () => {
           digital_collection: false
         },
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       }
     ]);
   });

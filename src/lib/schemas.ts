@@ -26,6 +26,13 @@ const contentAccessSchema = z.object({
   access_note: z.string().nullable()
 });
 
+const relatedSearchRecordSchema = z.object({
+  source: sourceSchema,
+  source_id: z.string(),
+  title: z.string(),
+  url: z.string().nullable()
+});
+
 export const searchItemSchema = z.object({
   source: sourceSchema,
   source_id: z.string(),
@@ -40,7 +47,8 @@ export const searchItemSchema = z.object({
   url: z.string().nullable(),
   availability: availabilitySchema,
   duplicate_key: z.string().nullable(),
-  duplicate_count: z.number().int().positive()
+  duplicate_count: z.number().int().positive(),
+  related_records: z.array(relatedSearchRecordSchema)
 });
 
 export const recordItemSchema = z.object({

@@ -336,7 +336,8 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
         providerId?.startsWith("ndl-dl") === true
     },
     duplicate_key: null,
-    duplicate_count: 1
+    duplicate_count: 1,
+    related_records: []
   };
 }
 

@@ -2,7 +2,7 @@ import type { SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
 import type { SourceAdapter } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
-import type { SearchItem } from "../lib/types.js";
+import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
 
 interface SearchInput {
   query: string;
@@ -90,7 +90,7 @@ function annotateDuplicateCandidates(items: SearchItem[]) {
   const groups = new Map<
     string,
     {
-      count: number;
+      items: SearchItem[];
       sources: Set<SourceName>;
     }
   >();
@@ -102,11 +102,11 @@ function annotateDuplicateCandidates(items: SearchItem[]) {
     }
 
     const entry = groups.get(key) ?? {
-      count: 0,
+      items: [],
       sources: new Set<SourceName>()
     };
 
-    entry.count += 1;
+    entry.items.push(item);
     entry.sources.add(item.source);
     groups.set(key, entry);
   }
@@ -115,18 +115,35 @@ function annotateDuplicateCandidates(items: SearchItem[]) {
     const key = buildDuplicateKey(item);
     const group = key ? groups.get(key) : null;
 
-    if (!key || !group || group.count < 2 || group.sources.size < 2) {
+    if (!key || !group || group.items.length < 2 || group.sources.size < 2) {
       return {
         ...item,
         duplicate_key: null,
-        duplicate_count: 1
+        duplicate_count: 1,
+        related_records: []
       };
     }
+
+    const relatedRecords: RelatedSearchRecord[] = group.items
+      .filter(
+        (candidate) =>
+          !(
+            candidate.source === item.source &&
+            candidate.source_id === item.source_id
+          )
+      )
+      .map((candidate) => ({
+        source: candidate.source,
+        source_id: candidate.source_id,
+        title: candidate.title,
+        url: candidate.url
+      }));
 
     return {
       ...item,
       duplicate_key: key,
-      duplicate_count: group.count
+      duplicate_count: group.items.length,
+      related_records: relatedRecords
     };
   });
 }
@@ -135,7 +152,8 @@ function withDefaultDuplicateInfo(items: SearchItem[]) {
   return items.map((item) => ({
     ...item,
     duplicate_key: null,
-    duplicate_count: 1
+    duplicate_count: 1,
+    related_records: []
   }));
 }
 

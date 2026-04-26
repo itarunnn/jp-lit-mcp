@@ -32,7 +32,8 @@ function createSearchItem(
       digital_collection: true
     },
     duplicate_key: null,
-    duplicate_count: 1
+    duplicate_count: 1,
+    related_records: []
   };
 }
 
@@ -415,11 +416,27 @@ describe("createSearchService", () => {
     expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
       source: "ndl_search",
-      duplicate_count: 2
+      duplicate_count: 2,
+      related_records: [
+        {
+          source: "cinii_books",
+          source_id: "2",
+          title: "吾輩は猫である",
+          url: null
+        }
+      ]
     });
     expect(result.items[1]).toMatchObject({
       source: "cinii_books",
-      duplicate_count: 2
+      duplicate_count: 2,
+      related_records: [
+        {
+          source: "ndl_search",
+          source_id: "1",
+          title: "吾輩は猫である",
+          url: null
+        }
+      ]
     });
     expect(result.items[0]?.duplicate_key).toBeTruthy();
     expect(result.items[0]?.duplicate_key).toBe(result.items[1]?.duplicate_key);

@@ -186,7 +186,8 @@ export function mapCiniiResearchSearchEntry(
       digital_collection: false
     },
     duplicate_key: null,
-    duplicate_count: 1
+    duplicate_count: 1,
+    related_records: []
   };
 }
 
