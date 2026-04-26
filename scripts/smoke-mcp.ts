@@ -77,6 +77,10 @@ async function runLiveSmoke(client: Client) {
     }
   }
 
+  if (recordData.source === "jstage_articles" && !recordData.title) {
+    throw new Error("Live smoke jstage_articles record returned no title.");
+  }
+
   console.log(
     `Live smoke check passed: ${liveSource} / ${liveQuery} -> ${recordData.source_id}`
   );

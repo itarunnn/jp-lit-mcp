@@ -9,7 +9,9 @@
         "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/opensearch",
         "CINII_RESEARCH_BASE_URL": "https://cir.nii.ac.jp/opensearch/articles",
         "CINII_RESEARCH_RECORD_BASE_URL": "https://cir.nii.ac.jp/crid",
-        "CINII_BOOKS_HOLDINGS_BASE_URL": "https://ci.nii.ac.jp/books/opensearch/holder"
+        "CINII_BOOKS_HOLDINGS_BASE_URL": "https://ci.nii.ac.jp/books/opensearch/holder",
+        "JSTAGE_BASE_URL": "https://api.jstage.jst.go.jp/searchapi/do",
+        "JSTAGE_ARTICLE_BASE_URL": "https://www.jstage.jst.go.jp"
       }
     }
   }

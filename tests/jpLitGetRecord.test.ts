@@ -88,6 +88,15 @@ describe("createRecordService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
+  it("record 入力スキーマで jstage_articles source を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "jstage_articles",
+      source_id: "/article/example/_article/-char/ja/"
+    });
+
+    expect(parsed.source).toBe("jstage_articles");
+  });
+
   it("record 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
     const catalog = recordInputSchema.parse({
       source: "ndl_catalog",

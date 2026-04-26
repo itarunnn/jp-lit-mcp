@@ -17,6 +17,7 @@ const CROSS_SOURCE_ORDER: SourceName[] = [
   "ndl_articles",
   "ndl_articles_online",
   "cinii_articles",
+  "jstage_articles",
   "cinii_books"
 ];
 

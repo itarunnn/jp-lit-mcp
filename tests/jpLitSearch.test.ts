@@ -83,6 +83,15 @@ describe("createSearchService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
+  it("search 入力スキーマで jstage_articles source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "jstage_articles"
+    });
+
+    expect(parsed.source).toBe("jstage_articles");
+  });
+
   it("search 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
     const catalog = searchInputSchema.parse({
       query: "夏目漱石",
@@ -206,7 +215,8 @@ describe("createSearchService", () => {
       },
       ciniiResearch: {
         holdingsBaseUrl: "https://ci.example.test/books/opensearch/holder"
-      }
+      },
+      jstage: {}
     });
   });
 
@@ -228,7 +238,8 @@ describe("createSearchService", () => {
         recordBaseUrl:
           "https://digital.example.test/custom/api/bib/external/search"
       },
-      ciniiResearch: {}
+      ciniiResearch: {},
+      jstage: {}
     });
   });
 
@@ -380,10 +391,19 @@ describe("createSearchService", () => {
       }),
       getRecord: async () => null
     };
+    const jstageArticlesAdapter: SourceAdapter = {
+      source: "jstage_articles",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("jstage_articles", "9", "jstage-1")]
+      }),
+      getRecord: async () => null
+    };
     const service = createSearchService([
       ndlCatalogAdapter,
       ndlDigitalAdapter,
       ndlArticlesOnlineAdapter,
+      jstageArticlesAdapter,
       ciniiBooksAdapter
     ]);
 
@@ -393,14 +413,14 @@ describe("createSearchService", () => {
       page: 1
     });
 
-    expect(result.total).toBe(8);
+    expect(result.total).toBe(9);
     expect(result.items).toEqual([
       createSearchItem("ndl_catalog", "1", "ndl-1"),
       createSearchItem("ndl_digital", "4", "digital-1"),
       createSearchItem("ndl_articles_online", "8", "online-1"),
+      createSearchItem("jstage_articles", "9", "jstage-1"),
       createSearchItem("cinii_books", "6", "book-1"),
-      createSearchItem("ndl_catalog", "2", "ndl-2"),
-      createSearchItem("ndl_digital", "5", "digital-2")
+      createSearchItem("ndl_catalog", "2", "ndl-2")
     ]);
   });
 

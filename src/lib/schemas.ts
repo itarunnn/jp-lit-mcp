@@ -6,6 +6,7 @@ export const sourceSchema = z.enum([
   "ndl_digital",
   "ndl_articles",
   "ndl_articles_online",
+  "jstage_articles",
   "cinii_research",
   "cinii_articles",
   "cinii_books"

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/"
+  xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+  xml:lang="ja">
+  <result>
+    <status>0</status>
+    <message/>
+  </result>
+  <title>Articles</title>
+  <link href="https://api.jstage.jst.go.jp/searchapi/do?service=3&amp;article=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3"/>
+  <id>https://api.jstage.jst.go.jp/searchapi/do?service=3&amp;article=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3</id>
+  <servicecd>3</servicecd>
+  <updated>2026-04-26T10:45+09:00</updated>
+  <opensearch:totalResults>143</opensearch:totalResults>
+  <opensearch:startIndex>1</opensearch:startIndex>
+  <opensearch:itemsPerPage>143</opensearch:itemsPerPage>
+  <entry>
+    <article_title>
+      <en/>
+      <ja><![CDATA[夏目漱石の熊本時代]]></ja>
+    </article_title>
+    <article_link>
+      <en>https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article</en>
+      <ja>https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/</ja>
+    </article_link>
+    <author>
+      <en/>
+      <ja>
+        <name><![CDATA[大村 喜吉]]></name>
+      </ja>
+    </author>
+    <cdjournal>jeigakushi1969</cdjournal>
+    <material_title>
+      <en><![CDATA[Historical English Studies in Japan]]></en>
+      <ja><![CDATA[英学史研究]]></ja>
+    </material_title>
+    <prism:issn>0386-9490</prism:issn>
+    <prism:eIssn>1883-9282</prism:eIssn>
+    <prism:volume>1973</prism:volume>
+    <prism:number>5</prism:number>
+    <prism:startingPage>81</prism:startingPage>
+    <prism:endingPage>90</prism:endingPage>
+    <pubyear>1972</pubyear>
+    <prism:doi>10.5024/jeigakushi.1973.81</prism:doi>
+    <systemcode>1</systemcode>
+    <systemname>J-STAGE</systemname>
+    <title><![CDATA[夏目漱石の熊本時代]]></title>
+    <link href="https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/"/>
+    <id>https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/</id>
+    <updated>2009-09-16T09:00+09:00</updated>
+  </entry>
+</feed>
+
