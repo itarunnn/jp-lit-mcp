@@ -4,11 +4,14 @@ export type SourceName =
   | "ndl_digital"
   | "ndl_articles"
   | "ndl_articles_online"
+  | "irdb"
   | "jstage_articles"
   | "japan_search"
   | "cinii_research"
   | "cinii_articles"
-  | "cinii_books";
+  | "cinii_books"
+  | "kokkai_minutes"
+  | "teikoku_minutes";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 
@@ -52,19 +55,29 @@ export interface RelatedSearchRecord {
   url: string | null;
 }
 
+export interface SearchFacets {
+  providers: Record<string, number>;
+  ndc: Record<string, number>;
+  issued_years: Record<string, number>;
+}
+
 export interface SearchItemBase {
   source: SourceName;
   source_id: string;
   title: string;
   subtitle: string | null;
+  title_reading: string | null;
   authors: PersonRole[];
   publisher: string | null;
+  journal_title: string | null;
   summary: string | null;
   url: string | null;
   availability: {
     online: boolean;
     digital_collection: boolean;
   };
+  material_type: string | null;
+  subjects: string[];
   duplicate_key: string | null;
   duplicate_count: number;
   related_records: RelatedSearchRecord[];
@@ -77,8 +90,10 @@ export interface RecordItemBase {
   source_id: string;
   title: string;
   subtitle: string | null;
+  title_reading: string | null;
   authors: PersonRole[];
   publisher: string | null;
+  journal_title: string | null;
   summary: string | null;
   url: string | null;
   availability: {

@@ -11,7 +11,9 @@ export const sourceSchema = z.enum([
   "japan_search",
   "cinii_research",
   "cinii_articles",
-  "cinii_books"
+  "cinii_books",
+  "kokkai_minutes",
+  "teikoku_minutes"
 ]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 
