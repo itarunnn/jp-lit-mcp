@@ -54,14 +54,14 @@ function mapKokkaiRecord(
   const role = resolveRole(record.speakerRole, record.speakerPosition);
   const subjects = record.speakerGroup ? [record.speakerGroup] : [];
   const summary = record.speech ? truncateSpeech(record.speech) : null;
-  const subtitle = record.speech ? record.speech : null;
+  const subtitle = record.speech || null;
 
   const title = `${record.speaker} — ${record.nameOfHouse}${record.nameOfMeeting} 第${record.session}回国会 ${record.issue}（${record.date}）`;
 
   const dateFields =
     issuedAt.issuedAtPrecision === "unknown"
       ? {
-          issued_at: null as null,
+          issued_at: null,
           issued_at_label: issuedAt.issuedAtLabel,
           issued_at_precision: "unknown" as const
         }
@@ -99,9 +99,10 @@ export function mapKokkaiSearchResponse(
   const parsed: KokkaiResponse = JSON.parse(json);
   const records = Array.isArray(parsed.record) ? parsed.record : [];
   const items = records.map((record) => mapKokkaiRecord(source, record));
+  const total = Number(parsed.numberOfRecords);
 
   return {
-    total: parsed.numberOfRecords,
+    total: Number.isFinite(total) ? total : items.length,
     items
   };
 }
