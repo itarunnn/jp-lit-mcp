@@ -44,7 +44,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-- テスト: 183件すべて通過
+- テスト: 192件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` を通した状態を維持
 - NDL 系 source の検索は SRU（`version=1.2`, `recordSchema=dcndl`）に移行済み
 - `sort_by` / `sort_order` / `facets`（providers / ndc / issued_years）は NDL 系 source で利用可能
@@ -87,8 +87,9 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
   - live smoke: `irdb / 夏目漱石` 通過
   - 既定横断検索には未投入
 - `jp_lit_search(source=irdb)` に `filters.irdb` を追加済み
-  - `filters.irdb.fulltext` / `filters.irdb.title` / `filters.irdb.author` に対応
+  - `fulltext` / `title` / `author` / `keyword` / `journal` / `publisher` の6フィールドに対応
   - `source=irdb` 以外で指定すると validation error
+  - 発行年フィルターは IRDB OpenSearch API に存在しないため非対応
 
 ### コンテキスト肥大化を避ける方針
 
