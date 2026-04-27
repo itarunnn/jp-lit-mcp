@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 function readFixture(name: string) {
   return readFileSync(new URL(`./fixtures/kokkai/${name}`, import.meta.url), "utf-8");
@@ -148,5 +153,112 @@ describe("mapKokkaiSearchResponse", () => {
 
     expect(result.items[0]?.summary).toMatch(/…$/);
     expect(result.items[0]?.summary?.length).toBeLessThanOrEqual(501);
+  });
+});
+
+describe("createKokkaiAdapter", () => {
+  it("speech エンドポイントを叩いて SearchResult を返す", async () => {
+    const speechFixture = readFixture("speech-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => speechFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokkaiAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createKokkaiAdapter();
+
+    const result = await adapter.search({ query: "賭博", limit: 10, page: 1 });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const url = new URL(fetch.mock.calls[0][0] as string);
+    expect(url.origin + url.pathname).toBe("https://kokkai.ndl.go.jp/api/speech");
+    expect(url.searchParams.get("any")).toBe("賭博");
+    expect(url.searchParams.get("maximumRecords")).toBe("10");
+    expect(url.searchParams.get("startRecord")).toBe("1");
+    expect(url.searchParams.get("recordPacking")).toBe("json");
+    expect(result.total).toBe(15842);
+    expect(result.items[0]?.source).toBe("kokkai_minutes");
+  });
+
+  it("page=3, limit=5 のとき startRecord=11 になる", async () => {
+    const speechFixture = readFixture("speech-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => speechFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokkaiAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createKokkaiAdapter();
+
+    await adapter.search({ query: "賭博", limit: 5, page: 3 });
+
+    const url = new URL(fetch.mock.calls[0][0] as string);
+    expect(url.searchParams.get("startRecord")).toBe("11");
+    expect(url.searchParams.get("maximumRecords")).toBe("5");
+  });
+
+  it("getRecord は meeting エンドポイントを叩いて RecordItem を返す", async () => {
+    const meetingFixture = readFixture("meeting-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => meetingFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokkaiAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createKokkaiAdapter();
+
+    const record = await adapter.getRecord("1151420_098_2_00026");
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const url = new URL(fetch.mock.calls[0][0] as string);
+    expect(url.origin + url.pathname).toBe("https://kokkai.ndl.go.jp/api/meeting");
+    expect(url.searchParams.get("issueID")).toBe("1151420_098_2");
+    expect(url.searchParams.get("recordPacking")).toBe("json");
+    expect(record?.source).toBe("kokkai_minutes");
+    expect(record?.source_id).toBe("1151420_098_2_00026");
+  });
+
+  it("meeting が空のとき getRecord は null を返す", async () => {
+    const emptyJson = JSON.stringify({ numberOfRecords: 0, numberOfReturn: 0, startRecord: 1, record: [] });
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => emptyJson
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokkaiAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createKokkaiAdapter();
+
+    const record = await adapter.getRecord("missing_001_1_00001");
+
+    expect(record).toBeNull();
+  });
+});
+
+describe("createTeikokuAdapter", () => {
+  it("teikoku の speech エンドポイントを叩く", async () => {
+    const speechFixture = readFixture("speech-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => speechFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createTeikokuAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createTeikokuAdapter();
+
+    const result = await adapter.search({ query: "賭博", limit: 10, page: 1 });
+
+    const url = new URL(fetch.mock.calls[0][0] as string);
+    expect(url.origin + url.pathname).toBe("https://teikokugikai-i.ndl.go.jp/api/emp/speech");
+    expect(result.items[0]?.source).toBe("teikoku_minutes");
   });
 });
