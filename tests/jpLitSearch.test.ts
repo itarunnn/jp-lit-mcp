@@ -314,7 +314,9 @@ describe("createSearchService", () => {
       },
       irdb: {},
       jstage: {},
-      japanSearch: {}
+      japanSearch: {},
+      kokkai: {},
+      teikoku: {}
     });
   });
 
@@ -339,7 +341,9 @@ describe("createSearchService", () => {
       ciniiResearch: {},
       irdb: {},
       jstage: {},
-      japanSearch: {}
+      japanSearch: {},
+      kokkai: {},
+      teikoku: {}
     });
   });
 
@@ -363,7 +367,9 @@ describe("createSearchService", () => {
       ciniiResearch: {},
       irdb: {},
       jstage: {},
-      japanSearch: {}
+      japanSearch: {},
+      kokkai: {},
+      teikoku: {}
     });
   });
 
