@@ -31,6 +31,7 @@ function createSearchItem(
       online: source === "ndl_digital",
       digital_collection: true
     },
+    journal_title: null,
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []
@@ -81,6 +82,27 @@ describe("createSearchService", () => {
 
     expect(articles.source).toBe("cinii_articles");
     expect(books.source).toBe("cinii_books");
+  });
+
+  it("search 入力スキーマで irdb source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "irdb"
+    });
+
+    expect(parsed.source).toBe("irdb");
+  });
+
+  it("search 入力スキーマで sort_by / sort_order を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "ndl_catalog",
+      sort_by: "title",
+      sort_order: "desc"
+    });
+
+    expect(parsed.sort_by).toBe("title");
+    expect(parsed.sort_order).toBe("desc");
   });
 
   it("search 入力スキーマで jstage_articles source を受け付ける", () => {
@@ -157,14 +179,24 @@ describe("createSearchService", () => {
       source: "ndl_search",
       search: async () => ({
         total: 1,
-        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")],
+        facets: {
+          providers: { R100000002: 1 },
+          ndc: { "9": 1 },
+          issued_years: { "1905": 1 }
+        }
       }),
       getRecord: async () => null
     };
     const service = createSearchService([ndlSearchAdapter]);
     const tool = createJpLitSearchTool(service);
 
-    const result = await tool({ query: "夏目漱石", source: "ndl_search" });
+    const result = await tool({
+      query: "夏目漱石",
+      source: "ndl_search",
+      sort_by: "title",
+      sort_order: "asc"
+    });
 
     expect(result.structuredContent).toEqual({
       query: "夏目漱石",
@@ -172,7 +204,12 @@ describe("createSearchService", () => {
       page: 1,
       limit: 10,
       total: 1,
-      items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+      items: [createSearchItem("ndl_search", "1", "吾輩は猫である")],
+      facets: {
+        providers: { R100000002: 1 },
+        ndc: { "9": 1 },
+        issued_years: { "1905": 1 }
+      }
     });
     expect(result.content).toEqual([
       {
@@ -205,7 +242,57 @@ describe("createSearchService", () => {
     });
   });
 
-  it("server 用の環境変数から adapter URL を解決する", () => {
+  it("横断検索では facets を source 間で合算する", async () => {
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_catalog", "1", "吾輩は猫である")],
+        facets: {
+          providers: { R100000002: 2 },
+          ndc: { "9": 1 },
+          issued_years: { "1905": 1 }
+        }
+      }),
+      getRecord: async () => null
+    };
+    const ndlDigitalAdapter: SourceAdapter = {
+      source: "ndl_digital",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_digital", "2", "坊っちゃん")],
+        facets: {
+          providers: { R100000039: 3 },
+          ndc: { "9": 2 },
+          issued_years: { "1906": 1 }
+        }
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlCatalogAdapter, ndlDigitalAdapter]);
+
+    const result = await service.search({
+      query: "夏目漱石",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.facets).toEqual({
+      providers: {
+        R100000002: 2,
+        R100000039: 3
+      },
+      ndc: {
+        "9": 3
+      },
+      issued_years: {
+        "1905": 1,
+        "1906": 1
+      }
+    });
+  });
+
+  it("server 用の環境変数から adapter URL を解決し、legacy OpenSearch 入力も SRU へ正規化する", () => {
     const config = resolveAdapterOptionsFromEnv({
       NDL_SEARCH_BASE_URL: "https://search.example.test/api/opensearch",
       NDL_DIGITAL_BASE_URL: "https://digital.example.test/api/opensearch",
@@ -215,16 +302,17 @@ describe("createSearchService", () => {
 
     expect(config).toEqual({
       ndlSearch: {
-        searchBaseUrl: "https://search.example.test/api/opensearch",
+        searchBaseUrl: "https://search.example.test/api/sru",
         recordBaseUrl: "https://search.example.test/api/bib/external/search"
       },
       ndlDigital: {
-        searchBaseUrl: "https://digital.example.test/api/opensearch",
+        searchBaseUrl: "https://digital.example.test/api/sru",
         recordBaseUrl: "https://digital.example.test/api/bib/external/search"
       },
       ciniiResearch: {
         holdingsBaseUrl: "https://ci.example.test/books/opensearch/holder"
       },
+      irdb: {},
       jstage: {},
       japanSearch: {}
     });
@@ -239,16 +327,41 @@ describe("createSearchService", () => {
 
     expect(config).toEqual({
       ndlSearch: {
-        searchBaseUrl: "https://search.example.test/prefix/api/opensearch",
+        searchBaseUrl: "https://search.example.test/prefix/api/sru",
         recordBaseUrl:
           "https://search.example.test/prefix/api/bib/external/search"
       },
       ndlDigital: {
-        searchBaseUrl: "https://digital.example.test/custom/api/opensearch",
+        searchBaseUrl: "https://digital.example.test/custom/api/sru",
         recordBaseUrl:
           "https://digital.example.test/custom/api/bib/external/search"
       },
       ciniiResearch: {},
+      irdb: {},
+      jstage: {},
+      japanSearch: {}
+    });
+  });
+
+  it("SRU URL を渡した場合はそのまま search / record URL を解決する", () => {
+    const config = resolveAdapterOptionsFromEnv({
+      NDL_SEARCH_BASE_URL: "https://search.example.test/prefix/api/sru",
+      NDL_DIGITAL_BASE_URL: "https://digital.example.test/custom/api/sru"
+    });
+
+    expect(config).toEqual({
+      ndlSearch: {
+        searchBaseUrl: "https://search.example.test/prefix/api/sru",
+        recordBaseUrl:
+          "https://search.example.test/prefix/api/bib/external/search"
+      },
+      ndlDigital: {
+        searchBaseUrl: "https://digital.example.test/custom/api/sru",
+        recordBaseUrl:
+          "https://digital.example.test/custom/api/bib/external/search"
+      },
+      ciniiResearch: {},
+      irdb: {},
       jstage: {},
       japanSearch: {}
     });
@@ -597,5 +710,39 @@ describe("createSearchService", () => {
     expect(result.items).toEqual([
       createSearchItem("ndl_catalog", "1", "catalog-result")
     ]);
+  });
+
+  it("search 入力スキーマで source=irdb + filters.irdb を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "irdb",
+      filters: { irdb: { fulltext: true, title: "こころ", author: "夏目漱石" } }
+    });
+    expect(parsed.source).toBe("irdb");
+    expect(parsed.filters?.irdb?.fulltext).toBe(true);
+    expect(parsed.filters?.irdb?.title).toBe("こころ");
+    expect(parsed.filters?.irdb?.author).toBe("夏目漱石");
+  });
+
+  it("search 入力スキーマで source=irdb + filters なしを受け付ける", () => {
+    const parsed = searchInputSchema.parse({ query: "夏目漱石", source: "irdb" });
+    expect(parsed.filters).toBeUndefined();
+  });
+
+  it("search 入力スキーマで source=ndl_catalog + filters.irdb を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "夏目漱石",
+      source: "ndl_catalog",
+      filters: { irdb: { fulltext: true } }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("search 入力スキーマで source なし + filters.irdb を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "夏目漱石",
+      filters: { irdb: { author: "夏目漱石" } }
+    });
+    expect(result.success).toBe(false);
   });
 });

@@ -11,7 +11,10 @@ export function createJpLitSearchTool(searchService: SearchService) {
       query: parsed.query,
       source: parsed.source,
       limit: parsed.limit,
-      page: parsed.page
+      page: parsed.page,
+      sort_by: parsed.sort_by,
+      sort_order: parsed.sort_order,
+      filters: parsed.filters
     });
     const structuredContent: SearchOutput = {
       query: parsed.query,
@@ -19,7 +22,8 @@ export function createJpLitSearchTool(searchService: SearchService) {
       page: parsed.page,
       limit: parsed.limit,
       total: searchResult.total,
-      items: searchResult.items
+      items: searchResult.items,
+      facets: searchResult.facets
     };
 
     return {

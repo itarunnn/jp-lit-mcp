@@ -6,6 +6,7 @@ export const sourceSchema = z.enum([
   "ndl_digital",
   "ndl_articles",
   "ndl_articles_online",
+  "irdb",
   "jstage_articles",
   "japan_search",
   "cinii_research",
@@ -38,19 +39,29 @@ const relatedSearchRecordSchema = z.object({
   url: z.string().nullable()
 });
 
+const facetsSchema = z.object({
+  providers: z.record(z.string(), z.number()),
+  ndc: z.record(z.string(), z.number()),
+  issued_years: z.record(z.string(), z.number())
+});
+
 export const searchItemSchema = z.object({
   source: sourceSchema,
   source_id: z.string(),
   title: z.string(),
   subtitle: z.string().nullable(),
+  title_reading: z.string().nullable(),
   authors: z.array(personRoleSchema),
   publisher: z.string().nullable(),
+  journal_title: z.string().nullable(),
   issued_at: z.string().nullable(),
   issued_at_label: z.string().nullable(),
   issued_at_precision: issuedAtPrecisionSchema,
   summary: z.string().nullable(),
   url: z.string().nullable(),
   availability: availabilitySchema,
+  material_type: z.string().nullable(),
+  subjects: z.array(z.string()),
   duplicate_key: z.string().nullable(),
   duplicate_count: z.number().int().positive(),
   related_records: z.array(relatedSearchRecordSchema)
@@ -61,8 +72,10 @@ export const recordItemSchema = z.object({
   source_id: z.string(),
   title: z.string(),
   subtitle: z.string().nullable(),
+  title_reading: z.string().nullable(),
   authors: z.array(personRoleSchema),
   publisher: z.string().nullable(),
+  journal_title: z.string().nullable(),
   issued_at: z.string().nullable(),
   issued_at_label: z.string().nullable(),
   issued_at_precision: issuedAtPrecisionSchema,
@@ -82,12 +95,33 @@ export const recordItemSchema = z.object({
   raw: z.record(z.unknown())
 });
 
-export const searchInputSchema = z.object({
-  query: z.string().trim().min(1),
-  source: sourceSchema.optional(),
-  limit: z.number().int().positive().max(50).default(10),
-  page: z.number().int().positive().default(1)
+export const irdbFiltersSchema = z.object({
+  fulltext: z.boolean().optional(),
+  title: z.string().optional(),
+  author: z.string().optional()
 });
+
+export const searchInputSchema = z
+  .object({
+    query: z.string().trim().min(1),
+    source: sourceSchema.optional(),
+    limit: z.number().int().positive().max(50).default(10),
+    page: z.number().int().positive().default(1),
+    sort_by: z
+      .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
+      .optional(),
+    sort_order: z.enum(["asc", "desc"]).optional(),
+    filters: z.object({ irdb: irdbFiltersSchema }).optional()
+  })
+  .superRefine((data, ctx) => {
+    if (data.filters?.irdb !== undefined && data.source !== "irdb") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.irdb は source=irdb のときのみ有効です",
+        path: ["filters", "irdb"]
+      });
+    }
+  });
 
 export const recordInputSchema = z.object({
   source: sourceSchema,
@@ -100,12 +134,140 @@ export const searchOutputSchema = z.object({
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
   total: z.number().int().nonnegative(),
-  items: z.array(searchItemSchema)
+  items: z.array(searchItemSchema),
+  facets: facetsSchema.optional()
 });
 
 export const recordOutputSchema = recordItemSchema;
 
+export const textCoordinatesInputSchema = z.object({
+  source: sourceSchema,
+  source_id: z.string().trim().min(1).optional(),
+  pid: z.string().trim().min(1).optional(),
+  page: z.number().int().positive()
+}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
+  message: "source_id または pid のいずれかは必須です"
+});
+
+export const textCoordinatesOutputSchema = z.object({
+  pid: z.string(),
+  page: z.number().int().positive(),
+  page_image_url: z.string(),
+  contents: z.unknown(),
+  coordjson: z.unknown(),
+  raw: z.record(z.unknown())
+});
+
+export const fulltextInputSchema = z.object({
+  source: sourceSchema,
+  source_id: z.string().trim().min(1).optional(),
+  pid: z.string().trim().min(1).optional()
+}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
+  message: "source_id または pid のいずれかは必須です"
+});
+
+export const fulltextOutputSchema = z.object({
+  pid: z.string(),
+  pages: z.unknown(),
+  raw: z.record(z.unknown())
+});
+
+export const searchPagesInputSchema = z.object({
+  source: sourceSchema,
+  source_id: z.string().trim().min(1).optional(),
+  pid: z.string().trim().min(1).optional(),
+  keyword: z.string().trim().min(1),
+  size: z.number().int().positive().max(100).default(20),
+  from: z.number().int().nonnegative().default(0)
+}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
+  message: "source_id または pid のいずれかは必須です"
+});
+
+export const searchPagesOutputSchema = z.object({
+  pid: z.string(),
+  keyword: z.string(),
+  total: z.number().int().nonnegative(),
+  from: z.number().int().nonnegative(),
+  items: z.unknown(),
+  raw: z.record(z.unknown())
+});
+
+export type IrdbFilters = z.infer<typeof irdbFiltersSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
 export type SearchOutput = z.infer<typeof searchOutputSchema>;
 export type RecordOutput = z.infer<typeof recordOutputSchema>;
+export type TextCoordinatesInput = z.infer<typeof textCoordinatesInputSchema>;
+export type TextCoordinatesOutput = z.infer<typeof textCoordinatesOutputSchema>;
+export type FulltextInput = z.infer<typeof fulltextInputSchema>;
+export type FulltextOutput = z.infer<typeof fulltextOutputSchema>;
+export type SearchPagesInput = z.infer<typeof searchPagesInputSchema>;
+export type SearchPagesOutput = z.infer<typeof searchPagesOutputSchema>;
+
+const fulltextBookItemSchema = z.object({
+  pid: z.string(),
+  title: z.string().nullable(),
+  volume: z.string().nullable(),
+  responsibility: z.string().nullable(),
+  publisher: z.string().nullable(),
+  published: z.string().nullable(),
+  publishyear: z.number().int().nullable(),
+  ndc: z.string().nullable(),
+  page_count: z.number().int().nullable(),
+  is_classic: z.boolean().nullable(),
+  highlights: z.unknown()
+});
+
+export const searchFulltextInputSchema = z.object({
+  keyword: z.string().trim().min(1),
+  searchfield: z.enum(["contentonly", "metaonly", "all"]).default("contentonly"),
+  size: z.number().int().positive().max(100).default(20),
+  from: z.number().int().nonnegative().default(0),
+  f_ndc: z.string().optional(),
+  fc_is_classic: z.boolean().optional()
+});
+
+export const searchFulltextOutputSchema = z.object({
+  keyword: z.string(),
+  searchfield: z.enum(["contentonly", "metaonly", "all"]),
+  total: z.number().int().nonnegative(),
+  from: z.number().int().nonnegative(),
+  items: z.array(fulltextBookItemSchema),
+  raw: z.record(z.unknown())
+});
+
+export type SearchFulltextInput = z.infer<typeof searchFulltextInputSchema>;
+export type SearchFulltextOutput = z.infer<typeof searchFulltextOutputSchema>;
+
+const illustrationItemSchema = z.object({
+  id: z.string(),
+  pid: z.string(),
+  page: z.number().int().positive(),
+  x: z.number(),
+  y: z.number(),
+  w: z.number(),
+  h: z.number(),
+  graphictags: z.array(z.object({
+    tagname: z.string(),
+    confidence: z.number()
+  })),
+  page_image_url: z.string(),
+  illustration_image_url: z.string()
+});
+
+export const searchIllustrationsInputSchema = z.object({
+  keyword: z.string().trim().min(1),
+  size: z.number().int().positive().max(100).default(20),
+  from: z.number().int().nonnegative().default(0)
+});
+
+export const searchIllustrationsOutputSchema = z.object({
+  keyword: z.string(),
+  total: z.number().int().nonnegative(),
+  from: z.number().int().nonnegative(),
+  items: z.array(illustrationItemSchema),
+  raw: z.record(z.unknown())
+});
+
+export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
+export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;

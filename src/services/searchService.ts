@@ -1,6 +1,6 @@
-import type { SourceName } from "../lib/types.js";
+import type { SearchFacets, SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
-import type { SourceAdapter } from "../sources/types.js";
+import type { IrdbSearchFilters, SourceAdapter } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
 import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
 
@@ -9,6 +9,11 @@ interface SearchInput {
   source?: SourceName;
   limit: number;
   page: number;
+  sort_by?: "title" | "creator" | "issued_date" | "created_date" | "modified_date";
+  sort_order?: "asc" | "desc";
+  filters?: {
+    irdb?: IrdbSearchFilters;
+  };
 }
 
 const CROSS_SOURCE_ORDER: SourceName[] = [
@@ -160,6 +165,42 @@ function withDefaultDuplicateInfo(items: SearchItem[]) {
   }));
 }
 
+function mergeFacetGroup(
+  target: Record<string, number>,
+  source: Record<string, number> | undefined
+) {
+  if (!source) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(source)) {
+    target[key] = (target[key] ?? 0) + value;
+  }
+}
+
+function mergeFacets(results: Array<{ facets?: SearchFacets }>): SearchFacets | undefined {
+  const merged: SearchFacets = {
+    providers: {},
+    ndc: {},
+    issued_years: {}
+  };
+
+  let hasAnyFacet = false;
+
+  for (const result of results) {
+    if (!result.facets) {
+      continue;
+    }
+
+    hasAnyFacet = true;
+    mergeFacetGroup(merged.providers, result.facets.providers);
+    mergeFacetGroup(merged.ndc, result.facets.ndc);
+    mergeFacetGroup(merged.issued_years, result.facets.issued_years);
+  }
+
+  return hasAnyFacet ? merged : undefined;
+}
+
 export function createSearchService(adapters: SourceAdapter[]) {
   const registry = createSourceRegistry(adapters);
 
@@ -170,7 +211,8 @@ export function createSearchService(adapters: SourceAdapter[]) {
 
         return {
           total: result.total,
-          items: withDefaultDuplicateInfo(result.items)
+          items: withDefaultDuplicateInfo(result.items),
+          facets: result.facets
         };
       }
 
@@ -191,7 +233,8 @@ export function createSearchService(adapters: SourceAdapter[]) {
 
       return {
         total: results.reduce((sum, result) => sum + result.total, 0),
-        items: annotateDuplicateCandidates(mergedItems)
+        items: annotateDuplicateCandidates(mergedItems),
+        facets: mergeFacets(results)
       };
     }
   };
