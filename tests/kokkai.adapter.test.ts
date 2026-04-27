@@ -5,6 +5,65 @@ function readFixture(name: string) {
   return readFileSync(new URL(`./fixtures/kokkai/${name}`, import.meta.url), "utf-8");
 }
 
+describe("mapKokkaiMeetingResponse", () => {
+  it("meeting JSON を RecordItem に正規化する（kokkai_minutes）", async () => {
+    const json = readFixture("meeting-response.json");
+    const { mapKokkaiMeetingResponse } = await import("../src/sources/kokkai/mapRecord.js");
+
+    const record = mapKokkaiMeetingResponse("kokkai_minutes", "1151420_098_2_00026", json);
+
+    expect(record).toMatchObject({
+      source: "kokkai_minutes",
+      source_id: "1151420_098_2_00026",
+      title: "衆議院本会議 第214回国会 第2号（2023-01-25）",
+      subtitle: null,
+      title_reading: null,
+      authors: [],
+      publisher: "国立国会図書館",
+      journal_title: "衆議院本会議",
+      issued_at: "2023-01-25",
+      issued_at_label: "2023-01-25",
+      issued_at_precision: "day",
+      url: "https://kokkai.ndl.go.jp/record/1151420_098_2",
+      availability: { online: true, digital_collection: false },
+      alternative_titles: ["第214回国会衆議院本会議第2号"],
+      publication_place: "日本",
+      language: "ja",
+      material_type: "parliamentary_record",
+      extent: null,
+      subjects: [],
+      identifiers: { issue_id: "1151420_098_2", session: 214 },
+      table_of_contents: [],
+      content_access: {
+        has_page_images: true,
+        has_text_coordinates: false,
+        viewer_url: "https://kokkai.ndl.go.jp/record/1151420_098_2",
+        access_note: null
+      }
+    });
+    expect(record?.source_metadata).toMatchObject({
+      issue_id: "1151420_098_2",
+      session: 214,
+      name_of_house: "衆議院",
+      name_of_meeting: "本会議",
+      issue: "第2号",
+      pdf_url: "https://kokkai.ndl.go.jp/pdf/1151420_098_2",
+      speech_count: 2
+    });
+    expect(Array.isArray(record?.source_metadata.speeches)).toBe(true);
+    expect((record?.source_metadata.speeches as unknown[]).length).toBe(2);
+  });
+
+  it("record が空のとき null を返す", async () => {
+    const json = JSON.stringify({ numberOfRecords: 0, numberOfReturn: 0, startRecord: 1, record: [] });
+    const { mapKokkaiMeetingResponse } = await import("../src/sources/kokkai/mapRecord.js");
+
+    const record = mapKokkaiMeetingResponse("kokkai_minutes", "missing_id", json);
+
+    expect(record).toBeNull();
+  });
+});
+
 describe("mapKokkaiSearchResponse", () => {
   it("speech JSON を SearchItem[] に正規化する（kokkai_minutes）", async () => {
     const json = readFixture("speech-response.json");
