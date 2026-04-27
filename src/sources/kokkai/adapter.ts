@@ -1,4 +1,4 @@
-import { fetchText } from "../../lib/http.js";
+import { fetchText, UpstreamHttpError } from "../../lib/http.js";
 import type { SourceAdapter } from "../types.js";
 import { mapKokkaiMeetingResponse } from "./mapRecord.js";
 import { mapKokkaiSearchResponse } from "./mapSearch.js";
@@ -43,8 +43,15 @@ function createAdapter(
       url.searchParams.set("issueID", issueID);
       url.searchParams.set("recordPacking", "json");
 
-      const payload = await fetchText(url.toString());
-      return mapKokkaiMeetingResponse(source, sourceId, payload.text);
+      try {
+        const payload = await fetchText(url.toString());
+        return mapKokkaiMeetingResponse(source, sourceId, payload.text);
+      } catch (error) {
+        if (error instanceof UpstreamHttpError && error.status === 404) {
+          return null;
+        }
+        throw error;
+      }
     }
   };
 }

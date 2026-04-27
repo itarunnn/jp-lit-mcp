@@ -46,7 +46,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-- テスト: 192件すべて通過
+- テスト: 203件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` を通した状態を維持
 - NDL 系 source の検索は SRU（`version=1.2`, `recordSchema=dcndl`）に移行済み
 - `sort_by` / `sort_order` / `facets`（providers / ndc / issued_years）は NDL 系 source で利用可能

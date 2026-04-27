@@ -54,7 +54,7 @@ function mapKokkaiRecord(
   const role = resolveRole(record.speakerRole, record.speakerPosition);
   const subjects = record.speakerGroup ? [record.speakerGroup] : [];
   const summary = record.speech ? truncateSpeech(record.speech) : null;
-  const subtitle = record.speech || null;
+  const subtitle = null;
 
   const title = `${record.speaker} — ${record.nameOfHouse}${record.nameOfMeeting} 第${record.session}回国会 ${record.issue}（${record.date}）`;
 

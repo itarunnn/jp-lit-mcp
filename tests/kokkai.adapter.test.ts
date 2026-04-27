@@ -82,7 +82,7 @@ describe("mapKokkaiSearchResponse", () => {
       source: "kokkai_minutes",
       source_id: "1151420_098_2_00026",
       title: "岸田文雄 — 衆議院本会議 第214回国会 第2号（2023-01-25）",
-      subtitle: "ただいま議題となりました法律案について、その趣旨を御説明申し上げます。",
+      subtitle: null,
       title_reading: "きしだふみお",
       authors: [{ name: "岸田文雄", role: "内閣総理大臣" }],
       publisher: "国立国会図書館",
