@@ -39,6 +39,8 @@ npm install
 | `cinii_research` | `cinii_articles` の後方互換 alias | |
 | `jstage_articles` | J-STAGE 論文 | ✓ |
 | `japan_search` | Japan Search（横断検索の既定対象外） | |
+| `kokkai_minutes` | 国会会議録（第1回国会〜現在） | |
+| `teikoku_minutes` | 帝国議会会議録（第1〜90回、1890〜1947年） | |
 
 source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` / `cinii_articles` / `cinii_books` / `jstage_articles`
 
@@ -90,6 +92,10 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
   - `fulltext` / `title` / `author` / `keyword` / `journal` / `publisher` の6フィールドに対応
   - `source=irdb` 以外で指定すると validation error
   - 発行年フィルターは IRDB OpenSearch API に存在しないため非対応
+- `kokkai_minutes` / `teikoku_minutes` を追加
+  - 検索: 国会会議録 API (`kokkai.ndl.go.jp/api/speech`) / 帝国議会会議録 API (`teikokugikai-i.ndl.go.jp/api/emp/speech`) の speech エンドポイント（発言単位）
+  - 詳細: meeting エンドポイント（会議全体）
+  - 既定横断検索には含めない
 
 ### コンテキスト肥大化を避ける方針
 
@@ -309,6 +315,10 @@ null
 | `JAPAN_SEARCH_ITEM_BASE_URL` | `https://jpsearch.go.jp/api/item` | japan_search 詳細 URL |
 | `IRDB_SEARCH_BASE_URL` | `https://irdb.nii.ac.jp/opensearch/search` | irdb 検索 URL |
 | `IRDB_DETAIL_BASE_URL` | `https://irdb.nii.ac.jp` | irdb 詳細 URL |
+| `KOKKAI_SPEECH_BASE_URL` | `https://kokkai.ndl.go.jp/api/speech` | kokkai_minutes 検索 URL |
+| `KOKKAI_MEETING_BASE_URL` | `https://kokkai.ndl.go.jp/api/meeting` | kokkai_minutes 詳細 URL |
+| `TEIKOKU_SPEECH_BASE_URL` | `https://teikokugikai-i.ndl.go.jp/api/emp/speech` | teikoku_minutes 検索 URL |
+| `TEIKOKU_MEETING_BASE_URL` | `https://teikokugikai-i.ndl.go.jp/api/emp/meeting` | teikoku_minutes 詳細 URL |
 
 補足: `NDL_SEARCH_BASE_URL` / `NDL_DIGITAL_BASE_URL` は `/api/sru` / `/api/opensearch` / `/api/bib/external/search` のどれを渡しても内部で正規化します。
 
@@ -395,6 +405,35 @@ $env:SMOKE_LIVE="1"; npm run smoke:mcp
 - `ndl_articles` の `journal_title` は best-effort 抽出です。`dc:description` の `掲載誌：XXX` パターンから取得しますが、巻号が混入することがあります。
 - `ndl_articles` の巻・号・頁は `RecordItem.source_metadata` のみに入ります。`SearchItem` では提供していません（設計上の割り切り）。
 - `ndl_digital` の detail 判定は安全側です。`source_metadata.provider_id` が `null` のまま返ることがあります。
+
+## 拡張ロードマップ
+
+### 設計方針
+
+- MCP ツールは「検索・取得」に徹する。要約・ガイド・調べ方は LLM / Skill 側に任せる。
+- 「調べ方を返すもの」は MCP ツールではなく Claude Code Skill として実装する。
+- 新 source は原則として既定横断検索には入れない（ノイズ対策）。
+
+### MCP 拡張フェーズ
+
+| フェーズ | source | 内容 | 状況 |
+|---------|--------|------|------|
+| Phase 1 | `irdb` | 機関リポジトリ — 紀要・学位論文・報告書 | ✅ 完了 |
+| Phase 2 | `kokkai_minutes` / `teikoku_minutes` | 国会・帝国議会会議録 | ✅ 完了 |
+| Phase 3 | `jdcat` | 人文学・社会科学総合データカタログ | 未着手 |
+| Phase 4 | `nihu_bridge` | 人文学専門 DB 横断 | 未着手 |
+
+**Phase 2 メモ:** 国会会議録検索 API（`kokkai.ndl.go.jp/api`）を使用。speech 単位と meeting 単位の分け方を先に設計する。既定横断検索には入れない。
+
+**Phase 3 メモ:** 論文・図書と混在させないため既定横断検索には入れない。対象時期・調査地域・配布元・アクセス条件を重視。
+
+**Phase 4 メモ:** 異体字・時空間検索が使えるなら専用引数を検討。API 仕様の確認から始める。
+
+### Skill 実装（MCP 外）
+
+**日本語人文社会系文献調査スキル**（リサーチ・ナビ / レファ協の内容を参考に）
+
+「調べ方・source 選択の判断」は静的な知識であり MCP ツールとして実装しない。Claude Code Skill として、研究テーマ別の source 選択基準・典型的な調査フロー・文献が見つからない場合の次の手などをまとめる。
 
 ## fixture 構成
 
