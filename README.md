@@ -136,6 +136,9 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 | `filters.irdb.fulltext` | boolean | — | `true` のとき全文検索対象に絞り込む（`fulltext=1`） |
 | `filters.irdb.title` | string | — | タイトルで絞り込む |
 | `filters.irdb.author` | string | — | 著者名で絞り込む |
+| `filters.irdb.keyword` | string | — | キーワード（件名）で絞り込む |
+| `filters.irdb.journal` | string | — | 掲載誌名で絞り込む |
+| `filters.irdb.publisher` | string | — | 出版者（機関名）で絞り込む |
 
 sort 対応状況:
 - `ndl_*`: 対応

@@ -19,6 +19,7 @@
   - `q`
   - `title`
   - `author`
+  - `authorid` — 作成者 ID（CiNii Research の著者 ID 等）。2026-04-27 公式ドキュメントで確認、初版メモには未記録だった
   - `keyword`
   - `journal`
   - `issn`
@@ -33,6 +34,7 @@
 - `format` は `rss` / `atom`
 - `count` は `20` / `50` / `100` 以外を指定すると既定値 `20` に戻る。
 - `fulltext` は `ALL` または `1`
+- 発行年による絞り込みパラメータは存在しない。結果の `pubDate` フィールドは返されるが検索条件には指定できない
 
 ## live 応答確認メモ
 
@@ -137,6 +139,9 @@
 | `filters.irdb.fulltext=true` | `fulltext=1` | `false` または未指定のときはパラメータなし |
 | `filters.irdb.title` | `title=<value>` | |
 | `filters.irdb.author` | `author=<value>` | |
+| `filters.irdb.keyword` | `keyword=<value>` | |
+| `filters.irdb.journal` | `journal=<value>` | |
+| `filters.irdb.publisher` | `publisher=<value>` | |
 
 - `query` の `q` パラメータは常に付与される。
 - `source=irdb` 以外（横断検索含む）では `filters.irdb` を渡すと validation error になる。

@@ -98,7 +98,10 @@ export const recordItemSchema = z.object({
 export const irdbFiltersSchema = z.object({
   fulltext: z.boolean().optional(),
   title: z.string().optional(),
-  author: z.string().optional()
+  author: z.string().optional(),
+  keyword: z.string().optional(),
+  journal: z.string().optional(),
+  publisher: z.string().optional()
 });
 
 export const searchInputSchema = z

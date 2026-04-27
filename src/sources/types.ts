@@ -9,6 +9,9 @@ export interface IrdbSearchFilters {
   fulltext?: boolean;
   title?: string;
   author?: string;
+  keyword?: string;
+  journal?: string;
+  publisher?: string;
 }
 
 export interface SearchParams {

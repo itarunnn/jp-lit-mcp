@@ -245,4 +245,29 @@ describe("createIrdbAdapter", () => {
     expect(searchUrl.searchParams.get("title")).toBe("こころ");
     expect(searchUrl.searchParams.get("author")).toBe("夏目漱石");
   });
+
+  it("filters.irdb.keyword/journal/publisher のとき URL に対応パラメータが付く", async () => {
+    const searchFixture = readFixture("search-response.xml");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/atom+xml; charset=utf-8" : null },
+      text: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createIrdbAdapter } = await import("../src/sources/irdb/adapter.js");
+    const adapter = createIrdbAdapter();
+
+    await adapter.search({
+      query: "漱石",
+      limit: 10,
+      page: 1,
+      filters: { irdb: { keyword: "近代文学", journal: "文学研究", publisher: "東京大学" } }
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("keyword")).toBe("近代文学");
+    expect(searchUrl.searchParams.get("journal")).toBe("文学研究");
+    expect(searchUrl.searchParams.get("publisher")).toBe("東京大学");
+  });
 });
