@@ -1,0 +1,43 @@
+{
+  "numberOfRecords": 1,
+  "numberOfReturn": 1,
+  "startRecord": 1,
+  "record": [
+    {
+      "issueID": "1151420_098_2",
+      "session": 214,
+      "nameOfHouse": "衆議院",
+      "nameOfMeeting": "本会議",
+      "issue": "第2号",
+      "date": "2023-01-25",
+      "meetingURL": "https://kokkai.ndl.go.jp/record/1151420_098_2",
+      "pdfURL": "https://kokkai.ndl.go.jp/pdf/1151420_098_2",
+      "speechRecord": [
+        {
+          "speechID": "1151420_098_2_00001",
+          "speechOrder": 1,
+          "speaker": "大島理森",
+          "speakerYomi": "おおしまただもり",
+          "speakerGroup": "",
+          "speakerPosition": "議長",
+          "speakerRole": "",
+          "speech": "これより会議を開きます。",
+          "startPage": 1,
+          "speechURL": "https://kokkai.ndl.go.jp/record/1151420_098_2_00001"
+        },
+        {
+          "speechID": "1151420_098_2_00026",
+          "speechOrder": 26,
+          "speaker": "岸田文雄",
+          "speakerYomi": "きしだふみお",
+          "speakerGroup": "自由民主党",
+          "speakerPosition": "内閣総理大臣",
+          "speakerRole": "",
+          "speech": "ただいま議題となりました法律案について、その趣旨を御説明申し上げます。",
+          "startPage": 5,
+          "speechURL": "https://kokkai.ndl.go.jp/record/1151420_098_2_00026"
+        }
+      ]
+    }
+  ]
+}

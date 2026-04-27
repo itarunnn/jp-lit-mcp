@@ -1,0 +1,48 @@
+{
+  "numberOfRecords": 15842,
+  "numberOfReturn": 2,
+  "startRecord": 1,
+  "nextRecordPosition": 3,
+  "record": [
+    {
+      "speechID": "1151420_098_2_00026",
+      "issueID": "1151420_098_2",
+      "session": 214,
+      "nameOfHouse": "衆議院",
+      "nameOfMeeting": "本会議",
+      "issue": "第2号",
+      "date": "2023-01-25",
+      "speechOrder": 26,
+      "speaker": "岸田文雄",
+      "speakerYomi": "きしだふみお",
+      "speakerGroup": "自由民主党",
+      "speakerPosition": "内閣総理大臣",
+      "speakerRole": "",
+      "speech": "ただいま議題となりました法律案について、その趣旨を御説明申し上げます。",
+      "startPage": 5,
+      "speechURL": "https://kokkai.ndl.go.jp/record/1151420_098_2_00026",
+      "meetingURL": "https://kokkai.ndl.go.jp/record/1151420_098_2",
+      "pdfURL": "https://kokkai.ndl.go.jp/pdf/1151420_098_2"
+    },
+    {
+      "speechID": "1151420_098_2_00027",
+      "issueID": "1151420_098_2",
+      "session": 214,
+      "nameOfHouse": "衆議院",
+      "nameOfMeeting": "本会議",
+      "issue": "第2号",
+      "date": "2023-01-25",
+      "speechOrder": 27,
+      "speaker": "枝野幸男",
+      "speakerYomi": "えだのゆきお",
+      "speakerGroup": "立憲民主党",
+      "speakerPosition": "",
+      "speakerRole": "",
+      "speech": "ただいまの提案理由の説明は聴取いたしました。",
+      "startPage": 6,
+      "speechURL": "https://kokkai.ndl.go.jp/record/1151420_098_2_00027",
+      "meetingURL": "https://kokkai.ndl.go.jp/record/1151420_098_2",
+      "pdfURL": "https://kokkai.ndl.go.jp/pdf/1151420_098_2"
+    }
+  ]
+}
