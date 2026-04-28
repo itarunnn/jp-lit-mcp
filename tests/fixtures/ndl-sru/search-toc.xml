@@ -1,0 +1,48 @@
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.2</version>
+  <numberOfRecords>1</numberOfRecords>
+  <records>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+                 xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+                 xmlns:foaf="http://xmlns.com/foaf/0.1/">
+          <dcndl:BibAdminResource rdf:about="https://ndlsearch.ndl.go.jp/books/R100000002-I000007654321">
+            <dcndl:catalogingStatus>C7</dcndl:catalogingStatus>
+            <dcndl:catalogingRule>ncr</dcndl:catalogingRule>
+            <dcterms:provenance>国立国会図書館</dcterms:provenance>
+          </dcndl:BibAdminResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R100000002-I000007654321#material">
+            <dcterms:title>愛吟集</dcterms:title>
+            <dc:title>
+              <rdf:Description>
+                <rdf:value>愛吟集</rdf:value>
+                <dcndl:transcription>アイギンシュウ</dcndl:transcription>
+              </rdf:Description>
+            </dc:title>
+            <dcterms:creator>
+              <foaf:Agent>
+                <foaf:name>田辺英蔵</foaf:name>
+              </foaf:Agent>
+            </dcterms:creator>
+            <dcterms:issued rdf:datatype="http://purl.org/dc/terms/W3CDTF">1916</dcterms:issued>
+            <dcndl:materialType rdf:resource="http://ndl.go.jp/ndltype/Book" rdfs:label="図書"/>
+            <dcterms:tableOfContents>金剛石</dcterms:tableOfContents>
+            <dcterms:tableOfContents>月下の陣</dcterms:tableOfContents>
+            <dcterms:tableOfContents>羅生門</dcterms:tableOfContents>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007654321"/>
+          </dcndl:BibResource>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R100000002-I000007654321#item">
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000002-I000007654321"/>
+          </dcndl:Item>
+        </rdf:RDF>
+      </recordData>
+      <recordPosition>1</recordPosition>
+    </record>
+  </records>
+</searchRetrieveResponse>

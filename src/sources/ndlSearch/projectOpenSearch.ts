@@ -1,4 +1,4 @@
-import { projectOpenSearchXml } from "../../lib/xml.js";
+import { projectRssChannelXml } from "../../lib/xml.js";
 import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import { readNdlSearchString, readNdlSearchStringList } from "./mapSearch.js";
 
@@ -70,6 +70,32 @@ function pickViewerUrl(value: unknown): string | null {
   );
 }
 
+function extractCiniiCrid(value: unknown): string | null {
+  for (const url of readNdlSearchStringList(value)) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname === "cir.nii.ac.jp" && parsed.pathname.startsWith("/crid/")) {
+        const crid = parsed.pathname.replace(/^\/crid\//, "").replace(/[/.].*/s, "");
+        if (crid) return crid;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+function extractJournalTitle(descriptions: unknown): string | null {
+  for (const desc of readNdlSearchStringList(descriptions)) {
+    const match = desc.match(/^掲載誌：(.+)/);
+    if (!match) continue;
+    const afterPrefix = match[1];
+    const title = afterPrefix.split(/ =| \/| p\./)[ 0]?.trim() ?? null;
+    return title || null;
+  }
+  return null;
+}
+
 function toAuthors(value: unknown): Array<{ name: string; role: "author" }> {
   return compactStrings(readNdlSearchStringList(value)).map((name) => ({
     name,
@@ -87,8 +113,11 @@ function projectItem(value: unknown): JsonRecord {
   const digitalCollection =
     categories.includes("デジタル") || viewerUrl !== null;
 
+  const ciniiCrid = extractCiniiCrid(item["rdfs:seeAlso"]);
+
   return {
     id: extractSourceId(url),
+    ciniiCrid: ciniiCrid ?? null,
     title:
       readNdlSearchString(item["dc:title"]) ??
       readNdlSearchString(item.title) ??
@@ -100,9 +129,16 @@ function projectItem(value: unknown): JsonRecord {
     publisher:
       readNdlSearchString(item["dc:publisher"]) ??
       readNdlSearchString(item["dcterms:publisher"]),
-    issued:
-      readNdlSearchString(item["dcterms:issued"]) ??
-      readNdlSearchString(item["dc:date"]),
+    issued: (() => {
+      const structured =
+        readNdlSearchString(item["dcterms:issued"]) ??
+        readNdlSearchString(item["dc:date"]);
+      if (structured) return structured;
+      const pubDate = readNdlSearchString(item.pubDate);
+      if (!pubDate) return null;
+      const year = new Date(pubDate).getFullYear();
+      return isNaN(year) ? null : String(year);
+    })(),
     url,
     online: accessNote !== null,
     digitalCollection,
@@ -120,12 +156,13 @@ function projectItem(value: unknown): JsonRecord {
     viewerUrl,
     accessNote,
     hasPageImages: viewerUrl !== null,
-    hasTextCoordinates: false
+    hasTextCoordinates: false,
+    journalTitle: extractJournalTitle(item["dc:description"])
   };
 }
 
-export function projectNdlSearchOpenSearchXml(xml: string): JsonRecord {
-  const projected = projectOpenSearchXml(xml);
+export function projectNdlSearchLegacyRssXml(xml: string): JsonRecord {
+  const projected = projectRssChannelXml(xml);
   const items = projected.items.map((item) => projectItem(item));
   const totalResults =
     readNdlSearchString(projected.channel["openSearch:totalResults"]) ?? null;
@@ -152,4 +189,12 @@ export function projectNdlSearchOpenSearchXml(xml: string): JsonRecord {
   }
 
   return root;
+}
+
+export function projectNdlSearchDetailXml(xml: string): JsonRecord {
+  return projectNdlSearchLegacyRssXml(xml);
+}
+
+export function projectNdlSearchOpenSearchXml(xml: string): JsonRecord {
+  return projectNdlSearchLegacyRssXml(xml);
 }

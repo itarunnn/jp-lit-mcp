@@ -5,11 +5,16 @@ import {
 import { assertXmlPayload } from "../../lib/xml.js";
 import type { RecordItem, SearchItem, SourceName } from "../../lib/types.js";
 import type { SourceAdapter } from "../types.js";
+import { mapCiniiRecordResponseForSource } from "../ciniiResearch/mapRecord.js";
 import { mapNdlSearchRecordResponse } from "./mapRecord.js";
 import { mapNdlSearchSearchResponse } from "./mapSearch.js";
-import { projectNdlSearchOpenSearchXml } from "./projectOpenSearch.js";
+import { projectNdlSearchDetailXml } from "./projectOpenSearch.js";
+import { projectNdlSruSearchResponse } from "./parseSru.js";
 
-const DEFAULT_SEARCH_BASE_URL = "https://ndlsearch.ndl.go.jp/api/opensearch";
+const DEFAULT_CINII_RECORD_BASE_URL = "https://cir.nii.ac.jp/crid";
+const CRID_PREFIX = "crid:";
+
+const DEFAULT_SEARCH_BASE_URL = "https://ndlsearch.ndl.go.jp/api/sru";
 const DEFAULT_RECORD_BASE_URL =
   "https://ndlsearch.ndl.go.jp/api/bib/external/search";
 
@@ -22,6 +27,7 @@ interface NdlSearchAdapterOptions {
   providerId?: string;
   searchBaseUrl?: string;
   recordBaseUrl?: string;
+  ciniiRecordBaseUrl?: string;
 }
 
 function withSource<T extends SearchItem | RecordItem>(item: T, source: SourceName): T {
@@ -82,7 +88,46 @@ async function fetchNdlSearchPayload(url: string): Promise<unknown> {
 
   assertXmlPayload({ text, contentType });
 
-  return projectNdlSearchOpenSearchXml(text);
+  return projectNdlSearchDetailXml(text);
+}
+
+async function fetchNdlSearchSruPayload(url: string): Promise<unknown> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new UpstreamHttpError(response.status, response.statusText);
+  }
+
+  return projectNdlSruSearchResponse(await response.text());
+}
+
+function normalizeSruSearchBaseUrl(baseUrl: string): string {
+  return baseUrl
+    .replace(/\/api\/opensearch\/?$/i, "/api/sru")
+    .replace(/\/opensearch\/?$/i, "/sru");
+}
+
+function escapeCqlKeyword(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildCqlQuery(keyword: string, dpid?: string): string {
+  const keywordClause = `anywhere="${escapeCqlKeyword(keyword)}"`;
+
+  return dpid ? `dpid=${dpid} AND ${keywordClause}` : keywordClause;
+}
+
+function buildSortBy(
+  sortBy?: "title" | "creator" | "issued_date" | "created_date" | "modified_date",
+  sortOrder?: "asc" | "desc"
+) {
+  if (!sortBy) {
+    return null;
+  }
+
+  const direction = sortOrder === "desc" ? "descending" : "ascending";
+
+  return `${sortBy}/sort.${direction}`;
 }
 
 export function createNdlSearchAdapter(
@@ -92,28 +137,61 @@ export function createNdlSearchAdapter(
   const providerId = options.providerId;
   const searchBaseUrl = options.searchBaseUrl ?? DEFAULT_SEARCH_BASE_URL;
   const recordBaseUrl = options.recordBaseUrl ?? DEFAULT_RECORD_BASE_URL;
+  const ciniiRecordBaseUrl = options.ciniiRecordBaseUrl ?? DEFAULT_CINII_RECORD_BASE_URL;
 
   return {
     source,
-    async search({ query, limit, page }) {
-      const url = new URL(searchBaseUrl);
-      url.searchParams.set("any", query);
-      url.searchParams.set("cnt", String(limit));
-      url.searchParams.set("idx", String((page - 1) * limit + 1));
-      if (providerId) {
-        url.searchParams.set("dpid", providerId);
+    async search({ query, limit, page, sort_by, sort_order }) {
+      const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
+      url.searchParams.set("operation", "searchRetrieve");
+      url.searchParams.set("version", "1.2");
+      url.searchParams.set("recordSchema", "dcndl");
+      url.searchParams.set("recordPacking", "xml");
+      url.searchParams.set("maximumRecords", String(limit));
+      url.searchParams.set("startRecord", String((page - 1) * limit + 1));
+      url.searchParams.set("query", buildCqlQuery(query, providerId));
+      const sort = buildSortBy(sort_by, sort_order);
+      if (sort) {
+        url.searchParams.set("sortBy", sort);
       }
 
-      const result = mapNdlSearchSearchResponse(
-        await fetchNdlSearchPayload(url.toString())
-      );
+      const projected = await fetchNdlSearchSruPayload(url.toString()) as {
+        totalResults?: string;
+        items?: unknown[];
+        facets?: {
+          providers: Record<string, number>;
+          ndc: Record<string, number>;
+          issued_years: Record<string, number>;
+        };
+      };
+      const result = mapNdlSearchSearchResponse(projected);
 
       return {
         total: result.total,
-        items: result.items.map((item) => withSource(item, source))
+        items: result.items.map((item) => withSource(item, source)),
+        facets: projected.facets
       };
     },
     async getRecord(sourceId) {
+      if (sourceId.startsWith(CRID_PREFIX)) {
+        const crid = sourceId.slice(CRID_PREFIX.length);
+        const ciniiUrl = `${ciniiRecordBaseUrl.replace(/\/+$/, "")}/${crid}.json`;
+        try {
+          const response = await fetch(ciniiUrl, { headers: { accept: "application/json" } });
+          if (!response.ok) {
+            throw new UpstreamHttpError(response.status, response.statusText);
+          }
+          const payload = JSON.parse(await response.text()) as unknown;
+          const record = mapCiniiRecordResponseForSource(payload, source);
+          return withSource({ ...record, source_id: sourceId }, source);
+        } catch (error) {
+          if (error instanceof UpstreamHttpError && error.status === 404) {
+            return null;
+          }
+          throw error;
+        }
+      }
+
       const url = new URL(recordBaseUrl);
       url.searchParams.set("cs", "bib");
       url.searchParams.set("f-token", sourceId);
@@ -122,6 +200,10 @@ export function createNdlSearchAdapter(
         const record = mapNdlSearchRecordResponse(
           await fetchNdlSearchPayload(url.toString())
         );
+
+        if (!record) {
+          return null;
+        }
 
         return withSource(record, source);
       } catch (error) {

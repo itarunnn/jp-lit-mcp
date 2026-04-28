@@ -14,6 +14,15 @@ export interface IrdbSearchFilters {
   publisher?: string;
 }
 
+export interface NihuBridgeSearchFilters {
+  institute?: Array<"nijl" | "nmjh" | "ninjal" | "ircjs" | "rihn" | "nme" | "nihu">;
+  database?: string[];
+  normalize?: boolean;
+  period_from?: string;
+  period_to?: string;
+  bbox?: { lat1: number; lon1: number; lat2: number; lon2: number };
+}
+
 export interface SearchParams {
   query: string;
   limit: number;
@@ -22,6 +31,7 @@ export interface SearchParams {
   sort_order?: "asc" | "desc";
   filters?: {
     irdb?: IrdbSearchFilters;
+    nihu_bridge?: NihuBridgeSearchFilters;
   };
 }
 

@@ -1,0 +1,97 @@
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.2</version>
+  <numberOfRecords>4</numberOfRecords>
+  <nextRecordPosition>2</nextRecordPosition>
+  <extraResponseData>
+    <facets>
+      <lst name="REPOSITORY_NO">
+        <int name="R000000004">4</int>
+      </lst>
+      <lst name="NDC">
+      </lst>
+      <lst name="ISSUED_DATE">
+        <int name="2015">1</int>
+        <int name="2016">1</int>
+        <int name="2018">1</int>
+        <int name="2019">1</int>
+      </lst>
+      <lst name="LIBRARY">
+        <int name="国立国会図書館">4</int>
+      </lst>
+    </facets>
+  </extraResponseData>
+  <records>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:owl="http://www.w3.org/2002/07/owl#">
+          <dcndl:BibAdminResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602">
+            <dcndl:catalogingStatus>C7</dcndl:catalogingStatus>
+            <dcterms:description>type : article</dcterms:description>
+            <dcndl:bibRecordCategory>R000000004</dcndl:bibRecordCategory>
+            <dcndl:bibRecordSubCategory>636</dcndl:bibRecordSubCategory>
+            <dcndl:bibRecordSubCategory>B00089</dcndl:bibRecordSubCategory>
+            <dcndl:bibRecordSubCategory>B00028</dcndl:bibRecordSubCategory>
+            <dcndl:bibRecordSubCategory>B00027</dcndl:bibRecordSubCategory>
+            <dcndl:bibRecordSubCategory>B00000</dcndl:bibRecordSubCategory>
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602#material"/>
+          </dcndl:BibAdminResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602#material">
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/033033602"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">033033602</dcterms:identifier>
+            <dcterms:title>夏目漱石句稿 正岡子規宛 : くまもと文学・歴史館文学資料紹介</dcterms:title>
+            <dc:title>
+              <rdf:Description>
+                <rdf:value>夏目漱石句稿 正岡子規宛 : くまもと文学・歴史館文学資料紹介</rdf:value>
+                <dcndl:transcription>ナツメ ソウセキクコウ マサオカ シキアテ : クマ モト ブンガク ・ レキシカン ブンガク シリョウ ショウカイ</dcndl:transcription>
+              </rdf:Description>
+            </dc:title>
+            <dcterms:creator>
+              <foaf:Agent>
+                <foaf:name>木下優子</foaf:name>
+              </foaf:Agent>
+            </dcterms:creator>
+            <dc:creator>木下優子</dc:creator>
+            <dcterms:publisher>
+              <foaf:Agent>
+                <foaf:name>日本 : 熊本県</foaf:name>
+              </foaf:Agent>
+            </dcterms:publisher>
+            <dcndl:publicationPlace rdf:datatype="http://purl.org/dc/terms/ISO3166">JP</dcndl:publicationPlace>
+            <dcterms:date>(1):2016.3.31</dcterms:date>
+            <dcterms:issued rdf:datatype="http://purl.org/dc/terms/W3CDTF">2016-03-31</dcterms:issued>
+            <dcterms:description>資料形態 : テキストデータ</dcterms:description>
+            <dcterms:description>コレクション : 国立国会図書館デジタルコレクション &gt; 電子書籍・電子雑誌 &gt; 地方公共団体 &gt; 都道府県 &gt; 熊本県</dcterms:description>
+            <dcterms:language rdf:datatype="http://purl.org/dc/terms/ISO639-2">jpn</dcterms:language>
+            <dcndl:materialType rdf:resource="http://ndl.go.jp/ndltype/Article" rdfs:label="記事・論文"/>
+            <dcndl:materialType rdf:resource="http://ndl.go.jp/ndltype/OnlineResource" rdfs:label="オンライン資料"/>
+            <dcndl:publicationName>くまもと文学・歴史館報 / くまもと文学・歴史館</dcndl:publicationName>
+            <dcndl:issue>1</dcndl:issue>
+            <dcterms:accessRights>インターネット公開</dcterms:accessRights>
+            <dcterms:audience>一般</dcterms:audience>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602"/>
+            <dcterms:relation rdf:resource="https://dl.ndl.go.jp/info:ndljp/pid/11449002"/>
+            <dcterms:relation rdf:resource="https://dl.ndl.go.jp/pid/11449001"/>
+          </dcndl:BibResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602#material">
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602#item"/>
+          </dcndl:BibResource>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602#item">
+            <dcndl:holdingAgent>
+              <foaf:Agent>
+                <foaf:name>国立国会図書館</foaf:name>
+                <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLLibCode">0000</dcterms:identifier>
+              </foaf:Agent>
+            </dcndl:holdingAgent>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I033033602"/>
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/033033602"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">033033602</dcterms:identifier>
+            <dcterms:description>資料形態 : テキストデータ</dcterms:description>
+          </dcndl:Item>
+        </rdf:RDF>
+      </recordData>
+      <recordPosition>1</recordPosition>
+    </record>
+  </records>
+</searchRetrieveResponse>

@@ -296,9 +296,16 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       readNdlSearchString(record.date)
   );
 
+  const baseSourceId = deriveSourceId(record, url);
+  const ciniiCrid = readNdlSearchString(record.ciniiCrid);
+  const sourceId =
+    ciniiCrid && baseSourceId.startsWith("R000000004-")
+      ? `crid:${ciniiCrid}`
+      : baseSourceId;
+
   return {
     source: "ndl_search",
-    source_id: deriveSourceId(record, url),
+    source_id: sourceId,
     title:
       readNdlSearchString(record.title) ??
       readNdlSearchString(record["dc:title"]) ??
@@ -307,6 +314,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
     subtitle:
       readNdlSearchString(record.subtitle) ??
       readNdlSearchString(record["dcndl:volumeTitle"]),
+    title_reading: readNdlSearchString(record.titleReading) ?? null,
     authors: readAuthors(
       record.authors ??
         record.author ??
@@ -318,6 +326,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       readNdlSearchString(record.publisher) ??
       readNdlSearchString(record["dcterms:publisher"]) ??
       readNdlSearchString(record["dc:publisher"]),
+    journal_title: readNdlSearchString(record.journalTitle) ?? null,
     ...issuedFields,
     summary:
       readNdlSearchString(record.summary) ??
@@ -335,6 +344,11 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
         readNdlSearchStringList(record.category).includes("デジタル") ||
         providerId?.startsWith("ndl-dl") === true
     },
+    material_type: readNdlSearchString(record.materialType) ?? null,
+    subjects: readNdlSearchStringList(record.subjects),
+    table_of_contents: readNdlSearchStringList(
+      record.tableOfContents ?? record.table_of_contents
+    ),
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []

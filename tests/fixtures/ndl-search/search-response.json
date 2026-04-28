@@ -22,8 +22,8 @@
   "_fixture": {
     "capturedAt": "2026-04-24",
     "compatibilityProjection": true,
-    "projectionReason": "Task 8 では OpenSearch XML parse 未実装のため、既存 mapper / テストが読む top-level items を維持しつつ live 応答の抜粋を併記する。",
-    "liveQueryUrl": "https://ndlsearch.ndl.go.jp/api/opensearch?title=%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1&cnt=3&idx=1",
+    "projectionReason": "legacy RSS/OpenSearch 互換の mapper / テストを保守するため、top-level items を維持しつつ 2026-04-24 時点の live RSS 抜粋を併記する。",
+    "liveQueryUrl": "https://ndlsearch.ndl.go.jp/api/opensearch?title=%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1&cnt=3&idx=1 (legacy RSS capture; current search implementation uses /api/sru)",
     "liveResponseExtract": {
       "rss": {
         "channel": {

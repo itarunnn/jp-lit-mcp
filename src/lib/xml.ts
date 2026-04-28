@@ -16,10 +16,17 @@ export interface XmlPayload {
   contentType: string | null;
 }
 
-export interface OpenSearchXmlProjection {
+export interface RssChannelXmlProjection {
   rss: XmlObject | null;
   channel: XmlObject;
   items: XmlObject[];
+}
+
+export interface SruXmlResult {
+  numberOfRecords: number;
+  nextRecordPosition: number | null;
+  records: XmlObject[];
+  extraResponseData: XmlObject | null;
 }
 
 export class InvalidXmlError extends Error {
@@ -80,7 +87,7 @@ function toXmlObjectArray(value: unknown): XmlObject[] {
   return [toXmlObject(value)];
 }
 
-function requireOpenSearchChannel(parsed: XmlObject): {
+function requireRssChannel(parsed: XmlObject): {
   rss: XmlObject | null;
   channel: XmlObject;
 } {
@@ -89,7 +96,7 @@ function requireOpenSearchChannel(parsed: XmlObject): {
 
   if (!isRecord(channelCandidate)) {
     throw new InvalidXmlError(
-      "OpenSearch XML must contain <rss><channel> or <channel> as the document root."
+      "RSS/XML payload must contain <rss><channel> or <channel> as the document root."
     );
   }
 
@@ -149,9 +156,9 @@ export function parseXmlPayload(payload: XmlPayload): XmlObject {
   return parseXml(payload.text);
 }
 
-export function projectOpenSearchXml(xml: string): OpenSearchXmlProjection {
+export function projectRssChannelXml(xml: string): RssChannelXmlProjection {
   const parsed = parseXml(xml);
-  const { rss, channel } = requireOpenSearchChannel(parsed);
+  const { rss, channel } = requireRssChannel(parsed);
   const items = toXmlObjectArray(channel.item);
   const stableChannel = {
     ...channel,
@@ -167,5 +174,45 @@ export function projectOpenSearchXml(xml: string): OpenSearchXmlProjection {
       : null,
     channel: stableChannel,
     items
+  };
+}
+
+export type OpenSearchXmlProjection = RssChannelXmlProjection;
+
+export function projectOpenSearchXml(xml: string): OpenSearchXmlProjection {
+  return projectRssChannelXml(xml);
+}
+
+export function parseSruXml(xml: string): SruXmlResult {
+  const parsed = parseXml(xml);
+  const response = isRecord(parsed.searchRetrieveResponse)
+    ? parsed.searchRetrieveResponse
+    : null;
+
+  if (!response) {
+    throw new InvalidXmlError(
+      "SRU XML must contain <searchRetrieveResponse> as the document root."
+    );
+  }
+
+  const numberOfRecords = Number(String(response.numberOfRecords ?? "0"));
+  const nextRecordPosition =
+    response.nextRecordPosition == null
+      ? null
+      : Number(String(response.nextRecordPosition));
+  const recordsContainer = isRecord(response.records) ? response.records : {};
+  const records = toXmlObjectArray(recordsContainer.record);
+  const extraResponseData = isRecord(response.extraResponseData)
+    ? response.extraResponseData
+    : null;
+
+  return {
+    numberOfRecords: Number.isFinite(numberOfRecords) ? numberOfRecords : 0,
+    nextRecordPosition:
+      nextRecordPosition != null && Number.isFinite(nextRecordPosition)
+        ? nextRecordPosition
+        : null,
+    records,
+    extraResponseData
   };
 }

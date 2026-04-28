@@ -1,0 +1,228 @@
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.2</version>
+  <numberOfRecords>3192</numberOfRecords>
+  <nextRecordPosition>3</nextRecordPosition>
+  <extraResponseData>
+    <facets>
+      <lst name="REPOSITORY_NO">
+        <int name="R000000004">3192</int>
+      </lst>
+      <lst name="NDC">
+      </lst>
+      <lst name="ISSUED_DATE">
+        <int name="1948">2</int>
+        <int name="1949">1</int>
+        <int name="1950">5</int>
+        <int name="1951">7</int>
+        <int name="1952">6</int>
+        <int name="1953">3</int>
+        <int name="1954">9</int>
+        <int name="1955">15</int>
+        <int name="1956">55</int>
+        <int name="1957">23</int>
+        <int name="1958">19</int>
+        <int name="1959">16</int>
+        <int name="1960">23</int>
+        <int name="1961">20</int>
+        <int name="1962">25</int>
+        <int name="1963">13</int>
+        <int name="1964">19</int>
+        <int name="1965">8</int>
+        <int name="1966">10</int>
+        <int name="1967">22</int>
+        <int name="1968">14</int>
+        <int name="1969">10</int>
+        <int name="1970">6</int>
+        <int name="1971">46</int>
+        <int name="1972">29</int>
+        <int name="1973">17</int>
+        <int name="1974">6</int>
+        <int name="1975">48</int>
+        <int name="1976">46</int>
+        <int name="1977">23</int>
+        <int name="1978">71</int>
+        <int name="1979">26</int>
+        <int name="1980">10</int>
+        <int name="1981">22</int>
+        <int name="1982">48</int>
+        <int name="1983">23</int>
+        <int name="1984">36</int>
+        <int name="1985">33</int>
+        <int name="1986">4</int>
+        <int name="1987">62</int>
+        <int name="1988">35</int>
+        <int name="1989">56</int>
+        <int name="1990">50</int>
+        <int name="1991">8</int>
+        <int name="1992">22</int>
+        <int name="1993">24</int>
+        <int name="1994">51</int>
+        <int name="1995">33</int>
+        <int name="1996">32</int>
+        <int name="1997">83</int>
+      </lst>
+      <lst name="LIBRARY">
+        <int name="国立国会図書館">3192</int>
+      </lst>
+    </facets>
+  </extraResponseData>
+  <records>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:owl="http://www.w3.org/2002/07/owl#">
+          <dcndl:BibAdminResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976">
+            <dcndl:catalogingStatus>C7</dcndl:catalogingStatus>
+            <dcterms:description>type : article</dcterms:description>
+            <dcndl:bibRecordCategory>R000000004</dcndl:bibRecordCategory>
+            <dcndl:bibRecordSubCategory>632</dcndl:bibRecordSubCategory>
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976#material"/>
+          </dcndl:BibAdminResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976#material">
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/028622976"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">028622976</dcterms:identifier>
+            <dcterms:title>アーサー・ヘルプス『怱忙餘錄』中の一篇"Secrecy"の翻訳を巡って : 本田増次郎訳と夏目漱石訳</dcterms:title>
+            <dc:title>
+              <rdf:Description>
+                <rdf:value>アーサー・ヘルプス『怱忙餘錄』中の一篇"Secrecy"の翻訳を巡って : 本田増次郎訳と夏目漱石訳</rdf:value>
+                <dcndl:transcription>アーサー ・ ヘルプス 『 ソウボウヨロク 』 ナカ ノ イッペン"Secrecy"ノ ホンヤク オ メグッテ : ホンダ ゾウ ジロウ ヤク ト ナツメ ソウセキ ヤク</dcndl:transcription>
+              </rdf:Description>
+            </dc:title>
+            <dcndl:alternative>
+              <rdf:Description>
+                <rdf:value>Honda Masujiro and Natsume Soseki's Translations of "Secrecy", an Essay in Arthur Helps' Essays : Written in the Intervals of Business</rdf:value>
+              </rdf:Description>
+            </dcndl:alternative>
+            <dcndl:seriesTitle>
+              <rdf:Description>
+                <rdf:value>第50号記念号</rdf:value>
+                <dcndl:transcription>ダイ50ゴウ キネンゴウ</dcndl:transcription>
+              </rdf:Description>
+            </dcndl:seriesTitle>
+            <dcterms:creator>
+              <foaf:Agent>
+                <foaf:name>長谷川 勝政</foaf:name>
+              </foaf:Agent>
+            </dcterms:creator>
+            <dc:creator>長谷川 勝政</dc:creator>
+            <dcterms:publisher>
+              <foaf:Agent>
+                <foaf:name>東京 : 日本英学史学会</foaf:name>
+              </foaf:Agent>
+            </dcterms:publisher>
+            <dcndl:publicationPlace rdf:datatype="http://purl.org/dc/terms/ISO3166">JP</dcndl:publicationPlace>
+            <dcterms:date>(50):2017</dcterms:date>
+            <dcterms:issued rdf:datatype="http://purl.org/dc/terms/W3CDTF">2017</dcterms:issued>
+            <dcterms:subject rdf:resource="http://id.ndl.go.jp/class/ndlc/ZK31"/>
+            <dcterms:language rdf:datatype="http://purl.org/dc/terms/ISO639-2">jpn</dcterms:language>
+            <dcndl:materialType rdf:resource="http://ndl.go.jp/ndltype/Article" rdfs:label="記事・論文"/>
+            <dcndl:publicationName>日本英学史学会英学史研究</dcndl:publicationName>
+            <dcndl:number>50</dcndl:number>
+            <dcndl:pageRange>43-68</dcndl:pageRange>
+            <dcterms:audience>一般</dcterms:audience>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976"/>
+            <dcterms:isPartOf rdf:resource="https://id.ndl.go.jp/bib/000000001999"/>
+            <dcterms:isPartOf rdf:resource="http://iss.ndl.go.jp/issn/03869490"/>
+            <dcterms:isPartOf rdf:resource="http://iss.ndl.go.jp/issnl/03869490"/>
+          </dcndl:BibResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976#material">
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976#item"/>
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000136-I1520009409428206720#item"/>
+          </dcndl:BibResource>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976#item">
+            <dcndl:holdingAgent>
+              <foaf:Agent>
+                <foaf:name>国立国会図書館</foaf:name>
+                <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLLibCode">0000</dcterms:identifier>
+              </foaf:Agent>
+            </dcndl:holdingAgent>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I028622976"/>
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/028622976"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">028622976</dcterms:identifier>
+            <dcndl:callNumber>Z12-219</dcndl:callNumber>
+          </dcndl:Item>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R100000136-I1520009409428206720#item">
+            <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1520009409428206720"/>
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/028622976"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">028622976</dcterms:identifier>
+          </dcndl:Item>
+        </rdf:RDF>
+      </recordData>
+      <recordPosition>1</recordPosition>
+    </record>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:owl="http://www.w3.org/2002/07/owl#">
+          <dcndl:BibAdminResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136">
+            <dcndl:catalogingStatus>C7</dcndl:catalogingStatus>
+            <dcterms:description>type : article</dcterms:description>
+            <dcndl:bibRecordCategory>R000000004</dcndl:bibRecordCategory>
+            <dcndl:bibRecordSubCategory>632</dcndl:bibRecordSubCategory>
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136#material"/>
+          </dcndl:BibAdminResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136#material">
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/5808136"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">5808136</dcterms:identifier>
+            <dcterms:title>嗚呼 中学国語教科書に夏目漱石と森鴎外の名前がない!</dcterms:title>
+            <dc:title>
+              <rdf:Description>
+                <rdf:value>嗚呼 中学国語教科書に夏目漱石と森鴎外の名前がない!</rdf:value>
+                <dcndl:transcription>アア チュウガク コクゴ キョウカショ ニ ナツメ ソウセキ ト モリオウガイ ノ ナマエ ガ ナイ</dcndl:transcription>
+              </rdf:Description>
+            </dc:title>
+            <dcndl:seriesTitle>
+              <rdf:Description>
+                <rdf:value>ワイド特集 どっこい俺は生きている</rdf:value>
+                <dcndl:transcription>ワイド トクシュウ ドッコイ オレ ワ イキテ イル</dcndl:transcription>
+              </rdf:Description>
+            </dcndl:seriesTitle>
+            <dcterms:publisher>
+              <foaf:Agent>
+                <foaf:name>東京 : 文芸春秋</foaf:name>
+              </foaf:Agent>
+            </dcterms:publisher>
+            <dcndl:publicationPlace rdf:datatype="http://purl.org/dc/terms/ISO3166">JP</dcndl:publicationPlace>
+            <dcterms:date>43(24) (通号 2133) 2001.6.28</dcterms:date>
+            <dcterms:issued rdf:datatype="http://purl.org/dc/terms/W3CDTF">2001-06-28</dcterms:issued>
+            <dcterms:subject rdf:resource="http://id.ndl.go.jp/class/ndlc/ZW5"/>
+            <dcterms:language rdf:datatype="http://purl.org/dc/terms/ISO639-2">jpn</dcterms:language>
+            <dcndl:materialType rdf:resource="http://ndl.go.jp/ndltype/Article" rdfs:label="記事・論文"/>
+            <dcndl:publicationName>週刊文春 / 文芸春秋 [編]</dcndl:publicationName>
+            <dcndl:publicationVolume>43</dcndl:publicationVolume>
+            <dcndl:number>24</dcndl:number>
+            <dcndl:issue>2133</dcndl:issue>
+            <dcndl:pageRange>43</dcndl:pageRange>
+            <dcterms:audience>一般</dcterms:audience>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136"/>
+            <dcterms:isPartOf rdf:resource="https://id.ndl.go.jp/bib/000000010807"/>
+          </dcndl:BibResource>
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136#material">
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136#item"/>
+            <dcndl:record rdf:resource="https://ndlsearch.ndl.go.jp/books/R100000136-I1523669554905158016#item"/>
+          </dcndl:BibResource>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136#item">
+            <dcndl:holdingAgent>
+              <foaf:Agent>
+                <foaf:name>国立国会図書館</foaf:name>
+                <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLLibCode">0000</dcterms:identifier>
+              </foaf:Agent>
+            </dcndl:holdingAgent>
+            <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000004-I5808136"/>
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/5808136"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">5808136</dcterms:identifier>
+            <dcndl:callNumber>Z24-20</dcndl:callNumber>
+          </dcndl:Item>
+          <dcndl:Item rdf:about="https://ndlsearch.ndl.go.jp/books/R100000136-I1523669554905158016#item">
+            <rdfs:seeAlso rdf:resource="https://cir.nii.ac.jp/crid/1523669554905158016"/>
+            <rdfs:seeAlso rdf:resource="http://id.ndl.go.jp/bib/5808136"/>
+            <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NDLBibID">5808136</dcterms:identifier>
+          </dcndl:Item>
+        </rdf:RDF>
+      </recordData>
+      <recordPosition>2</recordPosition>
+    </record>
+  </records>
+</searchRetrieveResponse>

@@ -37,7 +37,7 @@
   "_fixture": {
     "capturedAt": "2026-04-24",
     "compatibilityProjection": true,
-    "projectionReason": "Task 8 では detail endpoint の live JSON 構造を _fixture.liveResponseExtract に保持し、mapper / テストが読む flat fields は維持する。",
+    "projectionReason": "detail endpoint の live JSON 構造を _fixture.liveResponseExtract に保持し、legacy 互換 mapper / テストが読む flat fields は維持する。",
     "liveRecordUrl": "https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=R100000039-I1000732",
     "liveResponseExtract": {
       "list": [

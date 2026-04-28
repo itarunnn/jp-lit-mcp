@@ -8,7 +8,9 @@ import {
 import {
   InvalidXmlError,
   parseXml,
+  parseSruXml,
   parseXmlPayload,
+  projectRssChannelXml,
   projectOpenSearchXml
 } from "../src/lib/xml.js";
 
@@ -45,7 +47,7 @@ describe("xml helpers", () => {
         </channel>
       </rss>`;
 
-    const projected = projectOpenSearchXml(xml);
+    const projected = projectRssChannelXml(xml);
 
     expect(projected).toEqual({
       rss: {
@@ -91,6 +93,13 @@ describe("xml helpers", () => {
         }
       ]
     });
+  });
+
+  it("OpenSearch 互換 alias からも同じ RSS/channel 投影を返す", () => {
+    const xml =
+      '<?xml version="1.0"?><rss><channel><item><title>test</title></item></channel></rss>';
+
+    expect(projectOpenSearchXml(xml)).toEqual(projectRssChannelXml(xml));
   });
 
   it("壊れた XML は InvalidXmlError を投げる", () => {
@@ -139,6 +148,63 @@ describe("xml helpers", () => {
         title: "test"
       }
     });
+  });
+
+  it("SRU searchRetrieveResponse XML を records 配列と totalRecords に分解する", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+  <version>1.2</version>
+  <numberOfRecords>42</numberOfRecords>
+  <nextRecordPosition>11</nextRecordPosition>
+  <records>
+    <record>
+      <recordSchema>info:srw/schema/1/dc-v1.1</recordSchema>
+      <recordPacking>xml</recordPacking>
+      <recordData>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 xmlns:dcndl="http://ndl.go.jp/dcndl/terms/"
+                 xmlns:dcterms="http://purl.org/dc/terms/"
+                 xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:foaf="http://xmlns.com/foaf/0.1/">
+          <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R100000002-I000001234#material">
+            <dcterms:title>こころ</dcterms:title>
+            <dc:creator>夏目漱石</dc:creator>
+            <dcterms:issued>1914</dcterms:issued>
+          </dcndl:BibResource>
+        </rdf:RDF>
+      </recordData>
+    </record>
+  </records>
+  <extraResponseData>
+    <facets>
+      <lst name="ISSUED_DATE">
+        <int name="1914">1</int>
+      </lst>
+    </facets>
+  </extraResponseData>
+</searchRetrieveResponse>`;
+
+    const result = parseSruXml(xml);
+
+    expect(result.numberOfRecords).toBe(42);
+    expect(result.nextRecordPosition).toBe(11);
+    expect(result.records).toHaveLength(1);
+    expect(result.records[0]?.recordSchema).toBe("info:srw/schema/1/dc-v1.1");
+    expect(result.extraResponseData).toEqual({
+      facets: {
+        lst: {
+          "@_name": "ISSUED_DATE",
+          int: {
+            "#text": "1",
+            "@_name": "1914"
+          }
+        }
+      }
+    });
+  });
+
+  it("壊れた SRU XML は InvalidXmlError を投げる", () => {
+    expect(() => parseSruXml("<broken")).toThrow(InvalidXmlError);
   });
 });
 

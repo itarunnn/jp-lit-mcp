@@ -52,6 +52,14 @@ describe("normalizeIssuedAt", () => {
     });
   });
 
+  it("YYYY/MM/DD を day 精度で YYYY-MM-DD に正規化する", () => {
+    expect(normalizeIssuedAt("1972/04/30")).toEqual({
+      issuedAt: "1972-04-30",
+      issuedAtLabel: "1972/04/30",
+      issuedAtPrecision: "day"
+    });
+  });
+
   it("前後空白は trim 後に正規化する", () => {
     expect(normalizeIssuedAt(" 1905-04-01 ")).toEqual({
       issuedAt: "1905-04-01",

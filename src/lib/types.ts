@@ -5,13 +5,14 @@ export type SourceName =
   | "ndl_articles"
   | "ndl_articles_online"
   | "irdb"
+  | "jdcat"
   | "jstage_articles"
   | "japan_search"
-  | "cinii_research"
   | "cinii_articles"
   | "cinii_books"
   | "kokkai_minutes"
-  | "teikoku_minutes";
+  | "teikoku_minutes"
+  | "nihu_bridge";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 
@@ -78,6 +79,7 @@ export interface SearchItemBase {
   };
   material_type: string | null;
   subjects: string[];
+  table_of_contents: string[];
   duplicate_key: string | null;
   duplicate_count: number;
   related_records: RelatedSearchRecord[];

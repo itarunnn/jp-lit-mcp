@@ -3,7 +3,7 @@ import { normalizeText } from "./normalize.js";
 
 const YEAR_ONLY = /^\d{4}$/;
 const YEAR_MONTH = /^(\d{4})[./-](\d{1,2})$/;
-const FULL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const FULL_DATE = /^(\d{4})[-\/](\d{2})[-\/](\d{2})$/;
 
 function toUnknown(value: string | null): DateInfo {
   return {
@@ -44,8 +44,9 @@ export function normalizeIssuedAt(input: string | null | undefined): DateInfo {
       return toUnknown(value);
     }
 
+    const normalized = `${fullDateMatch[1]}-${fullDateMatch[2]}-${fullDateMatch[3]}`;
     return {
-      issuedAt: value,
+      issuedAt: normalized,
       issuedAtLabel: value,
       issuedAtPrecision: "day"
     };

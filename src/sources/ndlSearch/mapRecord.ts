@@ -71,6 +71,50 @@ function readMetaList(meta: JsonRecord | null, key: string): string[] {
   );
 }
 
+function readTocEntries(meta: JsonRecord | null): string[] {
+  if (!meta) {
+    return [];
+  }
+
+  return readMetaEntries(meta["t35050"]).flatMap((entry) => {
+    const v = readNdlSearchString(entry.v ?? entry.value);
+    if (!v || v === "目次") {
+      return [];
+    }
+    const r = readNdlSearchString(entry.r);
+    return [r ? `${v} (${r})` : v];
+  });
+}
+
+function readTocEntriesPlain(meta: JsonRecord | null): string[] {
+  if (!meta) {
+    return [];
+  }
+
+  return readMetaEntries(meta["t35052"]).flatMap((entry) => {
+    const v = readNdlSearchString(entry.v ?? entry.value);
+    return v ? [v] : [];
+  });
+}
+
+function aggregateToc(itemMetas: (JsonRecord | null)[]): string[] {
+  const withPages = itemMetas.flatMap((meta) => readTocEntries(meta));
+  if (withPages.length > 0) {
+    return withPages;
+  }
+  return itemMetas.flatMap((meta) => readTocEntriesPlain(meta));
+}
+
+function aggregateSummary(itemMetas: (JsonRecord | null)[]): string | null {
+  for (const meta of itemMetas) {
+    const summary = readMetaValue(meta, "t35200");
+    if (summary) {
+      return summary;
+    }
+  }
+  return null;
+}
+
 function normalizeViewerUrl(value: string | null): string | null {
   if (!value) {
     return null;
@@ -153,8 +197,12 @@ function selectPreferredItemRecord(value: unknown): JsonRecord | null {
 function normalizeRecordPayload(record: JsonRecord): {
   normalized: JsonRecord;
   raw: JsonRecord;
-} {
-  if (!Array.isArray(record.list) || record.list.length === 0) {
+} | null {
+  if (Array.isArray(record.list) && record.list.length === 0) {
+    return null;
+  }
+
+  if (!Array.isArray(record.list)) {
     return {
       normalized: record,
       raw: record
@@ -165,6 +213,17 @@ function normalizeRecordPayload(record: JsonRecord): {
   const topMeta = asRecord(listRecord.meta);
   const itemRecord = selectPreferredItemRecord(listRecord.items);
   const itemMeta = asRecord(itemRecord?.meta);
+
+  const rawItems = Array.isArray(listRecord.items)
+    ? listRecord.items
+    : listRecord.items != null
+    ? [listRecord.items]
+    : [];
+  const allItemMetas = rawItems.flatMap((item) => {
+    const r = asRecord(item);
+    return r ? [asRecord(r.meta)] : [];
+  });
+
   const sourceId = readNdlSearchString(listRecord.id ?? itemRecord?.id);
   const viewerUrl = readMetaViewerUrl(itemMeta);
   const providerName = readMetaValue(itemMeta, "k80404");
@@ -209,7 +268,8 @@ function normalizeRecordPayload(record: JsonRecord): {
       language: readMetaValue(topMeta, "k00410"),
       materialType: readMetaValue(topMeta, "k09022"),
       identifiers,
-      tableOfContents: [],
+      tableOfContents: aggregateToc(allItemMetas),
+      summary: aggregateSummary(allItemMetas),
       hasPageImages: viewerUrl !== null,
       hasTextCoordinates: false,
       viewerUrl,
@@ -221,8 +281,12 @@ function normalizeRecordPayload(record: JsonRecord): {
   };
 }
 
-export function mapNdlSearchRecordResponse(payload: unknown): RecordItem {
-  const { normalized, raw } = normalizeRecordPayload(asRecord(payload) ?? {});
+export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null {
+  const result = normalizeRecordPayload(asRecord(payload) ?? {});
+  if (!result) {
+    return null;
+  }
+  const { normalized, raw } = result;
   const base = mapNdlSearchSearchEntry(normalized);
 
   return {

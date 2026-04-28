@@ -7,13 +7,14 @@ export const sourceSchema = z.enum([
   "ndl_articles",
   "ndl_articles_online",
   "irdb",
+  "jdcat",
   "jstage_articles",
   "japan_search",
-  "cinii_research",
   "cinii_articles",
   "cinii_books",
   "kokkai_minutes",
-  "teikoku_minutes"
+  "teikoku_minutes",
+  "nihu_bridge"
 ]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 
@@ -64,6 +65,7 @@ export const searchItemSchema = z.object({
   availability: availabilitySchema,
   material_type: z.string().nullable(),
   subjects: z.array(z.string()),
+  table_of_contents: z.array(z.string()),
   duplicate_key: z.string().nullable(),
   duplicate_count: z.number().int().positive(),
   related_records: z.array(relatedSearchRecordSchema)
@@ -106,6 +108,26 @@ export const irdbFiltersSchema = z.object({
   publisher: z.string().optional()
 });
 
+export const nihuBridgeInstituteSchema = z.enum([
+  "nijl", "nmjh", "ninjal", "ircjs", "rihn", "nme", "nihu"
+]);
+
+export const nihuBridgeBboxSchema = z.object({
+  lat1: z.number(),
+  lon1: z.number(),
+  lat2: z.number(),
+  lon2: z.number()
+});
+
+export const nihuBridgeFiltersSchema = z.object({
+  institute: z.array(nihuBridgeInstituteSchema).optional(),
+  database: z.array(z.string()).optional(),
+  normalize: z.boolean().optional(),
+  period_from: z.string().optional(),
+  period_to: z.string().optional(),
+  bbox: nihuBridgeBboxSchema.optional()
+});
+
 export const searchInputSchema = z
   .object({
     query: z.string().trim().min(1),
@@ -116,7 +138,10 @@ export const searchInputSchema = z
       .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
       .optional(),
     sort_order: z.enum(["asc", "desc"]).optional(),
-    filters: z.object({ irdb: irdbFiltersSchema }).optional()
+    filters: z.object({
+      irdb: irdbFiltersSchema.optional(),
+      nihu_bridge: nihuBridgeFiltersSchema.optional()
+    }).optional()
   })
   .superRefine((data, ctx) => {
     if (data.filters?.irdb !== undefined && data.source !== "irdb") {
@@ -124,6 +149,13 @@ export const searchInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "filters.irdb は source=irdb のときのみ有効です",
         path: ["filters", "irdb"]
+      });
+    }
+    if (data.filters?.nihu_bridge !== undefined && data.source !== "nihu_bridge") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.nihu_bridge は source=nihu_bridge のときのみ有効です",
+        path: ["filters", "nihu_bridge"]
       });
     }
   });
@@ -198,6 +230,9 @@ export const searchPagesOutputSchema = z.object({
 });
 
 export type IrdbFilters = z.infer<typeof irdbFiltersSchema>;
+export type NihuBridgeFilters = z.infer<typeof nihuBridgeFiltersSchema>;
+export type NihuBridgeInstitute = z.infer<typeof nihuBridgeInstituteSchema>;
+export type NihuBridgeBbox = z.infer<typeof nihuBridgeBboxSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
 export type SearchOutput = z.infer<typeof searchOutputSchema>;
@@ -218,6 +253,8 @@ const fulltextBookItemSchema = z.object({
   published: z.string().nullable(),
   publishyear: z.number().int().nullable(),
   ndc: z.string().nullable(),
+  bib_id: z.string().nullable(),
+  call_no: z.string().nullable(),
   page_count: z.number().int().nullable(),
   is_classic: z.boolean().nullable(),
   highlights: z.unknown()
