@@ -1,0 +1,47 @@
+{
+  "list": [
+    {
+      "id": "897115",
+      "version": 1,
+      "title": "帝国図書館一覧",
+      "volume": null,
+      "responsibility": "帝国図書館 編",
+      "publisher": "帝国図書館",
+      "published": "明治33年",
+      "publishyear": 1900,
+      "ndc": "017",
+      "bibId": "000000518610",
+      "callNo": "特1-94",
+      "page": 62,
+      "width": 1600,
+      "height": 2200,
+      "isClassic": false,
+      "highlights": ["大政奉還後の図書館行政について", "帝国図書館設置の経緯"],
+      "graphictagmetrics": {}
+    },
+    {
+      "id": "1234567",
+      "version": 1,
+      "title": "明治維新史料集",
+      "volume": "第三巻",
+      "responsibility": "国立公文書館 編",
+      "publisher": "国立公文書館",
+      "published": "昭和45年",
+      "publishyear": 1970,
+      "ndc": "210.6",
+      "bibId": "000001234567",
+      "callNo": "WA7-5",
+      "page": 320,
+      "width": 1600,
+      "height": 2200,
+      "isClassic": false,
+      "highlights": ["大政奉還に関する文書"],
+      "graphictagmetrics": {}
+    }
+  ],
+  "hit": 2,
+  "from": 0,
+  "facets": [
+    { "key": "isClassic", "value": "false", "count": 2 }
+  ]
+}

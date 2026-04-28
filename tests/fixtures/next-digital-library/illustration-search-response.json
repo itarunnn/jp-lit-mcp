@@ -1,0 +1,41 @@
+{
+  "list": [
+    {
+      "version": 2,
+      "id": "831460_49_1",
+      "pid": "831460",
+      "page": 49,
+      "x": 20.2,
+      "y": 13.9,
+      "w": 28.6,
+      "h": 31.8,
+      "graphictags": [
+        { "tagname": "graphic", "confidence": 1.0 },
+        { "tagname": "picture_outdoor", "confidence": 0.85 }
+      ],
+      "feature_txt2vec": [0.12, -0.34, 0.56]
+    },
+    {
+      "version": 2,
+      "id": "765432_10_2",
+      "pid": "765432",
+      "page": 10,
+      "x": 5.0,
+      "y": 50.0,
+      "w": 40.0,
+      "h": 35.0,
+      "graphictags": [
+        { "tagname": "picture_mountain", "confidence": 0.92 }
+      ],
+      "feature_txt2vec": [0.21, 0.43, -0.11]
+    }
+  ],
+  "hit": 1000,
+  "from": 0,
+  "facets": [
+    {
+      "field": "graphictags.tagname",
+      "counts": { "graphic": 448, "picture_outdoor": 295, "picture_mountain": 102 }
+    }
+  ]
+}

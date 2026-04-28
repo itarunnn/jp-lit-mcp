@@ -22,8 +22,8 @@
   "_fixture": {
     "capturedAt": "2026-04-24",
     "compatibilityProjection": true,
-    "projectionReason": "NDL Digital は dpid=ndl-dl の OpenSearch XML を raw 抜粋として保持しつつ、Task 6/8 時点の mapper 互換 flat fields も残す。",
-    "liveQueryUrl": "https://ndlsearch.ndl.go.jp/api/opensearch?title=%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1&cnt=3&idx=1&dpid=ndl-dl",
+    "projectionReason": "ndl_digital の legacy RSS/OpenSearch 互換 mapper / テストを保守するため、dpid=ndl-dl の top-level items を維持しつつ 2026-04-24 時点の live RSS 抜粋を併記する。",
+    "liveQueryUrl": "https://ndlsearch.ndl.go.jp/api/opensearch?title=%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1&cnt=3&idx=1&dpid=ndl-dl (legacy RSS capture; current search implementation uses /api/sru)",
     "liveResponseExtract": {
       "rss": {
         "channel": {

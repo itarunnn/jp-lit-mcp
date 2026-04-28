@@ -1,0 +1,32 @@
+{
+  "list": [
+    {
+      "version": 1,
+      "id": "897115_1",
+      "book": "897115",
+      "page": 1,
+      "divide": 0.53,
+      "rectX": 8.1,
+      "rectY": 10.2,
+      "rectW": 48.4,
+      "rectH": 92.7,
+      "contents": "帝國圖書館一覽",
+      "coordjson": "[{\"id\":0,\"contenttext\":\"帝\",\"xmin\":1079.0,\"ymin\":730.0,\"xmax\":1197.0,\"ymax\":860.0}]"
+    },
+    {
+      "version": 1,
+      "id": "897115_2",
+      "book": "897115",
+      "page": 2,
+      "divide": 0.5,
+      "rectX": 8.0,
+      "rectY": 9.5,
+      "rectW": 49.0,
+      "rectH": 91.0,
+      "contents": "目次",
+      "coordjson": "[{\"id\":0,\"contenttext\":\"目\",\"xmin\":500.0,\"ymin\":200.0,\"xmax\":620.0,\"ymax\":320.0}]"
+    }
+  ],
+  "hit": 12,
+  "from": 0
+}

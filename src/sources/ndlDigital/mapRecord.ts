@@ -76,6 +76,9 @@ function isNdlDigitalRecord(
 
 export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null {
   const base = mapNdlSearchRecordResponse(payload);
+  if (!base) {
+    return null;
+  }
   const raw = base.raw;
   if (!isNdlDigitalRecord(raw, base)) {
     return null;
