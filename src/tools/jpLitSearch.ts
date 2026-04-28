@@ -20,7 +20,7 @@ export function createJpLitSearchTool(searchService: SearchService) {
       query: parsed.query,
       source: parsed.source ?? null,
       page: parsed.page,
-      limit: parsed.limit,
+      limit: searchResult.items.length,
       total: searchResult.total,
       items: searchResult.items,
       facets: searchResult.facets

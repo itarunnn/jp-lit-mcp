@@ -4,10 +4,13 @@ import type { IrdbSearchFilters, NihuBridgeSearchFilters, SourceAdapter } from "
 import { createSourceRegistry } from "./sourceRegistry.js";
 import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
 
+const DEFAULT_LIMIT_CROSS = 48;
+const DEFAULT_LIMIT_SINGLE = 50;
+
 interface SearchInput {
   query: string;
   source?: SourceName;
-  limit: number;
+  limit?: number;
   page: number;
   sort_by?: "title" | "creator" | "issued_date" | "created_date" | "modified_date";
   sort_order?: "asc" | "desc";
@@ -210,8 +213,10 @@ export function createSearchService(adapters: SourceAdapter[]) {
 
   return {
     async search(input: SearchInput) {
+      const effectiveLimit = input.limit ?? (input.source ? DEFAULT_LIMIT_SINGLE : DEFAULT_LIMIT_CROSS);
+
       if (input.source) {
-        const result = await registry.get(input.source).search(input);
+        const result = await registry.get(input.source).search({ ...input, limit: effectiveLimit });
 
         return {
           total: result.total,
@@ -234,7 +239,7 @@ export function createSearchService(adapters: SourceAdapter[]) {
 
       const mergedItems = roundRobinMerge(
         results.map((result) => result.items),
-        input.limit
+        effectiveLimit
       );
 
       return {

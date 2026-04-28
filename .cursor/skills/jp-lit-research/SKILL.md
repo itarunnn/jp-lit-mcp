@@ -28,14 +28,16 @@ description: >-
 
 複数 intent が混在する場合は、まず `bibliography_lookup` → `topic_literature_review` の順で処理する。
 
+依頼が曖昧で intent や資料種別が判断できない場合は、検索前に問い返す。詳細は [heuristics/clarifying-questions.md](heuristics/clarifying-questions.md) を参照。
+
 ---
 
 ## Step 2: 検索深度を決める
 
 | 深度 | 基準 | 内容 |
 |------|------|------|
-| `quick` | 「ちょっと調べて」「参考程度に」 | 横断検索1回、上位10件 |
-| `standard` | 「調べて」「探して」（明示なし） | source別検索、表記ゆれ2〜3種、書誌詳細取得 |
+| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 横断検索1回 → LLM選別 → SearchItem のみで報告（getRecord なし） |
+| `standard` | 「調べて」「探して」（明示なし） | source別検索・表記ゆれ展開 → LLM選別 → 選別済み候補の getRecord → 報告 |
 | `deep` | 「網羅的に」「論文・発表用に」「本気で」 | リサーチナビ確認→全source→全文→ページ特定、過程も報告 |
 
 ---
@@ -70,7 +72,34 @@ description: >-
 
 ---
 
-## Step 5: 検索する（MCP を使う）
+## Step 5: 検索方針をユーザーに提示する
+
+検索を開始する前に、使う source とその理由をユーザーに伝える。
+
+- **quick**: 「横断検索で〇〇 source を使います」と一言添えて即実行
+- **standard / deep**: 使う source・検索語の展開・理由を提示し、ユーザーが方針を調整できる余地を作る
+
+提示例:
+```
+テーマが人文学系のため、以下の source を使います：
+- cinii_articles / ndl_articles（論文）
+- nihu_bridge（NIHU 人文専門 DB — 国文研・国民博など 100+ DB を横断）
+- ndl_catalog / cinii_books（図書）
+- irdb（紀要・学位論文）
+
+検索語: 「〇〇」「△△」（旧字: □□）
+
+よろしければ検索を開始します。追加・変更があればお知らせください。
+```
+
+ユーザーが「進めて」「そのままで」などと応じた場合、または深度が quick の場合はそのまま実行する。
+
+各 DB の特性・選択理由は [heuristics/db-characteristics.md](heuristics/db-characteristics.md) を参照。
+方針提示時、またはユーザーに「なぜそのDBか」と問われたときは、そのDBの特性を具体的に説明する。
+
+---
+
+## Step 6: 検索する（MCP を使う）
 
 - メタデータ検索が先。全文検索は後。
 - `jp_lit_search` → 候補がなければ `jp_lit_search_fulltext` → ページ特定は `jp_lit_search_pages` → OCR確認は `jp_lit_get_text_coordinates`
@@ -79,11 +108,18 @@ description: >-
 
 ---
 
-## Step 6: 典拠を評価して報告する
+## Step 7: 選別過程を明示して報告する
 
 詳細は [heuristics/evidence-grading.md](heuristics/evidence-grading.md) を参照。
 
 結果は **確認済み / 有力候補 / 弱い候補** の3段階に分けて報告する。OCR ヒットのみで内容を断定しない。
+
+**選別過程は必ず出力すること。** 以下を明記する：
+- 各 source から何件取得したか
+- どの基準で候補を絞ったか（関連性・重複・信頼性など）
+- 除外したものがあればその理由
+
+ユーザーが「全部見せて」「選ばれなかったものも見たい」「生データを見せて」と求めた場合は、選別前の全件リストや取得した生データをそのまま開示する。
 
 ---
 
@@ -111,3 +147,5 @@ description: >-
 - [heuristics/query-expansion.md](heuristics/query-expansion.md) — 検索語展開
 - [heuristics/evidence-grading.md](heuristics/evidence-grading.md) — 典拠評価
 - [heuristics/failure-modes.md](heuristics/failure-modes.md) — 見つからない時の対処
+- [heuristics/db-characteristics.md](heuristics/db-characteristics.md) — DB特性・選択理由
+- [heuristics/clarifying-questions.md](heuristics/clarifying-questions.md) — 問い返しガイダンス

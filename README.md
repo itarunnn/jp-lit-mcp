@@ -51,7 +51,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ### 検索パラメータ
 
-- `limit` デフォルト・上限ともに **100 件**
+- `limit` 上限 **100 件**。デフォルトは横断検索 **48 件**・個別検索 **50 件**
 - 横断検索（source 未指定）: 各 source から内部で **30 件**取得（8 source × 30 = 最大240件プール）→ ラウンドロビンで `limit` 件に絞って返す
 - `nihu_bridge` を横断検索対象に追加（2026-04-28）
 
@@ -106,7 +106,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 |------|----|------|------|
 | `query` | string | 必須 | 検索キーワード |
 | `source` | string | なし（横断） | source 指定 |
-| `limit` | number | 10 | 最大 50 |
+| `limit` | number | 横断:48 / 個別:50 | 最大 100 |
 | `page` | number | 1 | 横断検索は 1 のみ |
 | `sort_by` | string | — | NDL 系は正式対応。CiNii は `issued_date` のみ有効 |
 | `sort_order` | string | — | NDL 系は正式対応。CiNii は `issued_date` と組み合わせたときのみ有効 |
@@ -433,6 +433,32 @@ MCP と組み合わせて使う「日本語文献調査スキル」が `.cursor/
 | 全文・ページ特定 | デジコレ全文横断 → ページ特定 → OCR 座標取得 |
 | 図版・挿絵検索 | 次世代デジコレ 860 万図版をキーワード検索 |
 | 調べ方案内 | 分野別 source 選択と調査計画の提示 |
+
+検索深度は依頼の表現で自動判定する（`quick` / `standard` / `deep`）。
+
+| 深度 | 基準 | 内容 |
+|------|------|------|
+| `quick` | 「ざっと調べて」「参考程度に」 | 横断検索1回 → LLM選別 → SearchItem のみで報告 |
+| `standard` | 「調べて」「探して」（明示なし） | source別検索 → LLM選別 → 選別済みの getRecord → 報告 |
+| `deep` | 「網羅的に」「論文用に」 | 全 source + 全文検索 → 詳細な選別過程付きで報告 |
+
+スキル構成（`.cursor/skills/jp-lit-research/`）:
+
+| ファイル | 内容 |
+|---------|------|
+| `SKILL.md` | 調査フロー（Step 1〜7） |
+| `workflows/bibliography-lookup.md` | 所蔵・書誌調査 |
+| `workflows/topic-literature-review.md` | テーマ文献探索（深度別フロー） |
+| `workflows/historical-term-search.md` | 古語・表記ゆれ検索 |
+| `workflows/fulltext-page-lookup.md` | 全文・ページ特定・OCR |
+| `workflows/image-illustration-search.md` | 図版・挿絵検索 |
+| `workflows/research-guide-lookup.md` | 分野別調査シナリオ（国文学・近現代史・社会科学・美術文化財・言語学・宗教・初出調査） |
+| `heuristics/source-selection.md` | ドメイン判定・DB選択ルール |
+| `heuristics/db-characteristics.md` | 各DB の特性・選択理由 |
+| `heuristics/query-expansion.md` | 検索語展開（旧字・旧仮名・漢語翻訳語） |
+| `heuristics/evidence-grading.md` | 典拠評価（確認済み/有力/弱い） |
+| `heuristics/failure-modes.md` | 見つからない時の対処 |
+| `heuristics/clarifying-questions.md` | 曖昧な依頼への問い返しガイダンス |
 
 ### インストール（Claude Code / Codex）
 

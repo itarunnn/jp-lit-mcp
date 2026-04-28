@@ -1,17 +1,17 @@
 # CiNii Source Expansion 計画
 
-**Goal:** `cinii_research` を `articles` 固定から拡張し、将来的に書籍・研究データなど複数タイプへ広げられる構造にする。
+**Goal:** `cinii_articles` を起点に CiNii source を拡張し、書籍は `cinii_books` として分離する。
 
 ## 現状
 
-- `cinii_research` は `OpenSearch articles` に固定
+- `cinii_articles` は `OpenSearch articles` に対応
 - quality 優先で metadata 正規化は安定
 - title / identifier / summary / publication 情報は初版より精度向上済み
 
 ## 次フェーズでやること
 
 1. search type の切替方式を決める
-- `source` は `cinii_research` のまま維持
+- 外向き `source` は `cinii_articles` / `cinii_books` に分離
 - 内部で `articles` / `books` / `all` などを切り替えられる余地を作る
 - 外向き引数に増やすか、まず内部限定にするか決める
 

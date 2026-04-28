@@ -79,7 +79,7 @@ The system will use a modular adapter design.
 3. Source adapter layer
    - `ndl_search`
    - `ndl_digital`
-   - future `cinii_research`
+   - future `cinii_articles`
 
 The external MCP contract stays stable while new source adapters are added internally.
 

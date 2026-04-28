@@ -1,0 +1,125 @@
+import { describe, expect, it, vi } from "vitest";
+import { createJpLitSearchFulltextTool } from "../src/tools/jpLitSearchFulltext.js";
+
+function makeNextDlClient(searchResult: unknown) {
+  return {
+    getBook: vi.fn(),
+    getPage: vi.fn(),
+    getFulltextJson: vi.fn(),
+    searchPages: vi.fn(),
+    searchBooks: vi.fn().mockResolvedValue(searchResult)
+  };
+}
+
+const SEARCH_PAYLOAD = {
+  list: [
+    {
+      id: "897115",
+      title: "帝国図書館一覧",
+      volume: null,
+      responsibility: "帝国図書館 編",
+      publisher: "帝国図書館",
+      published: "明治33年",
+      publishyear: 1900,
+      ndc: "017",
+      bibId: "000000518610",
+      callNo: "特1-94",
+      page: 62,
+      isClassic: false,
+      highlights: ["大政奉還後の図書館行政について"]
+    }
+  ],
+  hit: 1,
+  from: 0
+};
+
+describe("jp_lit_search_fulltext", () => {
+  it("正常系: 全文検索結果を返す", async () => {
+    const tool = createJpLitSearchFulltextTool(makeNextDlClient(SEARCH_PAYLOAD));
+
+    const result = await tool({ keyword: "大政奉還" });
+
+    expect(result.structuredContent.keyword).toBe("大政奉還");
+    expect(result.structuredContent.searchfield).toBe("contentonly");
+    expect(result.structuredContent.total).toBe(1);
+    expect(result.structuredContent.from).toBe(0);
+    expect(result.structuredContent.items).toHaveLength(1);
+    expect(result.structuredContent.items[0]).toMatchObject({
+      pid: "897115",
+      title: "帝国図書館一覧",
+      responsibility: "帝国図書館 編",
+      publishyear: 1900,
+      is_classic: false
+    });
+  });
+
+  it("searchfield=metaonly を渡せる", async () => {
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(nextDlClient);
+
+    await tool({ keyword: "図書館", searchfield: "metaonly" });
+
+    expect(nextDlClient.searchBooks).toHaveBeenCalledWith(
+      "図書館",
+      expect.objectContaining({ searchfield: "metaonly" })
+    );
+  });
+
+  it("size / from / f_ndc パラメータが searchBooks に渡る", async () => {
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(nextDlClient);
+
+    await tool({ keyword: "図書館", size: 5, from: 10, f_ndc: "017" });
+
+    expect(nextDlClient.searchBooks).toHaveBeenCalledWith(
+      "図書館",
+      expect.objectContaining({ size: 5, from: 10, fNdc: "017" })
+    );
+  });
+
+  it("API が null を返したら NotFoundError を投げる", async () => {
+    const tool = createJpLitSearchFulltextTool(makeNextDlClient(null));
+
+    await expect(tool({ keyword: "大政奉還" })).rejects.toMatchObject({
+      name: "NotFoundError"
+    });
+  });
+
+  it("bibId / callNo が items の bib_id / call_no にマップされる", async () => {
+    const tool = createJpLitSearchFulltextTool(makeNextDlClient(SEARCH_PAYLOAD));
+
+    const result = await tool({ keyword: "大政奉還" });
+
+    expect(result.structuredContent.items[0]).toMatchObject({
+      bib_id: "000000518610",
+      call_no: "特1-94"
+    });
+  });
+
+  it("bibId / callNo が欠落していれば bib_id / call_no は null になる", async () => {
+    const payloadWithoutBibId = {
+      list: [{ id: "111", title: "テスト", page: 10, isClassic: false, highlights: [] }],
+      hit: 1,
+      from: 0
+    };
+    const tool = createJpLitSearchFulltextTool(makeNextDlClient(payloadWithoutBibId));
+
+    const result = await tool({ keyword: "テスト" });
+
+    expect(result.structuredContent.items[0]).toMatchObject({
+      bib_id: null,
+      call_no: null
+    });
+  });
+
+  it("list が空でも正常に返す", async () => {
+    const tool = createJpLitSearchFulltextTool(
+      makeNextDlClient({ list: [], hit: 0, from: 0 })
+    );
+
+    const result = await tool({ keyword: "存在しないキーワード" });
+
+    expect(result.structuredContent.total).toBe(0);
+    expect(result.structuredContent.items).toHaveLength(0);
+  });
+});
