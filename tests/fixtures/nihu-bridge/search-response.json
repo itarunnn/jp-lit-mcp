@@ -1,0 +1,32 @@
+{
+  "info": {
+    "statusCode": 0,
+    "total": 4621,
+    "databases": {
+      "nijl_nihonkotenseki": 4621
+    }
+  },
+  "hits": [
+    {
+      "database": "nijl_nihonkotenseki",
+      "id": "100000123",
+      "fields": [
+        { "field": "title", "label": "タイトル", "value": ["武家百人一首||ブケヒャクニンイッシュ"] },
+        { "field": "alternativeTitle", "label": "別タイトル", "value": null },
+        { "field": "creator", "label": "作成者", "value": ["源義経 <NDL_ID:00012345>"] },
+        { "field": "publisher", "label": "所蔵者・組織", "value": ["国文学研究資料館"] },
+        { "field": "subject", "label": "主題", "value": ["和歌||ワカ"] },
+        { "field": "keyword", "label": "キーワード", "value": ["百人一首"] },
+        { "field": "description", "label": "概要", "value": ["江戸期に編纂された武家による百人一首集"] },
+        { "field": "temporal", "label": "対象時間範囲", "value": [{ "description": ["江戸時代"], "date": "1600-01-01T00:00:00+09:00,1868-12-31T00:00:00+09:00" }] },
+        { "field": "spatial", "label": "対象空間範囲", "value": null },
+        { "field": "datePublished", "label": "登録日", "value": "2022-07-20" },
+        { "field": "researchResourceId", "label": "研究資源ID", "value": "100000123" },
+        { "field": "originalId", "label": "オリジナルID", "value": ["nijl-12345"] },
+        { "field": "inLanguage", "label": "言語", "value": ["jpn"] },
+        { "field": "type", "label": "研究データのタイプ", "value": ["古典籍"] },
+        { "field": "link", "label": "研究データへのリンク", "value": [{ "type": "原本", "link": "https://kotenseki.nijl.ac.jp/biblio/100000123" }] }
+      ]
+    }
+  ]
+}

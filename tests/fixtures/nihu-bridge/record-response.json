@@ -1,0 +1,30 @@
+{
+  "info": {
+    "statusCode": 0,
+    "total": 1
+  },
+  "researchResource": {
+    "databaseId": "nijl_nihonkotenseki",
+    "researchResourceId": "100000123",
+    "doi": null,
+    "originalId": ["nijl-12345"],
+    "title": ["武家百人一首||ブケヒャクニンイッシュ"],
+    "alternativeTitle": ["武家百人一首抄"],
+    "creator": ["源義経 <NDL_ID:00012345>"],
+    "contributor": ["編者A"],
+    "publisher": ["国文学研究資料館"],
+    "subject": ["和歌||ワカ"],
+    "keyword": ["百人一首"],
+    "description": ["江戸期に編纂された武家による百人一首集"],
+    "dateCreated": null,
+    "datePublished": "2022-07-20",
+    "temporal": [
+      { "description": ["江戸時代"], "date": "1600-01-01T00:00:00+09:00,1868-12-31T00:00:00+09:00" }
+    ],
+    "spatial": null,
+    "link": [{ "type": "原本", "link": "https://kotenseki.nijl.ac.jp/biblio/100000123" }],
+    "type": ["古典籍"],
+    "license": ["CC BY 4.0"],
+    "inLanguage": ["jpn"]
+  }
+}
