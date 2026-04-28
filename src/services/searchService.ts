@@ -17,6 +17,8 @@ interface SearchInput {
   };
 }
 
+const CROSS_SOURCE_FETCH_SIZE = 30;
+
 const CROSS_SOURCE_ORDER: SourceName[] = [
   "ndl_catalog",
   "ndl_digital",
@@ -224,7 +226,9 @@ export function createSearchService(adapters: SourceAdapter[]) {
       }
 
       const results = await Promise.all(
-        listCrossSources(registry).map((source) => registry.get(source).search(input))
+        listCrossSources(registry).map((source) =>
+          registry.get(source).search({ ...input, limit: CROSS_SOURCE_FETCH_SIZE })
+        )
       );
 
       const mergedItems = roundRobinMerge(
