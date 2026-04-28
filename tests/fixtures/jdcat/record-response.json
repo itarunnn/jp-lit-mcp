@@ -1,0 +1,187 @@
+{
+  "id": 43494,
+  "metadata": {
+    "_oai": {
+      "id": "oai:jdcat.jsps.go.jp:00043494"
+    },
+    "control_number": "43494",
+    "title": [
+      "全国就業実態パネル調査，2020",
+      "Japanese Panel Study of Employment Dynamics, 2020"
+    ],
+    "publish_date": "2026-04-17",
+    "creator": {
+      "creatorName": [
+        "リクルートワークス研究所，実査は株式会社インテージ",
+        "Recruit Works Institute, survey carried out by INTAGE Inc."
+      ]
+    },
+    "description": [
+      {
+        "descriptionType": "Abstract",
+        "value": "全国就業実態パネル調査（JPSED; Japanese Panel Study of Employment Dynamics）は，調査前年1年間の個人の就業状態，所得，仕事の状況などを，毎年追跡して調査を行い，Works Indexを作成・公表するとともに，日本における就業状態の変化，所得の変化を把握することを目的とする。"
+      },
+      {
+        "descriptionType": "Methods",
+        "value": "個人"
+      }
+    ],
+    "accessRights": [
+      "制約付きアクセス",
+      "restricted access"
+    ],
+    "contributor": {
+      "contributorName": [
+        "SSJ データアーカイブ",
+        "SSJDA"
+      ]
+    },
+    "type": [
+      "dataset"
+    ],
+    "version": [
+      "2"
+    ],
+    "text4": [
+      "日本",
+      "Japan"
+    ],
+    "item_1551264629907": {
+      "attribute_name": "Lisence",
+      "attribute_value_mlt": [
+        {
+          "subitem_1602213569986": "https://csrda.iss.u-tokyo.ac.jp/access/condition/",
+          "subitem_1602213570623": "ja"
+        },
+        {
+          "subitem_1602213569986": "https://csrda.iss.u-tokyo.ac.jp/en/access/condition/",
+          "subitem_1602213570623": "en"
+        }
+      ]
+    },
+    "item_1551264822581": {
+      "attribute_name": "Topic",
+      "attribute_value_mlt": [
+        {
+          "subitem_1592472785169": "雇用",
+          "subitem_1592472785698": "ja"
+        },
+        {
+          "subitem_1592472785169": "Employment",
+          "subitem_1592472785698": "en"
+        }
+      ]
+    },
+    "item_1551264917614": {
+      "attribute_name": "publisher",
+      "attribute_value_mlt": [
+        {
+          "subitem_1551255702686": "SSJデータアーカイブ",
+          "subitem_1551255710277": "ja"
+        },
+        {
+          "subitem_1551255702686": "SSJDA",
+          "subitem_1551255710277": "en"
+        }
+      ]
+    },
+    "item_1551265002099": {
+      "attribute_name": "Lang",
+      "attribute_value_mlt": [
+        {
+          "subitem_1551255818386": "jpn"
+        },
+        {
+          "subitem_1551255818386": "eng"
+        }
+      ]
+    },
+    "item_1586157591881": {
+      "attribute_name": "Study ID",
+      "attribute_value_mlt": [
+        {
+          "subitem_1586156939407": "1349",
+          "subitem_1591256665864": "SSJデータアーカイブ"
+        },
+        {
+          "subitem_1586156939407": "10.34500/SSJDA.1349",
+          "subitem_1591256665864": "DOI"
+        }
+      ]
+    },
+    "item_1588260046718": {
+      "attribute_name": "Data K",
+      "attribute_value_mlt": [
+        {
+          "subitem_1591178807921": "量的調査: ミクロデータ",
+          "subitem_1591178808409": "ja"
+        },
+        {
+          "subitem_1591178807921": "quantitative research: micro data",
+          "subitem_1591178808409": "en"
+        }
+      ]
+    },
+    "item_1588260178185": {
+      "attribute_name": "Access_e",
+      "attribute_value_mlt": [
+        {
+          "subitem_1522650727486": "制約付きアクセス",
+          "subitem_1522650717957": "ja"
+        },
+        {
+          "subitem_1522650727486": "restricted access",
+          "subitem_1522650717957": "en"
+        }
+      ]
+    },
+    "item_1592405734122": {
+      "attribute_name": "Distributor",
+      "attribute_value_mlt": [
+        {
+          "subitem_1592369405220": "SSJ データアーカイブ",
+          "subitem_1592369407829": "ja",
+          "subitem_1591320914113": "https://csrda.iss.u-tokyo.ac.jp/ssjda/"
+        },
+        {
+          "subitem_1592369405220": "SSJDA",
+          "subitem_1592369407829": "en",
+          "subitem_1591320914113": "https://csrda.iss.u-tokyo.ac.jp/en/ssjda/"
+        }
+      ]
+    },
+    "item_1600078832557": {
+      "attribute_name": "ファイル情報",
+      "attribute_type": "file",
+      "attribute_value_mlt": [
+        {
+          "accessrole": "open_access",
+          "url": {
+            "label": "https://ssjda.iss.u-tokyo.ac.jp/Direct/gaiyo.php?eid=1349"
+          }
+        }
+      ]
+    },
+    "item_1602145007095": {
+      "attribute_name": "URI",
+      "attribute_value_mlt": [
+        {
+          "subitem_1602144759036": "https://ssjda.iss.u-tokyo.ac.jp/Direct/gaiyo.php?eid=1349"
+        }
+      ]
+    },
+    "item_1602145192334": {
+      "attribute_name": "Time P",
+      "attribute_value_mlt": [
+        {
+          "subitem_1602144573160": "2019",
+          "subitem_1602144587621": "start"
+        },
+        {
+          "subitem_1602144573160": "2019",
+          "subitem_1602144587621": "end"
+        }
+      ]
+    }
+  }
+}
