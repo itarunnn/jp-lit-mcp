@@ -56,11 +56,8 @@ intent別チェック:
 jp_lit_get_record(source=ndl_digital) の
 source_metadata.next_digital_library を確認:
   - available=true → jp_lit_get_text_coordinates / jp_lit_get_fulltext 使用可
-  - available=false + reason=not_indexed → 次世代デジコレ未収録
-  - available=false + reason=not_public → 館内/図書館送信資料
+  - available=false + reason=not_available_in_next_digital_library → OCR 系ツール利用不可（実務上は次世代側未収録であることが多いが、アクセス制限・上流都合などとの厳密な区別はしていない）
 ```
-
-館内限定資料の場合は NDL 本館・図書館送信参加館への来館を案内する。
 
 ---
 

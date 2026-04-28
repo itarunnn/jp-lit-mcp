@@ -45,7 +45,7 @@ jp_lit_search(source=ndl_digital, query=...)
 jp_lit_get_record(source=ndl_digital, source_id=...)
   → source_metadata.next_digital_library.available を確認
   → available=true → OCR ツール利用可
-  → available=false → 館内限定 or 図書館送信のみ
+  → available=false → 次世代デジタルライブラリー経由の OCR ツール利用不可（実務上は未収録であることが多いが、現実装では断定しない）
 ```
 
 ### 4. 初出調査
@@ -79,7 +79,7 @@ jp_lit_get_record(source=ndl_digital, source_id=...)
 
 【所蔵・公開状況】
 - NDL所蔵: あり / なし
-- デジタル公開: インターネット公開 / 図書館・個人送信 / 館内限定 / なし
+- デジタル公開: インターネット公開 / OCR 利用不可 / なし
 - 大学図書館: （cinii_books holdings から）
 
 【典拠強度】確認済み / 有力 / 弱い

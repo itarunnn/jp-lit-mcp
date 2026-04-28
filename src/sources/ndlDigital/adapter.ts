@@ -208,13 +208,13 @@ export function createNdlDigitalAdapter(
         ...record,
         source_metadata: {
           ...record.source_metadata,
-          next_digital_library: {
-            pid,
-            available: bookData !== null,
-            reason: bookData !== null ? null : "not_indexed_in_next_digital_library",
-            book_api_url: bookApiUrl,
-            total_page: typeof bookData?.totalPage === "number" ? bookData.totalPage : null,
-            public_domain: typeof bookData?.publicDomain === "boolean" ? bookData.publicDomain : null,
+            next_digital_library: {
+              pid,
+              available: bookData !== null,
+              reason: bookData !== null ? null : "not_available_in_next_digital_library",
+              book_api_url: bookApiUrl,
+              total_page: typeof bookData?.totalPage === "number" ? bookData.totalPage : null,
+              public_domain: typeof bookData?.publicDomain === "boolean" ? bookData.publicDomain : null,
             online_pdf: typeof bookData?.onlinePdf === "boolean" ? bookData.onlinePdf : null
           }
         }

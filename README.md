@@ -272,8 +272,8 @@ jp_lit_search_illustrations(keyword="富士山")
 // インターネット公開済み（OCR ツール利用可）
 { "pid": "897115", "available": true, "reason": null, "book_api_url": "...", "total_page": 12, "public_domain": true, "online_pdf": false }
 
-// 館内限定等（OCR ツール利用不可）
-{ "pid": "1000732", "available": false, "reason": "not_indexed_in_next_digital_library", "book_api_url": "...", "total_page": null, "public_domain": null, "online_pdf": null }
+// OCR 系ツール利用不可（実務上は次世代側未収録であることが多いが、現実装では断定しない）
+{ "pid": "1000732", "available": false, "reason": "not_available_in_next_digital_library", "book_api_url": "...", "total_page": null, "public_domain": null, "online_pdf": null }
 
 // PID 解決不可
 null
@@ -283,7 +283,7 @@ null
 |-----------|-----|------|
 | `pid` | string | 次世代デジタルライブラリー PID |
 | `available` | boolean | インターネット公開済みかどうか |
-| `reason` | string \| null | 非公開の理由（`"not_indexed_in_next_digital_library"` など）|
+| `reason` | string \| null | OCR 系ツールを利用できない理由。現状の `available=false` では `"not_available_in_next_digital_library"` を返す。実務上は次世代側未収録であることが多いが、アクセス制限や上流都合との厳密な区別はしていない |
 | `book_api_url` | string | `/book/{pid}` エンドポイントの URL |
 | `total_page` | number \| null | 総ページ数（`available=false` のとき null）|
 | `public_domain` | boolean \| null | パブリックドメイン判定（`available=false` のとき null）|

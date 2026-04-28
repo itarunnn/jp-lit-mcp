@@ -274,7 +274,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_record",
     {
-      description: "文献レコード詳細を取得する。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は館内限定等でインターネット公開されておらず、これらのツールは NotFoundError になる",
+      description: "文献レコード詳細を取得する。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
       inputSchema: recordInputSchema,
       outputSchema: recordOutputSchema
     },

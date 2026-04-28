@@ -678,7 +678,7 @@ describe("ndl_digital bridge: next_digital_library", () => {
     expect(record?.source_metadata.next_digital_library).toMatchObject({
       pid: "1000732",
       available: false,
-      reason: "not_indexed_in_next_digital_library",
+      reason: "not_available_in_next_digital_library",
       book_api_url: "https://lab.ndl.go.jp/dl/api/book/1000732"
     });
   });
@@ -766,7 +766,7 @@ describe("ndl_digital bridge: next_digital_library", () => {
     expect(record?.source_metadata.next_digital_library).toEqual({
       pid: "1000732",
       available: false,
-      reason: "not_indexed_in_next_digital_library",
+      reason: "not_available_in_next_digital_library",
       book_api_url: "https://lab.ndl.go.jp/dl/api/book/1000732",
       total_page: null,
       public_domain: null,
