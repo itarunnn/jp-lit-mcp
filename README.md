@@ -49,6 +49,12 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 テスト 229 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
 
+### 検索パラメータ
+
+- `limit` デフォルト・上限ともに **100 件**
+- 横断検索（source 未指定）: 各 source から内部で **30 件**取得（8 source × 30 = 最大240件プール）→ ラウンドロビンで `limit` 件に絞って返す
+- `nihu_bridge` を横断検索対象に追加（2026-04-28）
+
 ### source 別の実装メモ
 
 | source | 検索 API | 詳細 API | 横断検索 | 備考 |
