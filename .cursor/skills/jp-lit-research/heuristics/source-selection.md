@@ -6,14 +6,13 @@
 
 ```
 ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
-/ cinii_articles / cinii_books / jstage_articles
+/ cinii_articles / cinii_books / jstage_articles / nihu_bridge
 ```
 
 以下は横断検索に含まれない（source 指定が必要）:
 - `japan_search` — ポータル系、文化財・美術に特化して使う
 - `irdb` — 機関リポジトリ、論文調査で明示的に追加
 - `jdcat` — 研究データカタログ
-- `nihu_bridge` — 人文学専門 DB 横断
 - `kokkai_minutes` / `teikoku_minutes` — 会議録
 
 ---
