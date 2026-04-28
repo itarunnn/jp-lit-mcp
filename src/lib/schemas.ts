@@ -132,7 +132,7 @@ export const searchInputSchema = z
   .object({
     query: z.string().trim().min(1),
     source: sourceSchema.optional(),
-    limit: z.number().int().positive().max(100).default(20),
+    limit: z.number().int().positive().max(100).default(100),
     page: z.number().int().positive().default(1),
     sort_by: z
       .enum(["title", "creator", "issued_date", "created_date", "modified_date"])

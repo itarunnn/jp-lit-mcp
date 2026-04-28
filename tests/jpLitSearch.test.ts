@@ -45,7 +45,7 @@ describe("createSearchService", () => {
     expect(parsed).toEqual({
       query: "夏目漱石",
       source: undefined,
-      limit: 20,
+      limit: 100,
       page: 1
     });
   });
@@ -202,7 +202,7 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: "ndl_search",
       page: 1,
-      limit: 20,
+      limit: 100,
       total: 1,
       items: [createSearchItem("ndl_search", "1", "吾輩は猫である")],
       facets: {
@@ -237,7 +237,7 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: null,
       page: 1,
-      limit: 20,
+      limit: 100,
       total: 1
     });
   });
