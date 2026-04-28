@@ -43,6 +43,7 @@ describe("IRDB mappers", () => {
         },
         material_type: null,
         subjects: [],
+        table_of_contents: [],
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/" xml:lang="ja">
+  <title>IRDB OpenSearch | 夏目漱石 夏目漱石</title>
+  <id>https://irdb.nii.ac.jp/opensearch/search?q=%E5%A4%8F%E7%9B%AE%E6%BC%B1%E7%9F%B3&amp;count=1&amp;format=atom</id>
+  <updated>2026-04-27T05:37:18Z</updated>
+  <opensearch:totalResults>899</opensearch:totalResults>
+  <opensearch:startIndex>1</opensearch:startIndex>
+  <opensearch:itemsPerPage>20</opensearch:itemsPerPage>
+  <entry>
+    <title>夏目漱石『虞美人草』における東洋的「水の女」 : 古典から読み解く</title>
+    <link href="https://irdb.nii.ac.jp/01242/0007332690"/>
+    <id>https://irdb.nii.ac.jp/01242/0007332690</id>
+    <author>
+      <name>佐々, 優香</name>
+    </author>
+    <author>
+      <name>サッサ, ユウカ</name>
+    </author>
+    <author>
+      <name>Sassa, Yuka</name>
+    </author>
+    <language>jpn</language>
+    <publisher>熊本大学大学院社会文化科学教育部</publisher>
+    <URI>https://kumadai.repo.nii.ac.jp/records/2001355</URI>
+    <prism:issn>1348-530X</prism:issn>
+    <prism:publicationName lang="ja">熊本大学社会文化研究</prism:publicationName>
+    <prism:volume>24</prism:volume>
+    <prism:startingPage>210</prism:startingPage>
+    <prism:endingPage>191</prism:endingPage>
+    <prism:publicationDate>2026-03-24</prism:publicationDate>
+    <content type="text">In this paper, Sayoko, Itoko, and Fujio are reread as Oriental "water women".</content>
+    <irname>熊本大学</irname>
+    <updated>2026-04-10</updated>
+  </entry>
+</feed>
