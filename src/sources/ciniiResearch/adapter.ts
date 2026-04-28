@@ -1,4 +1,5 @@
 import {
+  fetchWithTimeout,
   UnsupportedPayloadError,
   UpstreamHttpError
 } from "../../lib/http.js";
@@ -65,7 +66,7 @@ function isJsonContentType(contentType: string | null): boolean {
 }
 
 async function fetchJsonPayload(url: string, accept?: string): Promise<unknown> {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: accept
       ? {
           accept
@@ -276,8 +277,8 @@ export function createCiniiResearchAdapter(
       const url = normalizeRecordBaseUrl(recordBaseUrl, sourceId);
 
       try {
-        const payload = await fetchJsonPayload(url.toString(), "application/json")
-          .catch(() => fetchJsonPayload(url, "application/json, application/ld+json"));
+          const payload = await fetchJsonPayload(url.toString(), "application/json")
+            .catch(() => fetchJsonPayload(url, "application/json, application/ld+json"));
         const record = mapCiniiRecordResponseForSource(payload, source);
 
         if (source !== "cinii_books") {

@@ -1,4 +1,5 @@
 import {
+  fetchWithTimeout,
   UnsupportedPayloadError,
   UpstreamHttpError
 } from "../../lib/http.js";
@@ -37,7 +38,7 @@ function isJsonContentType(contentType: string | null): boolean {
 }
 
 async function fetchNdlDigitalPayload(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new UpstreamHttpError(response.status, response.statusText);
@@ -77,7 +78,7 @@ async function fetchNdlDigitalPayload(url: string): Promise<unknown> {
 }
 
 async function fetchNdlDigitalSruPayload(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new UpstreamHttpError(response.status, response.statusText);

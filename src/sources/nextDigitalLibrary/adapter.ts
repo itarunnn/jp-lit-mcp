@@ -1,6 +1,12 @@
-import { fetchJson, UpstreamHttpError } from "../../lib/http.js";
+import {
+  fetchJson,
+  fetchWithTimeout,
+  UnsupportedPayloadError,
+  UpstreamHttpError
+} from "../../lib/http.js";
 
 const DEFAULT_BASE_URL = "https://lab.ndl.go.jp/dl/api";
+const MAX_FULLTEXT_RESPONSE_CHARS = 10_000_000;
 
 export type NextDigitalLibraryJson = Record<string, unknown>;
 
@@ -83,16 +89,21 @@ export function createNextDigitalLibraryClient(
     },
     async getFulltextJson(pid) {
       try {
-        // 次世代 API は fulltext-json を application/octet-stream で返すことがあるため
-        // content-type チェックを持つ fetchJson を使わず直接 response.json() を呼ぶ
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           joinUrl(baseUrl, `/book/fulltext-json/${encodeURIComponent(pid)}`)
         );
         if (!response.ok) {
           throw new UpstreamHttpError(response.status, response.statusText);
         }
 
-        return (await response.json()) as NextDigitalLibraryJson;
+        const text = await response.text();
+        if (text.length > MAX_FULLTEXT_RESPONSE_CHARS) {
+          throw new UnsupportedPayloadError(
+            `Fulltext payload too large: ${text.length} characters`
+          );
+        }
+
+        return JSON.parse(text) as NextDigitalLibraryJson;
       } catch (error) {
         if (error instanceof UpstreamHttpError && error.status === 404) {
           return null;

@@ -116,4 +116,15 @@ describe("jp_lit_search_pages", () => {
       from: 10
     });
   });
+
+  it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const tool = createJpLitSearchPagesTool(
+      makeRecordService(BASE_RECORD),
+      makeNextDlClient(SEARCH_PAYLOAD)
+    );
+
+    await expect(
+      tool({ source: "ndl_digital", pid: "897115/../../secret", keyword: "図書館" })
+    ).rejects.toMatchObject({ name: "InvalidRequestError" });
+  });
 });

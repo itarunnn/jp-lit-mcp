@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NotFoundError } from "../src/lib/errors.js";
+import { InvalidRequestError, NotFoundError } from "../src/lib/errors.js";
 import { recordInputSchema } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
 import { createRecordService } from "../src/services/recordService.js";
@@ -108,6 +108,38 @@ describe("createRecordService", () => {
     expect(parsed.source).toBe("jstage_articles");
   });
 
+  it("危険な absolute URL source_id を service 層で拒否する", async () => {
+    const adapter: SourceAdapter = {
+      source: "irdb",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async () => createRecordItem("/01242/0007332690")
+    };
+    const service = createRecordService([adapter]);
+
+    await expect(
+      service.getRecord({
+        source: "irdb",
+        sourceId: "https://169.254.169.254/latest/meta-data"
+      })
+    ).rejects.toBeInstanceOf(InvalidRequestError);
+  });
+
+  it("jstage_articles の source_id で article 配下以外を拒否する", async () => {
+    const adapter: SourceAdapter = {
+      source: "jstage_articles",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async (sourceId) => createRecordItem(sourceId)
+    };
+    const service = createRecordService([adapter]);
+
+    await expect(
+      service.getRecord({
+        source: "jstage_articles",
+        sourceId: "/redirect?url=https://example.test"
+      })
+    ).rejects.toBeInstanceOf(InvalidRequestError);
+  });
+
   it("record 入力スキーマで japan_search source を受け付ける", () => {
     const parsed = recordInputSchema.parse({
       source: "japan_search",
@@ -146,10 +178,10 @@ describe("createRecordService", () => {
 
     const result = await service.getRecord({
       source: "ndl_digital",
-      sourceId: "abc"
+      sourceId: "R100000039-I1000732"
     });
 
-    expect(result).toEqual(createRecordItem("abc"));
+    expect(result).toEqual(createRecordItem("R100000039-I1000732"));
   });
 
   it("tool handler が source_id を sourceId に変換して structuredContent を返す", async () => {
@@ -163,10 +195,10 @@ describe("createRecordService", () => {
 
     const result = await tool({
       source: "ndl_digital",
-      source_id: "abc"
+      source_id: "R100000039-I1000732"
     });
 
-    expect(result.structuredContent).toEqual(createRecordItem("abc"));
+    expect(result.structuredContent).toEqual(createRecordItem("R100000039-I1000732"));
     expect(result.content).toEqual([
       {
         type: "text",
@@ -186,7 +218,7 @@ describe("createRecordService", () => {
     await expect(
       service.getRecord({
         source: "ndl_digital",
-        sourceId: "missing"
+        sourceId: "R100000039-I9999999"
       })
     ).rejects.toThrow(NotFoundError);
   });

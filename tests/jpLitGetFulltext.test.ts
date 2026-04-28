@@ -99,4 +99,15 @@ describe("jp_lit_get_fulltext", () => {
       tool({ source: "ndl_digital", source_id: "R100000039-I1000732" })
     ).rejects.toMatchObject({ name: "NotFoundError" });
   });
+
+  it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const tool = createJpLitGetFulltextTool(
+      makeRecordService(BASE_RECORD),
+      makeNextDlClient(null)
+    );
+
+    await expect(
+      tool({ source: "ndl_digital", pid: "https://example.test/897115" })
+    ).rejects.toMatchObject({ name: "InvalidRequestError" });
+  });
 });

@@ -20,6 +20,7 @@ function makeFetchOk(payload: unknown) {
           : null;
       }
     },
+    text: async () => JSON.stringify(payload),
     json: async () => payload
   });
 }
@@ -92,6 +93,7 @@ describe("createNextDigitalLibraryClient", () => {
               : null;
           }
         },
+        text: async () => JSON.stringify(payload),
         json: async () => payload
       })
     );
@@ -103,6 +105,30 @@ describe("createNextDigitalLibraryClient", () => {
 
     const result = await client.getFulltextJson("897115");
     expect(result).toEqual(payload);
+  });
+
+  it("getFulltextJson は過大なレスポンスを拒否する", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get() {
+            return "application/octet-stream";
+          }
+        },
+        text: async () => `{"list":["${"a".repeat(5_100_000)}"]}`
+      })
+    );
+
+    const { createNextDigitalLibraryClient } = await import(
+      "../src/sources/nextDigitalLibrary/adapter.js"
+    );
+    const client = createNextDigitalLibraryClient();
+
+    await expect(client.getFulltextJson("897115")).rejects.toMatchObject({
+      name: "UnsupportedPayloadError"
+    });
   });
 
   it("404 は null を返す", async () => {

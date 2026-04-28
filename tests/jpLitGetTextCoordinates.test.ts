@@ -86,4 +86,15 @@ describe("jp_lit_get_text_coordinates", () => {
       tool({ source: "ndl_digital", source_id: "R100000039-I1000732", page: 9999 })
     ).rejects.toMatchObject({ name: "NotFoundError" });
   });
+
+  it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const tool = createJpLitGetTextCoordinatesTool(
+      makeRecordService(BASE_RECORD),
+      makeNextDlClient(null)
+    );
+
+    await expect(
+      tool({ source: "ndl_digital", pid: "../etc/passwd", page: 1 })
+    ).rejects.toMatchObject({ name: "InvalidRequestError" });
+  });
 });

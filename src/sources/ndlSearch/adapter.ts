@@ -1,4 +1,5 @@
 import {
+  fetchWithTimeout,
   UnsupportedPayloadError,
   UpstreamHttpError
 } from "../../lib/http.js";
@@ -52,7 +53,7 @@ function isJsonContentType(contentType: string | null): boolean {
 }
 
 async function fetchNdlSearchPayload(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new UpstreamHttpError(response.status, response.statusText);
@@ -92,7 +93,7 @@ async function fetchNdlSearchPayload(url: string): Promise<unknown> {
 }
 
 async function fetchNdlSearchSruPayload(url: string): Promise<unknown> {
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new UpstreamHttpError(response.status, response.statusText);
@@ -177,7 +178,9 @@ export function createNdlSearchAdapter(
         const crid = sourceId.slice(CRID_PREFIX.length);
         const ciniiUrl = `${ciniiRecordBaseUrl.replace(/\/+$/, "")}/${crid}.json`;
         try {
-          const response = await fetch(ciniiUrl, { headers: { accept: "application/json" } });
+          const response = await fetchWithTimeout(ciniiUrl, {
+            headers: { accept: "application/json" }
+          });
           if (!response.ok) {
             throw new UpstreamHttpError(response.status, response.statusText);
           }

@@ -5,6 +5,7 @@ import {
 } from "../lib/schemas.js";
 import type { TextCoordinatesOutput } from "../lib/schemas.js";
 import { InvalidRequestError, NotFoundError } from "../lib/errors.js";
+import { validateNdlPid } from "../lib/sourceId.js";
 import type {
   NextDigitalLibraryBridgeInfo,
   NextDigitalLibraryClient
@@ -16,7 +17,7 @@ async function resolvePid(
   parsed: { source: string; source_id?: string; pid?: string },
   recordService: RecordService
 ): Promise<string> {
-  if (parsed.pid) return parsed.pid;
+  if (parsed.pid) return validateNdlPid(parsed.pid);
 
   const record = await recordService.getRecord({
     source: parsed.source as "ndl_digital",
@@ -28,7 +29,7 @@ async function resolvePid(
     throw new NotFoundError(`PID を解決できませんでした: ${parsed.source_id}`);
   }
 
-  return nextDl.pid;
+  return validateNdlPid(nextDl.pid);
 }
 
 export function createJpLitGetTextCoordinatesTool(

@@ -1,3 +1,4 @@
+import { validateSourceId } from "../lib/sourceId.js";
 import type { SourceName } from "../lib/types.js";
 import type { SourceAdapter } from "../sources/types.js";
 import { NotFoundError } from "../lib/errors.js";
@@ -13,11 +14,12 @@ export function createRecordService(adapters: SourceAdapter[]) {
 
   return {
     async getRecord(input: RecordInput) {
-      const record = await registry.get(input.source).getRecord(input.sourceId);
+      const sourceId = validateSourceId(input.source, input.sourceId);
+      const record = await registry.get(input.source).getRecord(sourceId);
 
       if (!record) {
         throw new NotFoundError(
-          `Record not found: ${input.source}/${input.sourceId}`
+          `Record not found: ${input.source}/${sourceId}`
         );
       }
 
