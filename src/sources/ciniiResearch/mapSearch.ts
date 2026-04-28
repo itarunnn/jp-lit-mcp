@@ -138,28 +138,28 @@ function toIssuedFields(value: string | null) {
 
 function toCiniiSource(source: SourceName): SearchItem["source"] {
   if (
-    source === "cinii_research" ||
     source === "cinii_articles" ||
     source === "cinii_books"
   ) {
     return source;
   }
 
-  return "cinii_research";
+  return "cinii_articles";
 }
 
 export function mapCiniiResearchSearchEntry(
   entry: unknown,
-  source: SourceName = "cinii_research"
+  source: SourceName = "cinii_articles"
 ): SearchItem {
   const record = asRecord(entry) ?? {};
   const issuedSource =
     readString(record["prism:publicationDate"]) ??
     readString(record["dc:date"]);
-  const url =
+  const rawUrl =
     readString(asRecord(record.link)?.["@id"]) ??
     readString(record["@id"]) ??
     null;
+  const url = rawUrl ? rawUrl.replace(/\.json$/i, "") : null;
 
   return {
     source: toCiniiSource(source),
@@ -170,11 +170,13 @@ export function mapCiniiResearchSearchEntry(
       readString(record["prism:publicationName"]) ??
       "Untitled",
     subtitle: null,
+    title_reading: null,
     authors: readAuthors(record["dc:creator"] ?? record.creator),
     publisher:
       readString(record["dc:publisher"]) ??
       readString(record.publisher) ??
       null,
+    journal_title: readString(record["prism:publicationName"]) ?? null,
     ...toIssuedFields(issuedSource),
     summary:
       readString(record.description) ??
@@ -182,9 +184,12 @@ export function mapCiniiResearchSearchEntry(
       null,
     url,
     availability: {
-      online: false,
+      online: Boolean(url),
       digital_collection: false
     },
+    material_type: readString(record["dc:type"]) ?? null,
+    subjects: [],
+    table_of_contents: [],
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []
@@ -192,7 +197,7 @@ export function mapCiniiResearchSearchEntry(
 }
 
 export function mapCiniiResearchSearchResponse(payload: unknown): SearchResult {
-  return mapCiniiSearchResponseForSource(payload, "cinii_research");
+  return mapCiniiSearchResponseForSource(payload, "cinii_articles");
 }
 
 export function mapCiniiSearchResponseForSource(

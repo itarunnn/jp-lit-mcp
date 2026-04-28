@@ -27,21 +27,26 @@ describe("CiNii Research mappers", () => {
     expect(result.total).toBe(3903);
     expect(result.items).toEqual([
       {
-        source: "cinii_research",
+        source: "cinii_articles",
         source_id: "1573387450265380480",
         title: "行人",
         subtitle: null,
+        title_reading: null,
         authors: [{ name: "夏目漱石", role: "author" }],
         publisher: null,
+        journal_title: "行人",
         issued_at: "1965",
         issued_at_label: "1965",
         issued_at_precision: "year",
         summary: null,
         url: "https://cir.nii.ac.jp/crid/1573387450265380480",
         availability: {
-          online: false,
+          online: true,
           digital_collection: false
         },
+        material_type: "Article",
+        subjects: [],
+        table_of_contents: [],
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -58,11 +63,12 @@ describe("CiNii Research mappers", () => {
     const record = mapCiniiResearchRecordResponse(fixture);
 
     expect(record).toMatchObject({
-      source: "cinii_research",
+      source: "cinii_articles",
       source_id: "1573387450265380480",
       title: "行人",
       authors: [{ name: "夏目漱石", role: "author" }],
       publisher: "岩波書店",
+      journal_title: "行人",
       issued_at: "1965",
       issued_at_label: "1965",
       issued_at_precision: "year",
@@ -94,6 +100,40 @@ describe("CiNii Research mappers", () => {
       urls: ["https://example.test/cinii/1573387450265380480"],
       related_count: 1
     });
+  });
+
+  it("dc:title があるとき prism:publicationName が journal_title に入る", async () => {
+    const { mapCiniiResearchSearchEntry } = await import(
+      "../src/sources/ciniiResearch/mapSearch.js"
+    );
+
+    const entry = {
+      "@id": "https://cir.nii.ac.jp/crid/9999000000000001",
+      "dc:title": "AI における対話システムの研究",
+      "prism:publicationName": "人工知能学会誌",
+      "prism:publicationDate": "2020"
+    };
+
+    const item = mapCiniiResearchSearchEntry(entry, "cinii_articles");
+
+    expect(item.title).toBe("AI における対話システムの研究");
+    expect(item.journal_title).toBe("人工知能学会誌");
+  });
+
+  it("prism:publicationName がない場合は journal_title が null になる", async () => {
+    const { mapCiniiResearchSearchEntry } = await import(
+      "../src/sources/ciniiResearch/mapSearch.js"
+    );
+
+    const entry = {
+      "@id": "https://cir.nii.ac.jp/crid/9999000000000002",
+      "dc:title": "日本語処理の研究",
+      "prism:publicationDate": "2020"
+    };
+
+    const item = mapCiniiResearchSearchEntry(entry, "cinii_articles");
+
+    expect(item.journal_title).toBeNull();
   });
 });
 
@@ -137,7 +177,9 @@ describe("createCiniiResearchAdapter", () => {
     const searchResult = await adapter.search({
       query: "夏目漱石",
       limit: 5,
-      page: 2
+      page: 2,
+      sort_by: "issued_date",
+      sort_order: "desc"
     });
     const record = await adapter.getRecord("1573387450265380480");
 
@@ -152,11 +194,12 @@ describe("createCiniiResearchAdapter", () => {
     expect(searchUrl.searchParams.get("start")).toBe("6");
     expect(searchUrl.searchParams.get("format")).toBe("json");
     expect(searchUrl.searchParams.get("appid")).toBe("dummy-app-id");
+    expect(searchUrl.searchParams.get("sortorder")).toBe("0");
     expect(fetch.mock.calls[1][0]).toBe(
       "https://cir.nii.ac.jp/crid/1573387450265380480.json"
     );
-    expect(searchResult.items[0]?.source).toBe("cinii_research");
-    expect(record?.source).toBe("cinii_research");
+    expect(searchResult.items[0]?.source).toBe("cinii_articles");
+    expect(record?.source).toBe("cinii_articles");
   });
 
   it("upstream 404 の詳細取得は null を返す", async () => {
@@ -206,6 +249,39 @@ describe("createCiniiResearchAdapter", () => {
     expect(adapter.source).toBe("cinii_articles");
     expect(result.items[0]?.source).toBe("cinii_articles");
     expect(fetch.mock.calls[0][0]).toContain("/opensearch/articles");
+  });
+
+  it("cinii_articles では未対応 sort_by を送らない", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(searchFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiArticlesAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiArticlesAdapter();
+
+    await adapter.search({
+      query: "夏目漱石",
+      limit: 2,
+      page: 1,
+      sort_by: "title",
+      sort_order: "asc"
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+
+    expect(searchUrl.searchParams.get("sortorder")).toBeNull();
   });
 
   it("cinii_books source を books 検索として公開できる", async () => {
@@ -258,7 +334,9 @@ describe("createCiniiResearchAdapter", () => {
     const result = await adapter.search({
       query: "夏目漱石",
       limit: 1,
-      page: 1
+      page: 1,
+      sort_by: "issued_date",
+      sort_order: "asc"
     });
 
     expect(adapter.source).toBe("cinii_books");
@@ -269,6 +347,7 @@ describe("createCiniiResearchAdapter", () => {
       publisher: "译林出版社"
     });
     expect(fetch.mock.calls[0][0]).toContain("/opensearch/books");
+    expect(new URL(fetch.mock.calls[0][0] as string).searchParams.get("sortorder")).toBe("2");
   });
 
   it("cinii_books の詳細取得では holdings を source_metadata に載せる", async () => {

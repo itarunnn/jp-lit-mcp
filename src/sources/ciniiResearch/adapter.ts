@@ -6,13 +6,14 @@ import type { SourceAdapter } from "../types.js";
 import type { SourceName } from "../../lib/types.js";
 import { mapCiniiRecordResponseForSource } from "./mapRecord.js";
 import { mapCiniiSearchResponseForSource } from "./mapSearch.js";
+import type { SearchParams } from "../types.js";
 
 const DEFAULT_SEARCH_BASE_URL = "https://cir.nii.ac.jp/opensearch/articles";
 const DEFAULT_RECORD_BASE_URL = "https://cir.nii.ac.jp/crid";
 const DEFAULT_HOLDINGS_BASE_URL = "https://ci.nii.ac.jp/books/opensearch/holder";
 
 interface CiniiResearchAdapterOptions {
-  source?: "cinii_research" | "cinii_articles" | "cinii_books";
+  source?: "cinii_articles" | "cinii_books";
   searchType?: "articles" | "books";
   searchBaseUrl?: string;
   recordBaseUrl?: string;
@@ -32,6 +33,21 @@ function normalizeSearchBaseUrl(
   url.pathname = url.pathname.replace(/\/(articles|books)\/?$/, `/${searchType}`);
 
   return url.toString();
+}
+
+function resolveCiniiSortOrder(
+  searchType: "articles" | "books",
+  params: Pick<SearchParams, "sort_by" | "sort_order">
+): string | null {
+  if (params.sort_by !== "issued_date") {
+    return null;
+  }
+
+  if (searchType === "articles") {
+    return params.sort_order === "asc" ? "1" : "0";
+  }
+
+  return params.sort_order === "asc" ? "2" : "3";
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -222,7 +238,7 @@ function withHoldings(record: ReturnType<typeof mapCiniiRecordResponseForSource>
 export function createCiniiResearchAdapter(
   options: CiniiResearchAdapterOptions = {}
 ): SourceAdapter {
-  const source = options.source ?? "cinii_research";
+  const source = options.source ?? "cinii_articles";
   const searchType = options.searchType ?? "articles";
   const searchBaseUrl = normalizeSearchBaseUrl(
     options.searchBaseUrl,
@@ -233,12 +249,20 @@ export function createCiniiResearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page }) {
+    async search({ query, limit, page, sort_by, sort_order }) {
       const url = new URL(searchBaseUrl);
       url.searchParams.set("q", query);
       url.searchParams.set("count", String(limit));
       url.searchParams.set("start", String((page - 1) * limit + 1));
       url.searchParams.set("format", "json");
+      const sortOrder = resolveCiniiSortOrder(searchType, {
+        sort_by,
+        sort_order
+      });
+
+      if (sortOrder) {
+        url.searchParams.set("sortorder", sortOrder);
+      }
       if (options.appId) {
         url.searchParams.set("appid", options.appId);
       }

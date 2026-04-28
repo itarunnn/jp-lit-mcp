@@ -87,7 +87,7 @@ function readDataSourceIdentifiers(value: unknown): Record<string, unknown> {
 }
 
 export function mapCiniiResearchRecordResponse(payload: unknown): RecordItem {
-  return mapCiniiRecordResponseForSource(payload, "cinii_research");
+  return mapCiniiRecordResponseForSource(payload, "cinii_articles");
 }
 
 export function mapCiniiRecordResponseForSource(
@@ -129,7 +129,7 @@ export function mapCiniiRecordResponseForSource(
       record.alternativeTitle ??
         record["dcterms:alternative"] ??
         record["dc:title"]
-    ),
+    ).filter((t) => t !== base.title),
     publication_place: null,
     language:
       readCiniiString(record.inLanguage) ??
