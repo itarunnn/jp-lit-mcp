@@ -21,11 +21,11 @@ import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
 import {
   createCiniiArticlesAdapter,
-  createCiniiBooksAdapter,
-  createCiniiResearchAdapter
+  createCiniiBooksAdapter
 } from "./sources/ciniiResearch/adapter.js";
 import { createJapanSearchAdapter } from "./sources/japanSearch/adapter.js";
 import { createIrdbAdapter } from "./sources/irdb/adapter.js";
+import { createJdcatAdapter } from "./sources/jdcat/adapter.js";
 import { createJstageArticlesAdapter } from "./sources/jstage/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import {
@@ -35,6 +35,7 @@ import {
   createNdlSearchAdapter
 } from "./sources/ndlSearch/adapter.js";
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
+import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinates.js";
@@ -58,10 +59,13 @@ interface ServerEnv {
   JAPAN_SEARCH_ITEM_BASE_URL?: string;
   IRDB_SEARCH_BASE_URL?: string;
   IRDB_DETAIL_BASE_URL?: string;
+  JDCAT_BASE_URL?: string;
   KOKKAI_SPEECH_BASE_URL?: string;
   KOKKAI_MEETING_BASE_URL?: string;
   TEIKOKU_SPEECH_BASE_URL?: string;
   TEIKOKU_MEETING_BASE_URL?: string;
+  NIHU_BRIDGE_SEARCH_URL?: string;
+  NIHU_BRIDGE_RECORD_BASE_URL?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/sru";
@@ -193,6 +197,13 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
           }
         : {})
     },
+    jdcat: {
+      ...(env.JDCAT_BASE_URL
+        ? {
+            baseUrl: env.JDCAT_BASE_URL
+          }
+        : {})
+    },
     kokkai: {
       ...(env.KOKKAI_SPEECH_BASE_URL ? { speechBaseUrl: env.KOKKAI_SPEECH_BASE_URL } : {}),
       ...(env.KOKKAI_MEETING_BASE_URL ? { meetingBaseUrl: env.KOKKAI_MEETING_BASE_URL } : {})
@@ -200,6 +211,10 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
     teikoku: {
       ...(env.TEIKOKU_SPEECH_BASE_URL ? { speechBaseUrl: env.TEIKOKU_SPEECH_BASE_URL } : {}),
       ...(env.TEIKOKU_MEETING_BASE_URL ? { meetingBaseUrl: env.TEIKOKU_MEETING_BASE_URL } : {})
+    },
+    nihuBridge: {
+      ...(env.NIHU_BRIDGE_SEARCH_URL ? { searchUrl: env.NIHU_BRIDGE_SEARCH_URL } : {}),
+      ...(env.NIHU_BRIDGE_RECORD_BASE_URL ? { recordBaseUrl: env.NIHU_BRIDGE_RECORD_BASE_URL } : {})
     }
   };
 }
@@ -215,14 +230,15 @@ export function createServer(env: ServerEnv = process.env) {
     createNdlDigitalAdapter(adapterOptions.ndlDigital),
     createNdlArticlesAdapter(adapterOptions.ndlSearch),
     createNdlArticlesOnlineAdapter(adapterOptions.ndlSearch),
-    createCiniiResearchAdapter(adapterOptions.ciniiResearch),
     createCiniiArticlesAdapter(adapterOptions.ciniiResearch),
     createIrdbAdapter(adapterOptions.irdb),
+    createJdcatAdapter(adapterOptions.jdcat),
     createJstageArticlesAdapter(adapterOptions.jstage),
     createJapanSearchAdapter(adapterOptions.japanSearch),
     createCiniiBooksAdapter(adapterOptions.ciniiResearch),
     createKokkaiAdapter(adapterOptions.kokkai),
-    createTeikokuAdapter(adapterOptions.teikoku)
+    createTeikokuAdapter(adapterOptions.teikoku),
+    createNihuBridgeAdapter(adapterOptions.nihuBridge)
   ];
   const recordService = createRecordService(adapters);
   const searchTool = createJpLitSearchTool(createSearchService(adapters));

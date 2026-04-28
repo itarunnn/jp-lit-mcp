@@ -13,8 +13,10 @@ function createRecordItem(sourceId: string): RecordItem {
     source_id: sourceId,
     title: "吾輩は猫である",
     subtitle: null,
+    title_reading: null,
     authors: [],
     publisher: null,
+    journal_title: null,
     issued_at: "1905",
     issued_at_label: "1905",
     issued_at_precision: "year",
@@ -65,15 +67,6 @@ describe("createRecordService", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("record 入力スキーマで cinii_research source を受け付ける", () => {
-    const parsed = recordInputSchema.parse({
-      source: "cinii_research",
-      source_id: "1573387450265380480"
-    });
-
-    expect(parsed.source).toBe("cinii_research");
-  });
-
   it("record 入力スキーマで cinii_articles / cinii_books source を受け付ける", () => {
     const articles = recordInputSchema.parse({
       source: "cinii_articles",
@@ -86,6 +79,24 @@ describe("createRecordService", () => {
 
     expect(articles.source).toBe("cinii_articles");
     expect(books.source).toBe("cinii_books");
+  });
+
+  it("record 入力スキーマで irdb source を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "irdb",
+      source_id: "/01242/0007332690"
+    });
+
+    expect(parsed.source).toBe("irdb");
+  });
+
+  it("record 入力スキーマで jdcat source を受け付ける", () => {
+    const parsed = recordInputSchema.parse({
+      source: "jdcat",
+      source_id: "43494"
+    });
+
+    expect(parsed.source).toBe("jdcat");
   });
 
   it("record 入力スキーマで jstage_articles source を受け付ける", () => {

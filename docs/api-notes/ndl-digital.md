@@ -1,36 +1,49 @@
 # NDL Digital API メモ
 
-確認日: 2026-04-25
+確認日: 2026-04-27
 
-## Task 4 live XML 対応の方針
+## 現行実装
 
-- `ndl_digital` source は引き続き `NDL Search API + dpid=ndl-dl` を使う。
-- OpenSearch XML は `projectNdlSearchOpenSearchXml` を再利用して mapper 互換 shape に投影する。
-- search は `dpid=ndl-dl` を付けた live XML / JSON の両方を受ける。
+- `ndl_digital` は引き続き `NDL Search + dpid=ndl-dl` で実装している。
+- 検索は SRU を使う。
+  - `https://ndlsearch.ndl.go.jp/api/sru`
+  - `operation=searchRetrieve`
+  - `version=1.2`
+  - `recordSchema=dcndl`
+  - `recordPacking=xml`
+- detail は `bib/external/search` を使う。
+- search projection では `digitalCollection: true` を adapter 側で強制し、`dpid=ndl-dl` source としての意味を保つ。
 - detail は XML / JSON の両方を受けるが、`providerId` が無い XML は `digitalCollection=true` かつ `providerName=国立国会図書館デジタルコレクション` のときだけ通す。
 - 上の fallback で通した場合でも、`source_metadata.provider_id` は推定値を埋めず `null` のまま返す。
 
-## Task 8 fixture の前提
+## OpenSearch について
+
+- OpenSearch search は現行の検索経路では使わない。
+- 旧 OpenSearch fixture と projection は、履歴確認と detail 互換保守のため残している。
+
+## fixture の前提
 
 - `ndl_digital` source は引き続き `NDL Search API + dpid=ndl-dl` を使う。
 - Search fixture の live 元
-  - `https://ndlsearch.ndl.go.jp/api/opensearch?title=%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1&cnt=3&idx=1&dpid=ndl-dl`
+  - SRU:
+    `https://ndlsearch.ndl.go.jp/api/sru?operation=searchRetrieve&version=1.2&recordSchema=dcndl&recordPacking=xml&maximumRecords=3&startRecord=1&query=dpid%3Dndl-dl%20AND%20anywhere%3D%22%E5%9B%BD%E7%AB%8B%E5%9B%BD%E4%BC%9A%E5%9B%B3%E6%9B%B8%E9%A4%A8%E5%B9%B4%E5%A0%B1%22`
 - Record fixture の live 元
   - `https://ndlsearch.ndl.go.jp/api/bib/external/search?cs=bib&f-token=R100000039-I1000732`
-- Task 6 時点の adapter は OpenSearch XML parse を持たないため、fixture は NDL Search 側と同様に compatibility projection と live 応答抜粋を同居させた。
-- Task 8 品質差し戻し対応で、top-level compatibility projection も `_fixture.liveResponseExtract` と同じ資料サンプルへ揃えた。
-  - `search-response.json` は `R100000039-I1012769`、`record-response.json` は `R100000039-I1000732` の live 抜粋に合わせて dummy 値を除去した
+- SRU fixture は XML をそのまま保持し、`tests/fixtures/ndl-sru/*.xml` で検証する。
+- 旧 OpenSearch fixture は履歴確認と detail 互換保守のため残している。
+- 既存 JSON fixture は compatibility projection と live 応答抜粋の追跡用に保持している。
 
 ## live 応答から fixture へ落とした手順
 
-- OpenSearch XML は `rss.channel` 配下の必要項目だけを JSON-compatible に写し、`_fixture.liveResponseExtract` に保存した。
+- SRU XML は live 形をそのまま保存し、parser / projection の入力に使う。
+- 旧 OpenSearch JSON fixture は `rss.channel` 配下の要点だけを JSON-compatible に写した履歴データとして残している。
 - detail JSON は `list[0]` と `items[*]` に digital 利用可否や viewer 情報が分散するため、必要な meta だけ抜粋した。
 - `alternativeTitles` / `identifiers.issn` / `identifiers.issnl` も live 抜粋から追跡できるよう、`list[0].meta.t02460` / `k00220` / `k28569` を保持した。
 - 既存 mapper / 既存テストは flat fields を読むため、top-level の `items[]` / record flat fields は維持した。
 
 ## fixture で実際に使っているフィールド
 
-### search-response.json
+### search-response.json / search-response.xml
 
 - compatibility projection で mapper が読むフィールド
   - `totalResults`
@@ -56,6 +69,10 @@
   - `rss.channel.item[].dcterms:issued`
   - `rss.channel.item[].dc:identifier`
   - `rss.channel.item[].rdfs:seeAlso`
+- SRU fixture で直接検証するフィールド
+  - `searchRetrieveResponse.numberOfRecords`
+  - `searchRetrieveResponse.records.record[].recordData.rdf:RDF`
+  - `searchRetrieveResponse.extraResponseData.facet`
 
 ### record-response.json
 
@@ -116,7 +133,7 @@
 ## `dpid=ndl-dl` メモ
 
 - `ndl-dl` は国立国会図書館デジタルコレクションの provider ID。
-- live XML 対応後も `ndl-digital` adapter は OpenSearch URL に `dpid=ndl-dl` を付けるだけで、record 取得先は NDL Search detail endpoint のまま。
+- live SRU 対応後も `ndl-digital` adapter は search に `dpid=ndl-dl` を付け、record 取得先は NDL Search detail endpoint のまま。
 - `ndl-dl-online` や `ndl-dl-open` は別 provider ID であり、この adapter では直接扱わない。
 
 ## content_access 判定メモ
@@ -133,7 +150,8 @@
 
 ## 実装メモ
 
-- OpenSearch XML の live parse は 2026-04-25 時点で実装済み。
+- SRU search は 2026-04-27 時点で実装済み。
+- OpenSearch search の live parse は履歴として残るが、現行検索では使わない。
 - `dcndl:provider` 単独では `digitalCollection=true` を立てない。
 - `providerId` が明示的に `ndl-dl` 以外なら record は弾く。
 - JSON fixture は互換テストと live 応答抜粋の追跡用として継続する。

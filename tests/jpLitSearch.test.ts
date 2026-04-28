@@ -61,15 +61,6 @@ describe("createSearchService", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("search 入力スキーマで cinii_research source を受け付ける", () => {
-    const parsed = searchInputSchema.parse({
-      query: "夏目漱石",
-      source: "cinii_research"
-    });
-
-    expect(parsed.source).toBe("cinii_research");
-  });
-
   it("search 入力スキーマで cinii_articles / cinii_books source を受け付ける", () => {
     const articles = searchInputSchema.parse({
       query: "夏目漱石",
@@ -91,6 +82,15 @@ describe("createSearchService", () => {
     });
 
     expect(parsed.source).toBe("irdb");
+  });
+
+  it("search 入力スキーマで jdcat source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "全国就業実態パネル調査",
+      source: "jdcat"
+    });
+
+    expect(parsed.source).toBe("jdcat");
   });
 
   it("search 入力スキーマで sort_by / sort_order を受け付ける", () => {
@@ -313,10 +313,12 @@ describe("createSearchService", () => {
         holdingsBaseUrl: "https://ci.example.test/books/opensearch/holder"
       },
       irdb: {},
+      jdcat: {},
       jstage: {},
       japanSearch: {},
       kokkai: {},
-      teikoku: {}
+      teikoku: {},
+      nihuBridge: {}
     });
   });
 
@@ -340,10 +342,12 @@ describe("createSearchService", () => {
       },
       ciniiResearch: {},
       irdb: {},
+      jdcat: {},
       jstage: {},
       japanSearch: {},
       kokkai: {},
-      teikoku: {}
+      teikoku: {},
+      nihuBridge: {}
     });
   });
 
@@ -366,10 +370,12 @@ describe("createSearchService", () => {
       },
       ciniiResearch: {},
       irdb: {},
+      jdcat: {},
       jstage: {},
       japanSearch: {},
       kokkai: {},
-      teikoku: {}
+      teikoku: {},
+      nihuBridge: {}
     });
   });
 
@@ -441,40 +447,6 @@ describe("createSearchService", () => {
     expect(result.items).toEqual([
       createSearchItem("ndl_catalog", "1", "吾輩は猫である"),
       createSearchItem("ndl_digital", "3", "坊っちゃん")
-    ]);
-  });
-
-  it("横断検索では cinii_research alias を除外する", async () => {
-    const ciniiResearchAdapter: SourceAdapter = {
-      source: "cinii_research",
-      search: async () => ({
-        total: 1,
-        items: [createSearchItem("cinii_research", "1", "alias result")]
-      }),
-      getRecord: async () => null
-    };
-    const ciniiArticlesAdapter: SourceAdapter = {
-      source: "cinii_articles",
-      search: async () => ({
-        total: 1,
-        items: [createSearchItem("cinii_articles", "2", "article result")]
-      }),
-      getRecord: async () => null
-    };
-    const service = createSearchService([
-      ciniiResearchAdapter,
-      ciniiArticlesAdapter
-    ]);
-
-    const result = await service.search({
-      query: "夏目漱石",
-      limit: 10,
-      page: 1
-    });
-
-    expect(result.total).toBe(1);
-    expect(result.items).toEqual([
-      createSearchItem("cinii_articles", "2", "article result")
     ]);
   });
 
@@ -748,6 +720,51 @@ describe("createSearchService", () => {
     const result = searchInputSchema.safeParse({
       query: "夏目漱石",
       filters: { irdb: { author: "夏目漱石" } }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("search 入力スキーマで nihu_bridge source を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "源氏物語",
+      source: "nihu_bridge"
+    });
+    expect(parsed.source).toBe("nihu_bridge");
+  });
+
+  it("search 入力スキーマで source=nihu_bridge + filters.nihu_bridge を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "源氏物語",
+      source: "nihu_bridge",
+      filters: {
+        nihu_bridge: {
+          institute: ["nijl"],
+          normalize: false,
+          period_from: "1185",
+          period_to: "1600",
+          bbox: { lat1: 35.02, lon1: 135.68, lat2: 34.94, lon2: 135.79 }
+        }
+      }
+    });
+    expect(parsed.source).toBe("nihu_bridge");
+    expect(parsed.filters?.nihu_bridge?.institute).toEqual(["nijl"]);
+    expect(parsed.filters?.nihu_bridge?.normalize).toBe(false);
+    expect(parsed.filters?.nihu_bridge?.bbox?.lat1).toBeCloseTo(35.02);
+  });
+
+  it("search 入力スキーマで source=ndl_catalog + filters.nihu_bridge を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "源氏物語",
+      source: "ndl_catalog",
+      filters: { nihu_bridge: { institute: ["nijl"] } }
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("search 入力スキーマで source なし + filters.nihu_bridge を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "源氏物語",
+      filters: { nihu_bridge: { institute: ["nijl"] } }
     });
     expect(result.success).toBe(false);
   });

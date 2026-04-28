@@ -1,6 +1,6 @@
 import type { SearchFacets, SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
-import type { IrdbSearchFilters, SourceAdapter } from "../sources/types.js";
+import type { IrdbSearchFilters, NihuBridgeSearchFilters, SourceAdapter } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
 import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
 
@@ -13,6 +13,7 @@ interface SearchInput {
   sort_order?: "asc" | "desc";
   filters?: {
     irdb?: IrdbSearchFilters;
+    nihu_bridge?: NihuBridgeSearchFilters;
   };
 }
 

@@ -4,12 +4,15 @@
 
 ## 初版方針
 
-- `cinii_research` は後方互換 alias として `cinii_articles` と同じ挙動をする。
 - `cinii_articles` は `https://cir.nii.ac.jp/opensearch/articles` の `format=json` を使う。
 - `cinii_books` は `https://cir.nii.ac.jp/opensearch/books` の `format=json` を使う。
 - detail は `https://cir.nii.ac.jp/crid/{crid}.json` を使う。
 - `cinii_books` の detail 時には `https://ci.nii.ac.jp/books/opensearch/holder?ncid=...&format=json` も使い、所蔵館情報を補完する。
 - `appid` は `CINII_RESEARCH_APP_ID` が設定されているときだけ付ける。
+- sort は当面 `issued_date` のみ対応する。
+  - `cinii_articles`: `desc -> sortorder=0`, `asc -> sortorder=1`
+  - `cinii_books`: `asc -> sortorder=2`, `desc -> sortorder=3`
+  - それ以外の `sort_by` は送らない。
 
 ## 実レスポンス確認メモ
 
@@ -47,8 +50,6 @@
 
 ## source 分離方針
 
-- `cinii_research`
-  - `cinii_articles` の alias
 - `cinii_articles`
   - 論文系 source
 - `cinii_books`

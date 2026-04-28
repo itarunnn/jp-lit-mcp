@@ -9,7 +9,8 @@
     "dev": "tsx src/index.ts",
     "smoke:mcp": "tsx scripts/smoke-mcp.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "skills:install": "node scripts/install-skills.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
