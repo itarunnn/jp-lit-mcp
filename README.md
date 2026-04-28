@@ -35,7 +35,7 @@ npm install
 | `ndl_search` | NDL Search 全体（互換 source） | |
 | `irdb` | 学術機関リポジトリデータベース | |
 | `jdcat` | 人文学・社会科学総合データカタログ | |
-| `nihu_bridge` | nihuBridge 統合検索（NIHU 7機関 100+ DB） |  |
+| `nihu_bridge` | nihuBridge 統合検索（NIHU 7機関 100+ DB） | ✓ |
 | `cinii_articles` | CiNii 論文 | ✓ |
 | `cinii_books` | CiNii 図書 | ✓ |
 | `jstage_articles` | J-STAGE 論文 | ✓ |
@@ -43,7 +43,7 @@ npm install
 | `kokkai_minutes` | 国会会議録（第1回国会〜現在） | |
 | `teikoku_minutes` | 帝国議会会議録（第1〜90回、1890〜1947年） | |
 
-source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` / `cinii_articles` / `cinii_books` / `jstage_articles`
+source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` / `cinii_articles` / `cinii_books` / `jstage_articles` / `nihu_bridge`
 
 ## 実装状況
 
@@ -62,7 +62,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 | `jstage_articles` | J-STAGE WebAPI | J-STAGE WebAPI | ✓ | sort 未対応。`source_metadata.pdf_url` に PDF 直リンク |
 | `irdb` | IRDB OpenSearch atom | IRDB 詳細 HTML | — | `filters.irdb` 対応（fulltext / title / author 等） |
 | `jdcat` | JDCat JSON API | JDCat JSON API | — | |
-| `nihu_bridge` | nihuBridge POST | nihuBridge REST | — | `filters.nihu_bridge` 対応（institute / database / bbox 等）|
+| `nihu_bridge` | nihuBridge POST | nihuBridge REST | ✓ | `filters.nihu_bridge` 対応（institute / database / bbox 等）|
 | `japan_search` | Japan Search API | Japan Search API | — | 文化財・美術・地域資料向け |
 | `kokkai_minutes` | 国会会議録 API（speech） | 国会会議録 API（meeting） | — | 第1回国会〜現在 |
 | `teikoku_minutes` | 帝国議会会議録 API（speech） | 帝国議会会議録 API（meeting） | — | 第1〜90回（1890〜1947年）|
@@ -400,7 +400,7 @@ $env:SMOKE_LIVE="1"; npm run smoke:mcp
 - `ndl_articles` の `journal_title` は best-effort 抽出です。`dc:description` の `掲載誌：XXX` パターンから取得しますが、巻号が混入することがあります。
 - `ndl_articles` の巻・号・頁は `RecordItem.source_metadata` のみに入ります。`SearchItem` では提供していません（設計上の割り切り）。
 - `ndl_digital` の detail 判定は安全側です。`source_metadata.provider_id` が `null` のまま返ることがあります。
-- `nihu_bridge` は既定横断検索に含めていません。人文学専門 DB 横断のため、汎用の横断検索対象に混ぜない設計です。
+- `nihu_bridge` の sort は現時点で未対応です。上流 API のソートパラメータが限定的なため MCP では使用しません。
 - `nihu_bridge` の sort は現時点で未対応です。上流 API のソートパラメータが限定的なため MCP では使用しません。
 
 ## AI エージェント向け Skill

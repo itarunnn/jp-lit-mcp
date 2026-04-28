@@ -52,7 +52,7 @@ description: >-
 | 本文中の語を探す | `jp_lit_search_fulltext` → `jp_lit_search_pages` |
 | 図版・挿絵 | `jp_lit_search_illustrations` → `japan_search` |
 | 所蔵確認 | `ndl_catalog` → `cinii_books`（holdings） |
-| 人文専門DB横断 | `nihu_bridge` |
+| 人文専門DB横断（詳細） | `nihu_bridge`（横断検索にも含まれる）|
 | 研究データ | `jdcat` |
 | 機関リポジトリ | `irdb` |
 | 会議録 | `kokkai_minutes` / `teikoku_minutes` |

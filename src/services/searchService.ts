@@ -26,7 +26,8 @@ const CROSS_SOURCE_ORDER: SourceName[] = [
   "ndl_articles_online",
   "cinii_articles",
   "jstage_articles",
-  "cinii_books"
+  "cinii_books",
+  "nihu_bridge"
 ];
 
 function listCrossSources(registry: ReturnType<typeof createSourceRegistry>) {
