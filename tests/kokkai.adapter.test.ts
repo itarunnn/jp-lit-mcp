@@ -95,6 +95,7 @@ describe("mapKokkaiSearchResponse", () => {
       availability: { online: true, digital_collection: false },
       material_type: "parliamentary_record",
       subjects: ["自由民主党"],
+      table_of_contents: [],
       duplicate_key: "1151420_098_2",
       duplicate_count: 1,
       related_records: []

@@ -26,8 +26,10 @@ describe("J-STAGE mappers", () => {
         source_id: "/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/",
         title: "夏目漱石の熊本時代",
         subtitle: null,
+        title_reading: null,
         authors: [{ name: "大村 喜吉", role: "author" }],
-        publisher: "J-STAGE",
+        publisher: null,
+        journal_title: "英学史研究",
         issued_at: "1972",
         issued_at_label: "1972",
         issued_at_precision: "year",
@@ -37,6 +39,9 @@ describe("J-STAGE mappers", () => {
           online: true,
           digital_collection: false
         },
+        material_type: null,
+        subjects: [],
+        table_of_contents: [],
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -61,9 +66,10 @@ describe("J-STAGE mappers", () => {
       title: "夏目漱石の熊本時代",
       authors: [{ name: "大村 喜吉", role: "author" }],
       publisher: "日本英学史学会",
-      issued_at: null,
+      journal_title: "英学史研究",
+      issued_at: "1972-04-30",
       issued_at_label: "1972/04/30",
-      issued_at_precision: "unknown",
+      issued_at_precision: "day",
       language: "ja",
       material_type: "article",
       identifiers: {
@@ -134,6 +140,7 @@ describe("createJstageArticlesAdapter", () => {
     );
     expect(searchUrl.searchParams.get("service")).toBe("3");
     expect(searchUrl.searchParams.get("article")).toBe("夏目漱石");
+    expect(searchUrl.searchParams.get("count")).toBe("5");
     expect(searchUrl.searchParams.get("page")).toBe("2");
     expect(fetch.mock.calls[1][0]).toBe(
       "https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/"

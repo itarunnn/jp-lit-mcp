@@ -27,11 +27,12 @@ export function createJstageArticlesAdapter(
 
   return {
     source: "jstage_articles",
-    async search({ query, page }) {
+    async search({ query, limit, page }) {
       const url = new URL(searchBaseUrl);
 
       url.searchParams.set("service", "3");
       url.searchParams.set("article", query);
+      url.searchParams.set("count", String(limit));
       url.searchParams.set("page", String(page));
 
       const payload = await fetchText(url.toString());

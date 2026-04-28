@@ -86,6 +86,7 @@ function mapKokkaiRecord(
     availability: { online: Boolean(record.speechURL), digital_collection: false },
     material_type: "parliamentary_record",
     subjects,
+    table_of_contents: [],
     duplicate_key: record.issueID,
     duplicate_count: 1,
     related_records: []

@@ -113,13 +113,18 @@ export function mapJapanSearchSearchEntry(entry: unknown): SearchItem {
   const common = asRecord(record.common) ?? {};
   const online = readString(common.contentsAccess) === "internet";
 
+  const rdfindex = asRecord(record.rdfindex);
+  const typeList = readStringList(rdfindex?.type);
+
   return {
     source: "japan_search",
     source_id: readString(record.id) ?? readString(common.id) ?? "missing-jps-id",
     title: readString(common.title) ?? "Untitled",
-    subtitle: readString(common.titleYomi),
+    subtitle: null,
+    title_reading: readString(common.titleYomi),
     authors: toAuthors(record),
     publisher: null,
+    journal_title: null,
     ...toIssuedFields(null),
     summary: null,
     url: readString(common.linkUrl),
@@ -127,6 +132,9 @@ export function mapJapanSearchSearchEntry(entry: unknown): SearchItem {
       online,
       digital_collection: Boolean(readString(common.iiifUrl))
     },
+    material_type: typeList.join(", ") || null,
+    subjects: typeList,
+    table_of_contents: [],
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []

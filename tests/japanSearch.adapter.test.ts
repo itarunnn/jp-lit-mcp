@@ -30,12 +30,14 @@ describe("Japan Search mappers", () => {
         source: "japan_search",
         source_id: "ukansai-R100000114_I000002469_00",
         title: "[夏目漱石書簡]",
-        subtitle: "ナツメ ソウセキ ショカン",
+        subtitle: null,
+        title_reading: "ナツメ ソウセキ ショカン",
         authors: [
           { name: "夏目漱石", role: "author" },
           { name: "夏目漱石著.--[自筆].", role: "author" }
         ],
         publisher: null,
+        journal_title: null,
         issued_at: null,
         issued_at_label: null,
         issued_at_precision: "unknown",
@@ -45,6 +47,9 @@ describe("Japan Search mappers", () => {
           online: true,
           digital_collection: true
         },
+        material_type: "古書・古文書",
+        subjects: ["古書・古文書"],
+        table_of_contents: [],
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -64,6 +69,7 @@ describe("Japan Search mappers", () => {
       source: "japan_search",
       source_id: "ukansai-R100000114_I000002469_00",
       title: "[夏目漱石書簡]",
+      journal_title: null,
       summary: "コレクション : 関西大学東アジアデジタルアーカイブ",
       material_type: "古書・古文書",
       extent: "手紙：20.2㎝×199.5㎝封筒：21.6㎝×16.7㎝",

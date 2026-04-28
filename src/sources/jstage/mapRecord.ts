@@ -86,16 +86,21 @@ export function mapJstageRecordResponse(sourceId: string, html: string): RecordI
   const lastPage = first(meta, "citation_lastpage", "lastpage");
   const pdfUrl = first(meta, "citation_pdf_url", "pdf_url");
   const accessControl = first(meta, "access_control");
-  const printIssn = list(meta, "citation_issn", "print_issn", "issn_l");
-  const onlineIssn = list(meta, "online_issn");
+  const printIssn = first(meta, "print_issn", "issn_l") ?? list(meta, "citation_issn")[0] ?? null;
+  const onlineIssn = first(meta, "online_issn");
+  const keywords = list(meta, "citation_keywords", "keywords");
+
+  const mainTitle = first(meta, "citation_title", "title", "og:title") ?? "Untitled";
 
   return {
     source: "jstage_articles",
     source_id: sourceId,
-    title: first(meta, "citation_title", "title", "og:title") ?? "Untitled",
+    title: mainTitle,
     subtitle: null,
+    title_reading: null,
     authors: toAuthors(meta),
     publisher: first(meta, "citation_publisher", "publisher"),
+    journal_title: first(meta, "citation_journal_title", "journal_title"),
     ...toIssuedFields(first(meta, "citation_publication_date", "publication_date")),
     summary: null,
     url,
@@ -106,7 +111,7 @@ export function mapJstageRecordResponse(sourceId: string, html: string): RecordI
     alternative_titles: compactStrings([
       first(meta, "title"),
       first(meta, "og:title")
-    ]).filter((value, index, array) => array.indexOf(value) === index),
+    ]).filter((value, index, array) => array.indexOf(value) === index && value !== mainTitle),
     publication_place: null,
     language: first(meta, "citation_language", "language"),
     material_type: "article",
@@ -115,11 +120,11 @@ export function mapJstageRecordResponse(sourceId: string, html: string): RecordI
       issue ? `no.${issue}` : null,
       firstPage ? `pp.${firstPage}${lastPage ? `-${lastPage}` : ""}` : null
     ]).join(", ") || null,
-    subjects: [],
+    subjects: keywords,
     identifiers: {
       ...(doi ? { doi } : {}),
-      ...(printIssn.length > 0 ? { issn: printIssn[0] } : {}),
-      ...(onlineIssn.length > 0 ? { eissn: onlineIssn[0] } : {})
+      ...(printIssn ? { issn: printIssn } : {}),
+      ...(onlineIssn ? { eissn: onlineIssn } : {})
     },
     table_of_contents: [],
     content_access: {

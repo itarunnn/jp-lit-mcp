@@ -122,8 +122,10 @@ function mapJstageEntry(entry: XmlObject): SearchItem {
       readString(entry.article_title) ??
       "Untitled",
     subtitle: null,
+    title_reading: null,
     authors: readAuthorNames(entry.author),
-    publisher: readString(entry.systemname),
+    publisher: null,
+    journal_title: readString(entry.material_title) ?? null,
     ...toIssuedFields(readString(entry.pubyear)),
     summary: null,
     url,
@@ -131,6 +133,9 @@ function mapJstageEntry(entry: XmlObject): SearchItem {
       online: Boolean(url),
       digital_collection: false
     },
+    material_type: null,
+    subjects: [],
+    table_of_contents: [],
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []
