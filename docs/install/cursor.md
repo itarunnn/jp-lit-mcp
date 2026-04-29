@@ -7,6 +7,7 @@
 - `Cursor` では、このリポジトリ内の `.cursor/skills/jp-lit-research/` が自動検出されます
 - そのため `Skills` の追加インストールは不要です
 - `MCP` は `Cursor` 側の設定に追加します
+- 設定例の `J:\\apps\\ndl-jp-lit-mcp\\` は、自分が clone した実際のパスに置き換えてください
 
 ## 手順
 

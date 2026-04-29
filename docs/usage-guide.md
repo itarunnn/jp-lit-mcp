@@ -164,6 +164,12 @@ jp_lit_search(source=jstage_articles, query="...")
 jp_lit_search(source=ndl_articles, query="...")
 ```
 
+**調べ方・類似事例の確認**
+```text
+jp_lit_search_guides_manuals(query="常陸国風土記")
+jp_lit_search_guides_cases(query="世界線")
+```
+
 **デジコレ資料**
 ```text
 jp_lit_search(source=ndl_digital, query="...")
@@ -176,6 +182,10 @@ jp_lit_search_fulltext(keyword="...")
 jp_lit_search_pages(source=ndl_digital, pid="...", keyword="...")
 jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=...)
 ```
+
+**guide 系ツールの見方**
+
+`jp_lit_search_guides_manuals` と `jp_lit_search_guides_cases` は、`source` 指定型の書誌検索ではなく、レファレンス協同データベースの調査支援ツールです。返り値の `search_keywords` / `guide_headings` / `answer_process` / `reference_sources` を見て、次の `jp_lit_search` 用 query を作るのが基本です。
 
 ---
 
@@ -193,6 +203,7 @@ ndl_articles_online
 cinii_articles
 cinii_books
 jstage_articles
+nihu_bridge
 ```
 
 **横断検索に含まれない source（必要なときだけ明示指定）**
@@ -201,7 +212,6 @@ jstage_articles
 ndl_search
 irdb
 jdcat
-nihu_bridge
 japan_search
 kokkai_minutes
 teikoku_minutes

@@ -4,6 +4,8 @@
 
 ## 手順
 
+コマンド例の `J:/apps/ndl-jp-lit-mcp/` は、自分が clone した実際のパスに置き換えてください。
+
 1. `Codex CLI` をインストールします。
 
 ```bash
