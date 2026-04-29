@@ -691,6 +691,13 @@ Cursor は `.cursor/skills/` をプロジェクトから自動検出するため
 | `tests/fixtures/japan-search/` | item search / item detail JSON |
 | `tests/fixtures/next-digital-library/` | book / page / fulltext-json / page-search / book-search / illustration-search レスポンス |
 | `tests/fixtures/nihu-bridge/` | nihuBridge search / record 合成 JSON |
+
+## ライセンス
+
+このリポジトリのコードは `MIT License` です。詳細は [LICENSE](LICENSE) を参照してください。
+
+ただし、MCP がアクセスする外部 DB / API のデータ利用条件は別です。再配布・表示・商用利用の条件は [docs/source-usage-conditions.md](docs/source-usage-conditions.md) と各提供元規約を確認してください。
+
 ## ローカル保存
 
 このサーバーは、正規化済みのツール結果を repo 内へローカル保存できる。
