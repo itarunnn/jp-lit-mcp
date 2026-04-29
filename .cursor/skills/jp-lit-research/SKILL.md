@@ -9,7 +9,7 @@ description: >-
 
 # 日本語文献調査スキル（jp-lit-research）
 
-このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations`）を使った日本語人文社会系文献調査の作法を定義する。
+このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations`）を使った日本語人文社会系文献調査の作法を定義する。
 
 **MCP は検索・取得に徹する。調査戦略・DB選択・検索語展開・典拠評価はこのスキルが担う。**
 
@@ -76,6 +76,7 @@ description: >-
 | 研究データ | `jdcat` |
 | 機関リポジトリ | `irdb` |
 | 会議録 | `kokkai_minutes` / `teikoku_minutes` |
+| 調べ方・類似事例 | `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` |
 
 ---
 
@@ -120,6 +121,7 @@ description: >-
 ## Step 6: 検索する（MCP を使う）
 
 - メタデータ検索が先。全文検索は後。
+- `research_guide` intent では、必要に応じて先に `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` を使い、そこで得た語・参考資料・探索手順を実検索へつなぐ。
 - `jp_lit_search` → 候補がなければ `jp_lit_search_fulltext` → ページ特定は `jp_lit_search_pages` → OCR確認は `jp_lit_get_text_coordinates`
 - `ndl_digital` で `jp_lit_get_record` を呼ぶ際、`source_metadata.next_digital_library.available` を確認してから OCR 系ツールを使う。
 - **ページネーション:** `jp_lit_search` は1回最大100件。レスポンスの `total` が取得件数を超える場合、`page=2, 3...` と追加取得できる。deep 調査では各 source 最大200件程度まで取得を検討する。結果報告には必ず「全N件中M件取得」を明記すること。

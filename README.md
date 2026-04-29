@@ -26,6 +26,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 - 図書・雑誌・論文・会議録・研究データを探す
 - 所蔵館や書誌詳細を確認する
+- レファレンス協同データベースの調べ方マニュアル・レファレンス事例を参照する
 - 国立国会図書館デジタルコレクションの OCR 全文を検索する
 - 該当ページの OCR テキストや座標を取得する
 - デジコレの図版・挿絵を探す
@@ -81,17 +82,21 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 npm install
 ```
 
-## 公開ツール（7種）
+## 公開ツール（11種）
 
 | ツール | 概要 | 対応 source |
 |--------|------|------------|
 | `jp_lit_search` | 横断検索・source 指定検索 | 全 source |
+| `jp_lit_search_guides_manuals` | レファ協の調べ方マニュアル検索 | CRD |
+| `jp_lit_search_guides_cases` | レファ協のレファレンス事例検索 | CRD |
 | `jp_lit_get_record` | 書誌詳細取得 | 全 source |
 | `jp_lit_get_text_coordinates` | ページ単位 OCR + 座標 + 画像 URL | `ndl_digital` のみ |
 | `jp_lit_get_fulltext` | 資料単位 全文 OCR | `ndl_digital` のみ |
 | `jp_lit_search_pages` | 資料内ページ全文検索 | `ndl_digital` のみ |
 | `jp_lit_search_fulltext` | デジコレ全資料を OCR 全文からキーワード検索 | `ndl_digital` のみ |
 | `jp_lit_search_illustrations` | デジコレ全資料の図版・挿絵をテキストキーワードで検索 | `ndl_digital` のみ |
+| `jp_lit_annotate_session` | 候補ラベルとメモを調査セッションに保存 | セッション |
+| `jp_lit_export_session` | 調査セッションを書き出す | セッション |
 
 ### アクセス制限について
 
@@ -211,6 +216,30 @@ filters.irdb 対応状況:
 - `source=irdb` のときのみ有効
 - 横断検索（source 省略時）では使えない
 - `source=irdb` 以外で指定すると validation error になる
+
+### jp_lit_search_guides_manuals
+
+レファレンス協同データベースの調べ方マニュアルを検索する。書誌候補そのものではなく、どの資料・索引・参考図書から始めるとよいかの手がかりを得る用途。
+
+| 引数 | 型 | 既定 | 説明 |
+|------|----|------|------|
+| `query` | string | 必須 | 調べたいテーマ |
+| `limit` | number | 10 | 最大 20 |
+| `page` | number | 1 | 1 始まり |
+| `lib_id` | string | — | 特定館コードで絞る |
+| `lib_group` | string | — | 館種グループで絞る |
+
+### jp_lit_search_guides_cases
+
+レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照する用途。
+
+| 引数 | 型 | 既定 | 説明 |
+|------|----|------|------|
+| `query` | string | 必須 | 類似事例を探したいテーマ・語句 |
+| `limit` | number | 10 | 最大 20 |
+| `page` | number | 1 | 1 始まり |
+| `lib_id` | string | — | 特定館コードで絞る |
+| `lib_group` | string | — | 館種グループで絞る |
 
 ### jp_lit_get_record
 

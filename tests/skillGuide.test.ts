@@ -7,5 +7,7 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("対話的な探索ループ");
     expect(skill).toContain("## 原則: まず小さく試し、結果を見て次を決める");
     expect(skill).toContain("### 検索後の分岐");
+    expect(skill).toContain("jp_lit_search_guides_manuals");
+    expect(skill).toContain("jp_lit_search_guides_cases");
   });
 });

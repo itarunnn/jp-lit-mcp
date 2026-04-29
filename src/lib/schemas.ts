@@ -352,8 +352,76 @@ export const searchIllustrationsOutputSchema = z.object({
   raw: z.record(z.unknown())
 });
 
+const crdLibGroupSchema = z.enum([
+  "public",
+  "univ",
+  "special",
+  "school",
+  "archive",
+  "ndl",
+  "other"
+]);
+
+const guidesSearchInputBaseSchema = z.object({
+  query: z.string().trim().min(1),
+  limit: z.number().int().positive().max(20).default(10),
+  page: z.number().int().positive().default(1),
+  lib_id: z.string().trim().min(1).optional(),
+  lib_group: crdLibGroupSchema.optional()
+});
+
+const guidesBaseItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  provider: z.string().nullable(),
+  url: z.string(),
+  published_at: z.string().nullable(),
+  categories: z.array(z.string()),
+  summary: z.string().nullable(),
+  description: z.string()
+});
+
+export const guidesManualsInputSchema = guidesSearchInputBaseSchema;
+export const guidesCasesInputSchema = guidesSearchInputBaseSchema;
+
+export const guidesManualItemSchema = guidesBaseItemSchema.extend({
+  search_keywords: z.array(z.string()),
+  guide_headings: z.array(z.string())
+});
+
+export const guidesCaseItemSchema = guidesBaseItemSchema.extend({
+  question: z.string().nullable(),
+  answer_process: z.string().nullable(),
+  preliminary_research: z.string().nullable(),
+  reference_sources: z.array(z.string())
+});
+
+export const guidesManualsOutputSchema = z.object({
+  query: z.string(),
+  type: z.literal("manual"),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(guidesManualItemSchema),
+  raw: z.record(z.unknown())
+});
+
+export const guidesCasesOutputSchema = z.object({
+  query: z.string(),
+  type: z.literal("reference"),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(guidesCaseItemSchema),
+  raw: z.record(z.unknown())
+});
+
 export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
 export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;
+export type GuidesManualsInput = z.infer<typeof guidesManualsInputSchema>;
+export type GuidesManualsOutput = z.infer<typeof guidesManualsOutputSchema>;
+export type GuidesCasesInput = z.infer<typeof guidesCasesInputSchema>;
+export type GuidesCasesOutput = z.infer<typeof guidesCasesOutputSchema>;
 export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;

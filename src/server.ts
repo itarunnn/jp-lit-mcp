@@ -19,7 +19,11 @@ import {
   searchFulltextInputSchema,
   searchFulltextOutputSchema,
   searchIllustrationsInputSchema,
-  searchIllustrationsOutputSchema
+  searchIllustrationsOutputSchema,
+  guidesManualsInputSchema,
+  guidesManualsOutputSchema,
+  guidesCasesInputSchema,
+  guidesCasesOutputSchema
 } from "./lib/schemas.js";
 import { createFileCache } from "./lib/persistence/fileCache.js";
 import { createSessionExporter } from "./lib/persistence/exportSession.js";
@@ -43,6 +47,7 @@ import {
 } from "./sources/ndlSearch/adapter.js";
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
+import { createCrdClient } from "./sources/crd/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
@@ -52,6 +57,8 @@ import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
 import { createJpLitSearchPagesTool } from "./tools/jpLitSearchPages.js";
 import { createJpLitSearchFulltextTool } from "./tools/jpLitSearchFulltext.js";
 import { createJpLitSearchIllustrationsTool } from "./tools/jpLitSearchIllustrations.js";
+import { createJpLitSearchGuidesManualsTool } from "./tools/jpLitSearchGuidesManuals.js";
+import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases.js";
 import { createNextDigitalLibraryClient } from "./sources/nextDigitalLibrary/adapter.js";
 
 interface ServerEnv {
@@ -75,6 +82,7 @@ interface ServerEnv {
   TEIKOKU_MEETING_BASE_URL?: string;
   NIHU_BRIDGE_SEARCH_URL?: string;
   NIHU_BRIDGE_RECORD_BASE_URL?: string;
+  CRD_API_BASE_URL?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/sru";
@@ -236,6 +244,9 @@ export function createServer(env: ServerEnv = process.env) {
   const nextDlClient = createNextDigitalLibraryClient(
     env.NEXT_DIGITAL_LIBRARY_BASE_URL ? { baseUrl: env.NEXT_DIGITAL_LIBRARY_BASE_URL } : {}
   );
+  const crdClient = createCrdClient(
+    env.CRD_API_BASE_URL ? { baseUrl: env.CRD_API_BASE_URL } : {}
+  );
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
@@ -262,6 +273,8 @@ export function createServer(env: ServerEnv = process.env) {
   const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
   const searchFulltextTool = createJpLitSearchFulltextTool(nextDlClient, cache, sessions);
   const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient, cache, sessions);
+  const searchGuidesManualsTool = createJpLitSearchGuidesManualsTool(crdClient, cache, sessions);
+  const searchGuidesCasesTool = createJpLitSearchGuidesCasesTool(crdClient, cache, sessions);
 
   const server = new McpServer(
     {
@@ -283,6 +296,26 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: searchOutputSchema
     },
     searchTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_guides_manuals",
+    {
+      description: "レファレンス協同データベースの調べ方マニュアルを検索する。書誌検索ではなく、どの資料や索引・参考図書をどう使って調べるかの手がかりを得るためのツール",
+      inputSchema: guidesManualsInputSchema,
+      outputSchema: guidesManualsOutputSchema
+    },
+    searchGuidesManualsTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_guides_cases",
+    {
+      description: "レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照するためのツール",
+      inputSchema: guidesCasesInputSchema,
+      outputSchema: guidesCasesOutputSchema
+    },
+    searchGuidesCasesTool
   );
 
   server.registerTool(
