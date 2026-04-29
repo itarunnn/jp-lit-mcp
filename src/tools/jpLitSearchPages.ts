@@ -1,4 +1,9 @@
 import type { createRecordService } from "../services/recordService.js";
+import { createFileCache } from "../lib/persistence/fileCache.js";
+import type { FileCache } from "../lib/persistence/fileCache.js";
+import { runCachedTool } from "../lib/persistence/runCachedTool.js";
+import { createSessionStore } from "../lib/persistence/sessionStore.js";
+import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import {
   searchPagesInputSchema,
   searchPagesOutputSchema
@@ -34,7 +39,9 @@ async function resolvePid(
 
 export function createJpLitSearchPagesTool(
   recordService: RecordService,
-  nextDlClient: NextDigitalLibraryClient
+  nextDlClient: NextDigitalLibraryClient,
+  cache: FileCache = createFileCache(),
+  sessions: SessionStore = createSessionStore()
 ) {
   return async (input: unknown) => {
     const parsed = searchPagesInputSchema.parse(input);
@@ -46,26 +53,33 @@ export function createJpLitSearchPagesTool(
     }
 
     const pid = await resolvePid(parsed, recordService);
+    const { structuredContent } = await runCachedTool<SearchPagesOutput>({
+      tool: "jp_lit_search_pages",
+      input: { ...(parsed as Record<string, unknown>), pid },
+      cache,
+      sessions,
+      live: async () => {
+        const searchResult = await nextDlClient.searchPages(pid, parsed.keyword, {
+          size: parsed.size,
+          from: parsed.from
+        });
 
-    const searchResult = await nextDlClient.searchPages(pid, parsed.keyword, {
-      size: parsed.size,
-      from: parsed.from
-    });
+        if (!searchResult) {
+          throw new NotFoundError(`資料が見つかりません: pid=${pid}`);
+        }
 
-    if (!searchResult) {
-      throw new NotFoundError(`資料が見つかりません: pid=${pid}`);
-    }
+        const items = (searchResult.list ?? searchResult.results ?? null) as unknown;
+        const total = (searchResult.hit ?? searchResult.total ?? 0) as number;
 
-    const items = (searchResult.list ?? searchResult.results ?? null) as unknown;
-    const total = (searchResult.hit ?? searchResult.total ?? 0) as number;
-
-    const structuredContent: SearchPagesOutput = searchPagesOutputSchema.parse({
-      pid,
-      keyword: parsed.keyword,
-      total,
-      from: parsed.from,
-      items,
-      raw: searchResult
+        return searchPagesOutputSchema.parse({
+          pid,
+          keyword: parsed.keyword,
+          total,
+          from: parsed.from,
+          items,
+          raw: searchResult
+        });
+      }
     });
 
     return {

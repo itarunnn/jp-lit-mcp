@@ -1,4 +1,9 @@
 import type { createRecordService } from "../services/recordService.js";
+import { createFileCache } from "../lib/persistence/fileCache.js";
+import type { FileCache } from "../lib/persistence/fileCache.js";
+import { runCachedTool } from "../lib/persistence/runCachedTool.js";
+import { createSessionStore } from "../lib/persistence/sessionStore.js";
+import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import {
   fulltextInputSchema,
   fulltextOutputSchema
@@ -34,7 +39,9 @@ async function resolvePid(
 
 export function createJpLitGetFulltextTool(
   recordService: RecordService,
-  nextDlClient: NextDigitalLibraryClient
+  nextDlClient: NextDigitalLibraryClient,
+  cache: FileCache = createFileCache(),
+  sessions: SessionStore = createSessionStore()
 ) {
   return async (input: unknown) => {
     const parsed = fulltextInputSchema.parse(input);
@@ -46,20 +53,28 @@ export function createJpLitGetFulltextTool(
     }
 
     const pid = await resolvePid(parsed, recordService);
-    const fulltextData = await nextDlClient.getFulltextJson(pid);
+    const { structuredContent } = await runCachedTool<FulltextOutput>({
+      tool: "jp_lit_get_fulltext",
+      input: { ...(parsed as Record<string, unknown>), pid },
+      cache,
+      sessions,
+      live: async () => {
+        const fulltextData = await nextDlClient.getFulltextJson(pid);
 
-    if (!fulltextData) {
-      throw new NotFoundError(`全文データが見つかりません: pid=${pid}`);
-    }
+        if (!fulltextData) {
+          throw new NotFoundError(`全文データが見つかりません: pid=${pid}`);
+        }
 
-    // 次世代 API は { list: [...], hit: N, from: N } 形式で返す。
-    // 将来の仕様変更に備えて pages フィールドも fallback として受け入れる。
-    const pages = (fulltextData.list ?? fulltextData.pages ?? null) as unknown;
+        // 次世代 API は { list: [...], hit: N, from: N } 形式で返す。
+        // 将来の仕様変更に備えて pages フィールドも fallback として受け入れる。
+        const pages = (fulltextData.list ?? fulltextData.pages ?? null) as unknown;
 
-    const structuredContent: FulltextOutput = fulltextOutputSchema.parse({
-      pid,
-      pages,
-      raw: fulltextData
+        return fulltextOutputSchema.parse({
+          pid,
+          pages,
+          raw: fulltextData
+        });
+      }
     });
 
     return {

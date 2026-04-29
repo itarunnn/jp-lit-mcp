@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 coverage/
+.cache/ndl-jp-lit-mcp/
+exports/

@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-get-fulltext-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 function makeRecordService(record: unknown) {
   return {
@@ -31,6 +48,7 @@ const BASE_RECORD = {
 
 describe("jp_lit_get_fulltext", () => {
   it("正常系: list 形式 (実際の API) の全文 OCR JSON を返す", async () => {
+    const baseDir = await createTempDir();
     const fulltextPayload = {
       list: [{ id: "1000732_1", page: 1, contents: "国立国会図書館" }],
       hit: 1,
@@ -38,7 +56,9 @@ describe("jp_lit_get_fulltext", () => {
     };
     const tool = createJpLitGetFulltextTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(fulltextPayload)
+      makeNextDlClient(fulltextPayload),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
@@ -51,10 +71,13 @@ describe("jp_lit_get_fulltext", () => {
   });
 
   it("正常系: pages 形式 (フォールバック) の全文 OCR JSON を返す", async () => {
+    const baseDir = await createTempDir();
     const fulltextPayload = { id: "1000732", pages: [{ page: 1, text: "国立国会図書館" }] };
     const tool = createJpLitGetFulltextTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(fulltextPayload)
+      makeNextDlClient(fulltextPayload),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
@@ -67,9 +90,12 @@ describe("jp_lit_get_fulltext", () => {
   });
 
   it("ndl_digital 以外は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetFulltextTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -78,10 +104,13 @@ describe("jp_lit_get_fulltext", () => {
   });
 
   it("next_digital_library が null なら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const record = { ...BASE_RECORD, source_metadata: { next_digital_library: null } };
     const tool = createJpLitGetFulltextTool(
       makeRecordService(record),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -90,9 +119,12 @@ describe("jp_lit_get_fulltext", () => {
   });
 
   it("fulltext API が null を返したら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetFulltextTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -101,9 +133,12 @@ describe("jp_lit_get_fulltext", () => {
   });
 
   it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetFulltextTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(

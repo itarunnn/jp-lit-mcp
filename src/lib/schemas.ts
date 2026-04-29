@@ -244,6 +244,47 @@ export type FulltextOutput = z.infer<typeof fulltextOutputSchema>;
 export type SearchPagesInput = z.infer<typeof searchPagesInputSchema>;
 export type SearchPagesOutput = z.infer<typeof searchPagesOutputSchema>;
 
+export const sessionItemLabelSchema = z.enum([
+  "confirmed",
+  "strong_candidate",
+  "weak_candidate"
+]);
+
+export const annotateSessionInputSchema = z.object({
+  tool: z.string().trim().min(1),
+  cache_key: z.string().trim().min(1),
+  selected_items: z.array(
+    z.object({
+      source: sourceSchema,
+      source_id: z.string().trim().min(1),
+      title: z.string().trim().min(1),
+      label: sessionItemLabelSchema,
+      note: z.string().trim().min(1).nullable()
+    })
+  ),
+  notes: z.array(z.string().trim().min(1)).optional()
+});
+
+export const annotateSessionOutputSchema = z.object({
+  session_id: z.string(),
+  updated_at: z.string(),
+  annotated_count: z.number().int().nonnegative()
+});
+
+export const exportSessionInputSchema = z.object({
+  format: z.enum(["markdown", "json"]).default("markdown"),
+  output_path: z.string().trim().min(1).optional(),
+  include_unselected: z.boolean().default(true)
+});
+
+export const exportSessionOutputSchema = z.object({
+  session_id: z.string(),
+  format: z.enum(["markdown", "json"]),
+  path: z.string(),
+  exported_at: z.string(),
+  item_count: z.number().int().nonnegative()
+});
+
 const fulltextBookItemSchema = z.object({
   pid: z.string(),
   title: z.string().nullable(),
@@ -313,3 +354,7 @@ export const searchIllustrationsOutputSchema = z.object({
 
 export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
 export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;
+export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
+export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
+export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;
+export type ExportSessionOutput = z.infer<typeof exportSessionOutputSchema>;

@@ -2,6 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 import {
+  annotateSessionInputSchema,
+  annotateSessionOutputSchema,
+  exportSessionInputSchema,
+  exportSessionOutputSchema,
   recordInputSchema,
   recordOutputSchema,
   searchInputSchema,
@@ -17,6 +21,9 @@ import {
   searchIllustrationsInputSchema,
   searchIllustrationsOutputSchema
 } from "./lib/schemas.js";
+import { createFileCache } from "./lib/persistence/fileCache.js";
+import { createSessionExporter } from "./lib/persistence/exportSession.js";
+import { createSessionStore } from "./lib/persistence/sessionStore.js";
 import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
 import {
@@ -37,6 +44,8 @@ import {
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
+import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
+import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinates.js";
 import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
@@ -220,6 +229,9 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
 }
 
 export function createServer(env: ServerEnv = process.env) {
+  const cache = createFileCache();
+  const sessions = createSessionStore();
+  const sessionExporter = createSessionExporter(cache);
   const adapterOptions = resolveAdapterOptionsFromEnv(env);
   const nextDlClient = createNextDigitalLibraryClient(
     env.NEXT_DIGITAL_LIBRARY_BASE_URL ? { baseUrl: env.NEXT_DIGITAL_LIBRARY_BASE_URL } : {}
@@ -241,13 +253,15 @@ export function createServer(env: ServerEnv = process.env) {
     createNihuBridgeAdapter(adapterOptions.nihuBridge)
   ];
   const recordService = createRecordService(adapters);
-  const searchTool = createJpLitSearchTool(createSearchService(adapters));
-  const recordTool = createJpLitGetRecordTool(recordService);
-  const textCoordinatesTool = createJpLitGetTextCoordinatesTool(recordService, nextDlClient);
-  const fulltextTool = createJpLitGetFulltextTool(recordService, nextDlClient);
-  const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient);
-  const searchFulltextTool = createJpLitSearchFulltextTool(nextDlClient);
-  const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient);
+  const searchTool = createJpLitSearchTool(createSearchService(adapters), cache, sessions);
+  const recordTool = createJpLitGetRecordTool(recordService, cache, sessions);
+  const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
+  const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
+  const textCoordinatesTool = createJpLitGetTextCoordinatesTool(recordService, nextDlClient, cache, sessions);
+  const fulltextTool = createJpLitGetFulltextTool(recordService, nextDlClient, cache, sessions);
+  const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
+  const searchFulltextTool = createJpLitSearchFulltextTool(nextDlClient, cache, sessions);
+  const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient, cache, sessions);
 
   const server = new McpServer(
     {
@@ -279,6 +293,26 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: recordOutputSchema
     },
     recordTool
+  );
+
+  server.registerTool(
+    "jp_lit_annotate_session",
+    {
+      description: "現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものは変更せず、選別判断だけを追加する",
+      inputSchema: annotateSessionInputSchema,
+      outputSchema: annotateSessionOutputSchema
+    },
+    annotateSessionTool
+  );
+
+  server.registerTool(
+    "jp_lit_export_session",
+    {
+      description: "現在の調査セッションを repo 内の exports/ に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する",
+      inputSchema: exportSessionInputSchema,
+      outputSchema: exportSessionOutputSchema
+    },
+    exportSessionTool
   );
 
   server.registerTool(

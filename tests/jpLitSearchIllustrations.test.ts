@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitSearchIllustrationsTool } from "../src/tools/jpLitSearchIllustrations.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-illustrations-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 function makeNextDlClient(searchResult: unknown) {
   return {
@@ -35,7 +52,12 @@ const SEARCH_PAYLOAD = {
 
 describe("jp_lit_search_illustrations", () => {
   it("正常系: 図版検索結果と IIIF URL を返す", async () => {
-    const tool = createJpLitSearchIllustrationsTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchIllustrationsTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "富士山" });
 
@@ -60,7 +82,12 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("page_image_url が正しい IIIF 形式になっている", async () => {
-    const tool = createJpLitSearchIllustrationsTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchIllustrationsTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "富士山" });
     const item = result.structuredContent.items[0];
@@ -71,7 +98,12 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("illustration_image_url が pct 座標付き IIIF 形式になっている", async () => {
-    const tool = createJpLitSearchIllustrationsTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchIllustrationsTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "富士山" });
     const item = result.structuredContent.items[0];
@@ -82,7 +114,12 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("feature_txt2vec が出力に含まれない", async () => {
-    const tool = createJpLitSearchIllustrationsTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchIllustrationsTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "富士山" });
     const item = result.structuredContent.items[0];
@@ -91,8 +128,13 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("size / from パラメータが searchIllustrations に渡る", async () => {
+    const baseDir = await createTempDir();
     const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
-    const tool = createJpLitSearchIllustrationsTool(nextDlClient);
+    const tool = createJpLitSearchIllustrationsTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     await tool({ keyword: "富士山", size: 5, from: 20 });
 
@@ -103,7 +145,12 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("API が null を返したら NotFoundError を投げる", async () => {
-    const tool = createJpLitSearchIllustrationsTool(makeNextDlClient(null));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchIllustrationsTool(
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     await expect(tool({ keyword: "富士山" })).rejects.toMatchObject({
       name: "NotFoundError"
@@ -111,8 +158,11 @@ describe("jp_lit_search_illustrations", () => {
   });
 
   it("list が空でも正常に返す", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchIllustrationsTool(
-      makeNextDlClient({ list: [], hit: 0, from: 0 })
+      makeNextDlClient({ list: [], hit: 0, from: 0 }),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({ keyword: "存在しないキーワード" });

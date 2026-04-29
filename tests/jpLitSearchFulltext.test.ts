@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitSearchFulltextTool } from "../src/tools/jpLitSearchFulltext.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-fulltext-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 function makeNextDlClient(searchResult: unknown) {
   return {
@@ -35,7 +52,12 @@ const SEARCH_PAYLOAD = {
 
 describe("jp_lit_search_fulltext", () => {
   it("正常系: 全文検索結果を返す", async () => {
-    const tool = createJpLitSearchFulltextTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchFulltextTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "大政奉還" });
 
@@ -54,8 +76,13 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("searchfield=metaonly を渡せる", async () => {
+    const baseDir = await createTempDir();
     const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
-    const tool = createJpLitSearchFulltextTool(nextDlClient);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     await tool({ keyword: "図書館", searchfield: "metaonly" });
 
@@ -66,8 +93,13 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("size / from / f_ndc パラメータが searchBooks に渡る", async () => {
+    const baseDir = await createTempDir();
     const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
-    const tool = createJpLitSearchFulltextTool(nextDlClient);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     await tool({ keyword: "図書館", size: 5, from: 10, f_ndc: "017" });
 
@@ -78,7 +110,12 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("API が null を返したら NotFoundError を投げる", async () => {
-    const tool = createJpLitSearchFulltextTool(makeNextDlClient(null));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchFulltextTool(
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     await expect(tool({ keyword: "大政奉還" })).rejects.toMatchObject({
       name: "NotFoundError"
@@ -86,7 +123,12 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("bibId / callNo が items の bib_id / call_no にマップされる", async () => {
-    const tool = createJpLitSearchFulltextTool(makeNextDlClient(SEARCH_PAYLOAD));
+    const baseDir = await createTempDir();
+    const tool = createJpLitSearchFulltextTool(
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "大政奉還" });
 
@@ -97,12 +139,17 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("bibId / callNo が欠落していれば bib_id / call_no は null になる", async () => {
+    const baseDir = await createTempDir();
     const payloadWithoutBibId = {
       list: [{ id: "111", title: "テスト", page: 10, isClassic: false, highlights: [] }],
       hit: 1,
       from: 0
     };
-    const tool = createJpLitSearchFulltextTool(makeNextDlClient(payloadWithoutBibId));
+    const tool = createJpLitSearchFulltextTool(
+      makeNextDlClient(payloadWithoutBibId),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({ keyword: "テスト" });
 
@@ -113,8 +160,11 @@ describe("jp_lit_search_fulltext", () => {
   });
 
   it("list が空でも正常に返す", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchFulltextTool(
-      makeNextDlClient({ list: [], hit: 0, from: 0 })
+      makeNextDlClient({ list: [], hit: 0, from: 0 }),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({ keyword: "存在しないキーワード" });

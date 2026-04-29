@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitSearchPagesTool } from "../src/tools/jpLitSearchPages.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-pages-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 function makeRecordService(record: unknown) {
   return {
@@ -41,9 +58,12 @@ const SEARCH_PAYLOAD = {
 
 describe("jp_lit_search_pages", () => {
   it("正常系: 資料内キーワード検索結果を返す", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchPagesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(SEARCH_PAYLOAD)
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({
@@ -63,9 +83,12 @@ describe("jp_lit_search_pages", () => {
   });
 
   it("ndl_digital 以外は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchPagesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(SEARCH_PAYLOAD)
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -74,10 +97,13 @@ describe("jp_lit_search_pages", () => {
   });
 
   it("next_digital_library が null なら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const record = { ...BASE_RECORD, source_metadata: { next_digital_library: null } };
     const tool = createJpLitSearchPagesTool(
       makeRecordService(record),
-      makeNextDlClient(SEARCH_PAYLOAD)
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -86,9 +112,12 @@ describe("jp_lit_search_pages", () => {
   });
 
   it("searchPages API が null を返したら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchPagesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -97,10 +126,13 @@ describe("jp_lit_search_pages", () => {
   });
 
   it("size / from パラメータが searchPages に渡る", async () => {
+    const baseDir = await createTempDir();
     const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
     const tool = createJpLitSearchPagesTool(
       makeRecordService(BASE_RECORD),
-      nextDlClient
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await tool({
@@ -118,9 +150,12 @@ describe("jp_lit_search_pages", () => {
   });
 
   it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitSearchPagesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(SEARCH_PAYLOAD)
+      makeNextDlClient(SEARCH_PAYLOAD),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(

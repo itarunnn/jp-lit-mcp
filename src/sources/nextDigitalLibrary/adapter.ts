@@ -6,7 +6,7 @@ import {
 } from "../../lib/http.js";
 
 const DEFAULT_BASE_URL = "https://lab.ndl.go.jp/dl/api";
-const MAX_FULLTEXT_RESPONSE_CHARS = 10_000_000;
+const MAX_FULLTEXT_RESPONSE_CHARS = 5_000_000;
 
 export type NextDigitalLibraryJson = Record<string, unknown>;
 
