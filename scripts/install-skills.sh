@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unix wrapper for scripts/install-skills.mjs.
+# Unix wrapper for Codex / Claude Code skill installation.
 
 set -euo pipefail
 

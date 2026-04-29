@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const platform = process.argv[2] ?? "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
-const skillSrc = join(repoRoot, ".cursor", "skills", "jp-lit-research");
+const skillSrc = join(repoRoot, "skills", "jp-lit-research");
 
 const home = process.env.USERPROFILE ?? process.env.HOME;
 if (!home) {
@@ -79,8 +79,9 @@ function install(target) {
   }
 }
 
-console.log("jp-lit-research Skill インストーラー");
+console.log("Codex / Claude Code 向け jp-lit-research Skill インストーラー");
 console.log(`source: ${skillSrc}`);
+console.log("Cursor はリポジトリ内 .cursor/skills/ を自動検出します。");
 
 if (platform === "all") {
   install("claude");

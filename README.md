@@ -2,6 +2,30 @@
 
 NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Japan Search、JDCat、nihu_bridge（NIHU 統合検索）を対象にした日本語文献探索向け MCP サーバーです。NDL 系 source の検索は SRU API を使います。`ndl_digital` は `NDL Search SRU + dpid=ndl-dl` を使い、次世代デジタルライブラリー API（`lab.ndl.go.jp/dl/api`）への bridge を通じて OCR・全文検索・図版検索にも対応しています。
 
+## まず使うアプリを選んでください
+
+このリポジトリは、`MCP` と `Skills` を使って日本語文献調査をしやすくするためのものです。導入でいちばんつまずきやすいのは、アプリごとの設定方法の違いです。まずは自分が使うアプリの手順を開いてください。
+
+- [Codex App の導入手順](docs/install/codex-app.md)
+- [Codex CLI の導入手順](docs/install/codex-cli.md)
+- [Cursor の導入手順](docs/install/cursor.md)
+- [Claude Code の導入手順](docs/install/claude-code.md)
+
+## このリポジトリの考え方
+
+- `MCP` は単体でも使えます
+- `Skills` は同梱し、既定で使う前提にしています
+- `Skills` は不要なら外せますし、Markdown を編集して改造することもできます
+- ただし、最初はそのまま使うのをおすすめします
+
+## 何ができるか
+
+- 図書・論文・雑誌記事・会議録・研究データを横断検索する
+- NDL デジタルコレクションの OCR 全文・ページ座標・図版を扱う
+- `jp-lit-research` Skill と組み合わせて、調査手順・検索語展開・結果整理を安定させる
+
+詳しい使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
+
 ## セットアップ
 
 ```bash
@@ -424,7 +448,12 @@ npm run smoke:mcp:live-matrix
 
 ## AI エージェント向け Skill
 
-MCP と組み合わせて使う「日本語文献調査スキル」が `.cursor/skills/jp-lit-research/` に同梱されています。
+MCP と組み合わせて使う「日本語文献調査スキル」が同梱されています。
+
+- 公開用の正規配置: `skills/jp-lit-research/`
+- Cursor 自動検出用配置: `.cursor/skills/jp-lit-research/`
+
+このリポジトリでは、`Skills` の併用を既定とします。気に入らなければ外したり、`SKILL.md` を編集して自分用に調整してください。
 
 インストール後の実際の使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
 
@@ -499,6 +528,15 @@ npm run skills:install
 ```
 
 Cursor は `.cursor/skills/` をプロジェクトから自動検出するためインストール不要です。
+
+## 公開前チェック
+
+- `npm test`
+- `npm run build`
+- `npm run smoke:mcp`
+- 必要なら `npm run smoke:mcp:live-matrix`
+- `docs/install/` のリンク切れ確認
+- `skills/jp-lit-research/` と `.cursor/skills/jp-lit-research/` の内容確認
 
 ---
 

@@ -1,5 +1,5 @@
 # install-skills.ps1
-# Windows wrapper for scripts/install-skills.mjs.
+# Windows wrapper for Codex / Claude Code skill installation.
 
 param([string]$Platform = "all")
 

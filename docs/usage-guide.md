@@ -2,6 +2,13 @@
 
 このガイドでは、MCP と Skill のインストールを済ませた後に「実際どう使うか」をていねいに説明します。インストール手順は別ドキュメントに譲り、ここでは調査依頼の出し方・結果の読み方・MCP 単体と Skill 併用の使い分けを中心にご紹介します。
 
+インストール手順は次を参照してください。
+
+- [Codex App](install/codex-app.md)
+- [Codex CLI](install/codex-cli.md)
+- [Cursor](install/cursor.md)
+- [Claude Code](install/claude-code.md)
+
 ---
 
 ## 基本の考え方
