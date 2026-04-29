@@ -9,7 +9,7 @@ description: >-
 
 # 日本語文献調査スキル（jp-lit-research）
 
-このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations`）を使った日本語人文社会系文献調査の作法を定義する。
+このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations` / `jp_lit_annotate_session` / `jp_lit_export_session`）を使った日本語人文社会系文献調査の作法を定義する。
 
 **MCP は検索・取得に徹する。調査戦略・DB選択・検索語展開・典拠評価はこのスキルが担う。**
 
@@ -157,6 +157,21 @@ description: >-
 - 除外したものがあればその理由
 
 ユーザーが「全部見せて」「選ばれなかったものも見たい」「生データを見せて」と求めた場合は、選別前の全件リストを **パース済みの共通スキーマ（SearchItem / RecordItem）ベース** で開示してよい。`raw` や OCR 全文 JSON をそのまま貼り付けるのではなく、必要な項目だけ抜粋して示す。
+
+**候補のラベル付けとエクスポート:**
+
+有力な候補が見つかったら `jp_lit_annotate_session` でラベルとメモを保存する。調査の締めくくりや「まとめて」「書き出して」という依頼があったときは `jp_lit_export_session` で `exports/` に書き出す。
+
+```
+jp_lit_annotate_session(
+  tool="jp_lit_search",
+  cache_key="<検索時のキャッシュキー>",
+  selected_items=[
+    { source: "ndl_catalog", source_id: "...", title: "...", label: "confirmed", note: "所蔵確認済み" }
+  ]
+)
+jp_lit_export_session(format="markdown")
+```
 
 ---
 
