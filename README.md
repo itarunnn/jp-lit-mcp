@@ -229,6 +229,12 @@ filters.irdb 対応状況:
 | `lib_id` | string | — | 特定館コードで絞る |
 | `lib_group` | string | — | 館種グループで絞る |
 
+例:
+```text
+jp_lit_search_guides_manuals(query="常陸国風土記", limit=3)
+```
+返り値では `search_keywords` と `guide_headings` を見て、次に試す query や資料群を決める。
+
 ### jp_lit_search_guides_cases
 
 レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照する用途。
@@ -240,6 +246,12 @@ filters.irdb 対応状況:
 | `page` | number | 1 | 1 始まり |
 | `lib_id` | string | — | 特定館コードで絞る |
 | `lib_group` | string | — | 館種グループで絞る |
+
+例:
+```text
+jp_lit_search_guides_cases(query="世界線", limit=3)
+```
+返り値では `answer_process` と `reference_sources` を見て、辞書・参考図書・追加 query を組み立てる。
 
 ### jp_lit_get_record
 
