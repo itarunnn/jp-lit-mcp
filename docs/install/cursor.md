@@ -27,11 +27,16 @@ npm run build
     "ndl-jp-lit": {
       "command": "node",
       "args": ["J:\\apps\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "J:\\apps\\ndl-jp-lit-mcp"
+      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "env": {
+        "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
+      }
     }
   }
 }
 ```
+
+`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
 
 4. `Cursor` を再読込して、このリポジトリで対話を始めます。
 

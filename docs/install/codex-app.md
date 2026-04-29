@@ -39,6 +39,8 @@ codex login
 codex mcp add ndlJpLit --command node --args J:/apps/ndl-jp-lit-mcp/dist/src/index.js
 ```
 
+CiNii の安定利用には `CINII_RESEARCH_APP_ID` 環境変数の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
+
 6. `Skills` は次でインストールできます。
 
 ```bash

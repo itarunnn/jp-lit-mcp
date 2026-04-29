@@ -22,11 +22,16 @@ npm run build
     "ndl-jp-lit": {
       "command": "node",
       "args": ["J:\\apps\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "J:\\apps\\ndl-jp-lit-mcp"
+      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "env": {
+        "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
+      }
     }
   }
 }
 ```
+
+`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
 
 4. `Skills` をインストールします。
 

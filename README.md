@@ -34,6 +34,22 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - `Skills` は不要なら外せますし、Markdown を編集して改造することもできます
 - ただし、最初はそのまま使うのをおすすめします
 
+## 現状
+
+2026-04-30 時点の状態:
+
+- 公開ツール 11 種・対応 source 15 種・テスト 273 件すべて通過
+- `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
+- live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
+- 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
+- レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
+- ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON エクスポート（`jp_lit_export_session`）に対応済み
+- `jp-lit-research` Skill は同梱済み（Claude Code / Codex / Cursor 対応）
+- README / install docs / usage guide / source-usage-conditions を整備済み
+- ライセンスは `MIT`
+
+公開前に確認すべき残項目は、GitHub 側の公開設定と公開文面の最終確認が中心です。
+
 ## この MCP はどういうものか
 
 この `MCP` は、日本語文献調査のために複数の DB やデジタルアーカイブを AI から使いやすくするためのものです。
