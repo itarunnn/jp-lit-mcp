@@ -9,4 +9,11 @@ describe("README public onboarding", () => {
     expect(readme).toContain("docs/install/cursor.md");
     expect(readme).toContain("docs/install/claude-code.md");
   });
+
+  it("explains what MCP and Skills change for users", () => {
+    const readme = readFileSync("README.md", "utf8");
+    expect(readme).toContain("## この MCP はどういうものか");
+    expect(readme).toContain("## Skills を入れると何が変わるか");
+    expect(readme).toContain("## 主な source の紹介");
+  });
 });
