@@ -4,3 +4,4 @@ dist/
 coverage/
 .cache/ndl-jp-lit-mcp/
 exports/
+scripts/update-codex-after-exit.ps1
