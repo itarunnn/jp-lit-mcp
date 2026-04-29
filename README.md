@@ -53,6 +53,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - `jp-lit-research` Skill と組み合わせて、調査手順・検索語展開・結果整理を安定させる
 
 詳しい使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
+公開前に `source` ごとの API 利用条件や表示要件を確認したい場合は [docs/source-usage-conditions.md](docs/source-usage-conditions.md) を参照してください。
 
 ## 主な source の紹介
 
@@ -584,6 +585,7 @@ Cursor は `.cursor/skills/` をプロジェクトから自動検出するため
 - `npm run smoke:mcp`
 - 必要なら `npm run smoke:mcp:live-matrix`
 - `docs/install/` のリンク切れ確認
+- `docs/source-usage-conditions.md` の内容と公開方針の整合確認
 - `skills/jp-lit-research/` と `.cursor/skills/jp-lit-research/` の内容確認
 
 ---

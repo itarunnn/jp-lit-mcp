@@ -16,4 +16,9 @@ describe("README public onboarding", () => {
     expect(readme).toContain("## Skills を入れると何が変わるか");
     expect(readme).toContain("## 主な source の紹介");
   });
+
+  it("links to the source usage conditions memo", () => {
+    const readme = readFileSync("README.md", "utf8");
+    expect(readme).toContain("docs/source-usage-conditions.md");
+  });
 });
