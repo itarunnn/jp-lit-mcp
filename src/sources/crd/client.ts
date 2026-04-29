@@ -267,12 +267,22 @@ function mapCaseItem(item: Record<string, unknown>): CrdReferenceCaseItem {
   };
 }
 
+function extractTotalResults(channel: Record<string, unknown>): number | null {
+  const raw = channel["opensearch:totalResults"] ?? channel["openSearch:totalResults"];
+  if (raw == null) return null;
+  const str = asString(raw);
+  if (str == null) return null;
+  const n = Number(str);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function buildSearchUrl(baseUrl: string, type: "manual" | "reference", input: CrdSearchInput) {
   const url = new URL(baseUrl);
   const start = (input.page - 1) * input.limit + 1;
+  const safeQuery = input.query.replace(/"/g, " ").trim();
 
   url.searchParams.set("type", type);
-  url.searchParams.set("query", `anywhere all "${input.query}"`);
+  url.searchParams.set("query", `anywhere all "${safeQuery}"`);
   url.searchParams.set("results_format", "rss");
   url.searchParams.set("results_num", String(input.limit));
   url.searchParams.set("results_get_position", String(start));
@@ -303,7 +313,7 @@ export function createCrdClient(options: CrdClientOptions = {}) {
         type: "manual",
         page: input.page,
         limit: input.limit,
-        total: items.length,
+        total: extractTotalResults(projected.channel) ?? items.length,
         items,
         raw: projected.channel
       };
@@ -319,7 +329,7 @@ export function createCrdClient(options: CrdClientOptions = {}) {
         type: "reference",
         page: input.page,
         limit: input.limit,
-        total: items.length,
+        total: extractTotalResults(projected.channel) ?? items.length,
         items,
         raw: projected.channel
       };

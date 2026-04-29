@@ -30,6 +30,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
           return null;
         }
 
+        process.stderr.write(`[fileCache] read error (${target}): ${error}\n`);
         return null;
       }
     },
