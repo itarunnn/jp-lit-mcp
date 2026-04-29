@@ -30,7 +30,8 @@ interface KokkaiResponse {
   numberOfReturn: number;
   startRecord: number;
   nextRecordPosition?: number;
-  record: KokkaiSpeechRecord[];
+  record?: KokkaiSpeechRecord[];
+  speechRecord?: KokkaiSpeechRecord[];
 }
 
 function truncateSpeech(speech: string): string {
@@ -98,7 +99,11 @@ export function mapKokkaiSearchResponse(
   json: string
 ): SearchResult {
   const parsed: KokkaiResponse = JSON.parse(json);
-  const records = Array.isArray(parsed.record) ? parsed.record : [];
+  const records = Array.isArray(parsed.record)
+    ? parsed.record
+    : Array.isArray(parsed.speechRecord)
+      ? parsed.speechRecord
+      : [];
   const items = records.map((record) => mapKokkaiRecord(source, record));
   const total = Number(parsed.numberOfRecords);
 

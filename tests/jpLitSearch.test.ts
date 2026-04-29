@@ -1,14 +1,27 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { InvalidRequestError } from "../src/lib/errors.js";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { searchInputSchema } from "../src/lib/schemas.js";
 import { createSearchService } from "../src/services/searchService.js";
 import { createServer, resolveAdapterOptionsFromEnv } from "../src/server.js";
 import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-tool-"));
+  tempDirs.push(dir);
+  return dir;
+}
 
 function createSearchItem(
   source: SearchItem["source"],
@@ -240,6 +253,42 @@ describe("createSearchService", () => {
       limit: 1,
       total: 1
     });
+  });
+
+  it("tool handler は 0 件でも requested limit を維持して schema error にならない", async () => {
+    const baseDir = await createTempDir();
+    const kokkaiAdapter: SourceAdapter = {
+      source: "kokkai_minutes",
+      search: async () => ({
+        total: 0,
+        items: []
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([kokkaiAdapter]);
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const result = await tool({
+      query: "存在しない語",
+      source: "kokkai_minutes",
+      limit: 3,
+      page: 1
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      query: "存在しない語",
+      source: "kokkai_minutes",
+      page: 1,
+      limit: 3,
+      total: 0,
+      items: []
+    });
+
+    await rm(baseDir, { recursive: true, force: true });
   });
 
   it("横断検索では facets を source 間で合算する", async () => {

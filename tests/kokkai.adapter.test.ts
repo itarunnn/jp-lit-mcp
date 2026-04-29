@@ -67,6 +67,45 @@ describe("mapKokkaiMeetingResponse", () => {
 
     expect(record).toBeNull();
   });
+
+  it("live API 互換: meetingRecord キーでも RecordItem に正規化する", async () => {
+    const json = JSON.stringify({
+      numberOfRecords: 1,
+      numberOfReturn: 1,
+      startRecord: 1,
+      meetingRecord: [
+        {
+          issueID: "122114536X00220260401",
+          session: 221,
+          nameOfHouse: "参議院",
+          nameOfMeeting: "消費者問題に関する特別委員会",
+          issue: "第2号",
+          date: "2026-04-01",
+          meetingURL: "https://kokkai.ndl.go.jp/txt/122114536X00220260401",
+          pdfURL: null,
+          speechRecord: [
+            {
+              speechID: "122114536X00220260401_113",
+              speechOrder: 113,
+              speaker: "服部準",
+              speech: "オンラインカジノを含むオンライン上で行われる賭博は犯罪となります。"
+            }
+          ]
+        }
+      ]
+    });
+    const { mapKokkaiMeetingResponse } = await import("../src/sources/kokkai/mapRecord.js");
+
+    const record = mapKokkaiMeetingResponse(
+      "kokkai_minutes",
+      "122114536X00220260401_113",
+      json
+    );
+
+    expect(record?.source).toBe("kokkai_minutes");
+    expect(record?.identifiers.issue_id).toBe("122114536X00220260401");
+    expect(record?.source_metadata.speech_count).toBe(1);
+  });
 });
 
 describe("mapKokkaiSearchResponse", () => {
@@ -100,6 +139,44 @@ describe("mapKokkaiSearchResponse", () => {
       duplicate_count: 1,
       related_records: []
     });
+  });
+
+  it("live API 互換: speechRecord キーでも SearchItem[] に正規化する", async () => {
+    const payload = JSON.stringify({
+      numberOfRecords: 1,
+      numberOfReturn: 1,
+      startRecord: 1,
+      speechRecord: [
+        {
+          speechID: "122114536X00220260401_113",
+          issueID: "122114536X00220260401",
+          session: 221,
+          nameOfHouse: "参議院",
+          nameOfMeeting: "消費者問題に関する特別委員会",
+          issue: "第2号",
+          date: "2026-04-01",
+          speechOrder: 113,
+          speaker: "服部準",
+          speakerYomi: null,
+          speakerGroup: null,
+          speakerPosition: "警察庁長官官房審議官",
+          speakerRole: null,
+          speech: "オンラインカジノを含むオンライン上で行われる賭博は犯罪となります。",
+          startPage: 0,
+          speechURL: "https://kokkai.ndl.go.jp/txt/122114536X00220260401/113",
+          meetingURL: "https://kokkai.ndl.go.jp/txt/122114536X00220260401",
+          pdfURL: null
+        }
+      ]
+    });
+    const { mapKokkaiSearchResponse } = await import("../src/sources/kokkai/mapSearch.js");
+
+    const result = mapKokkaiSearchResponse("kokkai_minutes", payload);
+
+    expect(result.total).toBe(1);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.source_id).toBe("122114536X00220260401_113");
+    expect(result.items[0]?.authors[0]?.role).toBe("警察庁長官官房審議官");
   });
 
   it("source=teikoku_minutes のとき items[0].source が teikoku_minutes になる", async () => {

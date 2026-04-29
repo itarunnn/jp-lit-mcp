@@ -30,7 +30,8 @@ interface KokkaiMeetingResponse {
   numberOfRecords: number;
   numberOfReturn: number;
   startRecord: number;
-  record: KokkaiMeetingRecord[];
+  record?: KokkaiMeetingRecord[];
+  meetingRecord?: KokkaiMeetingRecord[];
 }
 
 function mapSpeech(s: KokkaiSpeechEntry) {
@@ -54,7 +55,11 @@ export function mapKokkaiMeetingResponse(
   json: string
 ): RecordItem | null {
   const parsed: KokkaiMeetingResponse = JSON.parse(json);
-  const records = Array.isArray(parsed.record) ? parsed.record : [];
+  const records = Array.isArray(parsed.record)
+    ? parsed.record
+    : Array.isArray(parsed.meetingRecord)
+      ? parsed.meetingRecord
+      : [];
 
   if (records.length === 0) {
     return null;

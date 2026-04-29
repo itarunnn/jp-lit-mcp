@@ -352,6 +352,19 @@ $env:SMOKE_LIVE="1"; npm run smoke:mcp
 - `SMOKE_LIVE_SOURCE=ndl_digital` のとき、`next_digital_library.available=true` の資料があれば `jp_lit_get_text_coordinates` / `jp_lit_get_fulltext` も自動検証します。
 - `SMOKE_LIVE_SOURCE=cinii_books` のとき、`source_metadata.holding_count` / `holdings[]` も確認します。
 
+### live smoke matrix
+
+```bash
+npm run smoke:mcp:live-matrix
+```
+
+- 既定では `ndl_catalog`, `ndl_digital`, `cinii_books`, `nihu_bridge`, `jstage_articles`, `kokkai_minutes`, `teikoku_minutes`, `irdb`, `jdcat` を順番に検証します。
+- 結果は既定で `exports/live-smoke-report.json` に JSON で保存されます。
+- `SMOKE_LIVE_SOURCES=ndl_catalog,jdcat` で対象 source を絞れます。
+- `SMOKE_LIVE_RETRY_COUNT` で source ごとの retry 回数を変更できます。既定は `2` です。
+- `SMOKE_LIVE_REPORT_PATH` でレポート出力先を変更できます。
+- `jdcat` は upstream `503 Service Temporarily Unavailable` のときだけ skip 扱いにします。
+
 ## MCP 登録例
 
 ```json
@@ -532,3 +545,33 @@ Cursor は `.cursor/skills/` をプロジェクトから自動検出するため
 | `tests/fixtures/japan-search/` | item search / item detail JSON |
 | `tests/fixtures/next-digital-library/` | book / page / fulltext-json / page-search / book-search / illustration-search レスポンス |
 | `tests/fixtures/nihu-bridge/` | nihuBridge search / record 合成 JSON |
+## ローカル保存
+
+このサーバーは、正規化済みのツール結果を repo 内へローカル保存できる。
+
+- キャッシュ: `.cache/ndl-jp-lit-mcp/cache/v1/`
+- セッション: `.cache/ndl-jp-lit-mcp/sessions/`
+- 明示エクスポート: `exports/`
+
+保存の役割分担は次のとおり。
+
+- キャッシュ
+  - `jp_lit_search` や `jp_lit_get_record`、`jp_lit_get_fulltext`、`jp_lit_search_fulltext` などの `structuredContent` 全体
+  - つまり未選別候補を含む正規化済み結果
+- セッション
+  - その結果のうち、どの候補を採用したか
+  - 候補ラベルと短いメモ
+  - 重い OCR / 全文 / 図版 payload 自体は持たず、cache key 参照だけを保持する
+
+候補評価は `jp_lit_annotate_session` で保存し、ユーザー向けの書き出しは `jp_lit_export_session` で行う。
+明示的に export しない限り、保存物は内部ファイルとしてのみ保持される。
+
+## Codex 実行メモ
+
+Codex 上で `windows sandbox: setup refresh failed with status exit code: 1` が出る場合、PowerShell 単体の問題ではなく Codex 側の sandbox 初期化不調であることが多い。
+
+この場合はシェル再起動よりも、次の順で対処する。
+
+1. Codex の作業セッションを閉じて、新しい Codex セッションでこの repo を開き直す
+2. 再開後に `git status --short`、`npm run build` など短いコマンドで健全性確認をする
+3. まだ失敗する場合だけ、端末アプリやホスト環境の再起動を検討する
