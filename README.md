@@ -547,7 +547,7 @@ npm run smoke:mcp:live-matrix
 }
 ```
 
-サンプルは [mcp-config.example.json](J:/apps/ndl-jp-lit-mcp/mcp-config.example.json:1) にあります。`CINII_RESEARCH_APP_ID` の実値は Git 管理外のシークレット経由で渡してください。
+サンプルは [mcp-config.example.json](mcp-config.example.json) にあります。`CINII_RESEARCH_APP_ID` の実値は Git 管理外のシークレット経由で渡してください。
 
 ## 既知の制約
 
