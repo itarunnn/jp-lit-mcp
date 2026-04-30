@@ -21,4 +21,11 @@ describe("README public onboarding", () => {
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("docs/source-usage-conditions.md");
   });
+
+  it("mentions the jp-lit verification skill and its role", () => {
+    const readme = readFileSync("README.md", "utf8");
+    expect(readme).toContain("jp-lit-verification");
+    expect(readme).toContain("文献検証");
+    expect(readme).toContain("実在性");
+  });
 });

@@ -116,6 +116,15 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - NDL デジタルコレクションの OCR 全文・ページ座標・図版を扱う
 - `jp-lit-research` Skill と組み合わせて、調査手順・検索語展開・結果整理を安定させる
 
+### 追加 Skill: jp-lit-verification
+
+`jp-lit-verification` は、貼り付けた文章に出てくる日本語文献候補の実在性を検証するための **文献検証 Skill** です。
+
+- 主入力: 他サービスや他セッションの回答文
+- 一次検証: `jp_lit_search(source=ndl_search, ...)`
+- 主出力: 判定表
+- 判定カテゴリ: `実在確認済み` / `部分一致` / `非実在の疑い` / `混線の疑い`
+
 詳しい使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
 公開前に `source` ごとの API 利用条件や表示要件を確認したい場合は [docs/source-usage-conditions.md](docs/source-usage-conditions.md) を参照してください。
 
@@ -606,7 +615,9 @@ npm run smoke:mcp:live-matrix
 MCP と組み合わせて使う「日本語文献調査スキル」が同梱されています。
 
 - 公開用の正規配置: `skills/jp-lit-research/`
+- 公開用の検証 Skill: `skills/jp-lit-verification/`
 - Cursor 自動検出用配置: `.cursor/skills/jp-lit-research/`
+- Cursor 自動検出用配置: `.cursor/skills/jp-lit-verification/`
 
 このリポジトリでは、`Skills` の併用を既定とします。気に入らなければ外したり、`SKILL.md` を編集して自分用に調整してください。
 

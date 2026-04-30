@@ -20,4 +20,10 @@ describe("install docs", () => {
     expect(cursor).toContain(".cursor/skills/jp-lit-research/");
     expect(claudeCode).toContain("scripts/install-skills.ps1 -Platform claude");
   });
+
+  it("mentions verification-mode examples in install and usage docs", () => {
+    const usage = readFileSync("docs/usage-guide.md", "utf8");
+    expect(usage).toContain("文献検証");
+    expect(usage).toContain("この文章に出てくる文献の実在性");
+  });
 });

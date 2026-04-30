@@ -8,6 +8,7 @@ describe("install script messaging", () => {
     const sh = readFileSync("scripts/install-skills.sh", "utf8");
 
     expect(js).toContain("Codex / Claude Code");
+    expect(js).toContain("jp-lit-verification");
     expect(ps1).toContain("Codex / Claude Code");
     expect(sh).toContain("Codex / Claude Code");
   });

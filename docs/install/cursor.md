@@ -4,7 +4,7 @@
 
 ## 先に知っておくこと
 
-- `Cursor` では、このリポジトリ内の `.cursor/skills/jp-lit-research/` が自動検出されます
+- `Cursor` では、このリポジトリ内の `.cursor/skills/jp-lit-research/` と `.cursor/skills/jp-lit-verification/` が自動検出されます
 - そのため `Skills` の追加インストールは不要です
 - `MCP` は `Cursor` 側の設定に追加します
 - 設定例の `J:\\apps\\ndl-jp-lit-mcp\\` は、自分が clone した実際のパスに置き換えてください
@@ -48,6 +48,10 @@ npm run build
 
 ```text
 文献DBを始めます。『常陸国風土記』の調べ方を知りたいです。
+```
+
+```text
+文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
 ## つまずきやすい点

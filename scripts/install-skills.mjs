@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const platform = process.argv[2] ?? "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
-const skillSrc = join(repoRoot, "skills", "jp-lit-research");
+const skillsRoot = join(repoRoot, "skills");
+const skillNames = ["jp-lit-research", "jp-lit-verification"];
 
 const home = process.env.USERPROFILE ?? process.env.HOME;
 if (!home) {
@@ -13,24 +14,27 @@ if (!home) {
 }
 
 const destinations = {
-  claude: join(home, ".claude", "skills", "jp-lit-research"),
-  codex: join(home, ".codex", "skills", "jp-lit-research")
+  claude: join(home, ".claude", "skills"),
+  codex: join(home, ".codex", "skills")
 };
 
 const codexAdapter = `<codex_skill_adapter>
 ## 起動
-このスキルは jp-lit MCP を使った日本語文献調査の依頼で呼び出される。
+このスキルは jp-lit MCP を使った日本語文献調査または文献検証の依頼で呼び出される。
 \`AskUserQuestion\` / \`Task()\` は使用しない。直接実行する。
 </codex_skill_adapter>
 
 `;
 
-function copySkill(destination) {
+function copySkillTree(skillName, destinationRoot) {
+  const skillSrc = join(skillsRoot, skillName);
+  const destination = join(destinationRoot, skillName);
   mkdirSync(dirname(destination), { recursive: true });
   if (existsSync(destination)) {
     rmSync(destination, { recursive: true, force: true });
   }
   cpSync(skillSrc, destination, { recursive: true });
+  return destination;
 }
 
 function patchCodexSkill(destination) {
@@ -72,15 +76,18 @@ function install(target) {
     throw new Error(`Unknown platform: ${target}. Use cursor, claude, codex, or all.`);
   }
 
-  console.log(`[${target}] ${destination}`);
-  copySkill(destination);
-  if (target === "codex") {
-    patchCodexSkill(destination);
+  for (const skillName of skillNames) {
+    const skillDestination = copySkillTree(skillName, destination);
+    console.log(`[${target}] ${skillDestination}`);
+    if (target === "codex") {
+      patchCodexSkill(skillDestination);
+    }
   }
 }
 
-console.log("Codex / Claude Code 向け jp-lit-research Skill インストーラー");
-console.log(`source: ${skillSrc}`);
+console.log("Codex / Claude Code 向け jp-lit Skills インストーラー");
+console.log(`source: ${skillsRoot}`);
+console.log(`skills: ${skillNames.join(", ")}`);
 console.log("Cursor はリポジトリ内 .cursor/skills/ を自動検出します。");
 
 if (platform === "all") {
