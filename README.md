@@ -38,7 +38,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-04-30 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 290 件すべて通過
+- 公開ツール 11 種・対応 source 15 種・テスト 298 件すべて通過
 - `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
@@ -299,6 +299,8 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 | `page` | number | 1 | 横断検索は 1 のみ |
 | `sort_by` | string | — | NDL 系は正式対応。CiNii は `issued_date` のみ有効 |
 | `sort_order` | string | — | NDL 系は正式対応。CiNii は `issued_date` と組み合わせたときのみ有効 |
+| `issued_from` | string | — | 発行年・日付の下限。対応 source では日時範囲検索に変換 |
+| `issued_to` | string | — | 発行年・日付の上限。対応 source では日時範囲検索に変換 |
 | `filters.irdb` | object | — | `source=irdb` のときのみ有効。横断検索では使えない |
 | `filters.irdb.fulltext` | boolean | — | `true` のとき全文検索対象に絞り込む（`fulltext=1`） |
 | `filters.irdb.title` | string | — | タイトルで絞り込む |
@@ -334,6 +336,14 @@ filters.irdb 対応状況:
 - `source=irdb` のときのみ有効
 - 横断検索（source 省略時）では使えない
 - `source=irdb` 以外で指定すると validation error になる
+
+issued_from / issued_to 対応状況:
+- `ndl_search` / `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online`: CQL の `dcterms.issued` 範囲条件に変換
+- `cinii_articles` / `cinii_books`: `from` / `until` パラメータに変換
+- `jstage_articles`: `pubyearfrom` / `pubyearto` パラメータに変換
+- `kokkai_minutes` / `teikoku_minutes`: `from` / `until` パラメータに変換（年だけ渡した場合は `YYYY-01-01` / `YYYY-12-31` に補完）
+- `nihu_bridge`: `filters.nihu_bridge.period_from` / `period_to` が無い場合のみ共通日時範囲を自動マッピング
+- `irdb` / `japan_search` / `jdcat`: 現時点では未対応
 
 ### jp_lit_search_guides_manuals
 
@@ -647,6 +657,7 @@ npm run smoke:mcp:live-matrix
 - `irdb` は既定横断検索に含めていません。紀要・学位論文・報告書などが広く混ざるため、まずは `source=irdb` 指定専用です。
 - `irdb` の上流 `count` は `20 / 50 / 100` だけ有効です。adapter 側で `limit` を補正しています。
 - `irdb` の detail は IRDB 詳細画面 HTML を使います。原機関側 `URI` は `source_metadata.source_uri` に保持します。
+- `issued_from` / `issued_to` は `irdb` / `japan_search` / `jdcat` では未対応です。指定しても現時点では検索条件に反映されません。
 - `jdcat` は既定横断検索に含めていません。研究データカタログであり、論文・図書の既定横断に混ぜない設計です。
 - `filters.jdcat` の各フィールドは JDCat（WEKO3）の非公式 API パラメータに依存しています。WEKO3 バージョンアップでフィールド名が変わる可能性があります。
 - `jdcat` は当初想定の HTML parser ではなく、公開 JSON API `/api/records/` と `/api/records/{id}` を使っています。

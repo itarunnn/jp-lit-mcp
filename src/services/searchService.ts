@@ -1,6 +1,11 @@
 import type { SearchFacets, SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
-import type { IrdbSearchFilters, NihuBridgeSearchFilters, SourceAdapter } from "../sources/types.js";
+import type {
+  IrdbSearchFilters,
+  JdcatSearchFilters,
+  NihuBridgeSearchFilters,
+  SourceAdapter
+} from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
 import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
 
@@ -14,9 +19,12 @@ interface SearchInput {
   page: number;
   sort_by?: "title" | "creator" | "issued_date" | "created_date" | "modified_date";
   sort_order?: "asc" | "desc";
+  issued_from?: string;
+  issued_to?: string;
   filters?: {
     irdb?: IrdbSearchFilters;
     nihu_bridge?: NihuBridgeSearchFilters;
+    jdcat?: JdcatSearchFilters;
   };
 }
 

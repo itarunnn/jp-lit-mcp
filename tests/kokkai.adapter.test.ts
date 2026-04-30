@@ -279,6 +279,31 @@ describe("createKokkaiAdapter", () => {
     expect(url.searchParams.get("maximumRecords")).toBe("5");
   });
 
+  it("issued_from / issued_to を from / until に変換する", async () => {
+    const speechFixture = readFixture("speech-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: (name: string) => name.toLowerCase() === "content-type" ? "application/json; charset=utf-8" : null },
+      text: async () => speechFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokkaiAdapter } = await import("../src/sources/kokkai/adapter.js");
+    const adapter = createKokkaiAdapter();
+
+    await adapter.search({
+      query: "賭博",
+      limit: 10,
+      page: 1,
+      issued_from: "1947",
+      issued_to: "1950"
+    });
+
+    const url = new URL(fetch.mock.calls[0][0] as string);
+    expect(url.searchParams.get("from")).toBe("1947-01-01");
+    expect(url.searchParams.get("until")).toBe("1950-12-31");
+  });
+
   it("getRecord は meeting エンドポイントを叩いて RecordItem を返す", async () => {
     const meetingFixture = readFixture("meeting-response.json");
     const fetch = vi.fn().mockResolvedValue({

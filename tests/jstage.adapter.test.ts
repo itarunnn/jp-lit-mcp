@@ -149,6 +149,39 @@ describe("createJstageArticlesAdapter", () => {
     expect(record?.source).toBe("jstage_articles");
   });
 
+  it("issued_from / issued_to を pubyearfrom / pubyearto に変換する", async () => {
+    const searchFixture = readFixture("search-response.xml");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/xml; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createJstageArticlesAdapter } = await import(
+      "../src/sources/jstage/adapter.js"
+    );
+    const adapter = createJstageArticlesAdapter();
+
+    await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1,
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("pubyearfrom")).toBe("1900");
+    expect(searchUrl.searchParams.get("pubyearto")).toBe("1945");
+  });
+
   it("upstream 404 の詳細取得は null を返す", async () => {
     vi.stubGlobal(
       "fetch",
@@ -169,4 +202,3 @@ describe("createJstageArticlesAdapter", () => {
     ).resolves.toBeNull();
   });
 });
-

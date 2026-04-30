@@ -250,12 +250,18 @@ export function createCiniiResearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
       const url = new URL(searchBaseUrl);
       url.searchParams.set("q", query);
       url.searchParams.set("count", String(limit));
       url.searchParams.set("start", String((page - 1) * limit + 1));
       url.searchParams.set("format", "json");
+      if (issued_from) {
+        url.searchParams.set("from", issued_from);
+      }
+      if (issued_to) {
+        url.searchParams.set("until", issued_to);
+      }
       const sortOrder = resolveCiniiSortOrder(searchType, {
         sort_by,
         sort_order

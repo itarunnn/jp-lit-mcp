@@ -271,6 +271,34 @@ describe("createNihuBridgeAdapter", () => {
     });
   });
 
+  it("top-level issued_from / issued_to は filters.nihu_bridge.period_* が無いとき temporal 条件に変換する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => "application/json; charset=utf-8" },
+      json: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createNihuBridgeAdapter } = await import(
+      "../src/sources/nihuBridge/adapter.js"
+    );
+    const adapter = createNihuBridgeAdapter();
+    await adapter.search({
+      query: "平家物語",
+      limit: 5,
+      page: 1,
+      issued_from: "1185",
+      issued_to: "1600"
+    });
+
+    const [, init] = fetch.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string);
+    expect(body.query.conditions[1].query.term).toBe(
+      "1185-01-01T00:00:00+09:00,1600-12-31T00:00:00+09:00"
+    );
+  });
+
   it("レコード取得は GET で叩き、404 は null に変換する", async () => {
     const recordFixture = readFixture("record-response.json");
     const fetch = vi

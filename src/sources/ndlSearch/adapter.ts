@@ -112,10 +112,36 @@ function escapeCqlKeyword(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function buildCqlQuery(keyword: string, dpid?: string): string {
-  const keywordClause = `anywhere="${escapeCqlKeyword(keyword)}"`;
+function buildIssuedClause(
+  issuedFrom?: string,
+  issuedTo?: string
+): string[] {
+  const clauses: string[] = [];
 
-  return dpid ? `dpid=${dpid} AND ${keywordClause}` : keywordClause;
+  if (issuedFrom) {
+    clauses.push(`dcterms.issued >= "${escapeCqlKeyword(issuedFrom)}"`);
+  }
+  if (issuedTo) {
+    clauses.push(`dcterms.issued <= "${escapeCqlKeyword(issuedTo)}"`);
+  }
+
+  return clauses;
+}
+
+function buildCqlQuery(
+  keyword: string,
+  dpid?: string,
+  issuedFrom?: string,
+  issuedTo?: string
+): string {
+  const keywordClause = `anywhere="${escapeCqlKeyword(keyword)}"`;
+  const clauses = [...buildIssuedClause(issuedFrom, issuedTo), keywordClause];
+
+  if (dpid) {
+    clauses.unshift(`dpid=${dpid}`);
+  }
+
+  return clauses.join(" AND ");
 }
 
 function buildSortBy(
@@ -142,7 +168,7 @@ export function createNdlSearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
       const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
       url.searchParams.set("operation", "searchRetrieve");
       url.searchParams.set("version", "1.2");
@@ -150,7 +176,10 @@ export function createNdlSearchAdapter(
       url.searchParams.set("recordPacking", "xml");
       url.searchParams.set("maximumRecords", String(limit));
       url.searchParams.set("startRecord", String((page - 1) * limit + 1));
-      url.searchParams.set("query", buildCqlQuery(query, providerId));
+      url.searchParams.set(
+        "query",
+        buildCqlQuery(query, providerId, issued_from, issued_to)
+      );
       const sort = buildSortBy(sort_by, sort_order);
       if (sort) {
         url.searchParams.set("sortBy", sort);

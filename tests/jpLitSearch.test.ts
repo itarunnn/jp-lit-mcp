@@ -3,7 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { InvalidRequestError } from "../src/lib/errors.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
@@ -118,6 +118,18 @@ describe("createSearchService", () => {
     expect(parsed.sort_order).toBe("desc");
   });
 
+  it("search 入力スキーマで issued_from / issued_to を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "夏目漱石",
+      source: "ndl_catalog",
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    expect(parsed.issued_from).toBe("1900");
+    expect(parsed.issued_to).toBe("1945");
+  });
+
   it("search 入力スキーマで jstage_articles source を受け付ける", () => {
     const parsed = searchInputSchema.parse({
       query: "夏目漱石",
@@ -230,6 +242,36 @@ describe("createSearchService", () => {
         text: JSON.stringify(result.structuredContent, null, 2)
       }
     ]);
+  });
+
+  it("tool handler は issued_from / issued_to を searchService に渡す", async () => {
+    const baseDir = await createTempDir();
+    const search = vi.fn().mockResolvedValue({
+      total: 0,
+      items: []
+    });
+    const service = { search } as unknown as SearchService;
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({
+      query: "夏目漱石",
+      source: "ndl_catalog",
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issued_from: "1900",
+        issued_to: "1945"
+      })
+    );
+
+    await rm(baseDir, { recursive: true, force: true });
   });
 
   it("tool handler は source 未指定でも query/source/page/limit を返す", async () => {

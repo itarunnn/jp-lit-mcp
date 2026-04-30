@@ -56,7 +56,9 @@ function buildBody(
   query: string,
   limit: number,
   page: number,
-  filters: NihuBridgeSearchFilters | undefined
+  filters: NihuBridgeSearchFilters | undefined,
+  issuedFrom?: string,
+  issuedTo?: string
 ): NihuBridgeRequestBody {
   const conditions: NihuBridgeQueryCondition[] = [
     {
@@ -68,9 +70,11 @@ function buildBody(
     }
   ];
 
-  if (filters?.period_from || filters?.period_to) {
-    const start = expandPeriodToISO(filters.period_from ?? "1000", true);
-    const end = expandPeriodToISO(filters.period_to ?? "9999", false);
+  const periodFrom = filters?.period_from ?? issuedFrom;
+  const periodTo = filters?.period_to ?? issuedTo;
+  if (periodFrom || periodTo) {
+    const start = expandPeriodToISO(periodFrom ?? "1000", true);
+    const end = expandPeriodToISO(periodTo ?? "9999", false);
     conditions.push({
       connect: "AND",
       query: {
@@ -122,8 +126,15 @@ export function createNihuBridgeAdapter(
 
   return {
     source: "nihu_bridge",
-    async search({ query, limit, page, filters }) {
-      const body = buildBody(query, limit, page, filters?.nihu_bridge);
+    async search({ query, limit, page, issued_from, issued_to, filters }) {
+      const body = buildBody(
+        query,
+        limit,
+        page,
+        filters?.nihu_bridge,
+        issued_from,
+        issued_to
+      );
       const payload = await fetchJson(searchUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

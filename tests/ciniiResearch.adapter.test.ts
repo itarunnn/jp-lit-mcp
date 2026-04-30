@@ -202,6 +202,39 @@ describe("createCiniiResearchAdapter", () => {
     expect(record?.source).toBe("cinii_articles");
   });
 
+  it("issued_from / issued_to を from / until パラメータに変換する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(searchFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiArticlesAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiArticlesAdapter();
+
+    await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1,
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("from")).toBe("1900");
+    expect(searchUrl.searchParams.get("until")).toBe("1945");
+  });
+
   it("upstream 404 の詳細取得は null を返す", async () => {
     vi.stubGlobal(
       "fetch",

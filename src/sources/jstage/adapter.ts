@@ -27,13 +27,19 @@ export function createJstageArticlesAdapter(
 
   return {
     source: "jstage_articles",
-    async search({ query, limit, page }) {
+    async search({ query, limit, page, issued_from, issued_to }) {
       const url = new URL(searchBaseUrl);
 
       url.searchParams.set("service", "3");
       url.searchParams.set("article", query);
       url.searchParams.set("count", String(limit));
       url.searchParams.set("page", String(page));
+      if (issued_from) {
+        url.searchParams.set("pubyearfrom", issued_from);
+      }
+      if (issued_to) {
+        url.searchParams.set("pubyearto", issued_to);
+      }
 
       const payload = await fetchText(url.toString());
 
@@ -54,4 +60,3 @@ export function createJstageArticlesAdapter(
     }
   };
 }
-

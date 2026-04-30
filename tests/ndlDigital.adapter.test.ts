@@ -606,6 +606,32 @@ describe("createNdlDigitalAdapter", () => {
       "issued_date/sort.ascending"
     );
   });
+
+  it("issued_from / issued_to を CQL の dcterms.issued 範囲条件に変換する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => readSruFixture("search-ndl-digital.xml")
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { createNdlDigitalAdapter } = await import(
+      "../src/sources/ndlDigital/adapter.js"
+    );
+    const adapter = createNdlDigitalAdapter();
+
+    await adapter.search({
+      query: "漱石",
+      limit: 5,
+      page: 1,
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    const query = new URL(fetchMock.mock.calls[0][0] as string).searchParams.get("query") ?? "";
+    expect(query).toContain("dpid=ndl-dl");
+    expect(query).toContain('dcterms.issued >= "1900"');
+    expect(query).toContain('dcterms.issued <= "1945"');
+  });
 });
 
 describe("ndl_digital bridge: next_digital_library", () => {

@@ -29,6 +29,8 @@ export function createJpLitSearchTool(
           page: parsed.page,
           sort_by: parsed.sort_by,
           sort_order: parsed.sort_order,
+          issued_from: parsed.issued_from,
+          issued_to: parsed.issued_to,
           filters: parsed.filters
         });
 

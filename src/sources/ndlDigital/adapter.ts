@@ -110,6 +110,22 @@ function escapeCqlKeyword(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+function buildIssuedClause(
+  issuedFrom?: string,
+  issuedTo?: string
+): string[] {
+  const clauses: string[] = [];
+
+  if (issuedFrom) {
+    clauses.push(`dcterms.issued >= "${escapeCqlKeyword(issuedFrom)}"`);
+  }
+  if (issuedTo) {
+    clauses.push(`dcterms.issued <= "${escapeCqlKeyword(issuedTo)}"`);
+  }
+
+  return clauses;
+}
+
 function buildSortBy(
   sortBy?: "title" | "creator" | "issued_date" | "created_date" | "modified_date",
   sortOrder?: "asc" | "desc"
@@ -133,7 +149,7 @@ export function createNdlDigitalAdapter(
 
   return {
     source: "ndl_digital",
-    async search({ query, limit, page, sort_by, sort_order }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
       const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
       url.searchParams.set("operation", "searchRetrieve");
       url.searchParams.set("version", "1.2");
@@ -143,7 +159,11 @@ export function createNdlDigitalAdapter(
       url.searchParams.set("startRecord", String((page - 1) * limit + 1));
       url.searchParams.set(
         "query",
-        `dpid=ndl-dl AND anywhere="${escapeCqlKeyword(query)}"`
+        [
+          "dpid=ndl-dl",
+          ...buildIssuedClause(issued_from, issued_to),
+          `anywhere="${escapeCqlKeyword(query)}"`
+        ].join(" AND ")
       );
       const sort = buildSortBy(sort_by, sort_order);
       if (sort) {

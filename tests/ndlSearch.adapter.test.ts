@@ -1059,6 +1059,32 @@ describe("createNdlSearchAdapter", () => {
     expect(calledUrl.searchParams.get("sortBy")).toBe("title/sort.descending");
   });
 
+  it("issued_from / issued_to を CQL の dcterms.issued 範囲条件に変換する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => readSruFixture("search-ndl-catalog-dcndl-xml.xml")
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { createNdlCatalogAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlCatalogAdapter();
+
+    await adapter.search({
+      query: "漱石",
+      limit: 5,
+      page: 1,
+      issued_from: "1900",
+      issued_to: "1945"
+    });
+
+    const query = new URL(fetchMock.mock.calls[0][0] as string).searchParams.get("query") ?? "";
+    expect(query).toContain('dcterms.issued >= "1900"');
+    expect(query).toContain('dcterms.issued <= "1945"');
+    expect(query).toContain('anywhere="漱石"');
+  });
+
   it("目次あり resource で table_of_contents が t35050 から抽出される", async () => {
     const recordFixture = readFixture("record-toc.json");
     const { mapNdlSearchRecordResponse } = await import(

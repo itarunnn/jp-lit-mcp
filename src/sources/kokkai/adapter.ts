@@ -13,6 +13,14 @@ interface KokkaiAdapterOptions {
   meetingBaseUrl?: string;
 }
 
+function normalizeDateBound(value: string, isStart: boolean): string {
+  const trimmed = value.trim();
+  if (/^\d{4}$/.test(trimmed)) {
+    return isStart ? `${trimmed}-01-01` : `${trimmed}-12-31`;
+  }
+  return trimmed;
+}
+
 function createAdapter(
   source: "kokkai_minutes" | "teikoku_minutes",
   defaultSpeechBaseUrl: string,
@@ -24,7 +32,7 @@ function createAdapter(
 
   return {
     source,
-    async search({ query, limit, page }) {
+    async search({ query, limit, page, issued_from, issued_to }) {
       const url = new URL(speechBaseUrl);
       const startRecord = (page - 1) * limit + 1;
 
@@ -32,6 +40,12 @@ function createAdapter(
       url.searchParams.set("maximumRecords", String(limit));
       url.searchParams.set("startRecord", String(startRecord));
       url.searchParams.set("recordPacking", "json");
+      if (issued_from) {
+        url.searchParams.set("from", normalizeDateBound(issued_from, true));
+      }
+      if (issued_to) {
+        url.searchParams.set("until", normalizeDateBound(issued_to, false));
+      }
 
       const payload = await fetchText(url.toString());
       return mapKokkaiSearchResponse(source, payload.text);
