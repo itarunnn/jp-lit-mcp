@@ -18,10 +18,13 @@ export interface SessionExporter {
 function defaultExportPath(
   baseDir: string,
   sessionId: string,
+  profile: "full_log" | "selected" | "unselected",
   format: "markdown" | "json"
 ) {
   const extension = format === "markdown" ? "md" : "json";
-  return path.join(getExportsRoot(baseDir), `${sessionId}.${extension}`);
+  const basename =
+    profile === "full_log" ? sessionId : `${sessionId}.${profile}`;
+  return path.join(getExportsRoot(baseDir), `${basename}.${extension}`);
 }
 
 function extractUnselectedItems(envelope: CacheEnvelope<unknown> | null) {
@@ -174,12 +177,14 @@ export function createSessionExporter(
 ): SessionExporter {
   return {
     async exportSession({ session, format, profile, outputPath, includeUnselected }) {
-      const target = outputPath ?? defaultExportPath(baseDir, session.session_id, format);
+      const target =
+        outputPath ??
+        defaultExportPath(baseDir, session.session_id, profile, format);
       const unresolvedItems = new Map<string, Array<Record<string, unknown>>>();
 
       await mkdir(path.dirname(target), { recursive: true });
 
-      if (profile === "full_log" && includeUnselected || profile === "unselected") {
+      if ((profile === "full_log" && includeUnselected) || profile === "unselected") {
         for (const entry of session.entries) {
           const envelope = await cache.read<unknown>(entry.result_ref.tool, entry.result_ref.cache_key);
           unresolvedItems.set(entry.cache_key, extractUnselectedItems(envelope));

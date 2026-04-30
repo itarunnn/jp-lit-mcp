@@ -463,4 +463,118 @@ describe("jp_lit_export_session", () => {
     expect(written.entries[0]?.unselected_items).toHaveLength(1);
     expect(written.entries[0]?.unselected_items?.[0]?.title).toBe("unselected item");
   });
+
+  it("uses different default export paths for selected and unselected profiles", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-e",
+      saved_at: new Date().toISOString(),
+      input: { query: "paths" },
+      structured_content: {
+        query: "paths",
+        source: null,
+        page: 1,
+        limit: 2,
+        total: 2,
+        items: [
+          {
+            source: "ndl_catalog",
+            source_id: "111",
+            title: "selected item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: false,
+              digital_collection: false
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          },
+          {
+            source: "ndl_digital",
+            source_id: "222",
+            title: "unselected item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: false,
+              digital_collection: true
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          }
+        ]
+      }
+    });
+
+    const session = await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "paths" },
+      cache_key: "sha256-e",
+      result_ref: {
+        tool: "jp_lit_search",
+        cache_key: "sha256-e"
+      },
+      selected_items: [
+        {
+          source: "ndl_catalog",
+          source_id: "111",
+          title: "selected item",
+          label: "confirmed",
+          note: "keep"
+        }
+      ],
+      notes: []
+    });
+
+    const selectedResult = await tool({
+      format: "markdown",
+      profile: "selected"
+    });
+    const unselectedResult = await tool({
+      format: "markdown",
+      profile: "unselected"
+    });
+
+    expect(selectedResult.structuredContent.path).toBe(
+      path.join(baseDir, "exports", `${session.session_id}.selected.md`)
+    );
+    expect(unselectedResult.structuredContent.path).toBe(
+      path.join(baseDir, "exports", `${session.session_id}.unselected.md`)
+    );
+    expect(selectedResult.structuredContent.path).not.toBe(
+      unselectedResult.structuredContent.path
+    );
+  });
 });

@@ -36,9 +36,9 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 ## 現状
 
-2026-04-30 時点の状態:
+2026-05-01 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 298 件すべて通過
+- 公開ツール 11 種・対応 source 14 種・テスト 303 件すべて通過
 - `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
@@ -214,7 +214,7 @@ npm install
 
 `jp_lit_search(source=ndl_digital)` は館内限定・図書館送信資料を含むすべてのメタデータを返します。OCR 系ツール（`jp_lit_get_text_coordinates` / `jp_lit_get_fulltext` / `jp_lit_search_pages`）はインターネット公開資料のみ対応です。`source_id` 経由で呼ぶ場合は事前に `jp_lit_get_record` で `source_metadata.next_digital_library.available=true` を確認してください。`jp_lit_search_fulltext` / `jp_lit_search_illustrations` の結果 `pid` はインターネット公開済みのため確認不要です。
 
-## 対応 source（15種）
+## 対応 source（14種）
 
 | source | 概要 | 推奨 |
 |--------|------|------|
@@ -237,7 +237,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-テスト 290 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
+テスト 303 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
 
 ### 検索パラメータ
 

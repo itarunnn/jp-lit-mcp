@@ -107,8 +107,8 @@
 
 これは最低限の export としては機能しているが、次の用途にはまだ弱い。
 
-- confirmed だけ欲しい
-- 後で見直すべき候補だけ欲しい
+- 採用候補だけ欲しい
+- 候補から外したものだけ欲しい
 - ヒットしなかった検索や空振りをまとめて見たい
 - 文献検証 Skill の判定表だけ出したい
 - 調査過程を「人に渡せるログ」として整理したい
@@ -136,7 +136,7 @@
 
 `format` とは別に、**何を出すか** を指定する profile を追加する。
 
-初期候補:
+当初は複数案を比較したが、現時点の正式 profile は次の 3 つに整理した。
 
 - `full_log`
   - 現行に近い。selected / unselected / notes を含む
@@ -144,14 +144,9 @@
   - `selected_items` 全体を出す
 - `unselected`
   - 候補に残さなかった項目だけを出す
-- `candidate_review`
-  - `strong_candidate` / `weak_candidate` を中心に出す
-- `negative_searches`
-  - 有用候補のない検索や notes 上の空振り記録を出す
-- `verification_table`
-  - `jp-lit-verification` 用の判定表ビュー
 
-第一段階では `full_log` / `selected` / `unselected` を優先し、残りは第2弾候補とする。
+細分化した profile は利用者を混乱させやすいため、`confirmed_only` や `candidate_review` のような派生ビューはいったん採用しない。
+必要になった場合でも、まずは `selected` / `unselected` と Markdown/JSON の運用で足りるかを確認してから再検討する。
 
 ##### 2. 出力形式の拡張
 
@@ -181,13 +176,6 @@ profile と format の相性は分ける。
   - `markdown` / `json` / `csv`
 - `unselected`
   - `markdown` / `json` / `csv`
-- `candidate_review`
-  - `markdown` / `json` / `csv`
-- `negative_searches`
-  - `markdown` / `json`
-- `verification_table`
-  - `markdown` / `json` / `csv`
-
 これにより、CSV で無理に深いネストを表現しない。
 
 ##### 4. verification skill 向け export
@@ -221,7 +209,7 @@ export 拡充は、できるだけ既存構造から導出する。
 
 このため、**新しい永続保存層は不要**。
 
-ただし `unselected` や `candidate_review` をやりやすくするために、将来的に session entry へ軽いメタデータを足す余地はある。
+ただし `unselected` をより説明しやすくするために、将来的に session entry へ軽いメタデータを足す余地はある。
 例:
 
 - `entry_summary`
@@ -239,7 +227,7 @@ export 拡充は、できるだけ既存構造から導出する。
 3. Markdown / JSON の profile 別レンダリング
 4. `selected` / `unselected` に限定して CSV を追加するか判断
 5. README / usage guide に export 例を追記
-6. `candidate_review` / `negative_searches` / `verification_table` は次段階で検討
+6. `negative_searches` や `verification_table` のような派生ビューは次段階で検討
 
 #### テスト方針
 
