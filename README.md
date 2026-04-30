@@ -45,18 +45,26 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON エクスポート（`jp_lit_export_session`）に対応済み
 - `jp-lit-research` Skill は同梱済み（Claude Code / Codex / Cursor 対応）
+  - 起動語「文献DBで」「文献DBを始めます」で発火。一度発火したらセッション中継続
   - 全モードで調査計画を提示してユーザーの確認を取ってから実行する（plan-first）
   - standard / deep では CRD（レファ協）と NDL リサーチ・ナビを参照してアドバイスを提示する
   - 全報告テンプレートに source（DB名）を付記
   - `jp_lit_search` の description にユーザーの自然言語表現→source の読み替えを追記
 - `jp-lit-verification` Skill は同梱済み
-  - 他サービスや他セッションの貼り付け文章を対象に、日本語文献候補の実在性を検証できる
+  - 起動語「文献検証で」「資料検証で」「実在するか確認して」「存在確認して」等で発火
+  - 他サービスや他セッションの貼り付け文章を対象に、日本語文献・資料の実在性・存在を検証できる
   - `ndl_search` を第一関門にして `実在確認済み` / `部分一致` / `非実在の疑い` / `混線の疑い` を表で返す
   - 各候補について、判定理由・一致根拠・不一致点を文章で説明する
 - README / install docs / usage guide / source-usage-conditions を整備済み
 - ライセンスは `MIT`
 
-公開前に確認すべき残項目は、GitHub 側の公開設定と公開文面の最終確認が中心です。
+公開前に確認すべき残項目:
+
+- GitHub リポジトリ作成・リモート登録・push（ローカルのみ）
+- ブランチ名 `master` → `main` への改名
+- `jp-lit-research` Skill の深度判定を語尾ベースから対話ベースへ変更（quick/standard/deep の区別をなくし、対話で source を決める設計）
+- `docs/usage-guide.md` の `ndl_search` source 説明を「初動・存在確認向き」に更新
+- 公開文面（README・install docs）の最終確認
 
 ## この MCP はどういうものか
 
