@@ -11,6 +11,15 @@ interface JapanSearchAdapterOptions {
   itemBaseUrl?: string;
 }
 
+function normalizeIssuedYear(value: string | undefined): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})/);
+
+  return match?.[1] ?? null;
+}
+
 export function createJapanSearchAdapter(
   options: JapanSearchAdapterOptions = {}
 ): SourceAdapter {
@@ -19,12 +28,20 @@ export function createJapanSearchAdapter(
 
   return {
     source: "japan_search",
-    async search({ query, limit, page }) {
+    async search({ query, limit, page, issued_from, issued_to }) {
       const url = new URL(searchBaseUrl);
+      const issuedFromYear = normalizeIssuedYear(issued_from);
+      const issuedToYear = normalizeIssuedYear(issued_to);
 
       url.searchParams.set("keyword", query);
       url.searchParams.set("size", String(limit));
       url.searchParams.set("from", String((page - 1) * limit));
+      if (issuedFromYear || issuedToYear) {
+        url.searchParams.set(
+          "r-tempo",
+          `${issuedFromYear ?? "0000"},${issuedToYear ?? "9999"}`
+        );
+      }
 
       return mapJapanSearchSearchResponse(await fetchJson(url.toString()));
     },
@@ -43,4 +60,3 @@ export function createJapanSearchAdapter(
     }
   };
 }
-

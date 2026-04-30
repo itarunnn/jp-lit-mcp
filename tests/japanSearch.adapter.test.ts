@@ -227,4 +227,35 @@ describe("createJapanSearchAdapter", () => {
     expect(searchResult.items[0]?.source).toBe("japan_search");
     expect(record?.source).toBe("japan_search");
   });
+
+  it("issued_from / issued_to を r-tempo に変換する", async () => {
+    const searchFixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get() {
+          return "application/json; charset=utf-8";
+        }
+      },
+      json: async () => searchFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createJapanSearchAdapter } = await import(
+      "../src/sources/japanSearch/adapter.js"
+    );
+    const adapter = createJapanSearchAdapter();
+
+    await adapter.search({
+      query: "夏目漱石",
+      limit: 5,
+      page: 1,
+      issued_from: "1900",
+      issued_to: "1945-12-31"
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+
+    expect(searchUrl.searchParams.get("r-tempo")).toBe("1900,1945");
+  });
 });

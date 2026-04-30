@@ -327,7 +327,7 @@ sort 対応状況:
 - `ndl_*`: 対応
 - `cinii_articles` / `cinii_books`: `issued_date` のみ対応
 - `jstage_articles`: 未対応
-- `japan_search`: 未対応
+- `japan_search`: `r-tempo=開始年,終了年` に変換（年単位）
 - `irdb`: 未対応
 - `jdcat`: 未対応
 - `nihu_bridge`: 未対応
@@ -343,7 +343,8 @@ issued_from / issued_to 対応状況:
 - `jstage_articles`: `pubyearfrom` / `pubyearto` パラメータに変換
 - `kokkai_minutes` / `teikoku_minutes`: `from` / `until` パラメータに変換（年だけ渡した場合は `YYYY-01-01` / `YYYY-12-31` に補完）
 - `nihu_bridge`: `filters.nihu_bridge.period_from` / `period_to` が無い場合のみ共通日時範囲を自動マッピング
-- `irdb` / `japan_search` / `jdcat`: 現時点では未対応
+- `japan_search`: WebAPI の `r-tempo=開始年,終了年` に変換（先頭 4 桁の年だけ使用）
+- `irdb` / `jdcat`: 現時点では未対応
 
 ### jp_lit_search_guides_manuals
 
@@ -657,7 +658,8 @@ npm run smoke:mcp:live-matrix
 - `irdb` は既定横断検索に含めていません。紀要・学位論文・報告書などが広く混ざるため、まずは `source=irdb` 指定専用です。
 - `irdb` の上流 `count` は `20 / 50 / 100` だけ有効です。adapter 側で `limit` を補正しています。
 - `irdb` の detail は IRDB 詳細画面 HTML を使います。原機関側 `URI` は `source_metadata.source_uri` に保持します。
-- `issued_from` / `issued_to` は `irdb` / `japan_search` / `jdcat` では未対応です。指定しても現時点では検索条件に反映されません。
+- `issued_from` / `issued_to` は `irdb` / `jdcat` では未対応です。指定しても現時点では検索条件に反映されません。
+- `japan_search` の `issued_from` / `issued_to` は WebAPI の `r-tempo` 仕様に合わせて年単位へ丸めます。月日を渡しても先頭 4 桁の年だけ使用します。
 - `jdcat` は既定横断検索に含めていません。研究データカタログであり、論文・図書の既定横断に混ぜない設計です。
 - `filters.jdcat` の各フィールドは JDCat（WEKO3）の非公式 API パラメータに依存しています。WEKO3 バージョンアップでフィールド名が変わる可能性があります。
 - `jdcat` は当初想定の HTML parser ではなく、公開 JSON API `/api/records/` と `/api/records/{id}` を使っています。
