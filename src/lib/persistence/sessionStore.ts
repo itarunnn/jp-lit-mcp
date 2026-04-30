@@ -1,4 +1,11 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile
+} from "node:fs/promises";
 import path from "node:path";
 
 import { getSessionsRoot } from "./paths.js";
@@ -11,6 +18,8 @@ import type {
 export interface SessionStore {
   appendEntry(entry: SessionEntry): Promise<SessionDocument>;
   annotateEntry(input: SessionAnnotationInput): Promise<SessionDocument>;
+  listAll(): Promise<SessionDocument[]>;
+  readById(sessionId: string): Promise<SessionDocument>;
   readCurrent(): Promise<SessionDocument>;
 }
 
@@ -50,10 +59,51 @@ function archiveSessionPath(baseDir: string, sessionId: string) {
 
 async function writeSessionFile(target: string, value: SessionDocument) {
   const temp = `${target}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
+  const backup = `${target}.${process.pid}.${Date.now()}.bak`;
 
-  await writeFile(temp, JSON.stringify(value, null, 2), "utf8");
-  await rm(target, { force: true });
-  await rename(temp, target);
+  try {
+    await writeFile(temp, JSON.stringify(value, null, 2), "utf8");
+
+    try {
+      await rename(temp, target);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EEXIST" && code !== "EPERM") {
+        throw error;
+      }
+    }
+
+    await rename(target, backup);
+
+    try {
+      await rename(temp, target);
+    } catch (error) {
+      try {
+        await rename(backup, target);
+      } catch {
+        // ignore restore failure and rethrow original write failure
+      }
+
+      throw error;
+    }
+  } finally {
+    try {
+      await rm(backup, { force: true, recursive: true });
+    } catch {
+      // ignore cleanup failure when backup is already gone or never created
+    }
+    try {
+      await rm(temp, { force: true });
+    } catch {
+      // ignore cleanup failure when temp is already gone or never created
+    }
+  }
+}
+
+async function readSessionFile(target: string) {
+  const text = await readFile(target, "utf8");
+  return JSON.parse(text) as SessionDocument;
 }
 
 export function createSessionStore(baseDir = process.cwd()): SessionStore {
@@ -72,22 +122,56 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
       await ensureDirectory();
 
       try {
-        const text = await readFile(currentSessionPath(baseDir), "utf8");
-        return JSON.parse(text) as SessionDocument;
+        return await readSessionFile(currentSessionPath(baseDir));
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        const currentPath = currentSessionPath(baseDir);
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          const session = createEmptySession();
+          await persist(session);
+          return session;
+        }
+
+        if (error instanceof SyntaxError) {
           try {
-            const brokenPath = `${currentSessionPath(baseDir)}.invalid`;
-            await rename(currentSessionPath(baseDir), brokenPath);
+            const brokenPath = `${currentPath}.invalid`;
+            await rename(currentPath, brokenPath);
           } catch {
             // ignore follow-up failure
           }
+
+          const session = createEmptySession();
+          await persist(session);
+          return session;
         }
 
-        const session = createEmptySession();
-        await persist(session);
-        return session;
+        throw error;
       }
+    },
+
+    async readById(sessionId) {
+      await ensureDirectory();
+      return readSessionFile(archiveSessionPath(baseDir, sessionId));
+    },
+
+    async listAll() {
+      await ensureDirectory();
+
+      const filenames = await readdir(getSessionsRoot(baseDir));
+      const sessions = await Promise.all(
+        filenames
+          .filter((filename) => filename.endsWith(".json") && filename !== "current.json")
+          .map(async (filename) => {
+            try {
+              return await readSessionFile(path.join(getSessionsRoot(baseDir), filename));
+            } catch {
+              return null;
+            }
+          })
+      );
+
+      return sessions
+        .filter((session): session is SessionDocument => session !== null)
+        .sort((left, right) => right.updated_at.localeCompare(left.updated_at));
     },
 
     async appendEntry(entry) {
