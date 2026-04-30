@@ -17,6 +17,15 @@ describe("public skill layout", () => {
     expect(
       existsSync("skills/jp-lit-verification/workflows/pasted-text-verification.md")
     ).toBe(true);
+    expect(
+      existsSync("skills/jp-lit-verification/heuristics/classification-rules.md")
+    ).toBe(true);
+    expect(
+      existsSync("skills/jp-lit-verification/heuristics/extraction-rules.md")
+    ).toBe(true);
+    expect(
+      existsSync("skills/jp-lit-verification/heuristics/source-followup.md")
+    ).toBe(true);
   });
 });
 

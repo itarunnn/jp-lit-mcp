@@ -59,7 +59,7 @@ description: >-
 
 | 深度 | 基準 | 内容 |
 |------|------|------|
-| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 存在確認・初動なら `source=ndl_search`（NDL モード）から始める。1 リクエストで 100 機関以上を横断できる。詳細（所蔵・PDF・nihu_bridge）が必要なら個別 source へ移行する |
+| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 存在確認・初動なら `source=ndl_search`（NDL モード）から始める。1 リクエストで 100 機関以上を横断できる。詳細（所蔵・PDF・nihu_bridge）が必要なら個別 source へ移行する。確認は 1 問まで |
 | `standard` | 「調べて」「探して」（明示なし） | source別検索・表記ゆれ展開 → 結果を見て query / source を更新 → 選別済み候補の getRecord → 報告 |
 | `deep` | 「網羅的に」「論文・発表用に」「本気で」 | リサーチナビ確認→段階的に複数 source→全文→ページ特定→必要なら図版や所蔵まで追う |
 
@@ -67,7 +67,7 @@ description: >-
 
 ## Step 2.5: 調査前情報収集（standard / deep のみ）
 
-quick では行わない。
+quick では行わない。`bibliography_lookup` の standard では原則省略（初出調査のみ例外）。
 
 詳細は [heuristics/advisory-consultation.md](heuristics/advisory-consultation.md) に従う。要点:
 
