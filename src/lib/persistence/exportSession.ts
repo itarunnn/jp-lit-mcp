@@ -9,7 +9,7 @@ export interface SessionExporter {
   exportSession(input: {
     session: SessionDocument;
     format: "markdown" | "json";
-    profile: "full_log" | "selected_only" | "confirmed_only";
+    profile: "full_log" | "selected" | "unselected";
     outputPath?: string;
     includeUnselected: boolean;
   }): Promise<{ path: string; itemCount: number }>;
@@ -83,7 +83,7 @@ function renderUnselectedItem(item: Record<string, unknown>) {
 
 function renderMarkdown(
   session: SessionDocument,
-  profile: "full_log" | "selected_only" | "confirmed_only",
+  profile: "full_log" | "selected" | "unselected",
   includeUnselected: boolean,
   unresolvedItems: Map<string, Array<Record<string, unknown>>>
 ) {
@@ -105,10 +105,9 @@ function renderMarkdown(
     lines.push("```");
     lines.push("");
 
-    const selectedItems =
-      profile === "confirmed_only"
-        ? entry.selected_items.filter((item) => item.label === "confirmed")
-        : entry.selected_items;
+    const selectedItems = profile === "selected" || profile === "full_log"
+      ? entry.selected_items
+      : [];
 
     if (selectedItems.length > 0) {
       lines.push("### Selected Items");
@@ -134,7 +133,7 @@ function renderMarkdown(
       lines.push("");
     }
 
-    if (profile === "full_log" && includeUnselected) {
+    if ((profile === "full_log" && includeUnselected) || profile === "unselected") {
       const unselectedItems = filterUnselectedItems(
         unresolvedItems.get(entry.cache_key) ?? [],
         entry.selected_items
@@ -160,10 +159,10 @@ function renderMarkdown(
 
 function filterSelectedItems(
   entry: SessionDocument["entries"][number],
-  profile: "full_log" | "selected_only" | "confirmed_only"
+  profile: "full_log" | "selected" | "unselected"
 ) {
-  if (profile === "confirmed_only") {
-    return entry.selected_items.filter((item) => item.label === "confirmed");
+  if (profile === "unselected") {
+    return [];
   }
 
   return entry.selected_items;
@@ -180,7 +179,7 @@ export function createSessionExporter(
 
       await mkdir(path.dirname(target), { recursive: true });
 
-      if (profile === "full_log" && includeUnselected) {
+      if (profile === "full_log" && includeUnselected || profile === "unselected") {
         for (const entry of session.entries) {
           const envelope = await cache.read<unknown>(entry.result_ref.tool, entry.result_ref.cache_key);
           unresolvedItems.set(entry.cache_key, extractUnselectedItems(envelope));
@@ -189,7 +188,7 @@ export function createSessionExporter(
 
       const itemCount = session.entries.reduce((sum, entry) => {
         const selectedCount = filterSelectedItems(entry, profile).length;
-        const unselectedCount = profile === "full_log" && includeUnselected
+        const unselectedCount = (profile === "full_log" && includeUnselected) || profile === "unselected"
           ? filterUnselectedItems(
               unresolvedItems.get(entry.cache_key) ?? [],
               entry.selected_items
@@ -208,7 +207,7 @@ export function createSessionExporter(
               selected_items: filterSelectedItems(entry, profile)
             };
 
-            if (profile === "full_log" && includeUnselected) {
+            if ((profile === "full_log" && includeUnselected) || profile === "unselected") {
               return {
                 ...baseEntry,
                 unselected_items: filterUnselectedItems(

@@ -271,10 +271,10 @@ jp_lit_annotate_session(tool="jp_lit_search", cache_key="...", selected_items=[.
 jp_lit_export_session(format="markdown", profile="full_log", include_unselected=true)
 
 # 採用候補だけを書き出す
-jp_lit_export_session(format="markdown", profile="selected_only")
+jp_lit_export_session(format="markdown", profile="selected")
 
-# confirmed だけを書き出す
-jp_lit_export_session(format="json", profile="confirmed_only")
+# 候補から外したものだけを書き出す
+jp_lit_export_session(format="json", profile="unselected")
 ```
 
 `jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`jp_lit_export_session` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
@@ -283,10 +283,10 @@ jp_lit_export_session(format="json", profile="confirmed_only")
 
 - `full_log`
   - セッション全体。未選別候補も必要に応じて含める
-- `selected_only`
+- `selected`
   - ラベル付けした候補だけを出す
-- `confirmed_only`
-  - `confirmed` ラベルだけを出す
+- `unselected`
+  - 候補に残さなかった項目だけを出す
 
 Skill 併用時は、エージェントがこれらを調査の締めくくりに自動的に使います。
 

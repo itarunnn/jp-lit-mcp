@@ -211,7 +211,7 @@ describe("jp_lit_export_session", () => {
     expect(written.entries[0]?.unselected_items[0]?.title).toBe("bar");
   });
 
-  it("writes markdown export with selected_only profile", async () => {
+  it("writes markdown export with selected profile", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
@@ -309,7 +309,7 @@ describe("jp_lit_export_session", () => {
     await tool({
       format: "markdown",
       output_path: exportPath,
-      profile: "selected_only",
+      profile: "selected",
       include_unselected: true
     });
 
@@ -321,12 +321,104 @@ describe("jp_lit_export_session", () => {
     expect(written).not.toContain("unselected item");
   });
 
-  it("writes json export with confirmed_only profile", async () => {
+  it("writes json export with unselected profile", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const exporter = createSessionExporter(cache, baseDir);
     const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-d",
+      saved_at: new Date().toISOString(),
+      input: { query: "qux" },
+      structured_content: {
+        query: "qux",
+        source: null,
+        page: 1,
+        limit: 3,
+        total: 3,
+        items: [
+          {
+            source: "ndl_catalog",
+            source_id: "111",
+            title: "confirmed item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: false,
+              digital_collection: false
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          },
+          {
+            source: "ndl_digital",
+            source_id: "222",
+            title: "candidate item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: false,
+              digital_collection: true
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          },
+          {
+            source: "jstage_articles",
+            source_id: "333",
+            title: "unselected item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: true,
+              digital_collection: false
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          }
+        ]
+      }
+    });
 
     await sessions.appendEntry({
       tool: "jp_lit_search",
@@ -355,20 +447,20 @@ describe("jp_lit_export_session", () => {
       notes: []
     });
 
-    const exportPath = path.join(baseDir, "exports", "confirmed-only.json");
+    const exportPath = path.join(baseDir, "exports", "unselected-only.json");
     await tool({
       format: "json",
       output_path: exportPath,
-      profile: "confirmed_only",
+      profile: "unselected",
       include_unselected: true
     });
 
     const written = JSON.parse(await readFile(exportPath, "utf8")) as {
-      entries: Array<{ selected_items: Array<{ title: string; label: string }> }>;
+      entries: Array<{ selected_items: Array<{ title: string; label: string }>; unselected_items?: Array<{ title: string }> }>;
     };
 
-    expect(written.entries[0]?.selected_items).toHaveLength(1);
-    expect(written.entries[0]?.selected_items[0]?.title).toBe("confirmed item");
-    expect(written.entries[0]?.selected_items[0]?.label).toBe("confirmed");
+    expect(written.entries[0]?.selected_items).toHaveLength(0);
+    expect(written.entries[0]?.unselected_items).toHaveLength(1);
+    expect(written.entries[0]?.unselected_items?.[0]?.title).toBe("unselected item");
   });
 });

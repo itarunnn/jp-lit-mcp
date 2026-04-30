@@ -140,10 +140,10 @@
 
 - `full_log`
   - 現行に近い。selected / unselected / notes を含む
-- `selected_only`
-  - `selected_items` だけを出す
-- `confirmed_only`
-  - `selected_items.label === confirmed` だけを出す
+- `selected`
+  - `selected_items` 全体を出す
+- `unselected`
+  - 候補に残さなかった項目だけを出す
 - `candidate_review`
   - `strong_candidate` / `weak_candidate` を中心に出す
 - `negative_searches`
@@ -151,7 +151,7 @@
 - `verification_table`
   - `jp-lit-verification` 用の判定表ビュー
 
-第一段階では `full_log` / `selected_only` / `confirmed_only` を優先し、残りは第2弾候補とする。
+第一段階では `full_log` / `selected` / `unselected` を優先し、残りは第2弾候補とする。
 
 ##### 2. 出力形式の拡張
 
@@ -177,9 +177,9 @@ profile と format の相性は分ける。
 
 - `full_log`
   - `markdown` / `json`
-- `selected_only`
+- `selected`
   - `markdown` / `json` / `csv`
-- `confirmed_only`
+- `unselected`
   - `markdown` / `json` / `csv`
 - `candidate_review`
   - `markdown` / `json` / `csv`
@@ -221,7 +221,7 @@ export 拡充は、できるだけ既存構造から導出する。
 
 このため、**新しい永続保存層は不要**。
 
-ただし `confirmed_only` や `candidate_review` をやりやすくするために、将来的に session entry へ軽いメタデータを足す余地はある。
+ただし `unselected` や `candidate_review` をやりやすくするために、将来的に session entry へ軽いメタデータを足す余地はある。
 例:
 
 - `entry_summary`
@@ -235,16 +235,16 @@ export 拡充は、できるだけ既存構造から導出する。
 1. `export profile` の設計
    - input schema の拡張
    - output schema の整合
-2. `full_log` / `selected_only` / `confirmed_only` を実装
+2. `full_log` / `selected` / `unselected` を実装
 3. Markdown / JSON の profile 別レンダリング
-4. `selected_only` / `confirmed_only` に限定して CSV を追加するか判断
+4. `selected` / `unselected` に限定して CSV を追加するか判断
 5. README / usage guide に export 例を追記
 6. `candidate_review` / `negative_searches` / `verification_table` は次段階で検討
 
 #### テスト方針
 
-- `confirmed_only` で confirmed 以外が落ちること
-- `selected_only` で unselected が除かれること
+- `selected` で unselected が除かれること
+- `unselected` で selected が除かれること
 - `full_log` は現行互換を保つこと
 - CSV 追加時は列順と escaping を固定すること
 - verification 用 profile を入れる場合、判定理由が欠落しないこと
