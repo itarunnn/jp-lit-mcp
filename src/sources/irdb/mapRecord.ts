@@ -7,7 +7,7 @@ type MetaMap = Map<string, string[]>;
 function decodeHtmlEntities(value: string): string {
   return value
     .replace(/&quot;/g, "\"")
-    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#0*39;|&apos;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&");
