@@ -20,7 +20,7 @@ description: >-
 
 ## 原則: 計画を立てて確認してから検索する
 
-**検索前に調査計画をユーザーに提示し、確認を取ること。MCP ツールを呼ぶのは確認後のみ。**
+**検索前に調査計画をユーザーに提示し、確認を取ること。検索 MCP（`jp_lit_search` / `jp_lit_get_record` 等）は確認後のみ呼ぶ。調査前情報収集（`jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / WebFetch）は計画生成のために確認前に呼んでよい。**
 
 
 このスキルの基本動作は次のとおり。
@@ -55,19 +55,16 @@ description: >-
 
 ---
 
-## Step 2: 検索深度を決める
+## Step 2: 調査前情報収集（intent に応じて）
 
-| 深度 | 基準 | 内容 |
-|------|------|------|
-| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 存在確認・初動なら `source=ndl_search`（NDL モード）から始める。1 リクエストで 100 機関以上を横断できる。詳細（所蔵・PDF・nihu_bridge）が必要なら個別 source へ移行する。確認は 1 問まで |
-| `standard` | 「調べて」「探して」（明示なし） | source別検索・表記ゆれ展開 → 結果を見て query / source を更新 → 選別済み候補の getRecord → 報告 |
-| `deep` | 「網羅的に」「論文・発表用に」「本気で」 | リサーチナビ確認→段階的に複数 source→全文→ページ特定→必要なら図版や所蔵まで追う |
-
----
-
-## Step 2.5: 調査前情報収集（standard / deep のみ）
-
-quick では行わない。`bibliography_lookup` の standard では原則省略（初出調査のみ例外）。
+| intent | 実行条件 |
+|--------|---------|
+| `research_guide` | 常に実行 |
+| `topic_literature_review` | 原則実行（書誌が明確な場合は省略可）|
+| `historical_term_search` | 用語・時代・異体字が複雑な場合に実行 |
+| `bibliography_lookup` | 初出調査のみ実行。通常の所蔵・書誌確認は省略 |
+| `fulltext_page_lookup` | 省略 |
+| `image_illustration_search` | 美術・文化財・地域資料の場合のみ実行 |
 
 詳細は [heuristics/advisory-consultation.md](heuristics/advisory-consultation.md) に従う。要点:
 
@@ -83,10 +80,11 @@ quick では行わない。`bibliography_lookup` の standard では原則省略
 
 | 目的 | 優先 source |
 |------|------------|
-| 存在確認・初動調査（広域） | `ndl_search`（100 機関以上・1 リクエスト・quick 向き）|
+| 存在確認・初動調査（広域） | `ndl_search`（100 機関以上・1 リクエスト。詳細が必要なら個別 source へ移行）|
 | 近代以降の図書・雑誌（詳細） | `ndl_catalog` → `ndl_digital` → `cinii_books` |
 | 論文・紀要 | `cinii_articles` → `jstage_articles` → `ndl_articles` → `irdb` |
-| 古い雑誌記事 | `ndl_articles` → `ndl_digital` |
+| 雑誌記事（全般） | `ndl_articles`（近代以降の雑誌記事索引全体）|
+| 雑誌記事の本文（デジタル化済みの古い資料） | `ndl_digital`（インターネット公開はおおむね1950年代以前が中心。戦後以降は `cinii_articles` / `jstage_articles` のPDFリンクを先に確認）|
 | 本文中の語を探す | `jp_lit_search_fulltext` → `jp_lit_search_pages` |
 | 図版・挿絵 | `jp_lit_search_illustrations` → `japan_search` |
 | 所蔵確認 | `ndl_catalog` → `cinii_books`（holdings） |
@@ -113,8 +111,7 @@ quick では行わない。`bibliography_lookup` の standard では原則省略
 
 検索を開始する前に調査計画を提示し、ユーザーの確認を取る。詳細は [heuristics/clarifying-questions.md](heuristics/clarifying-questions.md) を参照。
 
-- **quick**: 1 行で計画を示す。「まず〇〇 source で検索します。よいですか？」
-- **standard / deep**: 使う source・検索語の展開・理由を提示し、ユーザーが方針を調整できる余地を作る
+使う source・検索語の展開・理由を提示し、ユーザーが方針を調整できる余地を作る。ユーザーが「もっと広く」「まずざっくりで」と応じた場合は source を増減して計画を更新する。
 
 提示例:
 ```
@@ -129,7 +126,9 @@ quick では行わない。`bibliography_lookup` の standard では原則省略
 よろしければ検索を開始します。追加・変更があればお知らせください。
 ```
 
-ユーザーが「進めて」「そのままで」などと応じた場合はそのまま実行する。`quick` でも、曖昧なら最小限の確認を優先する。
+scope が小さい依頼（単一の書誌確認など）は 1 行で示してもよい: 「まず ndl_catalog で「○○」を確認します。よいですか？」
+
+ユーザーが「進めて」「そのままで」などと応じた場合はそのまま実行する。
 
 各 DB の特性・選択理由は [heuristics/db-characteristics.md](heuristics/db-characteristics.md) を参照。
 方針提示時、またはユーザーに「なぜそのDBか」と問われたときは、そのDBの特性を具体的に説明する。
@@ -142,7 +141,7 @@ quick では行わない。`bibliography_lookup` の standard では原則省略
 - `research_guide` intent では、必要に応じて先に `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` を使い、そこで得た語・参考資料・探索手順を実検索へつなぐ。
 - `jp_lit_search` → 候補がなければ `jp_lit_search_fulltext` → ページ特定は `jp_lit_search_pages` → OCR確認は `jp_lit_get_text_coordinates`
 - `ndl_digital` で `jp_lit_get_record` を呼ぶ際、`source_metadata.next_digital_library.available` を確認してから OCR 系ツールを使う。
-- **ページネーション:** `jp_lit_search` は1回最大100件。レスポンスの `total` が取得件数を超える場合、`page=2, 3...` と追加取得できる。deep 調査では各 source 最大200件程度まで取得を検討する。結果報告には必ず「全N件中M件取得」を明記すること。
+- **ページネーション:** `jp_lit_search` は1回最大100件。レスポンスの `total` が取得件数を超える場合、`page=2, 3...` と追加取得できる。網羅的な調査では各 source 最大200件程度まで取得を検討する。結果報告には必ず「全N件中M件取得」を明記すること。
 - **ラウンドロビン（source 未指定）のページネーション制限:** source 未指定の横断検索は `page=1` のみ対応。`total` が取得件数を超えていても続きは取得できない。ユーザーに「続きを見るには source を指定して再検索してください（例: `source=ndl_catalog`）」と案内すること。
 
 ### 検索後の分岐

@@ -43,7 +43,7 @@ LLM                      = 結果の統合と説明
 ### 2. 調査前情報収集を行う
 
 [heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) の手順に従う。
-`research_guide` intent では deep 相当の情報収集を行う（quick でも省略しない）。
+`research_guide` intent では常に調査前情報収集を行う。
 
 - レファ協（`jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`）で類似事例・マニュアルを確認
 - ドメインに対応するリサーチ・ナビ URL を WebFetch

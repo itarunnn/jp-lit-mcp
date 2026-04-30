@@ -19,17 +19,14 @@
 
 ## いつ使うか
 
-| intent | quick | standard | deep |
-|--------|-------|----------|------|
-| `research_guide` | 実行する | 実行する | 実行する |
-| `topic_literature_review` | 省略 | 実行する | 実行する |
-| `historical_term_search` | 省略 | 条件付き | 実行する |
-| `bibliography_lookup` | 省略 | 原則省略 | 初出調査時のみ |
-| `fulltext_page_lookup` | 省略 | 原則省略 | 原則省略 |
-| `image_illustration_search` | 省略 | 原則省略 | 分野によって条件付き |
-
-`historical_term_search` で使うのは、近代以前・旧字・別称・初出調査のように、一般的な検索語だけでは不足しそうな場合。
-`image_illustration_search` で使うのは、美術・文化財・地域資料でリサーチ・ナビの分野案内が有効な場合に限る。
+| intent | 実行条件 |
+|--------|---------|
+| `research_guide` | 常に実行 |
+| `topic_literature_review` | 原則実行（書誌が明確な場合は省略可）|
+| `historical_term_search` | 近代以前・旧字・別称・初出調査など、検索語の展開が必要な場合 |
+| `bibliography_lookup` | 初出調査のみ実行。通常の所蔵・書誌確認は省略 |
+| `fulltext_page_lookup` | 省略 |
+| `image_illustration_search` | 美術・文化財・地域資料の場合のみ実行 |
 
 ---
 

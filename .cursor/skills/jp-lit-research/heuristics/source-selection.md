@@ -31,7 +31,7 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 / cinii_articles / cinii_books / jstage_articles / nihu_bridge
 ```
 
-**使う場面:** standard / deep 調査。所蔵確認・PDF 取得・nihu_bridge での人文専門 DB 横断が必要なとき。
+**使う場面:** 詳細調査や所蔵確認・PDF 取得・nihu_bridge での人文専門 DB 横断が必要なとき。
 
 ---
 
@@ -45,7 +45,7 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 
 ## テーマのドメイン判定と推奨 source
 
-standard / deep では、テーマのドメインを判定して使う source を決める。
+テーマのドメインを判定して使う source を決める。
 判定結果は Step 5（検索方針提示）でユーザーに示すこと。
 
 | ドメイン | 判定の手がかり | 積極的に使う source |

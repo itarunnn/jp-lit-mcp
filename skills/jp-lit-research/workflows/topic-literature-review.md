@@ -9,82 +9,73 @@
 
 ---
 
-## 検索深度別フロー
+## フロー
 
-### quick（概要把握・書誌詳細なし）
+### Step 1: 調査前情報収集（必要な場合）
+
+advisory-consultation.md を参照。以下のいずれかに該当する場合に実行する:
+- テーマが人文専門寄り・資料種別が曖昧・関連語展開が重要
+- 表記ゆれが疑われる（→ [historical-term-search.md](historical-term-search.md) も参照）
+
+### Step 2: 調査計画を提示してユーザーと確認する
+
+ドメイン・資料種別に基づき、初手の source セットを提示する。
+ユーザーの返答に応じて source を増減し、確認後に検索を開始する。
+
+**初手の推奨 source（調整の出発点）:**
+- 論文: cinii_articles / jstage_articles / ndl_articles
+- 図書: ndl_catalog / cinii_books
+- リポジトリ（紀要・学位論文）: irdb（必要に応じて提案）
+
+**「もっと広く」「網羅的に」とユーザーが言ったら追加で提案する:**
+- nihu_bridge（人文専門 DB 横断：国文研・国民博など 100+ DB）
+- jp_lit_search_fulltext（全文横断）
+- jdcat（研究データ）
+- kokkai_minutes / teikoku_minutes（会議録。法令・議会資料が必要な場合）
+
+**「ざっくりでいい」「まず概要だけ」とユーザーが言ったら:**
+- `jp_lit_search(source=ndl_search)` から始める（NDL モード：100 機関以上を 1 リクエストで横断）
+- getRecord は呼ばず、SearchItem のメタデータのみで報告する
+- 所蔵・PDF リンク・nihu_bridge が必要になったら個別 source へ移行する
+
+### Step 3: 確認後に検索実行
+
+提案した source を順番に検索する。
 
 ```
-# 1. NDL モード（広域・1リクエスト）
-jp_lit_search(source=ndl_search, query=テーマ)
-
-# 2. LLM が候補を選別してユーザーに提示
-→ getRecord は呼ばない。SearchItem のメタデータのみで報告
-```
-
-NDL モードのカバー範囲: NDL 系 4 source ＋ CiNii / J-STAGE / IRDB（ハーベスト済み・情報は薄め）＋ 地方アーカイブ・青空文庫・JPRO 等 100 機関以上。nihu_bridge は対象外。
-所蔵・PDF リンク・nihu_bridge が必要になったら standard へ移行する。
-
-### standard（source別に丁寧に）
-
-```
-# 0. 調査前情報収集（必要な場合のみ）
-advisory-consultation.md を参照
-→ `keyword_candidates` / `source_candidates` / `suggested_sequence` を作る
-→ 検索前に調査計画を提示して確認を取る
-
-# 1. source 別に検索
 jp_lit_search(source=cinii_articles, query=テーマ, limit=20)
 jp_lit_search(source=jstage_articles, query=テーマ, limit=20)
 jp_lit_search(source=ndl_articles, query=テーマ, limit=20)
 jp_lit_search(source=ndl_catalog, query=テーマ, limit=20)
 jp_lit_search(source=cinii_books, query=テーマ, limit=20)
-jp_lit_search(source=irdb, query=テーマ, limit=20)
-
-# 2. LLM が候補を絞る（関連性・重複除去・信頼性で選別）
-→ ユーザーに見せる候補を10〜20件程度に絞る
-
-# 3. 絞った候補だけ書誌詳細を取得
-jp_lit_get_record(source=..., source_id=...) × 候補件数分
 ```
 
-調査前情報収集を強く使うのは、分野選択・資料種別・関連語展開が重要なテーマ文献探索。表記ゆれが疑われる場合は [historical-term-search.md](historical-term-search.md) を先に実施。
+### Step 4: 候補を選別
 
-### deep（網羅的）
+- 重複を除く（同一論文が複数 source にヒットする場合がある）
+- 関連性・査読有無・出版年で評価
+- 絞った候補の書誌詳細を取得
+  ```
+  jp_lit_get_record(source=..., source_id=...) × 候補件数分
+  ```
 
+### Step 5: 深掘り（必要な場合）
+
+有力な一次資料が見つかった場合、全文・ページ特定まで追うか確認する:
 ```
-# 0. 調査前情報収集
-advisory-consultation.md を参照
-→ `keyword_candidates` / `source_candidates` / `suggested_sequence` を作る
-→ 検索前に調査計画を提示して確認を取る
-
-# 1. standard と同じ source 別検索（limit を大きめに）
-# 2. 追加 source
 jp_lit_search_fulltext(keyword=テーマ)        ← 全文横断
-jp_lit_search(source=nihu_bridge, query=テーマ) ← 人文専門DB
-jp_lit_search(source=jdcat, query=テーマ)      ← 研究データ
-jp_lit_search(source=kokkai_minutes, query=テーマ) ← 必要な場合
-jp_lit_search(source=teikoku_minutes, query=テーマ) ← 必要な場合
-
-# 3. LLM が候補を選別（基準は甘め：迷ったら残す）
-→ 関連性が低いと断言できるものだけ除外
-→ 有力・弱い候補も落とさず「有力候補」枠に残す
-
-# 4. 選別済み候補の getRecord
-jp_lit_get_record(source=..., source_id=...) × 候補件数分
-
-# 5. 重要な一次資料はページ特定まで
-jp_lit_search_pages(pid=..., keyword=テーマ)
+jp_lit_search_pages(pid=..., keyword=...)    ← ページ特定
 ```
 
-deep では advisory を原則実行する。standard では、テーマが人文専門寄り・資料種別が曖昧・関連語展開が重要、のいずれかに当てはまる場合に実行する。
+### Step 6: 選別過程を明示して報告
 
-「見つからない」場合は [failure-modes.md](../heuristics/failure-modes.md) へ。
-
-**選別過程の記述（deep では特に詳しく）:**
+**選別過程は必ず明記する（特に source が多い場合）:**
 - source ごとの取得件数・ヒット件数
-- 採用・除外の判断とその根拠を1件ずつ明記
+- 採用・除外の判断とその根拠
 - 迷った候補は「有力候補」として残し、迷った理由も記載
 - 除外したものは除外リストとして別掲
+
+「見つからない」場合は [failure-modes.md](../heuristics/failure-modes.md) へ。
 
 ---
 

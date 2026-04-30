@@ -47,7 +47,9 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - `jp-lit-research` Skill は同梱済み（Claude Code / Codex / Cursor 対応）
   - 起動語「文献DBで」「文献DBを始めます」で発火。一度発火したらセッション中継続
   - 全モードで調査計画を提示してユーザーの確認を取ってから実行する（plan-first）
-  - standard / deep では CRD（レファ協）と NDL リサーチ・ナビを参照してアドバイスを提示する
+  - 調査前情報収集（CRD・NDL リサーチ・ナビ）は intent に応じて計画生成前に実行し、結果を計画に反映する
+  - source の選択は語尾ベースの深度判定ではなく、計画確認の対話を通じてユーザーと決める設計
+  - 検索 MCP（`jp_lit_search` / `jp_lit_get_record` 等）はユーザー確認後のみ実行
   - 全報告テンプレートに source（DB名）を付記
   - `jp_lit_search` の description にユーザーの自然言語表現→source の読み替えを追記
 - `jp-lit-verification` Skill は同梱済み
@@ -62,7 +64,6 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 - GitHub リポジトリ作成・リモート登録・push（ローカルのみ）
 - ブランチ名 `master` → `main` への改名
-- `jp-lit-research` Skill の深度判定を語尾ベースから対話ベースへ変更（quick/standard/deep の区別をなくし、対話で source を決める設計）
 - `docs/usage-guide.md` の `ndl_search` source 説明を「初動・存在確認向き」に更新
 - 公開文面（README・install docs）の最終確認
 
