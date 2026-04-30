@@ -143,6 +143,7 @@ quick では行わない。`bibliography_lookup` の standard では原則省略
 - `jp_lit_search` → 候補がなければ `jp_lit_search_fulltext` → ページ特定は `jp_lit_search_pages` → OCR確認は `jp_lit_get_text_coordinates`
 - `ndl_digital` で `jp_lit_get_record` を呼ぶ際、`source_metadata.next_digital_library.available` を確認してから OCR 系ツールを使う。
 - **ページネーション:** `jp_lit_search` は1回最大100件。レスポンスの `total` が取得件数を超える場合、`page=2, 3...` と追加取得できる。deep 調査では各 source 最大200件程度まで取得を検討する。結果報告には必ず「全N件中M件取得」を明記すること。
+- **ラウンドロビン（source 未指定）のページネーション制限:** source 未指定の横断検索は `page=1` のみ対応。`total` が取得件数を超えていても続きは取得できない。ユーザーに「続きを見るには source を指定して再検索してください（例: `source=ndl_catalog`）」と案内すること。
 
 ### 検索後の分岐
 
