@@ -38,6 +38,8 @@ export interface SearchParams {
   page: number;
   sort_by?: "title" | "creator" | "issued_date" | "created_date" | "modified_date";
   sort_order?: "asc" | "desc";
+  issued_from?: string;
+  issued_to?: string;
   filters?: {
     irdb?: IrdbSearchFilters;
     nihu_bridge?: NihuBridgeSearchFilters;

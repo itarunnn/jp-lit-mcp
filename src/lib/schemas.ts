@@ -147,6 +147,8 @@ export const searchInputSchema = z
       .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
       .optional(),
     sort_order: z.enum(["asc", "desc"]).optional(),
+    issued_from: z.string().optional(),
+    issued_to: z.string().optional(),
     filters: z.object({
       irdb: irdbFiltersSchema.optional(),
       nihu_bridge: nihuBridgeFiltersSchema.optional(),
