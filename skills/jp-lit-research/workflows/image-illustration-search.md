@@ -82,7 +82,7 @@ jp_lit_get_record(source=japan_search, source_id=...)
 - ヒット件数: 
 - 代表的な図版:
   - id: PID_page_index
-  - 資料: タイトル (pid=...)
+  - 資料: タイトル (source=ndl_digital / pid=...)
   - ページ: N ページ
   - 画像 URL: illustration_image_url
   - 図版タグ: graphictags

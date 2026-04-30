@@ -14,18 +14,25 @@
 ### quick（概要把握・書誌詳細なし）
 
 ```
-# 1. 横断検索（source 未指定）
-jp_lit_search(query=テーマ)
+# 1. NDL モード（広域・1リクエスト）
+jp_lit_search(source=ndl_search, query=テーマ)
 
 # 2. LLM が候補を選別してユーザーに提示
 → getRecord は呼ばない。SearchItem のメタデータのみで報告
 ```
 
-横断検索の既定対象: `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` / `cinii_articles` / `cinii_books` / `jstage_articles` / `nihu_bridge`
+NDL モードのカバー範囲: NDL 系 4 source ＋ CiNii / J-STAGE / IRDB（ハーベスト済み・情報は薄め）＋ 地方アーカイブ・青空文庫・JPRO 等 100 機関以上。nihu_bridge は対象外。
+所蔵・PDF リンク・nihu_bridge が必要になったら standard へ移行する。
 
 ### standard（source別に丁寧に）
 
 ```
+# 0. 調査前情報収集（advisory-consultation.md を参照）
+jp_lit_search_guides_manuals(query=テーマ, limit=3)
+jp_lit_search_guides_cases(query=テーマ, limit=3)
+→ ドメインに対応するリサーチ・ナビ URL を WebFetch
+→ 得られたキーワード・DB候補・調査手順を以降の検索に反映
+
 # 1. source 別に検索
 jp_lit_search(source=cinii_articles, query=テーマ, limit=20)
 jp_lit_search(source=jstage_articles, query=テーマ, limit=20)
@@ -46,6 +53,12 @@ jp_lit_get_record(source=..., source_id=...) × 候補件数分
 ### deep（網羅的）
 
 ```
+# 0. 調査前情報収集（advisory-consultation.md を参照）
+jp_lit_search_guides_manuals(query=テーマ, limit=5)
+jp_lit_search_guides_cases(query=テーマ, limit=5)
+→ ドメインに対応するリサーチ・ナビ URL を WebFetch
+→ 得られたキーワード・DB候補・調査手順を以降の検索に反映
+
 # 1. standard と同じ source 別検索（limit を大きめに）
 # 2. 追加 source
 jp_lit_search_fulltext(keyword=テーマ)        ← 全文横断
@@ -106,7 +119,7 @@ jp_lit_search_pages(pid=..., keyword=テーマ)
 【文献リスト】テーマ: 〇〇
 
 ▍確認済み文献（書誌確認済み）
-1. タイトル / 著者 / 掲載誌or出版社 / 出版年 / source_id / URL（あれば）
+1. タイトル / 著者 / 掲載誌or出版社 / 出版年 / source（DB名）/ source_id / URL（あれば）
 2. ...
 
 ▍有力候補（未書誌確認）

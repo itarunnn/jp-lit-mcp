@@ -1,17 +1,43 @@
 # source 選択ルール
 
-## 横断検索の既定対象
+## 横断検索の使い方
 
-`jp_lit_search`（source 未指定）の横断検索対象:
+横断検索には **NDL モード（ndl_search）** と **ラウンドロビンモード（source 未指定）** の 2 つがある。
 
+### NDL モード: `jp_lit_search(source=ndl_search)`
+
+NDL Search に参加する **100 機関以上**を 1 リクエストで横断する。存在確認・初動調査に向く。
+
+カバー範囲（主なもの）:
+- NDL 系: `iss-ndl-opac`（蔵書） / `ndl-dl`（デジコレ） / `zassaku`（雑誌記事索引）
+- `ciniir`（CiNii Research）/ `jstage`（J-STAGE）/ `irdb`（IRDB）
+- 地方公共図書館・大学図書館デジタルアーカイブ（都道府県立・国立大学等）
+- 青空文庫 / JPRO（出版情報）/ WARP / ADEAC など
+
+**制約:**
+- CiNii・J-STAGE・IRDB はハーベスト済みメタデータ → 著者詳細・所蔵・PDF リンクが欠ける
+- `nihu_bridge`（NIHU 独自 API）はカバーしない
+- getRecord 結果は NDL detail API に依存（CiNii / J-STAGE 固有フィールドは取れない）
+
+**使う場面:** 「ざっと存在確認したい」「どのくらいあるか把握したい」「地方アーカイブ・青空文庫も含めて広く見たい」
+
+### ラウンドロビンモード: `jp_lit_search`（source 未指定）
+
+ネイティブ API を持つ source を並列呼び出し（ラウンドロビン）。著者情報・所蔵・PDF リンクなどが充実する。
+
+対象:
 ```
 ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 / cinii_articles / cinii_books / jstage_articles / nihu_bridge
 ```
 
+**使う場面:** standard / deep 調査。所蔵確認・PDF 取得・nihu_bridge での人文専門 DB 横断が必要なとき。
+
+---
+
 以下は横断検索に含まれない（source 指定が必要）:
 - `japan_search` — ポータル系、文化財・美術に特化して使う
-- `irdb` — 機関リポジトリ、論文調査で明示的に追加
+- `irdb` — 機関リポジトリ、論文調査で明示的に追加（NDL モードでも薄いメタデータで含まれる）
 - `jdcat` — 研究データカタログ
 - `kokkai_minutes` / `teikoku_minutes` — 会議録
 
@@ -90,7 +116,7 @@ teikoku_minutes  — 第1〜90回帝国議会（1890〜1947年）
 | source | 制約 |
 |--------|------|
 | `ndl_articles_online` | 検索のみ、getRecord は常に null |
-| `ndl_search` | 広い互換 source（通常は個別 source を推奨）|
+| `ndl_search` | NDL モード。CiNii/J-STAGE はハーベスト済みで情報が薄い。nihu_bridge はカバーしない |
 | `jstage_articles` | sort 未対応、summary 常に null |
 | `irdb` | limit は 20/50/100 のみ有効（adapter が補正）|
 | `jdcat` | detail は JSON API、availability.online は公開保証ではない |

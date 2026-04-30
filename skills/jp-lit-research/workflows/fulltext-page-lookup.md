@@ -82,7 +82,7 @@ jp_lit_get_fulltext(source=ndl_digital, pid=... または source_id=...)
 【全文検索結果】
 - 検索語: 
 - ヒット資料数: 
-- 確認資料: pid=... タイトル=...
+- 確認資料: source=ndl_digital / pid=... / タイトル=...
 
 【ページ特定】
 - ヒットページ: N ページ

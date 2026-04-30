@@ -30,24 +30,14 @@ LLM                      = 結果の統合と説明
 - 時代: 古代 / 中世 / 近世 / 近代 / 現代
 - 資料種別: 論文 / 図書 / 一次資料 / 統計 / 画像
 
-### 2. NDL 系の調べ方案内を確認する
+### 2. 調査前情報収集を行う
 
-現在の jp-lit MCP には、レファ協を直接検索する `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` がある。まずこれらで類似事例や調べ方マニュアルを確認し、その後で実検索に移る。リサーチ・ナビはまだ直接検索 source を持たないため、ブラウザ・WebFetch・別 MCP が使える環境では現行ページを確認する。使えない場合は、以下の既知 URL を「未確認の導線」として扱い、最終典拠ではなく調査計画の手がかりにする。
+[heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) の手順に従う。
+`research_guide` intent では deep 相当の情報収集を行う（quick でも省略しない）。
 
-### 2.1 レファ協を先に確認する
-
-- 「何から調べればよいかわからない」なら `jp_lit_search_guides_manuals`
-- 「似た質問や回答例がありそう」なら `jp_lit_search_guides_cases`
-- ここで見つけた参考資料名、件名、分類語、館名、キーワードを次の `jp_lit_search` 用 query 候補として控える
-
-| テーマ | URL |
-|--------|-----|
-| 人文リンク集（総覧）| https://ndlsearch.ndl.go.jp/rnavi/humanities/ |
-| 雑誌の総目次を探す | https://ndlsearch.ndl.go.jp/rnavi/humanities/post_559 |
-| 文学作品の初出を調べる | https://ndlsearch.ndl.go.jp/rnavi/humanities/post_101094 |
-| 人物文献を探す | https://ndlsearch.ndl.go.jp/rnavi/humanities/post_101121 |
-| 浮世絵の図版を探す | https://ndlsearch.ndl.go.jp/rnavi/humanities/post_697 |
-| 大蔵経を調べる | https://ndlsearch.ndl.go.jp/rnavi/humanities/post_101024 |
+- レファ協（`jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`）で類似事例・マニュアルを確認
+- ドメインに対応するリサーチ・ナビ URL を WebFetch
+- 得られたキーワード・DB候補・調査手順をステップ 3 の分野別シナリオと照合して調査計画を立てる
 
 ### 3. 分野別調査シナリオ
 

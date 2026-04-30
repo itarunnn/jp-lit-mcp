@@ -5,9 +5,10 @@ describe("jp-lit-research skill guide", () => {
   it("treats research as an iterative dialogue loop", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     expect(skill).toContain("対話的な探索ループ");
-    expect(skill).toContain("## 原則: まず小さく試し、結果を見て次を決める");
+    expect(skill).toContain("## 原則: 計画を立てて確認してから検索する");
     expect(skill).toContain("### 検索後の分岐");
     expect(skill).toContain("jp_lit_search_guides_manuals");
     expect(skill).toContain("jp_lit_search_guides_cases");
+    expect(skill).toContain("文献DBで調べて");
   });
 });

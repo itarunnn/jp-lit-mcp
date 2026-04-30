@@ -3,8 +3,9 @@ name: jp-lit-research
 description: >-
   日本語人文社会系文献調査スキル。jp-lit MCP サーバーを使って NDL・CiNii・J-STAGE・IRDB・JDCat・NIHU Bridge・国会会議録などを横断検索し、
   書誌確認・所蔵調査・テーマ文献探索・古語表記ゆれ検索・デジコレ全文OCR・図版検索を行う。
-  「文献を探して」「〇〇について調べて」「この本はどこにある」「古い語で探して」「デジコレで全文検索して」「図版や挿絵を探して」「調べ方がわからない」
-  という依頼で使用する。NDL Search / NDL デジタルコレクション / CiNii / J-STAGE / Japan Search / 次世代デジタルライブラリーに関わる調査すべてに適用する。
+  「文献DBで調べて」「文献DBを始めます」など、文献DB という起動語を明示した文献調査依頼で使用する。
+  一度発火したらセッション中は継続して調査を進める。
+  SKIP: 「調べて」単体・API ドキュメント調査・Web 検索・一般的な質問への説明。
 ---
 
 # 日本語文献調査スキル（jp-lit-research）
@@ -17,17 +18,21 @@ description: >-
 
 ---
 
-## 原則: まず小さく試し、結果を見て次を決める
+## 原則: 計画を立てて確認してから検索する
+
+**検索前に調査計画をユーザーに提示し、確認を取ること。MCP ツールを呼ぶのは確認後のみ。**
+
 
 このスキルの基本動作は次のとおり。
 
 1. 依頼を整理する
 2. 最初の仮説を立てる
-3. 最小限の source / query で試す
-4. 結果を読む
-5. 次の一手を決める
-6. 必要なら query や source を変えて再検索する
-7. 途中経過を整理して返す
+3. 調査計画をユーザーに提示して確認を取る
+4. 最小限の source / query で試す
+5. 結果を読む
+6. 次の一手を決める
+7. 必要なら query や source を変えて再検索する
+8. 途中経過を整理して返す
 
 つまり、このスキルは「最初の query を決める」だけでなく、「検索結果から次の query を作る」「別 source に移る」「深掘りするか打ち切るかを決める」までを担当する。
 
@@ -54,9 +59,21 @@ description: >-
 
 | 深度 | 基準 | 内容 |
 |------|------|------|
-| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 横断検索は既定にせず、1問だけ確認するか、最小 source 1〜2 個から始める |
+| `quick` | 「ちょっと調べて」「ざっと調べて」「参考程度に」 | 存在確認・初動なら `source=ndl_search`（NDL モード）から始める。1 リクエストで 100 機関以上を横断できる。詳細（所蔵・PDF・nihu_bridge）が必要なら個別 source へ移行する |
 | `standard` | 「調べて」「探して」（明示なし） | source別検索・表記ゆれ展開 → 結果を見て query / source を更新 → 選別済み候補の getRecord → 報告 |
 | `deep` | 「網羅的に」「論文・発表用に」「本気で」 | リサーチナビ確認→段階的に複数 source→全文→ページ特定→必要なら図版や所蔵まで追う |
+
+---
+
+## Step 2.5: 調査前情報収集（standard / deep のみ）
+
+quick では行わない。
+
+詳細は [heuristics/advisory-consultation.md](heuristics/advisory-consultation.md) に従う。要点:
+
+1. `jp_lit_search_guides_manuals(query=テーマ, limit=3)` + `jp_lit_search_guides_cases(query=テーマ, limit=3)` でレファ協確認
+2. ドメインに対応するリサーチ・ナビ URL を WebFetch
+3. 得られた DB 候補・検索語・調査手順を Step 3〜5 に反映する
 
 ---
 
@@ -66,13 +83,14 @@ description: >-
 
 | 目的 | 優先 source |
 |------|------------|
-| 近代以降の図書・雑誌 | `ndl_catalog` → `ndl_digital` → `cinii_books` |
+| 存在確認・初動調査（広域） | `ndl_search`（100 機関以上・1 リクエスト・quick 向き）|
+| 近代以降の図書・雑誌（詳細） | `ndl_catalog` → `ndl_digital` → `cinii_books` |
 | 論文・紀要 | `cinii_articles` → `jstage_articles` → `ndl_articles` → `irdb` |
 | 古い雑誌記事 | `ndl_articles` → `ndl_digital` |
 | 本文中の語を探す | `jp_lit_search_fulltext` → `jp_lit_search_pages` |
 | 図版・挿絵 | `jp_lit_search_illustrations` → `japan_search` |
 | 所蔵確認 | `ndl_catalog` → `cinii_books`（holdings） |
-| 人文専門DB横断（詳細） | `nihu_bridge`（横断検索にも含まれる）|
+| 人文専門DB横断（詳細） | `nihu_bridge`（ラウンドロビンモードに含まれる）|
 | 研究データ | `jdcat` |
 | 機関リポジトリ | `irdb` |
 | 会議録 | `kokkai_minutes` / `teikoku_minutes` |
@@ -93,9 +111,9 @@ description: >-
 
 ## Step 5: 検索方針をユーザーに提示する
 
-検索を開始する前に、使う source とその理由をユーザーに伝える。
+検索を開始する前に調査計画を提示し、ユーザーの確認を取る。詳細は [heuristics/clarifying-questions.md](heuristics/clarifying-questions.md) を参照。
 
-- **quick**: いきなり横断検索しない。必要なら 1 問だけ確認するか、「まずは〇〇 source から見ます」と小さく始める
+- **quick**: 1 行で計画を示す。「まず〇〇 source で検索します。よいですか？」
 - **standard / deep**: 使う source・検索語の展開・理由を提示し、ユーザーが方針を調整できる余地を作る
 
 提示例:
@@ -195,6 +213,7 @@ jp_lit_export_session(format="markdown")
 - [workflows/fulltext-page-lookup.md](workflows/fulltext-page-lookup.md) — 全文・ページ特定・OCR
 - [workflows/image-illustration-search.md](workflows/image-illustration-search.md) — 図版・挿絵
 - [workflows/research-guide-lookup.md](workflows/research-guide-lookup.md) — 調べ方を調べる
+- [heuristics/advisory-consultation.md](heuristics/advisory-consultation.md) — 調査前情報収集（CRD・リサーチ・ナビ）
 - [heuristics/source-selection.md](heuristics/source-selection.md) — DB選択ルール詳細
 - [heuristics/query-expansion.md](heuristics/query-expansion.md) — 検索語展開
 - [heuristics/evidence-grading.md](heuristics/evidence-grading.md) — 典拠評価
