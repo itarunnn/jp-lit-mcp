@@ -27,5 +27,7 @@ describe("README public onboarding", () => {
     expect(readme).toContain("jp-lit-verification");
     expect(readme).toContain("文献検証");
     expect(readme).toContain("実在性");
+    expect(readme).toContain("入力例");
+    expect(readme).toContain("出力イメージ");
   });
 });

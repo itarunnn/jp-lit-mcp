@@ -38,7 +38,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-04-30 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 273 件すべて通過
+- 公開ツール 11 種・対応 source 15 種・テスト 279 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
@@ -125,6 +125,23 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - 主出力: 判定表
 - 判定カテゴリ: `実在確認済み` / `部分一致` / `非実在の疑い` / `混線の疑い`
 
+入力例:
+
+```text
+文献検証で、次の文章に出てくる文献の実在性を確認してください。
+
+「田中一郎『近代女学生の生活文化』(日本女性史研究 12号, 1934年) は、
+ 明治後期の制服の変遷を論じた代表的研究である」
+```
+
+出力イメージ:
+
+| 抽出文献 | 検証結果 | 判定理由 |
+|----------|----------|----------|
+| 田中一郎『近代女学生の生活文化』 | 部分一致 | `ndl_search` では題名が近い候補を確認できたが、著者名と掲載誌情報が一致しない。実在文献の取り違え、または複数文献の混線の可能性があるため、この段階では確定しない。 |
+
+この Skill は、他サービスの回答や過去ログをそのまま貼り付けて「実在する文献か」「書誌が混ざっていないか」を監査したいときに向いています。
+
 詳しい使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
 公開前に `source` ごとの API 利用条件や表示要件を確認したい場合は [docs/source-usage-conditions.md](docs/source-usage-conditions.md) を参照してください。
 
@@ -197,7 +214,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-テスト 273 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
+テスト 279 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
 
 ### 検索パラメータ
 

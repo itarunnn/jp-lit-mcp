@@ -25,5 +25,7 @@ describe("install docs", () => {
     const usage = readFileSync("docs/usage-guide.md", "utf8");
     expect(usage).toContain("文献検証");
     expect(usage).toContain("この文章に出てくる文献の実在性");
+    expect(usage).toContain("出力例");
+    expect(usage).toContain("判定理由");
   });
 });
