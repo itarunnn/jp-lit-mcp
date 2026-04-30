@@ -3,7 +3,9 @@
     "allow": [
       "Skill(gsd:resume-work)",
       "mcp__ndl-jp-lit__jp_lit_search",
-      "mcp__ndl-jp-lit__jp_lit_get_record"
+      "mcp__ndl-jp-lit__jp_lit_get_record",
+      "mcp__ndl-jp-lit__jp_lit_search_pages",
+      "mcp__ndl-jp-lit__jp_lit_search_fulltext"
     ]
   }
 }
