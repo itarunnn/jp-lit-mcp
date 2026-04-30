@@ -147,4 +147,63 @@ describe("createJdcatAdapter", () => {
     expect(searchResult.items[0]?.source).toBe("jdcat");
     expect(record?.source).toBe("jdcat");
   });
+
+  it("filters.jdcat の subject/geographic/contributor/title を q に AND 結合する", async () => {
+    const fixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      headers: { get() { return "application/json; charset=utf-8"; } },
+      json: async () => fixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createJdcatAdapter } = await import("../src/sources/jdcat/adapter.js");
+    const adapter = createJdcatAdapter();
+
+    await adapter.search({
+      query: "就業",
+      limit: 10,
+      page: 1,
+      filters: {
+        jdcat: {
+          subject: "労働",
+          geographic: "日本",
+          contributor: "SSJDA",
+          title: "パネル調査"
+        }
+      }
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("q")).toBe(
+      "就業 AND subject:労働 AND geographic:日本 AND contributor:SSJDA AND title:パネル調査"
+    );
+    expect(searchUrl.searchParams.get("temporal")).toBeNull();
+    expect(searchUrl.searchParams.get("creator")).toBeNull();
+  });
+
+  it("filters.jdcat の temporal/creator を独立パラメータとして渡す", async () => {
+    const fixture = readFixture("search-response.json");
+    const fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      headers: { get() { return "application/json; charset=utf-8"; } },
+      json: async () => fixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createJdcatAdapter } = await import("../src/sources/jdcat/adapter.js");
+    const adapter = createJdcatAdapter();
+
+    await adapter.search({
+      query: "就業",
+      limit: 10,
+      page: 1,
+      filters: { jdcat: { temporal: "2007", creator: "リクルートワークス研究所" } }
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("q")).toBe("就業");
+    expect(searchUrl.searchParams.get("temporal")).toBe("2007");
+    expect(searchUrl.searchParams.get("creator")).toBe("リクルートワークス研究所");
+  });
 });

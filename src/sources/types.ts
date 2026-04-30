@@ -23,6 +23,15 @@ export interface NihuBridgeSearchFilters {
   bbox?: { lat1: number; lon1: number; lat2: number; lon2: number };
 }
 
+export interface JdcatSearchFilters {
+  subject?: string;
+  geographic?: string;
+  contributor?: string;
+  title?: string;
+  temporal?: string;
+  creator?: string;
+}
+
 export interface SearchParams {
   query: string;
   limit: number;
@@ -32,6 +41,7 @@ export interface SearchParams {
   filters?: {
     irdb?: IrdbSearchFilters;
     nihu_bridge?: NihuBridgeSearchFilters;
+    jdcat?: JdcatSearchFilters;
   };
 }
 

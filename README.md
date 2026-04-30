@@ -38,13 +38,16 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-04-30 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 288 件すべて通過
+- 公開ツール 11 種・対応 source 15 種・テスト 290 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
 - 全 source の search 結果で `issued_at`（発行年）を取得できるよう修正済み
   - `japan_search`: `common.datePublished` を使用
   - `nihu_bridge`: `dateCreated[刊行年月]` を優先、登録日（`datePublished`）は除外
   - `jdcat`: JDCat 登録日ではなく調査対象年（Time P フィールド）を使用
+- `filters.jdcat` を追加（`source=jdcat` のときのみ有効）
+  - `subject` / `geographic` / `contributor` / `title`: Elasticsearch フィールド指定で `q` に AND 結合
+  - `temporal` / `creator`: JDCat 独立パラメータとして渡す
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
@@ -231,7 +234,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-テスト 279 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
+テスト 288 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
 
 ### 検索パラメータ
 
@@ -309,6 +312,13 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 | `filters.nihu_bridge.period_from` | string | — | 開始時期（ISO8601 / 年）|
 | `filters.nihu_bridge.period_to` | string | — | 終了時期（ISO8601 / 年）|
 | `filters.nihu_bridge.bbox` | object | — | 空間検索 bounding box `{lat1, lon1, lat2, lon2}` |
+| `filters.jdcat` | object | — | `source=jdcat` のときのみ有効 |
+| `filters.jdcat.subject` | string | — | 件名・トピックで絞り込む（Elasticsearch `subject:` フィールド）|
+| `filters.jdcat.geographic` | string | — | 調査地域で絞り込む（Elasticsearch `geographic:` フィールド）例: `日本` / `神奈川県` |
+| `filters.jdcat.contributor` | string | — | 配布機関で絞り込む（Elasticsearch `contributor:` フィールド）例: `SSJDA` |
+| `filters.jdcat.title` | string | — | タイトルで絞り込む（Elasticsearch `title:` フィールド）|
+| `filters.jdcat.temporal` | string | — | 調査時期で絞り込む（独立パラメータ）例: `2007` / `2003-01` |
+| `filters.jdcat.creator` | string | — | 作成者・調査機関で絞り込む（独立パラメータ）|
 
 sort 対応状況:
 - `ndl_*`: 対応
@@ -637,13 +647,13 @@ npm run smoke:mcp:live-matrix
 - `irdb` の上流 `count` は `20 / 50 / 100` だけ有効です。adapter 側で `limit` を補正しています。
 - `irdb` の detail は IRDB 詳細画面 HTML を使います。原機関側 `URI` は `source_metadata.source_uri` に保持します。
 - `jdcat` は既定横断検索に含めていません。研究データカタログであり、論文・図書の既定横断に混ぜない設計です。
+- `filters.jdcat` の各フィールドは JDCat（WEKO3）の非公式 API パラメータに依存しています。WEKO3 バージョンアップでフィールド名が変わる可能性があります。
 - `jdcat` は当初想定の HTML parser ではなく、公開 JSON API `/api/records/` と `/api/records/{id}` を使っています。
 - `jdcat` の `availability.online=true` は JDCat メタデータ上で配布元 `URI` が示されていることを意味します。データ本体が無条件公開されている保証ではありません。
 - `ndl_articles` の `journal_title` は best-effort 抽出です。`dc:description` の `掲載誌：XXX` パターンから取得しますが、巻号が混入することがあります。
 - `ndl_articles` の巻・号・頁は `RecordItem.source_metadata` のみに入ります。`SearchItem` では提供していません（設計上の割り切り）。
 - `ndl_digital` の detail 判定は安全側です。`source_metadata.provider_id` が `null` のまま返ることがあります。
 - `nihu_bridge` の sort は現時点で未対応です。上流 API のソートパラメータが限定的なため MCP では使用しません。
-- `nihu_bridge` の `issued_at` は検索・詳細ともに `datePublished`（NIHU Bridge への登録日）を使っています。実際の刊行年月は上流 API の `dateCreated` フィールド（`[刊行年月]YYYY-MM` 形式のラベル付き配列エントリ）に入っていますが、現在の `pickIssuedAt` はこのフィールドを読んでいません。修正すれば `mapSearch.ts` / `mapRecord.ts` 両方で正しい刊行年を取得できます。
 
 ## AI エージェント向け Skill
 

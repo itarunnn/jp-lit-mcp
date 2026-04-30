@@ -128,6 +128,15 @@ export const nihuBridgeFiltersSchema = z.object({
   bbox: nihuBridgeBboxSchema.optional()
 });
 
+export const jdcatFiltersSchema = z.object({
+  subject: z.string().optional(),
+  geographic: z.string().optional(),
+  contributor: z.string().optional(),
+  title: z.string().optional(),
+  temporal: z.string().optional(),
+  creator: z.string().optional()
+});
+
 export const searchInputSchema = z
   .object({
     query: z.string().trim().min(1),
@@ -140,7 +149,8 @@ export const searchInputSchema = z
     sort_order: z.enum(["asc", "desc"]).optional(),
     filters: z.object({
       irdb: irdbFiltersSchema.optional(),
-      nihu_bridge: nihuBridgeFiltersSchema.optional()
+      nihu_bridge: nihuBridgeFiltersSchema.optional(),
+      jdcat: jdcatFiltersSchema.optional()
     }).optional()
   })
   .superRefine((data, ctx) => {
@@ -156,6 +166,13 @@ export const searchInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "filters.nihu_bridge は source=nihu_bridge のときのみ有効です",
         path: ["filters", "nihu_bridge"]
+      });
+    }
+    if (data.filters?.jdcat !== undefined && data.source !== "jdcat") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.jdcat は source=jdcat のときのみ有効です",
+        path: ["filters", "jdcat"]
       });
     }
   });
@@ -232,6 +249,7 @@ export const searchPagesOutputSchema = z.object({
 export type IrdbFilters = z.infer<typeof irdbFiltersSchema>;
 export type NihuBridgeFilters = z.infer<typeof nihuBridgeFiltersSchema>;
 export type NihuBridgeInstitute = z.infer<typeof nihuBridgeInstituteSchema>;
+export type JdcatFilters = z.infer<typeof jdcatFiltersSchema>;
 export type NihuBridgeBbox = z.infer<typeof nihuBridgeBboxSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
