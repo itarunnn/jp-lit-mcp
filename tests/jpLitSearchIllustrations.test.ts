@@ -69,6 +69,7 @@ describe("jp_lit_search_illustrations", () => {
     expect(item).toMatchObject({
       id: "831460_49_1",
       pid: "831460",
+      viewer_url: "https://dl.ndl.go.jp/pid/831460",
       page: 49,
       x: 20.2,
       y: 13.9,

@@ -68,6 +68,7 @@ describe("jp_lit_search_fulltext", () => {
     expect(result.structuredContent.items).toHaveLength(1);
     expect(result.structuredContent.items[0]).toMatchObject({
       pid: "897115",
+      viewer_url: "https://dl.ndl.go.jp/pid/897115",
       title: "帝国図書館一覧",
       responsibility: "帝国図書館 編",
       publishyear: 1900,

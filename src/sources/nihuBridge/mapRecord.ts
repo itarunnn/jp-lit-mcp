@@ -98,14 +98,11 @@ export function mapNihuBridgeRecordResponse(payload: unknown): RecordItem | null
     compactStrings(asStringArray(spatialHead?.place)).join(" / ") || null;
 
   const linkArr = Array.isArray(rr.link) ? rr.link : [];
-  const linkHead = asRecord(linkArr[0]);
-  const url = normalizeText(
-    typeof linkHead?.link === "string" ? linkHead.link : null
-  );
 
   const databaseId = typeof rr.databaseId === "string" ? rr.databaseId : null;
   const researchResourceId =
     typeof rr.researchResourceId === "string" ? rr.researchResourceId : "";
+  const url = `https://bridge.nihu.jp/integrated_searchresults_detail/${researchResourceId}`;
   const doi = typeof rr.doi === "string" ? rr.doi : null;
   const originalIds = asStringArray(rr.originalId);
   const license = normalizeText(asStringArray(rr.license)[0] ?? null);

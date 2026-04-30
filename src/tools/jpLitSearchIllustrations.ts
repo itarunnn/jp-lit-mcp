@@ -66,6 +66,7 @@ export function createJpLitSearchIllustrationsTool(
           return {
             id: String(r["id"] ?? ""),
             pid,
+            viewer_url: `https://dl.ndl.go.jp/pid/${pid}`,
             page,
             x,
             y,

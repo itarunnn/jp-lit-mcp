@@ -287,6 +287,7 @@ export const exportSessionOutputSchema = z.object({
 
 const fulltextBookItemSchema = z.object({
   pid: z.string(),
+  viewer_url: z.string(),
   title: z.string().nullable(),
   volume: z.string().nullable(),
   responsibility: z.string().nullable(),
@@ -325,6 +326,7 @@ export type SearchFulltextOutput = z.infer<typeof searchFulltextOutputSchema>;
 const illustrationItemSchema = z.object({
   id: z.string(),
   pid: z.string(),
+  viewer_url: z.string(),
   page: z.number().int().positive(),
   x: z.number(),
   y: z.number(),

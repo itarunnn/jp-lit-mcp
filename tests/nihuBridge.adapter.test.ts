@@ -29,7 +29,7 @@ describe("nihuBridge mappers", () => {
     expect(item.title_reading).toBe("ブケヒャクニンイッシュ");
     expect(item.authors).toEqual([{ name: "源義経", role: "author" }]);
     expect(item.publisher).toBe("国文学研究資料館");
-    expect(item.url).toBe("https://kotenseki.nijl.ac.jp/biblio/100000123");
+    expect(item.url).toBe("https://bridge.nihu.jp/integrated_searchresults_detail/100000123");
     expect(item.availability.online).toBe(true);
     expect(item.material_type).toBe("古典籍");
     expect(item.subjects).toEqual(["和歌", "百人一首"]);
@@ -56,7 +56,7 @@ describe("nihuBridge mappers", () => {
     expect(record!.language).toBe("jpn");
     expect(record!.material_type).toBe("古典籍");
     expect(record!.url).toBe(
-      "https://kotenseki.nijl.ac.jp/biblio/100000123"
+      "https://bridge.nihu.jp/integrated_searchresults_detail/100000123"
     );
     expect(record!.identifiers).toMatchObject({
       research_resource_id: "100000123",
@@ -69,6 +69,32 @@ describe("nihuBridge mappers", () => {
       license: "CC BY 4.0"
     });
     expect(record!.issued_at).toBe("1600-01-01");
+  });
+
+  it("link フィールドの有無に関わらず bridge.nihu.jp 詳細 URL を使う", async () => {
+    const { mapNihuBridgeSearchResponse } = await import(
+      "../src/sources/nihuBridge/mapSearch.js"
+    );
+
+    const payload = {
+      info: { statusCode: 0, total: 1 },
+      hits: [
+        {
+          database: "nijl_nihonkotenseki",
+          id: "16497093",
+          fields: [
+            { field: "title", value: ["テスト資料"] },
+            { field: "link", value: [{ type: "原本", link: "https://kotenseki.nijl.ac.jp/biblio/16497093" }] }
+          ]
+        }
+      ]
+    };
+
+    const result = mapNihuBridgeSearchResponse(payload);
+    expect(result.items[0]!.url).toBe(
+      "https://bridge.nihu.jp/integrated_searchresults_detail/16497093"
+    );
+    expect(result.items[0]!.availability.online).toBe(true);
   });
 
   it("researchResource が無いレスポンスでは null を返す", async () => {

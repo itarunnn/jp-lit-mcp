@@ -84,6 +84,59 @@ describe("Japan Search mappers", () => {
   });
 });
 
+describe("Japan Search mapSearch fallback URL", () => {
+  it("linkUrl がない場合は jpsearch.go.jp/item/{source_id} を url に使う", async () => {
+    const { mapJapanSearchSearchEntry } = await import(
+      "../src/sources/japanSearch/mapSearch.js"
+    );
+
+    const entry = {
+      id: "test-12345",
+      common: {
+        id: "test-12345",
+        title: "テスト資料",
+        contentsAccess: "closed"
+      }
+    };
+
+    const item = mapJapanSearchSearchEntry(entry);
+
+    expect(item.source_id).toBe("test-12345");
+    expect(item.url).toBe("https://jpsearch.go.jp/item/test-12345");
+  });
+
+  it("linkUrl がある場合は linkUrl を優先する", async () => {
+    const { mapJapanSearchSearchEntry } = await import(
+      "../src/sources/japanSearch/mapSearch.js"
+    );
+
+    const entry = {
+      id: "test-12345",
+      common: {
+        id: "test-12345",
+        title: "テスト資料",
+        contentsAccess: "internet",
+        linkUrl: "https://example.com/resource/12345"
+      }
+    };
+
+    const item = mapJapanSearchSearchEntry(entry);
+
+    expect(item.url).toBe("https://example.com/resource/12345");
+  });
+
+  it("source_id も取れない場合は url は null になる", async () => {
+    const { mapJapanSearchSearchEntry } = await import(
+      "../src/sources/japanSearch/mapSearch.js"
+    );
+
+    const item = mapJapanSearchSearchEntry({});
+
+    expect(item.source_id).toBe("missing-jps-id");
+    expect(item.url).toBeNull();
+  });
+});
+
 describe("createJapanSearchAdapter", () => {
   it("検索 API と item API を組み立てて正規化する", async () => {
     const searchFixture = readFixture("search-response.json");

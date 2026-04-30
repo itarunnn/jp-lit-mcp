@@ -52,8 +52,10 @@ export function createJpLitSearchFulltextTool(
         const rawList = Array.isArray(result.list) ? result.list : [];
         const items = rawList.map((item: unknown) => {
           const r = item as Record<string, unknown>;
+          const pid = str(r["id"]) ?? "";
           return {
-            pid: str(r["id"]) ?? "",
+            pid,
+            viewer_url: `https://dl.ndl.go.jp/pid/${pid}`,
             title: str(r["title"]),
             volume: str(r["volume"]),
             responsibility: str(r["responsibility"]),

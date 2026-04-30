@@ -138,8 +138,8 @@ function pickSummary(fields: NihuField[]): string | null {
 
 export function mapNihuBridgeSearchHit(hit: NihuHit): SearchItem {
   const fields = Array.isArray(hit.fields) ? hit.fields : [];
-  const url = pickUrl(fields);
   const sourceId = hit.id;
+  const url = `https://bridge.nihu.jp/integrated_searchresults_detail/${sourceId}`;
   return {
     source: "nihu_bridge",
     source_id: sourceId,
