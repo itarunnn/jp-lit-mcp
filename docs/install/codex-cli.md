@@ -28,10 +28,16 @@ npm run build
 4. `MCP` を追加します。
 
 ```bash
-codex mcp add ndlJpLit --command node --args J:/apps/ndl-jp-lit-mcp/dist/src/index.js
+codex mcp add ndlJpLit -- node J:/apps/ndl-jp-lit-mcp/dist/src/index.js
 ```
 
-CiNii の安定利用には `CINII_RESEARCH_APP_ID` 環境変数の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
+`CINII_RESEARCH_APP_ID` を設定する場合は `--env` フラグを使います。
+
+```bash
+codex mcp add ndlJpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node J:/apps/ndl-jp-lit-mcp/dist/src/index.js
+```
+
+CiNii の安定利用には `CINII_RESEARCH_APP_ID` の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。未設定でも動作します。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
 
 5. `Skills` をインストールします。
 
