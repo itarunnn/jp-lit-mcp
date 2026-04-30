@@ -8,6 +8,8 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("生の結果を会話へ抱え込まない");
     expect(skill).toContain("## 原則: 計画を立てて確認してから検索する");
     expect(skill).toContain("cache / session を再確認");
+    expect(skill).toContain("selected_items.note");
+    expect(skill).toContain("検索全体の選別理由");
     expect(skill).toContain("### 検索後の分岐");
     expect(skill).toContain("jp_lit_search_guides_manuals");
     expect(skill).toContain("jp_lit_search_guides_cases");

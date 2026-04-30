@@ -277,7 +277,7 @@ jp_lit_export_session(format="markdown", profile="selected")
 jp_lit_export_session(format="json", profile="unselected")
 ```
 
-`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`jp_lit_export_session` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
+`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には「何件から何件を採用したか」「どういう基準で絞ったか」「何を外したか」など、検索全体の選別理由を入れる想定です。`jp_lit_export_session` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
 
 現在の export profile:
 
