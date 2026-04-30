@@ -53,7 +53,16 @@ jp_lit_get_record(source=ndl_digital, source_id=...)
 1. `jp_lit_search(source=ndl_articles, query=論文タイトル, sort_by=issued_date, sort_order=asc)`
 2. `jp_lit_search(source=cinii_articles, query=..., sort_by=issued_date, sort_order=asc)`
 3. ヒットしない場合 → `jp_lit_search_fulltext(keyword=...)` で全文から探す
-4. さらに必要なら [historical-term-search.md](historical-term-search.md) へ
+4. どの索引や参考資料から見るべきか不明なら、[heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) を初出調査の例外として使う
+5. さらに必要なら [historical-term-search.md](historical-term-search.md) へ
+
+初出調査で advisory を使うときは、レファ協やリサーチ・ナビから
+
+- 初出確認に有効な索引・参考図書
+- 雑誌記事索引以外に見るべき DB
+- 別称・旧表記
+
+を取り、`jp_lit_search` の query と source を補正する。
 
 ---
 
