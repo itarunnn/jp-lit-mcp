@@ -38,8 +38,9 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-04-30 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 279 件すべて通過
+- 公開ツール 11 種・対応 source 15 種・テスト 283 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
+- 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
@@ -638,6 +639,7 @@ npm run smoke:mcp:live-matrix
 - `ndl_articles` の巻・号・頁は `RecordItem.source_metadata` のみに入ります。`SearchItem` では提供していません（設計上の割り切り）。
 - `ndl_digital` の detail 判定は安全側です。`source_metadata.provider_id` が `null` のまま返ることがあります。
 - `nihu_bridge` の sort は現時点で未対応です。上流 API のソートパラメータが限定的なため MCP では使用しません。
+- `nihu_bridge` の `issued_at` は検索・詳細ともに `datePublished`（NIHU Bridge への登録日）を使っています。実際の刊行年月は上流 API の `dateCreated` フィールド（`[刊行年月]YYYY-MM` 形式のラベル付き配列エントリ）に入っていますが、現在の `pickIssuedAt` はこのフィールドを読んでいません。修正すれば `mapSearch.ts` / `mapRecord.ts` 両方で正しい刊行年を取得できます。
 
 ## AI エージェント向け Skill
 
