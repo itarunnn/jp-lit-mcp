@@ -206,7 +206,7 @@ npm install
 | `jp_lit_search_fulltext` | デジコレ全資料を OCR 全文からキーワード検索 | `ndl_digital` のみ |
 | `jp_lit_search_illustrations` | デジコレ全資料の図版・挿絵をテキストキーワードで検索 | `ndl_digital` のみ |
 | `jp_lit_annotate_session` | 候補ラベルとメモを調査セッションに保存 | セッション |
-| `jp_lit_export_session` | 調査セッションを書き出す | セッション |
+| `jp_lit_export_session` | 調査セッションを書き出す。`full_log` / `selected_only` / `confirmed_only` を選べる | セッション |
 
 ### アクセス制限について
 
@@ -838,8 +838,17 @@ Cursor は `.cursor/skills/` をプロジェクトから自動検出するため
   - 候補ラベルと短いメモ
   - 重い OCR / 全文 / 図版 payload 自体は持たず、cache key 参照だけを保持する
 
-候補評価は `jp_lit_annotate_session` で保存し、ユーザー向けの書き出しは `jp_lit_export_session` で行う。
+候補評価は `jp_lit_annotate_session` で保存し、ユーザー向けの書き出しはエージェントが `jp_lit_export_session` を呼んで行う。
 明示的に export しない限り、保存物は内部ファイルとしてのみ保持される。
+
+`jp_lit_export_session` は現在、次の profile を持つ。
+
+- `full_log`
+  - 既定。selected / notes / unselected を含む全体ログ
+- `selected_only`
+  - `selected_items` だけを書き出す
+- `confirmed_only`
+  - `selected_items` のうち `confirmed` ラベルだけを書き出す
 
 ## Codex 実行メモ
 

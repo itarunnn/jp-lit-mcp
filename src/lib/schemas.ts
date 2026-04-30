@@ -293,6 +293,9 @@ export const annotateSessionOutputSchema = z.object({
 
 export const exportSessionInputSchema = z.object({
   format: z.enum(["markdown", "json"]).default("markdown"),
+  profile: z
+    .enum(["full_log", "selected_only", "confirmed_only"])
+    .default("full_log"),
   output_path: z.string().trim().min(1).optional(),
   include_unselected: z.boolean().default(true)
 });
@@ -300,6 +303,7 @@ export const exportSessionInputSchema = z.object({
 export const exportSessionOutputSchema = z.object({
   session_id: z.string(),
   format: z.enum(["markdown", "json"]),
+  profile: z.enum(["full_log", "selected_only", "confirmed_only"]),
   path: z.string(),
   exported_at: z.string(),
   item_count: z.number().int().nonnegative()

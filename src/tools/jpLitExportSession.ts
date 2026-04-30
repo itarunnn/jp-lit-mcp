@@ -16,6 +16,7 @@ export function createJpLitExportSessionTool(
     const exported = await exporter.exportSession({
       session,
       format: parsed.format,
+      profile: parsed.profile,
       outputPath: parsed.output_path,
       includeUnselected: parsed.include_unselected
     });
@@ -23,6 +24,7 @@ export function createJpLitExportSessionTool(
     const structuredContent: ExportSessionOutput = exportSessionOutputSchema.parse({
       session_id: session.session_id,
       format: parsed.format,
+      profile: parsed.profile,
       path: exported.path,
       exported_at: new Date().toISOString(),
       item_count: exported.itemCount
