@@ -26,4 +26,11 @@ describe("jp-lit-verification skill guide", () => {
     expect(skill).toContain("cinii_articles");
     expect(skill).toContain("ndl_catalog");
   });
+
+  it("documents context-saving behavior for long verification sessions", () => {
+    const skill = readFileSync("skills/jp-lit-verification/SKILL.md", "utf8");
+    expect(skill).toContain("生の検索結果を会話へ大量に貼り付けず");
+    expect(skill).toContain("必要時だけ再読込");
+    expect(skill).toContain("単独エージェントで成立");
+  });
 });
