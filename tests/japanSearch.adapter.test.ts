@@ -84,6 +84,43 @@ describe("Japan Search mappers", () => {
   });
 });
 
+describe("Japan Search issued_at", () => {
+  it("common.datePublished がある場合は issued_at に反映される", async () => {
+    const { mapJapanSearchSearchEntry } = await import(
+      "../src/sources/japanSearch/mapSearch.js"
+    );
+
+    const entry = {
+      id: "test-dated",
+      common: {
+        id: "test-dated",
+        title: "発行日あり資料",
+        contentsAccess: "internet",
+        datePublished: "1984-03-15"
+      }
+    };
+
+    const item = mapJapanSearchSearchEntry(entry);
+
+    expect(item.issued_at).toBe("1984-03-15");
+    expect(item.issued_at_precision).toBe("day");
+  });
+
+  it("common.datePublished がない場合は issued_at は null になる", async () => {
+    const { mapJapanSearchSearchEntry } = await import(
+      "../src/sources/japanSearch/mapSearch.js"
+    );
+
+    const item = mapJapanSearchSearchEntry({
+      id: "test-no-date",
+      common: { id: "test-no-date", title: "日付なし資料" }
+    });
+
+    expect(item.issued_at).toBeNull();
+    expect(item.issued_at_precision).toBe("unknown");
+  });
+});
+
 describe("Japan Search mapSearch fallback URL", () => {
   it("linkUrl がない場合は jpsearch.go.jp/item/{source_id} を url に使う", async () => {
     const { mapJapanSearchSearchEntry } = await import(

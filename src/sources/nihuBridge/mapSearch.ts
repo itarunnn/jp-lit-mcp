@@ -92,6 +92,10 @@ function stripTimePart(s: string): string {
 }
 
 function pickIssuedAt(fields: NihuField[]): string | null {
+  for (const entry of asStringArray(getField(fields, "dateCreated"))) {
+    const m = entry.match(/^\[刊行年月\](.+)$/);
+    if (m?.[1]) return m[1];
+  }
   const temporalRaw = getField(fields, "temporal");
   if (Array.isArray(temporalRaw) && temporalRaw.length > 0) {
     const head = asRecord(temporalRaw[0]);
@@ -101,9 +105,6 @@ function pickIssuedAt(fields: NihuField[]): string | null {
       if (start) return stripTimePart(start);
     }
   }
-  const datePub = getField(fields, "datePublished");
-  if (typeof datePub === "string") return datePub;
-  if (Array.isArray(datePub) && typeof datePub[0] === "string") return datePub[0];
   return null;
 }
 

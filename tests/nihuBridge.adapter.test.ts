@@ -71,6 +71,80 @@ describe("nihuBridge mappers", () => {
     expect(record!.issued_at).toBe("1600-01-01");
   });
 
+  it("dateCreated に [刊行年月] エントリがある場合は temporal より優先して issued_at に使う", async () => {
+    const { mapNihuBridgeSearchResponse } = await import(
+      "../src/sources/nihuBridge/mapSearch.js"
+    );
+
+    const payload = {
+      info: { statusCode: 0, total: 1 },
+      hits: [
+        {
+          database: "nijl_test",
+          id: "999",
+          fields: [
+            { field: "title", value: ["テスト資料"] },
+            { field: "dateCreated", value: ["[刊行年月]1889-02", "[登録日]2020-01-01"] },
+            { field: "temporal", value: [{ description: ["明治時代"], date: "1868-01-01T00:00:00+09:00,1912-07-30T00:00:00+09:00" }] },
+            { field: "datePublished", value: "2020-01-01" }
+          ]
+        }
+      ]
+    };
+
+    const result = mapNihuBridgeSearchResponse(payload);
+    expect(result.items[0]!.issued_at).toBe("1889-02");
+    expect(result.items[0]!.issued_at_precision).toBe("month");
+  });
+
+  it("dateCreated に [刊行年月] がなければ temporal を使う", async () => {
+    const { mapNihuBridgeSearchResponse } = await import(
+      "../src/sources/nihuBridge/mapSearch.js"
+    );
+
+    const payload = {
+      info: { statusCode: 0, total: 1 },
+      hits: [
+        {
+          database: "nijl_test",
+          id: "998",
+          fields: [
+            { field: "title", value: ["テスト資料"] },
+            { field: "dateCreated", value: ["[登録日]2020-01-01"] },
+            { field: "temporal", value: [{ description: ["江戸時代"], date: "1600-01-01T00:00:00+09:00,1868-12-31T00:00:00+09:00" }] },
+            { field: "datePublished", value: "2020-01-01" }
+          ]
+        }
+      ]
+    };
+
+    const result = mapNihuBridgeSearchResponse(payload);
+    expect(result.items[0]!.issued_at).toBe("1600-01-01");
+  });
+
+  it("datePublished は登録日のため issued_at に使わない", async () => {
+    const { mapNihuBridgeSearchResponse } = await import(
+      "../src/sources/nihuBridge/mapSearch.js"
+    );
+
+    const payload = {
+      info: { statusCode: 0, total: 1 },
+      hits: [
+        {
+          database: "nijl_test",
+          id: "997",
+          fields: [
+            { field: "title", value: ["テスト資料"] },
+            { field: "datePublished", value: "2022-07-20" }
+          ]
+        }
+      ]
+    };
+
+    const result = mapNihuBridgeSearchResponse(payload);
+    expect(result.items[0]!.issued_at).toBeNull();
+  });
+
   it("link フィールドの有無に関わらず bridge.nihu.jp 詳細 URL を使う", async () => {
     const { mapNihuBridgeSearchResponse } = await import(
       "../src/sources/nihuBridge/mapSearch.js"

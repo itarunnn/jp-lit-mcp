@@ -130,7 +130,7 @@ export function mapJapanSearchSearchEntry(entry: unknown): SearchItem {
     authors: toAuthors(record),
     publisher: null,
     journal_title: null,
-    ...toIssuedFields(null),
+    ...toIssuedFields(readString(common.datePublished)),
     summary: null,
     url,
     availability: {

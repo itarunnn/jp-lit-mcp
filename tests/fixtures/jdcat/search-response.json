@@ -81,6 +81,19 @@
                 "subitem_1591320914113": "https://csrda.iss.u-tokyo.ac.jp/en/ssjda/"
               }
             ]
+          },
+          "item_1602145192334": {
+            "attribute_name": "Time P",
+            "attribute_value_mlt": [
+              {
+                "subitem_1602144573160": "2019",
+                "subitem_1602144587621": "start"
+              },
+              {
+                "subitem_1602144573160": "2019",
+                "subitem_1602144587621": "end"
+              }
+            ]
           }
         }
       }

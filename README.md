@@ -38,9 +38,13 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-04-30 時点の状態:
 
-- 公開ツール 11 種・対応 source 15 種・テスト 283 件すべて通過
+- 公開ツール 11 種・対応 source 15 種・テスト 288 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
+- 全 source の search 結果で `issued_at`（発行年）を取得できるよう修正済み
+  - `japan_search`: `common.datePublished` を使用
+  - `nihu_bridge`: `dateCreated[刊行年月]` を優先、登録日（`datePublished`）は除外
+  - `jdcat`: JDCat 登録日ではなく調査対象年（Time P フィールド）を使用
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み

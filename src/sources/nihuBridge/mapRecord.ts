@@ -86,9 +86,14 @@ export function mapNihuBridgeRecordResponse(payload: unknown): RecordItem | null
   const temporalDate =
     typeof temporalHead?.date === "string" ? temporalHead.date : null;
   const stripTimePart = (s: string) => { const i = s.indexOf("T"); return i === -1 ? s : s.slice(0, i); };
+  const dateCreatedArr = (Array.isArray(rr.dateCreated) ? rr.dateCreated : [])
+    .filter((s): s is string => typeof s === "string");
+  const dateCreatedIssuedAt = dateCreatedArr
+    .map((s) => s.match(/^\[刊行年月\](.+)$/))
+    .find((m): m is RegExpMatchArray => m !== null)?.[1] ?? null;
   const issuedSource =
-    (temporalDate ? stripTimePart(temporalDate.split(",")[0]?.trim() ?? "") || null : null) ??
-    (typeof rr.datePublished === "string" ? rr.datePublished : null);
+    dateCreatedIssuedAt ??
+    (temporalDate ? stripTimePart(temporalDate.split(",")[0]?.trim() ?? "") || null : null);
 
   const spatialArr = Array.isArray(rr.spatial) ? rr.spatial : [];
   const spatialHead = asRecord(spatialArr[0]);

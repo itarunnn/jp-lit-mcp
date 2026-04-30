@@ -113,6 +113,15 @@ function toIssuedFields(value: string | null) {
   };
 }
 
+function readTimePIssuedAt(metadata: JsonRecord): string | null {
+  const timePValues = asRecord(metadata.item_1602145192334)?.attribute_value_mlt;
+  const entries = Array.isArray(timePValues) ? timePValues : [];
+  const startEntry =
+    entries.find((e) => asRecord(e)?.subitem_1602144587621 === "start") ??
+    entries[0];
+  return readString(asRecord(startEntry)?.subitem_1602144573160) ?? null;
+}
+
 function readAbstract(metadata: JsonRecord) {
   const descriptions = Array.isArray(metadata.description) ? metadata.description : [];
   const preferred = descriptions.find(
@@ -214,7 +223,7 @@ export function mapJdcatSearchEntry(entry: unknown): SearchItem {
     authors: toAuthors(metadata),
     publisher: readDistributor(metadata),
     journal_title: null,
-    ...toIssuedFields(readString(metadata.publish_date)),
+    ...toIssuedFields(readTimePIssuedAt(metadata)),
     summary: readAbstract(metadata),
     url: `https://jdcat.jsps.go.jp/records/${id}`,
     availability: {
