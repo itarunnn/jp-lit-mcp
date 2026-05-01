@@ -44,10 +44,44 @@ describe("runCachedTool", () => {
 
     expect(first.structuredContent).toEqual({ total: 1 });
     expect(second.structuredContent).toEqual({ total: 1 });
+    expect(first.cacheHit).toBe(false);
+    expect(second.cacheHit).toBe(true);
     expect(live).toHaveBeenCalledTimes(1);
 
     const session = await sessions.readCurrent();
     expect(session.entries).toHaveLength(1);
     expect(session.entries[0]?.cache_key).toBe(first.cacheKey);
+  });
+
+  it("bypassCache=true のときは毎回 live を実行する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const live = vi
+      .fn()
+      .mockResolvedValueOnce({ total: 1 })
+      .mockResolvedValueOnce({ total: 2 });
+
+    const first = await runCachedTool({
+      tool: "jp_lit_search",
+      input: { query: "foo", page: 1 },
+      live,
+      cache,
+      sessions,
+      bypassCache: true
+    });
+    const second = await runCachedTool({
+      tool: "jp_lit_search",
+      input: { query: "foo", page: 1 },
+      live,
+      cache,
+      sessions,
+      bypassCache: true
+    });
+
+    expect(live).toHaveBeenCalledTimes(2);
+    expect(first.cacheHit).toBe(false);
+    expect(second.cacheHit).toBe(false);
+    expect(second.structuredContent).toEqual({ total: 2 });
   });
 });

@@ -154,6 +154,7 @@ export const searchInputSchema = z
       .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
       .optional(),
     sort_order: z.enum(["asc", "desc"]).optional(),
+    force_refresh: z.boolean().default(false),
     issued_from: z.string().optional(),
     issued_to: z.string().optional(),
     filters: z.object({
@@ -213,7 +214,13 @@ export const searchOutputSchema = z.object({
   limit: z.number().int().positive(),
   total: z.number().int().nonnegative(),
   items: z.array(searchItemSchema),
-  facets: facetsSchema.optional()
+  facets: facetsSchema.optional(),
+  cache: z.object({
+    hit: z.boolean(),
+    cache_key: z.string(),
+    saved_at: z.string(),
+    refresh_hint: z.string().nullable()
+  }).optional()
 });
 
 export const recordOutputSchema = recordItemSchema;
@@ -360,6 +367,191 @@ export const findSessionsOutputSchema = z.object({
   )
 });
 
+export const searchCacheIndexInputSchema = z.object({
+  query: z.string().trim().min(1),
+  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
+  source: sourceSchema.optional(),
+  issued_from: z.string().optional(),
+  issued_to: z.string().optional(),
+  saved_on: z
+    .string()
+    .regex(/^(\d{4}-\d{2}-\d{2}|today|yesterday|last_7_days)$/)
+    .optional(),
+  saved_from: z.string().optional(),
+  saved_to: z.string().optional(),
+  limit: z.number().int().positive().max(200).default(50)
+});
+
+export const searchCacheIndexOutputSchema = z.object({
+  query: z.string(),
+  session_id: z.string().nullable(),
+  source: sourceSchema.nullable(),
+  issued_from: z.string().nullable(),
+  issued_to: z.string().nullable(),
+  saved_on: z.string().nullable(),
+  saved_on_resolved: z.string().nullable(),
+  saved_from: z.string().nullable(),
+  saved_to: z.string().nullable(),
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  cache_keys: z.array(z.string()),
+  items: z.array(
+    z.object({
+      cache_key: z.string(),
+      session_ids: z.array(z.string()),
+      saved_at: z.string(),
+      source: sourceSchema.nullable(),
+      query_preview: z.string().nullable(),
+      total: z.number().int().nonnegative(),
+      item_count: z.number().int().nonnegative(),
+      matched_fields: z.array(
+        z.enum(["query", "title", "author", "subject", "source_id"])
+      )
+    })
+  )
+});
+
+export const deleteCacheInputSchema = z
+  .object({
+    tool: z.string().trim().min(1).default("jp_lit_search"),
+    cache_key: z.string().trim().min(1).optional(),
+    clear_all: z.boolean().default(false)
+  })
+  .superRefine((data, ctx) => {
+    if (!data.clear_all && !data.cache_key) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "cache_key を指定するか clear_all=true を指定してください",
+        path: ["cache_key"]
+      });
+    }
+  });
+
+export const deleteCacheOutputSchema = z.object({
+  tool: z.string(),
+  cache_key: z.string().nullable(),
+  clear_all: z.boolean(),
+  deleted_count: z.number().int().nonnegative(),
+  deleted: z.boolean(),
+  message: z.string()
+});
+
+export const listCacheInputSchema = z.object({
+  tool: z.string().trim().min(1).optional(),
+  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
+  saved_on: z
+    .string()
+    .regex(/^(\d{4}-\d{2}-\d{2}|today|yesterday|last_7_days)$/)
+    .optional(),
+  saved_from: z.string().optional(),
+  saved_to: z.string().optional(),
+  source: sourceSchema.optional(),
+  limit: z.number().int().positive().max(500).default(100)
+});
+
+export const listCacheOutputSchema = z.object({
+  tool: z.string().nullable(),
+  session_id: z.string().nullable(),
+  saved_on: z.string().nullable(),
+  saved_on_resolved: z.string().nullable(),
+  saved_from: z.string().nullable(),
+  saved_to: z.string().nullable(),
+  source: sourceSchema.nullable(),
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  cache_keys: z.array(z.string()),
+  summary: z.object({
+    by_tool: z.record(z.string(), z.number()),
+    by_source: z.record(z.string(), z.number()),
+    newest_saved_at: z.string().nullable(),
+    oldest_saved_at: z.string().nullable()
+  }),
+  items: z.array(
+    z.object({
+      tool: z.string(),
+      cache_key: z.string(),
+      saved_at: z.string(),
+      source: sourceSchema.nullable(),
+      session_ids: z.array(z.string()),
+      query_preview: z.string().nullable(),
+      total: z.number().int().nonnegative(),
+      item_count: z.number().int().nonnegative()
+    })
+  )
+});
+
+const refineResultsFiltersSchema = z.object({
+  source: sourceSchema.optional(),
+  issued_from: z.string().optional(),
+  issued_to: z.string().optional(),
+  online: z.boolean().optional(),
+  digital_collection: z.boolean().optional(),
+  title_contains: z.string().trim().min(1).optional(),
+  author_contains: z.string().trim().min(1).optional()
+});
+
+export const refineResultsInputSchema = z.object({
+  cache_key: z.string().trim().min(1).optional(),
+  cache_keys: z.array(z.string().trim().min(1)).min(1).optional(),
+  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
+  combine: z.enum(["union", "intersection", "minus"]).default("union"),
+  key_by: z
+    .enum(["source_record", "duplicate_key", "title_author_year"])
+    .default("source_record"),
+  sort_by: z.enum(["issued_at", "title"]).optional(),
+  sort_order: z.enum(["asc", "desc"]).default("asc"),
+  limit: z.number().int().positive().max(200).default(100),
+  offset: z.number().int().nonnegative().default(0),
+  filters: refineResultsFiltersSchema.optional()
+});
+
+export const refineResultsOutputSchema = z.object({
+  base_cache_key: z.string(),
+  base_cache_keys: z.array(z.string()),
+  combine: z.enum(["union", "intersection", "minus"]),
+  key_by: z.enum(["source_record", "duplicate_key", "title_author_year"]),
+  totals_by_base: z.array(
+    z.object({
+      cache_key: z.string(),
+      total: z.number().int().nonnegative()
+    })
+  ),
+  total_before: z.number().int().nonnegative(),
+  total_after: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  offset: z.number().int().nonnegative(),
+  items: z.array(searchItemSchema)
+});
+
+export const exportViewInputSchema = z.discriminatedUnion("view", [
+  z.object({
+    view: z.literal("cache_list"),
+    params: listCacheInputSchema.default({}),
+    format: z.enum(["markdown", "json"]).default("markdown"),
+    output_path: z.string().trim().min(1).optional()
+  }),
+  z.object({
+    view: z.literal("cache_query"),
+    params: searchCacheIndexInputSchema,
+    format: z.enum(["markdown", "json"]).default("markdown"),
+    output_path: z.string().trim().min(1).optional()
+  }),
+  z.object({
+    view: z.literal("refined_results"),
+    params: refineResultsInputSchema.default({}),
+    format: z.enum(["markdown", "json"]).default("markdown"),
+    output_path: z.string().trim().min(1).optional()
+  })
+]);
+
+export const exportViewOutputSchema = z.object({
+  view: z.enum(["cache_list", "cache_query", "refined_results"]),
+  format: z.enum(["markdown", "json"]),
+  path: z.string(),
+  exported_at: z.string(),
+  item_count: z.number().int().nonnegative()
+});
+
 const fulltextBookItemSchema = z.object({
   pid: z.string(),
   viewer_url: z.string(),
@@ -503,5 +695,15 @@ export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;
 export type ExportSessionOutput = z.infer<typeof exportSessionOutputSchema>;
+export type ExportViewInput = z.infer<typeof exportViewInputSchema>;
+export type ExportViewOutput = z.infer<typeof exportViewOutputSchema>;
 export type FindSessionsInput = z.infer<typeof findSessionsInputSchema>;
 export type FindSessionsOutput = z.infer<typeof findSessionsOutputSchema>;
+export type SearchCacheIndexInput = z.infer<typeof searchCacheIndexInputSchema>;
+export type SearchCacheIndexOutput = z.infer<typeof searchCacheIndexOutputSchema>;
+export type DeleteCacheInput = z.infer<typeof deleteCacheInputSchema>;
+export type DeleteCacheOutput = z.infer<typeof deleteCacheOutputSchema>;
+export type ListCacheInput = z.infer<typeof listCacheInputSchema>;
+export type ListCacheOutput = z.infer<typeof listCacheOutputSchema>;
+export type RefineResultsInput = z.infer<typeof refineResultsInputSchema>;
+export type RefineResultsOutput = z.infer<typeof refineResultsOutputSchema>;

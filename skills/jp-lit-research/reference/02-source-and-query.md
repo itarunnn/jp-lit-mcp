@@ -24,12 +24,28 @@
 ## 検索時の注意
 
 - メタデータ検索が先。全文検索は後
+- 並び替えや絞り込みの依頼は、まず `jp_lit_refine_results` で直近結果を再処理する
 - `ndl_digital` で OCR 系へ進む前に `jp_lit_get_record` で `next_digital_library.available` を確認
 - `jp_lit_search` は 1 回最大 100 件
 - source 未指定の横断検索は `page=1` のみ対応
 - 結果報告には、可能なら `全N件中M件取得` を明記する
 - `total` / `limit` / `page` は各ツール呼び出し単位の値であり、1 回の返答全体の件数ではない
 - 1 回の返答の中で query や source を変えて複数回検索した場合は、その回数と各検索の役割を示す
+
+`jp_lit_refine_results` の代表マッピング:
+
+- 年代順: `sort_by="issued_at"` + `sort_order="asc"`
+- 新しい順: `sort_by="issued_at"` + `sort_order="desc"`
+- タイトル順: `sort_by="title"`
+- 期間絞り込み: `filters.issued_from` / `filters.issued_to`
+- 公開有無: `filters.online`, `filters.digital_collection`
+- 文字列絞り込み: `filters.title_contains`, `filters.author_contains`
+
+キャッシュ起点のショートカット:
+
+- 今日の保存キャッシュ一覧: `jp_lit_list_cache(tool="jp_lit_search", saved_on="today")`
+- 差分抽出: `jp_lit_refine_results(cache_keys=[A,B], combine="minus")`
+- 共通集合抽出: `jp_lit_refine_results(cache_keys=[A,B,...], combine="intersection")`
 
 ## 検索後の分岐
 

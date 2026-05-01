@@ -49,7 +49,7 @@ describe("session store history", () => {
     await expect(store.readById(archived.session_id)).resolves.toEqual(archived);
   });
 
-  it("does not read legacy archived session by id when the new path is missing", async () => {
+  it("reads legacy archived session by id when the new path is missing", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const archived: SessionDocument = {
@@ -67,9 +67,7 @@ describe("session store history", () => {
       "utf8"
     );
 
-    await expect(store.readById(archived.session_id)).rejects.toMatchObject({
-      code: "ENOENT"
-    });
+    await expect(store.readById(archived.session_id)).resolves.toEqual(archived);
   });
 
   it("rejects invalid archived session ids before touching the filesystem", async () => {
@@ -116,7 +114,7 @@ describe("session store history", () => {
     await expect(store.listAll()).resolves.toEqual([newest, oldest]);
   });
 
-  it("ignores legacy archived sessions in listAll", async () => {
+  it("includes legacy archived sessions in listAll and prefers new-path duplicates", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const legacyOnly: SessionDocument = {
@@ -152,7 +150,7 @@ describe("session store history", () => {
     );
     await writeArchiveSession(baseDir, duplicateNew);
 
-    await expect(store.listAll()).resolves.toEqual([duplicateNew]);
+    await expect(store.listAll()).resolves.toEqual([duplicateNew, legacyOnly]);
   });
 
   it("moves broken current session to .invalid and creates a new session", async () => {
@@ -171,7 +169,7 @@ describe("session store history", () => {
     expect(session.session_id).not.toBe("");
   });
 
-  it("does not migrate legacy current session when no new current exists", async () => {
+  it("migrates legacy current session when no new current exists", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const legacyCurrent: SessionDocument = {
@@ -191,10 +189,9 @@ describe("session store history", () => {
 
     const session = await store.readCurrent();
 
-    expect(session).not.toEqual(legacyCurrent);
-    expect(session.entries).toEqual([]);
+    expect(session).toEqual(legacyCurrent);
     await expect(readFile(currentSessionFile(baseDir), "utf8")).resolves.toContain(
-      "\"entries\": []"
+      "\"session_id\": \"2026-05-01-150000\""
     );
   });
 

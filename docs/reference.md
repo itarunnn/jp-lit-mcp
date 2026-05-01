@@ -69,6 +69,7 @@ nihu_bridge
 | `total` | number | この検索呼び出しでの総件数 |
 | `items[]` | `SearchItem[]` | 検索結果 |
 | `facets` | object | source が対応する場合のみ |
+| `cache` | object | キャッシュ状態。`hit=true` の場合は過去保存データの再利用 |
 
 `total` / `limit` / `page` は 1 回の MCP ツール呼び出し単位の値です。Skill が複数回検索して要約する場合は、各検索ごとに読んでください。
 
@@ -121,6 +122,7 @@ nihu_bridge
 | `page` | number | 1 | 横断検索では 1 のみ |
 | `sort_by` | string | なし | `title` / `creator` / `issued_date` / `created_date` / `modified_date` |
 | `sort_order` | string | なし | `asc` / `desc` |
+| `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再検索 |
 | `issued_from` | string | なし | 発行日・発言日の下限 |
 | `issued_to` | string | なし | 発行日・発言日の上限 |
 | `filters.irdb` | object | なし | `source=irdb` のときのみ |
@@ -134,6 +136,13 @@ nihu_bridge
 - `cinii_articles` / `cinii_books`: `issued_date` のみ対応
 - `japan_search`: `issued_from` / `issued_to` を `r-tempo` に変換
 - `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge`: 未対応
+
+レスポンスの `cache`:
+
+- `hit`: `true` ならキャッシュヒット
+- `cache_key`: 該当キャッシュキー
+- `saved_at`: キャッシュ保存時刻（ISO）
+- `refresh_hint`: キャッシュヒット時の再検索導線メッセージ
 
 `issued_from` / `issued_to` の対応状況:
 
@@ -325,6 +334,19 @@ OCR 系ツールはインターネット公開資料のみ対応します。`sou
 | `output_path` | string | 自動 | 出力先 |
 | `include_unselected` | boolean | true | 未採用候補を含めるか |
 
+#### `jp_lit_export_view`
+
+キャッシュ系ビュー結果を直接 `exports/` に書き出します。`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` の実行結果をその場で Markdown または JSON 化できます。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `view` | string | 必須 | `cache_list` / `cache_query` / `refined_results` |
+| `params` | object | ビューごと | 選択したビューに対応する入力。`cache_list` は `jp_lit_list_cache`、`cache_query` は `jp_lit_search_cache_index`、`refined_results` は `jp_lit_refine_results` の入力をそのまま渡す |
+| `format` | string | `markdown` | `markdown` / `json` |
+| `output_path` | string | 自動 | 出力先（未指定時は `exports/{view}.{timestamp}.{ext}`） |
+
+返り値の `item_count` は、`cache_list` / `cache_query` では `total`、`refined_results` では `total_after` を使います。
+
 #### `jp_lit_find_sessions`
 
 過去セッションを検索します。
@@ -513,3 +535,68 @@ live smoke の主な環境変数:
 - `jdcat` は公開 JSON API `/api/records/` と `/api/records/{id}` を使います。
 - `jdcat` の `availability.online=true` は配布元 URI が示されていることを意味し、データ本体が無条件公開されている保証ではありません。
 - `nihu_bridge` の sort は現時点で未対応です。
+
+### `jp_lit_refine_results`
+
+保存済みの `jp_lit_search` 結果を upstream 再検索せずに再抽出します。単一結果の再ソート/再フィルタだけでなく、複数キャッシュの集合演算にも対応します。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `cache_key` | string | なし | 単一の対象キャッシュ |
+| `cache_keys` | string[] | なし | 複数キャッシュを明示指定 |
+| `session_id` | string | なし | 指定セッション内の `jp_lit_search` 結果をまとめて対象化 |
+| `combine` | string | `union` | `union` / `intersection` / `minus` |
+| `key_by` | string | `source_record` | 集合演算キー。`source_record` / `duplicate_key` / `title_author_year` |
+| `sort_by` | string | なし | `issued_at` / `title` |
+| `sort_order` | string | `asc` | `asc` / `desc` |
+| `limit` | number | 100 | 最大 200 |
+| `offset` | number | 0 | 先頭スキップ件数 |
+| `filters` | object | なし | `source` / `issued_from` / `issued_to` / `online` / `digital_collection` / `title_contains` / `author_contains` |
+
+`combine=minus` は「先頭集合 - 後続集合」の差集合です。
+
+### `jp_lit_search_cache_index`
+
+保存済み `jp_lit_search` キャッシュを横断検索し、再抽出に使える `cache_key` 群を返します。返された `cache_keys` はそのまま `jp_lit_refine_results(cache_keys=[...])` に渡せます。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `query` | string | 必須 | キャッシュ検索語 |
+| `session_id` | string | なし | 対象セッションを限定 |
+| `source` | source | なし | キャッシュの source で絞り込み |
+| `issued_from` | string | なし | `items[].issued_at` の下限 |
+| `issued_to` | string | なし | `items[].issued_at` の上限 |
+| `saved_on` | string | なし | キャッシュ保存日（`YYYY-MM-DD` / `today` / `yesterday` / `last_7_days`） |
+| `saved_from` | string | なし | キャッシュ保存日時の下限（ISO 文字列） |
+| `saved_to` | string | なし | キャッシュ保存日時の上限（ISO 文字列） |
+| `limit` | number | 50 | 最大 200 |
+
+`saved_on` ショートハンドはサーバー側で `Asia/Tokyo` 基準に解決されます。`saved_on` を指定した場合、出力には解決後の日付（`saved_on_resolved`）も含まれます。
+
+出力には `cache_keys[]` と、各キャッシュの `matched_fields`（`query` / `title` / `author` / `subject` / `source_id`）が含まれます。
+
+### `jp_lit_delete_cache`
+
+ローカルキャッシュを削除します。単体削除または tool 単位の一括削除に対応します。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `tool` | string | `jp_lit_search` | 対象ツール |
+| `cache_key` | string | なし | 単体削除対象 |
+| `clear_all` | boolean | `false` | `true` で対象 tool のキャッシュを一括削除 |
+
+### `jp_lit_list_cache`
+
+ローカルキャッシュの一覧と集計を返します。作成日・source・session で絞り込めます。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `tool` | string | なし | 対象ツール（未指定なら全 tool） |
+| `session_id` | string | なし | 対象セッションを限定 |
+| `saved_on` | string | なし | キャッシュ保存日（`YYYY-MM-DD` / `today` / `yesterday` / `last_7_days`） |
+| `saved_from` | string | なし | キャッシュ保存日時の下限（ISO 文字列） |
+| `saved_to` | string | なし | キャッシュ保存日時の上限（ISO 文字列） |
+| `source` | source | なし | 検索系キャッシュの source で絞り込み |
+| `limit` | number | 100 | 最大 500 |
+
+`saved_on` ショートハンドはサーバー側で `Asia/Tokyo` 基準に解決されます。`saved_on` を指定した場合、出力には解決後の日付（`saved_on_resolved`）も含まれます。

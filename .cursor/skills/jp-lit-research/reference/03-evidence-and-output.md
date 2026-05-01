@@ -30,6 +30,7 @@ OCR ヒットのみで本文内容を断定しない。
 - 各 source から何件取得したか
 - どの基準で候補を絞ったか
 - 除外したものがあればその理由
+- `jp_lit_refine_results` を使った場合は、`total_before` / `total_after` と適用した条件（sort/filter）を明示する
 
 ## annotation / export
 

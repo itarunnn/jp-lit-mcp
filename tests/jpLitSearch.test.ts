@@ -57,9 +57,8 @@ describe("createSearchService", () => {
 
     expect(parsed).toEqual({
       query: "夏目漱石",
-      source: undefined,
-      limit: undefined,
-      page: 1
+      page: 1,
+      force_refresh: false
     });
   });
 
@@ -220,6 +219,7 @@ describe("createSearchService", () => {
   });
 
   it("tool handler が schema を通して検索結果を structuredContent で返す", async () => {
+    const baseDir = await createTempDir();
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
       search: async () => ({
@@ -234,7 +234,11 @@ describe("createSearchService", () => {
       getRecord: async () => null
     };
     const service = createSearchService([ndlSearchAdapter]);
-    const tool = createJpLitSearchTool(service);
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
 
     const result = await tool({
       query: "夏目漱石",
@@ -254,6 +258,12 @@ describe("createSearchService", () => {
         providers: { R100000002: 1 },
         ndc: { "9": 1 },
         issued_years: { "1905": 1 }
+      },
+      cache: {
+        hit: false,
+        cache_key: expect.any(String),
+        saved_at: expect.any(String),
+        refresh_hint: null
       }
     });
     expect(result.content).toEqual([
@@ -262,6 +272,8 @@ describe("createSearchService", () => {
         text: JSON.stringify(result.structuredContent, null, 2)
       }
     ]);
+
+    await rm(baseDir, { recursive: true, force: true });
   });
 
   it("tool handler は issued_from / issued_to を searchService に渡す", async () => {
@@ -353,6 +365,63 @@ describe("createSearchService", () => {
       limit: 48,
       total: 1
     });
+  });
+
+  it("同一入力の再実行時は cache.hit=true を返す", async () => {
+    const baseDir = await createTempDir();
+    const ndlSearchAdapter: SourceAdapter = {
+      source: "ndl_search",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
+      }),
+      getRecord: async () => null
+    };
+    const service = createSearchService([ndlSearchAdapter]);
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({ query: "夏目漱石", source: "ndl_search" });
+    const second = await tool({ query: "夏目漱石", source: "ndl_search" });
+
+    expect(first.structuredContent.cache?.hit).toBe(false);
+    expect(second.structuredContent.cache?.hit).toBe(true);
+    expect(second.structuredContent.cache?.refresh_hint).toContain("キャッシュ結果");
+  });
+
+  it("force_refresh=true のときはキャッシュがあっても再検索する", async () => {
+    const baseDir = await createTempDir();
+    const search = vi
+      .fn()
+      .mockResolvedValueOnce({
+        total: 1,
+        items: [createSearchItem("ndl_search", "1", "first")]
+      })
+      .mockResolvedValueOnce({
+        total: 1,
+        items: [createSearchItem("ndl_search", "2", "second")]
+      });
+    const service = { search } as unknown as SearchService;
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({ query: "夏目漱石", source: "ndl_search" });
+    const second = await tool({
+      query: "夏目漱石",
+      source: "ndl_search",
+      force_refresh: true
+    });
+
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(first.structuredContent.cache?.hit).toBe(false);
+    expect(second.structuredContent.cache?.hit).toBe(false);
+    expect(second.structuredContent.items[0]?.source_id).toBe("2");
   });
 
   it("tool handler は 0 件でも requested limit を維持して schema error にならない", async () => {

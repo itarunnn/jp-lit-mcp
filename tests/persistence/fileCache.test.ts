@@ -49,7 +49,7 @@ describe("file cache", () => {
     expect(cached?.structured_content).toEqual({ query: "foo", total: 1 });
   });
 
-  it("does not read cached content from the legacy cache directory", async () => {
+  it("reads cached content from the legacy cache directory when the new path is missing", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const legacyDir = path.join(baseDir, ".cache", "ndl-jp-lit-mcp", "cache", "v1", "jp_lit_search");
@@ -78,6 +78,50 @@ describe("file cache", () => {
       "sha256-legacy"
     );
 
+    expect(cached?.structured_content).toEqual({ query: "legacy", total: 2 });
+  });
+
+  it("deletes cache file by key", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-delete",
+      saved_at: new Date().toISOString(),
+      input: { query: "delete" },
+      structured_content: { query: "delete", total: 1 }
+    });
+
+    const deleted = await cache.delete("jp_lit_search", "sha256-delete");
+    const cached = await cache.read("jp_lit_search", "sha256-delete");
+    expect(deleted).toBe(true);
     expect(cached).toBeNull();
+  });
+
+  it("clears all cache files for a tool", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-c1",
+      saved_at: new Date().toISOString(),
+      input: { query: "a" },
+      structured_content: { query: "a", total: 1 }
+    });
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-c2",
+      saved_at: new Date().toISOString(),
+      input: { query: "b" },
+      structured_content: { query: "b", total: 1 }
+    });
+
+    const removed = await cache.clear("jp_lit_search");
+    expect(removed).toBe(2);
+    expect(await cache.read("jp_lit_search", "sha256-c1")).toBeNull();
+    expect(await cache.read("jp_lit_search", "sha256-c2")).toBeNull();
   });
 });

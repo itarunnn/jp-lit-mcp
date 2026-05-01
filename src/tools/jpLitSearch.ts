@@ -16,11 +16,13 @@ export function createJpLitSearchTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchInputSchema.parse(input);
-    const { structuredContent } = await runCachedTool<SearchOutput>({
+    const { force_refresh, ...cacheableInput } = parsed;
+    const { structuredContent, cacheHit, cacheKey, savedAt } = await runCachedTool<SearchOutput>({
       tool: "jp_lit_search",
-      input: parsed as unknown as Record<string, unknown>,
+      input: cacheableInput as unknown as Record<string, unknown>,
       cache,
       sessions,
+      bypassCache: force_refresh,
       live: async () => {
         const searchResult = await searchService.search({
           query: parsed.query,
@@ -46,14 +48,26 @@ export function createJpLitSearchTool(
       }
     });
 
+    const response: SearchOutput = {
+      ...structuredContent,
+      cache: {
+        hit: cacheHit,
+        cache_key: cacheKey,
+        saved_at: savedAt,
+        refresh_hint: cacheHit
+          ? "キャッシュ結果です。最新データで再検索したい場合は force_refresh=true を指定してください。"
+          : null
+      }
+    };
+
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify(structuredContent, null, 2)
+          text: JSON.stringify(response, null, 2)
         }
       ],
-      structuredContent
+      structuredContent: response
     };
   };
 }

@@ -26,6 +26,12 @@
   - どの source / query を使ったか
   - `total` のうち何件取得したか
 
+## 検索後の二次操作
+
+- 「今の検索を並び替えて」「この条件で絞って」系の依頼は、まず `jp_lit_refine_results` を使う
+- `jp_lit_refine_results` はローカルキャッシュ済みの `jp_lit_search` 結果を再処理するため、upstream 再検索より速く、追加ノイズも増やしにくい
+- `jp_lit_refine_results` で足りない場合のみ、query/source を変えた再検索へ進む
+
 ## intent
 
 - `bibliography_lookup`
@@ -55,6 +61,8 @@
 - 内部保存した cache / session を原本とし、会話には要点と判断だけを残す
 - 断定、引用、candidate の格上げ、競合解消、export 作成時だけ原本へ戻る
 - サブエージェントは任意。単独エージェントで成立することを前提にする
+- 自然文要求は「最新化 > 削除 > 一覧 > 再抽出 > 通常検索」の順でツールへルーティングする
+- `saved_on` の `today` / `yesterday` / `last_7_days` はサーバー側で `Asia/Tokyo` 基準に解決されるため、エージェント側で日付文字列へ展開しない
 
 ## 参照
 

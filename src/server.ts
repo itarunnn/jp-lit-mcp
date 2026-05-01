@@ -4,10 +4,20 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   annotateSessionInputSchema,
   annotateSessionOutputSchema,
+  refineResultsInputSchema,
+  refineResultsOutputSchema,
   exportSessionInputSchema,
   exportSessionOutputSchema,
+  exportViewInputSchema,
+  exportViewOutputSchema,
   findSessionsInputSchema,
   findSessionsOutputSchema,
+  searchCacheIndexInputSchema,
+  searchCacheIndexOutputSchema,
+  deleteCacheInputSchema,
+  deleteCacheOutputSchema,
+  listCacheInputSchema,
+  listCacheOutputSchema,
   recordInputSchema,
   recordOutputSchema,
   searchInputSchema,
@@ -53,7 +63,12 @@ import { createCrdClient } from "./sources/crd/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
+import { createJpLitExportViewTool } from "./tools/jpLitExportView.js";
 import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
+import { createJpLitRefineResultsTool } from "./tools/jpLitRefineResults.js";
+import { createJpLitSearchCacheIndexTool } from "./tools/jpLitSearchCacheIndex.js";
+import { createJpLitDeleteCacheTool } from "./tools/jpLitDeleteCache.js";
+import { createJpLitListCacheTool } from "./tools/jpLitListCache.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinates.js";
 import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
@@ -272,6 +287,15 @@ export function createServer(env: ServerEnv = process.env) {
   const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
   const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
   const findSessionsTool = createJpLitFindSessionsTool(sessions);
+  const refineResultsTool = createJpLitRefineResultsTool(cache, sessions);
+  const searchCacheIndexTool = createJpLitSearchCacheIndexTool(cache, sessions);
+  const deleteCacheTool = createJpLitDeleteCacheTool(cache);
+  const listCacheTool = createJpLitListCacheTool(cache, sessions);
+  const exportViewTool = createJpLitExportViewTool({
+    listCache: listCacheTool,
+    searchCacheIndex: searchCacheIndexTool,
+    refineResults: refineResultsTool
+  });
   const textCoordinatesTool = createJpLitGetTextCoordinatesTool(recordService, nextDlClient, cache, sessions);
   const fulltextTool = createJpLitGetFulltextTool(recordService, nextDlClient, cache, sessions);
   const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
@@ -333,6 +357,16 @@ export function createServer(env: ServerEnv = process.env) {
   );
 
   server.registerTool(
+    "jp_lit_refine_results",
+    {
+      description: "現在セッションに保存された直近（または cache_key 指定）の jp_lit_search 結果を、upstream 再検索せずローカルでソート・フィルタして再表示する",
+      inputSchema: refineResultsInputSchema,
+      outputSchema: refineResultsOutputSchema
+    },
+    refineResultsTool
+  );
+
+  server.registerTool(
     "jp_lit_annotate_session",
     {
       description: "現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものは変更せず、選別判断だけを追加する",
@@ -360,6 +394,46 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: findSessionsOutputSchema
     },
     findSessionsTool
+  );
+
+  server.registerTool(
+    "jp_lit_export_view",
+    {
+      description: "キャッシュ系ビュー（一覧・横断検索・再抽出）の結果を exports/ に直接書き出す",
+      inputSchema: exportViewInputSchema,
+      outputSchema: exportViewOutputSchema
+    },
+    exportViewTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_cache_index",
+    {
+      description: "保存済み jp_lit_search キャッシュを横断検索し、再抽出に使える cache_key 一覧を返す",
+      inputSchema: searchCacheIndexInputSchema,
+      outputSchema: searchCacheIndexOutputSchema
+    },
+    searchCacheIndexTool
+  );
+
+  server.registerTool(
+    "jp_lit_delete_cache",
+    {
+      description: "ローカル保存されたキャッシュを cache_key 単位または tool 単位で削除する",
+      inputSchema: deleteCacheInputSchema,
+      outputSchema: deleteCacheOutputSchema
+    },
+    deleteCacheTool
+  );
+
+  server.registerTool(
+    "jp_lit_list_cache",
+    {
+      description: "ローカルキャッシュの一覧・集計を返す。日付や source で絞り込み可能",
+      inputSchema: listCacheInputSchema,
+      outputSchema: listCacheOutputSchema
+    },
+    listCacheTool
   );
 
   server.registerTool(

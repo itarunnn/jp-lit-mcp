@@ -19,12 +19,17 @@ describe("smoke-mcp tool manifest", () => {
   it("tracks all runtime tools exposed by the server", () => {
     expect(EXPECTED_TOOL_NAMES).toEqual([
       "jp_lit_annotate_session",
+      "jp_lit_delete_cache",
       "jp_lit_export_session",
+      "jp_lit_export_view",
       "jp_lit_find_sessions",
       "jp_lit_get_fulltext",
       "jp_lit_get_record",
       "jp_lit_get_text_coordinates",
+      "jp_lit_list_cache",
+      "jp_lit_refine_results",
       "jp_lit_search",
+      "jp_lit_search_cache_index",
       "jp_lit_search_fulltext",
       "jp_lit_search_guides_cases",
       "jp_lit_search_guides_manuals",

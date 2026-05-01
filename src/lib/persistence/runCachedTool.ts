@@ -9,6 +9,7 @@ interface RunCachedToolOptions<T> {
   live: () => Promise<T>;
   cache: FileCache;
   sessions: SessionStore;
+  bypassCache?: boolean;
   createSessionEntry?: (args: {
     input: Record<string, unknown>;
     cacheKey: string;
@@ -21,6 +22,7 @@ export async function runCachedTool<T>({
   live,
   cache,
   sessions,
+  bypassCache = false,
   createSessionEntry
 }: RunCachedToolOptions<T>) {
   const normalizedInput = normalizeCacheInput(input);
@@ -37,13 +39,15 @@ export async function runCachedTool<T>({
       selected_items: [],
       notes: []
     };
-  const cached = await cache.read<T>(tool, cacheKey);
+  const cached = bypassCache ? null : await cache.read<T>(tool, cacheKey);
 
   if (cached) {
     await sessions.appendEntry(entry);
 
     return {
       cacheKey,
+      cacheHit: true,
+      savedAt: cached.saved_at,
       structuredContent: cached.structured_content
     };
   }
@@ -63,6 +67,8 @@ export async function runCachedTool<T>({
 
   return {
     cacheKey,
+    cacheHit: false,
+    savedAt: envelope.saved_at,
     structuredContent
   };
 }
