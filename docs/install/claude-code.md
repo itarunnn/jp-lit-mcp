@@ -81,12 +81,38 @@ bash scripts/install-skills.sh claude
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## つまずきやすい点
+## 設定反映の確認
+
+まず次で MCP server が見えているか確認します。
+
+```bash
+claude mcp list
+```
+
+`jp-lit` が表示されれば、登録自体は成功しています。
+
+そのうえで、新しいセッションを開いて次を試します。
+
+```text
+文献DBで、近代日本の労働文化について、論文と図書を探してください。
+```
+
+## つまずきやすい点と対処
 
 - `Skills` をインストールしたあとに `Claude Code` を再起動していない
 - `dist/src/index.js` を作る前に MCP 登録だけしている
 - Windows で `ExecutionPolicy` に止められている
 - `claude mcp list` で server が見えていない
+- `claude mcp add ...` で登録したあとも古いセッションを開きっぱなしにしている
+
+よくある見分け方:
+
+- `claude mcp list` に `jp-lit` が出ない
+  - 登録コマンドをやり直す
+- `jp-lit` は出るが、対話で反応しない
+  - 新しいセッションを開くか、Claude Code を再起動する
+- `node .../dist/src/index.js` で失敗する
+  - リポジトリで `npm install` と `npm run build` をやり直す
 
 ## 最初の確認
 

@@ -95,11 +95,41 @@ npm run skills:install -- codex
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## つまずきやすい点
+## 設定反映の確認
+
+まず CLI 側で MCP 登録を確認します。
+
+```bash
+codex mcp list
+```
+
+必要なら詳細も確認できます。
+
+```bash
+codex mcp get jpLit
+```
+
+そのうえで `Codex App` を開き直し、このリポジトリで新しい対話を始めます。
+
+```text
+文献DBで、近代日本の労働文化について、論文と図書を探してください。
+```
+
+## つまずきやすい点と対処
 
 - `npm run build` を実行する前に `MCP` を登録している
 - `dist/src/index.js` ではなく `src/index.ts` を指定している
 - `Skills` を入れていないのに、Skill 前提の使い方を期待している
+- `codex mcp list` では見えるが、`Codex App` を開き直していない
+
+よくある見分け方:
+
+- `codex mcp list` に `jpLit` が出ない
+  - CLI 側の登録ができていない
+- `jpLit` は出るが App で使えない
+  - `Codex App` を開き直して新しい対話を作る
+- Skill だけ動いて MCP が使えない
+  - `npm run build` 済みか、MCP 登録先パスが `dist/src/index.js` かを確認する
 
 ## 最初の確認
 

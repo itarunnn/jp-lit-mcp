@@ -80,12 +80,32 @@ npm run build
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## つまずきやすい点
+## 設定反映の確認
+
+まず `.cursor/mcp.json` の保存内容を見直し、`dist/src/index.js` と `cwd` のパスが実在することを確認します。
+
+そのうえで `Cursor` を再読込し、このリポジトリで新しい対話を開いて次を試します。
+
+```text
+文献DBで、近代日本の労働文化について、論文と図書を探してください。
+```
+
+## つまずきやすい点と対処
 
 - `dist/src/index.js` ではなく TypeScript の source を指定している
 - `cwd` を設定していない
 - `.cursor/skills/` を別の場所へ移してしまっている
 - `.cursor/mcp.json` ではなく別の JSON に書いている
+- `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
+
+よくある見分け方:
+
+- 文献DBモードが起動しない
+  - `.cursor/skills/jp-lit-research/` と `.cursor/skills/jp-lit-verification/` が残っているか確認する
+- MCP が使われない
+  - `.cursor/mcp.json` の `command` / `args` / `cwd` が正しいか確認する
+- `node .../dist/src/index.js` の実行で失敗する
+  - リポジトリで `npm install` と `npm run build` をやり直す
 
 ## 最初の確認
 
