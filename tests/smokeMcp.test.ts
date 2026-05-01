@@ -20,6 +20,7 @@ describe("smoke-mcp tool manifest", () => {
     expect(EXPECTED_TOOL_NAMES).toEqual([
       "jp_lit_annotate_session",
       "jp_lit_export_session",
+      "jp_lit_find_sessions",
       "jp_lit_get_fulltext",
       "jp_lit_get_record",
       "jp_lit_get_text_coordinates",

@@ -12,6 +12,7 @@ import { getExportsRoot, getPersistenceRoot } from "../src/lib/persistence/paths
 export const EXPECTED_TOOL_NAMES = [
   "jp_lit_annotate_session",
   "jp_lit_export_session",
+  "jp_lit_find_sessions",
   "jp_lit_get_fulltext",
   "jp_lit_get_record",
   "jp_lit_get_text_coordinates",

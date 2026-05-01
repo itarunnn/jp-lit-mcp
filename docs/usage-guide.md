@@ -263,6 +263,31 @@ jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=...)
 
 調査の途中や終了後に、候補の整理と書き出しができます。
 
+まずは、次のように自然言語で頼む形を基本に考えてください。
+
+```text
+この調査結果を Markdown で書き出してください。
+```
+
+```text
+採用候補だけを書き出してください。
+```
+
+```text
+候補から外したものだけ JSON で出してください。
+```
+
+```text
+前に「常陸国風土記」で調べたセッションを探してください。
+```
+
+```text
+過去に女学生 制服で調べた結果を探して、そのセッションを Markdown で書き出してください。
+```
+
+エージェントはこの依頼を受けて、内部では `jp_lit_export_session` を呼びます。ツール名を直接書いてもよいですが、通常は自然言語で十分です。
+過去セッション検索が必要な場合は、まず `jp_lit_find_sessions` を呼び、必要に応じて `jp_lit_export_session(session_id=...)` を続けて使います。
+
 ```text
 # 候補にラベルとメモを付ける
 jp_lit_annotate_session(tool="jp_lit_search", cache_key="...", selected_items=[...])
@@ -275,9 +300,46 @@ jp_lit_export_session(format="markdown", profile="selected")
 
 # 候補から外したものだけを書き出す
 jp_lit_export_session(format="json", profile="unselected")
+
+# 過去セッションをキーワードで探す
+jp_lit_find_sessions(query="常陸国風土記", limit=10)
+
+# 見つけた session を指定して再エクスポートする
+jp_lit_export_session(session_id="2026-05-01-120000", format="markdown", profile="full_log")
 ```
 
 `jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には「何件から何件を採用したか」「どういう基準で絞ったか」「何を外したか」など、検索全体の選別理由を入れる想定です。`jp_lit_export_session` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
+
+### どこに保存されるか
+
+保存先は 3 つあります。
+
+- 原本キャッシュ: `.cache/ndl-jp-lit-mcp/cache/v1/`
+  - 検索・取得結果の正規化済み payload が、ツール呼び出し結果ごとに増えていきます
+- セッション: `.cache/ndl-jp-lit-mcp/sessions/`
+  - 採用候補、候補ラベル、選別理由メモがセッション単位で蓄積されます
+  - `jp_lit_find_sessions` はここに残っている archive session を検索します
+- 明示 export: `exports/`
+  - Markdown / JSON のユーザー向け書き出し先です
+
+考え方としては、
+
+- `cache/` = 原本
+- `sessions/` = エージェントの選別ログと短いメモ
+- `exports/` = 人に渡すための整形済みファイル
+
+です。
+
+### 不要になったらどうするか
+
+これらはローカルファイルなので、不要になったら手動で削除できます。
+
+- 検索結果やセッション保存を消したい
+  - `.cache/ndl-jp-lit-mcp/` を削除
+- export したファイルだけ消したい
+  - `exports/` 以下の該当ファイルを削除
+
+削除しても、次に検索や保存を行えば必要なものは再作成されます。ただし、過去の調査ログや候補メモは消えるため、残したいものは先に export しておくのがおすすめです。
 
 現在の export profile:
 
