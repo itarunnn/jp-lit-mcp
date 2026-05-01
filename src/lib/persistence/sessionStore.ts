@@ -8,7 +8,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { getSessionsRoot } from "./paths.js";
+import { getLegacySessionsRoot, getSessionsRoot } from "./paths.js";
 import type {
   SessionAnnotationInput,
   SessionDocument,
@@ -55,8 +55,16 @@ function currentSessionPath(baseDir: string) {
   return path.join(getSessionsRoot(baseDir), "current.json");
 }
 
+function legacyCurrentSessionPath(baseDir: string) {
+  return path.join(getLegacySessionsRoot(baseDir), "current.json");
+}
+
 function archiveSessionPath(baseDir: string, sessionId: string) {
   return path.join(getSessionsRoot(baseDir), `${sessionId}.json`);
+}
+
+function legacyArchiveSessionPath(baseDir: string, sessionId: string) {
+  return path.join(getLegacySessionsRoot(baseDir), `${sessionId}.json`);
 }
 
 function assertValidSessionId(sessionId: string) {
@@ -114,6 +122,18 @@ async function readSessionFile(target: string) {
   return JSON.parse(text) as SessionDocument;
 }
 
+async function readSessionFileWithFallback(primary: string, legacy: string) {
+  try {
+    return await readSessionFile(primary);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+
+    return readSessionFile(legacy);
+  }
+}
+
 export function createSessionStore(baseDir = process.cwd()): SessionStore {
   async function ensureDirectory() {
     await mkdir(getSessionsRoot(baseDir), { recursive: true });
@@ -134,6 +154,16 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
       } catch (error) {
         const currentPath = currentSessionPath(baseDir);
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          try {
+            const legacySession = await readSessionFile(legacyCurrentSessionPath(baseDir));
+            await persist(legacySession);
+            return legacySession;
+          } catch (legacyError) {
+            if ((legacyError as NodeJS.ErrnoException).code !== "ENOENT") {
+              throw legacyError;
+            }
+          }
+
           const session = createEmptySession();
           await persist(session);
           return session;
@@ -159,27 +189,48 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     async readById(sessionId) {
       await ensureDirectory();
       assertValidSessionId(sessionId);
-      return readSessionFile(archiveSessionPath(baseDir, sessionId));
+      return readSessionFileWithFallback(
+        archiveSessionPath(baseDir, sessionId),
+        legacyArchiveSessionPath(baseDir, sessionId)
+      );
     },
 
     async listAll() {
       await ensureDirectory();
+      const roots = [getSessionsRoot(baseDir), getLegacySessionsRoot(baseDir)];
+      const sessionMap = new Map<string, SessionDocument>();
 
-      const filenames = await readdir(getSessionsRoot(baseDir));
-      const sessions = await Promise.all(
-        filenames
-          .filter((filename) => filename.endsWith(".json") && filename !== "current.json")
-          .map(async (filename) => {
-            try {
-              return await readSessionFile(path.join(getSessionsRoot(baseDir), filename));
-            } catch {
-              return null;
-            }
-          })
-      );
+      for (const root of roots) {
+        let filenames: string[];
+        try {
+          filenames = await readdir(root);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+            continue;
+          }
+          throw error;
+        }
 
-      return sessions
-        .filter((session): session is SessionDocument => session !== null)
+        const sessions = await Promise.all(
+          filenames
+            .filter((filename) => filename.endsWith(".json") && filename !== "current.json")
+            .map(async (filename) => {
+              try {
+                return await readSessionFile(path.join(root, filename));
+              } catch {
+                return null;
+              }
+            })
+        );
+
+        for (const session of sessions) {
+          if (session && !sessionMap.has(session.session_id)) {
+            sessionMap.set(session.session_id, session);
+          }
+        }
+      }
+
+      return Array.from(sessionMap.values())
         .sort((left, right) => right.updated_at.localeCompare(left.updated_at));
     },
 

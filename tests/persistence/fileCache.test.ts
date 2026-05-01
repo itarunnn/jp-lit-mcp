@@ -1,10 +1,11 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createCacheKey } from "../../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../../src/lib/persistence/fileCache.js";
+import { getLegacyCacheRoot } from "../../src/lib/persistence/paths.js";
 
 const tempDirs: string[] = [];
 
@@ -47,5 +48,37 @@ describe("file cache", () => {
     );
 
     expect(cached?.structured_content).toEqual({ query: "foo", total: 1 });
+  });
+
+  it("reads cached content from the legacy cache directory", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+    const legacyFile = path.join(legacyDir, "sha256-legacy.json");
+
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      legacyFile,
+      JSON.stringify(
+        {
+          version: 1,
+          tool: "jp_lit_search",
+          cache_key: "sha256-legacy",
+          saved_at: new Date().toISOString(),
+          input: { query: "legacy" },
+          structured_content: { query: "legacy", total: 2 }
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const cached = await cache.read<{ query: string; total: number }>(
+      "jp_lit_search",
+      "sha256-legacy"
+    );
+
+    expect(cached?.structured_content).toEqual({ query: "legacy", total: 2 });
   });
 });

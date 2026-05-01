@@ -2,8 +2,8 @@
   "mcpServers": {
     "jp-lit": {
       "command": "node",
-      "args": ["J:\\apps\\jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "J:\\apps\\jp-lit-mcp",
+      "args": ["C:\\path\\to\\jp-lit-mcp\\dist\\src\\index.js"],
+      "cwd": "C:\\path\\to\\jp-lit-mcp",
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }
