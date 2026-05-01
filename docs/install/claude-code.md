@@ -43,7 +43,7 @@ claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /pat
 
 補足:
 
-- 既定の `local` scope では、現在のプロジェクト用設定が `~/.claude.json` に保存されます
+- 既定の `local` scope では、ユーザー設定として `~/.claude.json` に保存されます
 - チームで共有したい場合は `--scope project` を付けると、リポジトリ直下に `.mcp.json` が作られます
 - 現在の設定確認は `claude mcp list` でできます
 
