@@ -17,6 +17,8 @@ describe("jp-lit-verification skill guide", () => {
     expect(skill).toContain("文献候補として弱い抽出");
     expect(skill).toContain("一致した根拠");
     expect(skill).toContain("不一致点");
+    expect(skill).toContain("highlights");
+    expect(skill).toContain("table_of_contents");
   });
 
   it("uses ndl_search as the first verification gate and source-specific follow-up only when needed", () => {

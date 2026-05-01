@@ -21,6 +21,16 @@ OCR ヒットのみで本文内容を断定しない。
 - source（DB名）
 - 可能なら `source_id` または URL
 
+## 短い抜粋の添え方
+
+書誌要素だけでなく、候補の関連箇所を短く示す。
+
+- `jp_lit_search_fulltext` の `highlights` があれば、上位候補に 1〜2 件添える
+- `jp_lit_search` / `jp_lit_get_record` の `summary` があれば短く添える
+- `table_of_contents` が有用なら代表的な項目だけ添える
+
+目的は「なぜその候補を出したか」をその場で分かるようにすること。毎件長く貼り付けず、上位候補だけに短く付ける。ページ番号が必要なら `jp_lit_search_pages` を追加で使う。
+
 ## 選別過程の明示
 
 必ず次を説明する。
