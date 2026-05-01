@@ -21,6 +21,7 @@ description: >-
 - 判定は厳しめに行う
 - 主出力は表
 - 各行に根拠付きの判定理由を必ず付ける
+- `部分一致` / `混線の疑い` では、近い候補の著者名・書名・掲載誌または出版社・発行年を可能な限り示す
 - `ndl_search` を一次検証の第一関門に使う
 - `部分一致` / `混線の疑い` / 再確認価値の高い `非実在の疑い` だけ、必要なら個別 source で再確認する
 - 生の検索結果を会話へ大量に貼り付けず、表と判定理由を主に残す
@@ -56,6 +57,15 @@ description: >-
 | 抽出文献 | 推定タイプ | 検証結果 | 判定理由 | 一致した根拠 | 不一致点 | 確認候補 | 次の手 |
 |----------|------------|----------|----------|--------------|----------|----------|--------|
 
+`確認候補` には、可能な限り次を入れる。
+
+- 著者名
+- 書名
+- 掲載誌名または出版社
+- 発行年
+- source
+- 可能なら `source_id` または URL
+
 別枠:
 
 ## 文献候補として弱い抽出
@@ -73,9 +83,12 @@ description: >-
   - 論文: `cinii_articles` / `jstage_articles` / `ndl_articles`
   - 一次資料: `ndl_digital`
 
-## 詳細リファレンス
+## 参照順
 
-- [workflows/pasted-text-verification.md](workflows/pasted-text-verification.md)
-- [heuristics/extraction-rules.md](heuristics/extraction-rules.md)
-- [heuristics/classification-rules.md](heuristics/classification-rules.md)
-- [heuristics/source-followup.md](heuristics/source-followup.md)
+まず次の `reference/` を読む。
+
+- [reference/01-core-workflow.md](reference/01-core-workflow.md)
+- [reference/02-extraction-and-classification.md](reference/02-extraction-and-classification.md)
+- [reference/03-output-and-rationale.md](reference/03-output-and-rationale.md)
+
+旧 `workflows/` と `heuristics/` は移行用の詳細資料として当面残す。

@@ -20,11 +20,11 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 3. `npm run smoke:mcp` が通ったら、アプリ上で次のように依頼する
 
 ```text
-文献DBで、明治期の女学生の制服について、論文と図書を探してください。
+文献DBで、近代日本の労働文化について、論文と図書を探してください。
 ```
 
 ```text
-文献DBを始めます。『常陸国風土記』の調べ方を知りたいので、手がかりになる資料や事例を出してください。
+文献DBを始めます。『源氏物語』について調査を始めたいです。最初に見るべき資料と、使うべき DB を教えてください。
 ```
 
 ## このリポジトリの考え方
@@ -34,46 +34,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 - `Skills` は不要なら外せますし、Markdown を編集して改造することもできます
 - ただし、最初はそのまま使うのをおすすめします
 
-## 現状
-
-2026-05-01 時点の状態:
-
-- 公開ツール 12 種・対応 source 14 種・テスト 320 件すべて通過
-- `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
-- `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
-- 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
-- 全 source の search 結果で `issued_at`（発行年）を取得できるよう修正済み
-  - `japan_search`: `common.datePublished` を使用
-  - `nihu_bridge`: `dateCreated[刊行年月]` を優先、登録日（`datePublished`）は除外
-  - `jdcat`: JDCat 登録日ではなく調査対象年（Time P フィールド）を使用
-- `filters.jdcat` を追加（`source=jdcat` のときのみ有効）
-  - `subject` / `geographic` / `contributor` / `title`: Elasticsearch フィールド指定で `q` に AND 結合
-  - `temporal` / `creator`: JDCat 独立パラメータとして渡す
-- live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
-- 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
-- レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
-- ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON エクスポート（`jp_lit_export_session`）に対応済み
-- `jp-lit-research` Skill は同梱済み（Claude Code / Codex / Cursor 対応）
-  - 起動語「文献DBで」「文献DBを始めます」で発火。一度発火したらセッション中継続
-  - 全モードで調査計画を提示してユーザーの確認を取ってから実行する（plan-first）
-  - 調査前情報収集（CRD・NDL リサーチ・ナビ）は intent に応じて計画生成前に実行し、結果を計画に反映する
-  - source の選択は語尾ベースの深度判定ではなく、計画確認の対話を通じてユーザーと決める設計
-  - 検索 MCP（`jp_lit_search` / `jp_lit_get_record` 等）はユーザー確認後のみ実行
-  - 全報告テンプレートに source（DB名）を付記
-  - `jp_lit_search` の description にユーザーの自然言語表現→source の読み替えを追記
-- `jp-lit-verification` Skill は同梱済み
-  - 起動語「文献検証で」「資料検証で」「実在するか確認して」「存在確認して」等で発火
-  - 他サービスや他セッションの貼り付け文章を対象に、日本語文献・資料の実在性・存在を検証できる
-  - `ndl_search` を第一関門にして `実在確認済み` / `部分一致` / `非実在の疑い` / `混線の疑い` を表で返す
-  - 各候補について、判定理由・一致根拠・不一致点を文章で説明する
-- README / install docs / usage guide / source-usage-conditions を整備済み
-- ライセンスは `MIT`
-
-公開前に確認すべき残項目:
-
-- GitHub リポジトリ作成・リモート登録・push（ローカルのみ）
-- ブランチ名 `master` → `main` への改名
-- 公開文面（README・install docs）の最終確認
+実装状況、既知の制約、公開前メモは [docs/project-status.md](docs/project-status.md) にまとめています。
 
 ## この MCP はどういうものか
 
@@ -126,8 +87,8 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 意図しない発火を避けるため、`Skill` は `文献DB` という起動語があるときに使う前提です。基本の合図は次の 2 つです。
 
-- `文献DBで、明治期の女学生について調べてください。`
-- `文献DBを始めます。『扶桑略記』の注釈書を探してください。`
+- `文献DBで、近代日本の労働文化について調べてください。`
+- `文献DBを始めます。『源氏物語』の注釈書を探してください。`
 
 一度発火したら、そのセッション中は `jp-lit-research` として継続し、毎回検索前に調査計画を出して確認を取ってから実行します。
 また、長い調査では検索結果や OCR 全文を会話へ大量に貼り付けず、要点と次の一手だけを持ち回ります。重い結果は MCP の内部保存を原本として扱い、断定・引用・export 前など必要な場面だけ読み直します。
@@ -152,18 +113,18 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 ```text
 文献検証で、次の文章に出てくる文献の実在性を確認してください。
 
-「田中一郎『近代女学生の生活文化』(日本女性史研究 12号, 1934年) は、
- 明治後期の制服の変遷を論じた代表的研究である」
+「佐藤花子『近代都市文化の形成』(文化史研究 12号, 2005年) は、
+ 近代日本の都市生活を論じた代表的研究である」
 ```
 
 出力イメージ:
 
-| 抽出文献 | 検証結果 | 判定理由 |
-|----------|----------|----------|
-| 田中一郎『近代女学生の生活文化』 | 部分一致 | `ndl_search` では題名が近い候補を確認できたが、著者名と掲載誌情報が一致しない。実在文献の取り違え、または複数文献の混線の可能性があるため、この段階では確定しない。 |
+| 抽出文献 | 検証結果 | 判定理由 | 確認候補 |
+|----------|----------|----------|----------|
+| 佐藤花子『近代都市文化の形成』 | 部分一致 | `ndl_search` では題名が近い候補を確認できたが、著者名と掲載誌情報が一致しない。実在文献の取り違え、または複数文献の混線の可能性があるため、この段階では確定しない。 | 鈴木一郎「近代都市文化の展開」『文化史研究』12号、2005年（source=ndl_search） |
 
 この Skill は、他サービスの回答や過去ログをそのまま貼り付けて「実在する文献か」「書誌が混ざっていないか」を監査したいときに向いています。
-こちらも同様に、会話へ残すのは判定表と判定理由を中心にし、検索結果全文や重い書誌 payload は必要時だけ再確認します。
+こちらも同様に、会話へ残すのは判定表と判定理由を中心にし、検索結果全文や重い書誌 payload は必要時だけ再確認します。`部分一致` や `混線の疑い` では、可能な限り近い候補の著者名・書名・掲載誌または出版社・発行年をその場で示します。
 
 詳しい使い方は [docs/usage-guide.md](docs/usage-guide.md) を参照してください。
 公開前に `source` ごとの API 利用条件や表示要件を確認したい場合は [docs/source-usage-conditions.md](docs/source-usage-conditions.md) を参照してください。
@@ -363,7 +324,7 @@ issued_from / issued_to 対応状況:
 
 例:
 ```text
-jp_lit_search_guides_manuals(query="常陸国風土記", limit=3)
+jp_lit_search_guides_manuals(query="源氏物語", limit=3)
 ```
 返り値では `search_keywords` と `guide_headings` を見て、次に試す query や資料群を決める。
 
@@ -619,8 +580,8 @@ npm run smoke:mcp:live-matrix
   "mcpServers": {
     "ndl-jp-lit": {
       "command": "node",
-      "args": ["J:\\apps\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "args": ["C:\\path\\to\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
+      "cwd": "C:\\path\\to\\ndl-jp-lit-mcp",
       "env": {
         "NDL_SEARCH_BASE_URL": "https://ndlsearch.ndl.go.jp/api/sru",
         "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/sru",
@@ -825,55 +786,46 @@ Cursor は `.cursor/skills/` をプロジェクトから自動検出するため
 
 ## ローカル保存
 
-このサーバーは、正規化済みのツール結果を repo 内へローカル保存できる。
+このサーバーは、検索結果や書誌取得結果を repo 内へローカル保存できます。
 
 - キャッシュ: `.cache/ndl-jp-lit-mcp/cache/v1/`
 - セッション: `.cache/ndl-jp-lit-mcp/sessions/`
 - 明示エクスポート: `exports/`
 
-保存の役割分担は次のとおり。
+保存の役割は次のように分かれています。
 
 - キャッシュ
   - `jp_lit_search` や `jp_lit_get_record`、`jp_lit_get_fulltext`、`jp_lit_search_fulltext` などの `structuredContent` 全体
-  - つまり未選別候補を含む正規化済み結果
+  - つまり、未選別候補を含む正規化済み結果です
 - セッション
-  - その結果のうち、どの候補を採用したか
+  - どの候補を採用したか
   - 候補ラベルと短いメモ
-  - 重い OCR / 全文 / 図版 payload 自体は持たず、cache key 参照だけを保持する
+  - 検索全体のメモ
+  をセッション単位で保存します
 
-候補評価は `jp_lit_annotate_session` で保存し、ユーザー向けの書き出しはエージェントが `jp_lit_export_session` を呼んで行う。
-明示的に export しない限り、保存物は内部ファイルとしてのみ保持される。
+重い OCR / 全文 / 図版 payload は session 側へ重複保存せず、cache key 参照だけを保持します。
 
-通常はツール名を直接書かなくてもよい。
+候補評価は `jp_lit_annotate_session` で保存し、ユーザー向けの書き出しはエージェントが `jp_lit_export_session` を呼んで行います。明示的に export しない限り、保存物は内部ファイルとしてのみ保持されます。
 
-- `この調査結果を Markdown で書き出して`
-- `採用候補だけエクスポートして`
-- `候補から外したものだけ JSON で出して`
-- `前に「常陸国風土記」で調べたセッションを探して`
-- `過去に女学生 制服で調べた結果を探して`
+通常はツール名を直接書かなくてもかまいません。たとえば、
 
-のように頼けば、エージェントが必要な export profile を選んで `jp_lit_export_session` を呼ぶ想定である。
+- `この調査結果を Markdown で書き出してください`
+- `採用候補だけエクスポートしてください`
+- `候補から外したものだけ JSON で出してください`
+- `前に「源氏物語」で調べたセッションを探してください`
+- `過去に昭和初期 サラリーマンで調べた結果を探してください`
 
-Skill 併用時は、これらの内部保存を原本として使い、会話には要点だけを残す。検索結果・詳細書誌・OCR 全文を会話に抱え続けることは前提にしない。
+のように頼めば、エージェントが必要な profile を選んで `jp_lit_export_session` を呼ぶ想定です。
 
-`jp_lit_export_session` は現在、次の profile を持つ。
+Skill 併用時は、これらの内部保存を原本として使い、会話には要点だけを残します。検索結果・詳細書誌・OCR 全文を会話に抱え続ける前提ではありません。
+
+`jp_lit_export_session` で選べる profile は次の 3 つです。
 
 - `full_log`
-  - 既定。selected / notes / unselected を含む全体ログ
+  - 既定。`selected` / `notes` / `unselected` を含む全体ログ
 - `selected`
-  - `selected_items` だけを書き出す
+  - `selected_items` だけを書き出します
 - `unselected`
-  - 候補に残さなかった項目だけを書き出す
+  - 候補に残さなかった項目だけを書き出します
 
-過去セッションを探したいときは `jp_lit_find_sessions` を使う。主題・キーワード・候補タイトル・メモを対象に、セッション単位で一致した履歴を返す。
-見つけた session は `jp_lit_export_session(session_id="...")` で再エクスポートできる。
-
-## Codex 実行メモ
-
-Codex 上で `windows sandbox: setup refresh failed with status exit code: 1` が出る場合、PowerShell 単体の問題ではなく Codex 側の sandbox 初期化不調であることが多い。
-
-この場合はシェル再起動よりも、次の順で対処する。
-
-1. Codex の作業セッションを閉じて、新しい Codex セッションでこの repo を開き直す
-2. 再開後に `git status --short`、`npm run build` など短いコマンドで健全性確認をする
-3. まだ失敗する場合だけ、端末アプリやホスト環境の再起動を検討する
+過去セッションを探したいときは `jp_lit_find_sessions` を使います。主題・キーワード・候補タイトル・メモを対象に、セッション単位で一致した履歴を返します。見つけた session は `jp_lit_export_session(session_id="...")` で再エクスポートできます。

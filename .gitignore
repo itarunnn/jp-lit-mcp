@@ -5,3 +5,11 @@ coverage/
 .cache/ndl-jp-lit-mcp/
 exports/
 scripts/update-codex-after-exit.ps1
+.claude/
+advice.md
+CLAUDE.md
+debug-zassaku.ts
+test-results.txt
+docs/superpowers/
+docs/plans/
+docs/research/
