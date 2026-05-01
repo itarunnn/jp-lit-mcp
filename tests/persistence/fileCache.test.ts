@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createCacheKey } from "../../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../../src/lib/persistence/fileCache.js";
-import { getLegacyCacheRoot } from "../../src/lib/persistence/paths.js";
 
 const tempDirs: string[] = [];
 
@@ -50,10 +49,10 @@ describe("file cache", () => {
     expect(cached?.structured_content).toEqual({ query: "foo", total: 1 });
   });
 
-  it("reads cached content from the legacy cache directory", async () => {
+  it("does not read cached content from the legacy cache directory", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
-    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+    const legacyDir = path.join(baseDir, ".cache", "ndl-jp-lit-mcp", "cache", "v1", "jp_lit_search");
     const legacyFile = path.join(legacyDir, "sha256-legacy.json");
 
     await mkdir(legacyDir, { recursive: true });
@@ -79,6 +78,6 @@ describe("file cache", () => {
       "sha256-legacy"
     );
 
-    expect(cached?.structured_content).toEqual({ query: "legacy", total: 2 });
+    expect(cached).toBeNull();
   });
 });

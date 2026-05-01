@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getCacheRoot, getLegacyCacheRoot } from "./paths.js";
+import { getCacheRoot } from "./paths.js";
 import type { CacheEnvelope } from "./types.js";
 
 export interface FileCache {
@@ -17,15 +17,10 @@ function getCacheFilePath(baseDir: string, tool: string, key: string) {
   return path.join(getToolDir(baseDir, tool), `${key}.json`);
 }
 
-function getLegacyCacheFilePath(baseDir: string, tool: string, key: string) {
-  return path.join(getLegacyCacheRoot(baseDir), tool, `${key}.json`);
-}
-
 export function createFileCache(baseDir = process.cwd()): FileCache {
   return {
     async read<T>(tool: string, key: string) {
       const target = getCacheFilePath(baseDir, tool, key);
-      const legacyTarget = getLegacyCacheFilePath(baseDir, tool, key);
 
       try {
         const text = await readFile(target, "utf8");
@@ -33,20 +28,8 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
           process.stderr.write(`[fileCache] read error (${target}): ${error}\n`);
-          return null;
         }
-
-        try {
-          const legacyText = await readFile(legacyTarget, "utf8");
-          return JSON.parse(legacyText) as CacheEnvelope<T>;
-        } catch (legacyError) {
-          if ((legacyError as NodeJS.ErrnoException).code === "ENOENT") {
-            return null;
-          }
-
-          process.stderr.write(`[fileCache] read error (${legacyTarget}): ${legacyError}\n`);
-          return null;
-        }
+        return null;
       }
     },
 

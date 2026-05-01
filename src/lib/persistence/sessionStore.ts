@@ -8,7 +8,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { getLegacySessionsRoot, getSessionsRoot } from "./paths.js";
+import { getSessionsRoot } from "./paths.js";
 import type {
   SessionAnnotationInput,
   SessionDocument,
@@ -55,16 +55,8 @@ function currentSessionPath(baseDir: string) {
   return path.join(getSessionsRoot(baseDir), "current.json");
 }
 
-function legacyCurrentSessionPath(baseDir: string) {
-  return path.join(getLegacySessionsRoot(baseDir), "current.json");
-}
-
 function archiveSessionPath(baseDir: string, sessionId: string) {
   return path.join(getSessionsRoot(baseDir), `${sessionId}.json`);
-}
-
-function legacyArchiveSessionPath(baseDir: string, sessionId: string) {
-  return path.join(getLegacySessionsRoot(baseDir), `${sessionId}.json`);
 }
 
 function assertValidSessionId(sessionId: string) {
@@ -122,18 +114,6 @@ async function readSessionFile(target: string) {
   return JSON.parse(text) as SessionDocument;
 }
 
-async function readSessionFileWithFallback(primary: string, legacy: string) {
-  try {
-    return await readSessionFile(primary);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-
-    return readSessionFile(legacy);
-  }
-}
-
 export function createSessionStore(baseDir = process.cwd()): SessionStore {
   async function ensureDirectory() {
     await mkdir(getSessionsRoot(baseDir), { recursive: true });
@@ -154,16 +134,6 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
       } catch (error) {
         const currentPath = currentSessionPath(baseDir);
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          try {
-            const legacySession = await readSessionFile(legacyCurrentSessionPath(baseDir));
-            await persist(legacySession);
-            return legacySession;
-          } catch (legacyError) {
-            if ((legacyError as NodeJS.ErrnoException).code !== "ENOENT") {
-              throw legacyError;
-            }
-          }
-
           const session = createEmptySession();
           await persist(session);
           return session;
@@ -189,15 +159,12 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     async readById(sessionId) {
       await ensureDirectory();
       assertValidSessionId(sessionId);
-      return readSessionFileWithFallback(
-        archiveSessionPath(baseDir, sessionId),
-        legacyArchiveSessionPath(baseDir, sessionId)
-      );
+      return readSessionFile(archiveSessionPath(baseDir, sessionId));
     },
 
     async listAll() {
       await ensureDirectory();
-      const roots = [getSessionsRoot(baseDir), getLegacySessionsRoot(baseDir)];
+      const roots = [getSessionsRoot(baseDir)];
       const sessionMap = new Map<string, SessionDocument>();
 
       for (const root of roots) {

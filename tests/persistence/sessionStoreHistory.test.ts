@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getLegacySessionsRoot, getSessionsRoot } from "../../src/lib/persistence/paths.js";
+import { getSessionsRoot } from "../../src/lib/persistence/paths.js";
 import { createSessionStore } from "../../src/lib/persistence/sessionStore.js";
 import type { SessionDocument } from "../../src/lib/persistence/types.js";
 
@@ -25,22 +25,8 @@ async function writeArchiveSession(baseDir: string, session: SessionDocument) {
   );
 }
 
-async function writeLegacyArchiveSession(baseDir: string, session: SessionDocument) {
-  const sessionsDir = getLegacySessionsRoot(baseDir);
-  await mkdir(sessionsDir, { recursive: true });
-  await writeFile(
-    path.join(sessionsDir, `${session.session_id}.json`),
-    JSON.stringify(session, null, 2),
-    "utf8"
-  );
-}
-
 function currentSessionFile(baseDir: string) {
   return path.join(getSessionsRoot(baseDir), "current.json");
-}
-
-function legacyCurrentSessionFile(baseDir: string) {
-  return path.join(getLegacySessionsRoot(baseDir), "current.json");
 }
 
 afterEach(async () => {
@@ -63,7 +49,7 @@ describe("session store history", () => {
     await expect(store.readById(archived.session_id)).resolves.toEqual(archived);
   });
 
-  it("reads legacy archived session by id when the new path is missing", async () => {
+  it("does not read legacy archived session by id when the new path is missing", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const archived: SessionDocument = {
@@ -72,10 +58,18 @@ describe("session store history", () => {
       updated_at: "2026-05-01T13:30:00.000Z",
       entries: []
     };
+    const legacyDir = path.join(baseDir, ".cache", "ndl-jp-lit-mcp", "sessions");
 
-    await writeLegacyArchiveSession(baseDir, archived);
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, `${archived.session_id}.json`),
+      JSON.stringify(archived, null, 2),
+      "utf8"
+    );
 
-    await expect(store.readById(archived.session_id)).resolves.toEqual(archived);
+    await expect(store.readById(archived.session_id)).rejects.toMatchObject({
+      code: "ENOENT"
+    });
   });
 
   it("rejects invalid archived session ids before touching the filesystem", async () => {
@@ -122,7 +116,7 @@ describe("session store history", () => {
     await expect(store.listAll()).resolves.toEqual([newest, oldest]);
   });
 
-  it("includes legacy archived sessions in listAll and prefers new-path duplicates", async () => {
+  it("ignores legacy archived sessions in listAll", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const legacyOnly: SessionDocument = {
@@ -143,12 +137,22 @@ describe("session store history", () => {
       updated_at: "2026-05-01T14:30:00.000Z",
       entries: [{ tool: "jp_lit_search", cache_key: "k", input: {}, selected_items: [], notes: [] }]
     };
+    const legacyDir = path.join(baseDir, ".cache", "ndl-jp-lit-mcp", "sessions");
 
-    await writeLegacyArchiveSession(baseDir, legacyOnly);
-    await writeLegacyArchiveSession(baseDir, duplicateLegacy);
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, `${legacyOnly.session_id}.json`),
+      JSON.stringify(legacyOnly, null, 2),
+      "utf8"
+    );
+    await writeFile(
+      path.join(legacyDir, `${duplicateLegacy.session_id}.json`),
+      JSON.stringify(duplicateLegacy, null, 2),
+      "utf8"
+    );
     await writeArchiveSession(baseDir, duplicateNew);
 
-    await expect(store.listAll()).resolves.toEqual([duplicateNew, legacyOnly]);
+    await expect(store.listAll()).resolves.toEqual([duplicateNew]);
   });
 
   it("moves broken current session to .invalid and creates a new session", async () => {
@@ -167,7 +171,7 @@ describe("session store history", () => {
     expect(session.session_id).not.toBe("");
   });
 
-  it("migrates legacy current session into the new location when no new current exists", async () => {
+  it("does not migrate legacy current session when no new current exists", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
     const legacyCurrent: SessionDocument = {
@@ -176,19 +180,21 @@ describe("session store history", () => {
       updated_at: "2026-05-01T15:10:00.000Z",
       entries: []
     };
+    const legacyCurrentPath = path.join(baseDir, ".cache", "ndl-jp-lit-mcp", "sessions", "current.json");
 
-    await mkdir(getLegacySessionsRoot(baseDir), { recursive: true });
+    await mkdir(path.dirname(legacyCurrentPath), { recursive: true });
     await writeFile(
-      legacyCurrentSessionFile(baseDir),
+      legacyCurrentPath,
       JSON.stringify(legacyCurrent, null, 2),
       "utf8"
     );
 
     const session = await store.readCurrent();
 
-    expect(session).toEqual(legacyCurrent);
+    expect(session).not.toEqual(legacyCurrent);
+    expect(session.entries).toEqual([]);
     await expect(readFile(currentSessionFile(baseDir), "utf8")).resolves.toContain(
-      "\"session_id\": \"2026-05-01-150000\""
+      "\"entries\": []"
     );
   });
 
