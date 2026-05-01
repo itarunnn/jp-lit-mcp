@@ -29,6 +29,9 @@
 ## intent
 
 - `bibliography_lookup`
+- `foreign_book_lookup`
+- `union_catalog_lookup`
+- `subject_bibliography_search`
 - `topic_literature_review`
 - `historical_term_search`
 - `fulltext_page_lookup`

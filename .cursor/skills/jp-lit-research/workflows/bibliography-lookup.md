@@ -48,7 +48,37 @@ jp_lit_get_record(source=ndl_digital, source_id=...)
   → available=false → 次世代デジタルライブラリー経由の OCR ツール利用不可（実務上は未収録であることが多いが、現実装では断定しない）
 ```
 
-### 4. 初出調査
+### 4. 洋書・「出たはずの本」の確認
+
+洋書や限定本・私家版・企業史・同人誌などは、NDL にないことだけで不存在としない。
+
+```text
+1. jp_lit_search(source=cinii_books, query=タイトル or 著者)
+2. jp_lit_search(source=ndl_search, query=...)
+3. jp_lit_search(source=ndl_catalog, query=...)
+```
+
+確認観点:
+
+- 洋書は大学図書館所蔵が強いため、`cinii_books` を優先する
+- NDL にない場合も、大学図書館・専門図書館・文学館・地域図書館にある可能性を残す
+- タイトル・副題・原題・翻訳題・著者ローマ字表記・ISBN を切り替える
+- MCP 内で見つからない場合は、WorldCat / Google Books / 専門図書館OPAC / 古書DBなどを「次の手」として明示する
+
+### 5. 単行本の一部・構成レベルの確認
+
+語誌論文・章・全集収録論文などは、図書単位の目録にも論文単位の索引にも出ないことがある。
+
+```text
+1. タイトル・著者で図書/論文DBを検索
+2. jp_lit_get_record で table_of_contents / summary を確認
+3. jp_lit_search_fulltext で章題・用語を検索
+4. 見つからない場合は、専門書誌・目次DB・参考文献から追う
+```
+
+報告時は「検索で出ない=収録されていない」ではなく、「構成レベルのメタデータがない可能性」を明示する。
+
+### 6. 初出調査
 
 1. `jp_lit_search(source=ndl_articles, query=論文タイトル, sort_by=issued_date, sort_order=asc)`
 2. `jp_lit_search(source=cinii_articles, query=..., sort_by=issued_date, sort_order=asc)`

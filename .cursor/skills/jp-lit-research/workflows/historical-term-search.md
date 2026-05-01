@@ -6,6 +6,7 @@
 - 「旧字体・異体字が含まれる可能性がある」
 - 「現代語で検索したがヒットしない」
 - 「カタカナ外来語の当時の表記がわからない」
+- 「語の来歴・語誌・用例を調べたい」
 
 ---
 
@@ -83,13 +84,64 @@ jp_lit_search_fulltext(keyword=古い表記)
 
 ヒットした資料の `highlights` で文脈確認 → 有望なものに `jp_lit_search_pages` でページ特定。
 
-### 5. 発行年の扱い
+### 5. 語誌文献を探す
+
+語源・意味変化・用法変化を調べる場合は、いきなり全文用例だけに進まない。まず「語誌」そのものを扱う先行研究を探す。
+
+```text
+jp_lit_search(source=cinii_articles, query="対象語 語誌")
+jp_lit_search(source=ndl_articles, query="対象語 語誌")
+jp_lit_search(source=ndl_catalog, query="対象語 語誌")
+```
+
+追加で試す語:
+
+- `語源`
+- `語彙史`
+- `語彙研究`
+- `意味変化`
+- `用法`
+- `概念史`
+- `翻訳語`
+
+専門書誌や目次DB由来でしか見つからないことがあるため、`table_of_contents` / `summary` / `subjects` に対象語が出る資料は、タイトルが直接一致しなくても候補に残す。
+
+### 6. 単行本の一部・章レベルを疑う
+
+語誌研究は、単行本・論文集・全集の一章として収録され、論文DBに出ないことがある。
+
+```text
+jp_lit_get_record(source=ndl_catalog, source_id=...)
+jp_lit_search_fulltext(keyword="対象語 語誌")
+jp_lit_search_pages(keyword="対象語", source_id=...)
+```
+
+タイトル検索で見つからない場合も、目次・内容細目・本文ヒット・参考文献から追う。報告時は「章レベルのメタデータ不足により未検出の可能性」を明示する。
+
+### 7. 用例検索に進む
+
+語誌文献が不足する場合のみ、用例検索で自分で材料を集める。
+
+```text
+jp_lit_search_fulltext(keyword=対象語)
+jp_lit_search_fulltext(keyword=旧表記)
+jp_lit_search_pages(keyword=対象語, source_id=...)
+```
+
+用例検索の注意:
+
+- 1例だけで語義・初出・流行を断定しない
+- 複数年代・複数ジャンルの用例を確認する
+- OCR 誤読、復刻本、一括刊行年、目次ヒットを疑う
+- 用例の文脈を短く抜粋し、本文内容の断定はページ確認後に行う
+
+### 8. 発行年の扱い
 
 ```
 jp_lit_search(source=ndl_catalog, query=..., sort_by=issued_date, sort_order=asc)
 ```
 
-現行 MCP の `jp_lit_search` には発行年範囲フィルターはない。NDL 系では `sort_by=issued_date` と検索結果の `issued_at` / `issued_at_label` / `facets.issued_years` を使って、結果側で年代を判定する。
+`issued_from` / `issued_to` が使える source では年代範囲を指定する。未対応 source では `sort_by=issued_date` と検索結果の `issued_at` / `issued_at_label` / `facets.issued_years` を使って、結果側で年代を判定する。
 
 ---
 
