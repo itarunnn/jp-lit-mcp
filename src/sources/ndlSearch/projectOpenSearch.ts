@@ -12,6 +12,20 @@ function asRecord(value: unknown): JsonRecord | null {
   return value as JsonRecord;
 }
 
+function toRecordArray(value: unknown): JsonRecord[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => {
+      const record = asRecord(entry);
+
+      return record ? [record] : [];
+    });
+  }
+
+  const record = asRecord(value);
+
+  return record ? [record] : [];
+}
+
 function readTypedIdentifiers(value: unknown): Record<string, string> {
   const entries = Array.isArray(value) ? value : value == null ? [] : [value];
   const identifiers: Record<string, string> = {};
@@ -96,6 +110,48 @@ function extractJournalTitle(descriptions: unknown): string | null {
   return null;
 }
 
+function extractSubjects(value: unknown): string[] {
+  const results: string[] = [];
+
+  for (const entry of toRecordArray(value)) {
+    if ("@_rdf:resource" in entry || "rdf:resource" in entry) {
+      continue;
+    }
+    const text = readNdlSearchString(entry);
+    if (text) {
+      results.push(text);
+    }
+  }
+
+  return compactStrings(results);
+}
+
+function extractNdc(value: unknown): string[] {
+  return compactStrings(
+    toRecordArray(value).flatMap((entry) => {
+      const datatype = normalizeText(
+        readNdlSearchString(entry["@_rdf:datatype"] ?? entry["rdf:datatype"])
+      )?.toLowerCase();
+      const text = readNdlSearchString(entry);
+
+      return datatype?.endsWith("/ndc") && text ? [text] : [];
+    })
+  );
+}
+
+function extractNdlc(value: unknown): string[] {
+  return compactStrings(
+    toRecordArray(value).flatMap((entry) => {
+      const resource = readNdlSearchString(
+        entry["@_rdf:resource"] ?? entry["rdf:resource"]
+      );
+      const match = resource?.match(/\/class\/ndlc\/([^/]+)$/i);
+
+      return match?.[1] ? [match[1]] : [];
+    })
+  );
+}
+
 function toAuthors(value: unknown): Array<{ name: string; role: "author" }> {
   return compactStrings(readNdlSearchStringList(value)).map((name) => ({
     name,
@@ -153,6 +209,11 @@ function projectItem(value: unknown): JsonRecord {
       readNdlSearchString(item["dcterms:language"]),
     materialType: categories.find((category) => category !== "デジタル") ?? null,
     identifiers: readTypedIdentifiers(item["dc:identifier"]),
+    subjects: extractSubjects(item["dcterms:subject"]),
+    classification: {
+      ndc: extractNdc(item["dc:subject"]),
+      ndlc: extractNdlc(item["dcterms:subject"])
+    },
     viewerUrl,
     accessNote,
     hasPageImages: viewerUrl !== null,

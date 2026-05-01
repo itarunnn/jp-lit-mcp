@@ -19,6 +19,8 @@
       <dc:title>国立国会図書館年報</dc:title>
       <dc:publisher>国立国会図書館</dc:publisher>
       <dc:language>jpn</dc:language>
+      <dcterms:subject rdf:resource="http://id.ndl.go.jp/class/ndlc/UL214" />
+      <dc:subject rdf:datatype="http://ndl.go.jp/dcndl/terms/NDC">016.11</dc:subject>
       <dcndl:publicationPlace>日本</dcndl:publicationPlace>
       <dcndl:alternative>Annual report of the National Diet Library</dcndl:alternative>
       <dc:identifier xsi:type="dcndl:ISSN">1349-0621</dc:identifier>

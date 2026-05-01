@@ -162,7 +162,11 @@ describe("NDL Digital mappers", () => {
     });
     expect(record?.source_metadata).toMatchObject({
       provider_id: null,
-      provider_name: "国立国会図書館デジタルコレクション"
+      provider_name: "国立国会図書館デジタルコレクション",
+      classification: {
+        ndc: ["016.11"],
+        ndlc: ["UL214"]
+      }
     });
   });
 
