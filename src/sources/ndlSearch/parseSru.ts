@@ -184,7 +184,7 @@ function extractNdc(value: unknown): string[] {
       const datatype = normalizeText(entry["@_rdf:datatype"] as string | null)?.toLowerCase();
       const text = readNdlSearchString(entry);
 
-      return datatype?.endsWith("/ndc") && text ? [text] : [];
+      return datatype && /\/ndc\d*$/.test(datatype) && text ? [text] : [];
     })
   );
 }

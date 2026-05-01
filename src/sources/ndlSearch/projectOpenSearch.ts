@@ -134,7 +134,7 @@ function extractNdc(value: unknown): string[] {
       )?.toLowerCase();
       const text = readNdlSearchString(entry);
 
-      return datatype?.endsWith("/ndc") && text ? [text] : [];
+      return datatype && /\/ndc\d*$/.test(datatype) && text ? [text] : [];
     })
   );
 }

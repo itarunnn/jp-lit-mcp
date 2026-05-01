@@ -377,7 +377,7 @@ describe("NDL Search mappers", () => {
       provider_id: null,
       provider_name: "国立国会図書館デジタルコレクション",
       classification: {
-        ndc: ["016.11"],
+        ndc: ["016.11", "016.12"],
         ndlc: ["UL214"]
       }
     });
@@ -1183,6 +1183,12 @@ describe("createNdlSearchAdapter", () => {
       classification: {
         ndc: ["911.56"],
         ndlc: ["KH286"]
+      }
+    });
+    expect(result.items[2]?.source_metadata).toMatchObject({
+      classification: {
+        ndc: ["335.04"],
+        ndlc: ["DH1"]
       }
     });
   });
