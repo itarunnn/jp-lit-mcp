@@ -1,29 +1,11 @@
 {
   "mcpServers": {
-    "ndl-jp-lit": {
+    "jp-lit": {
       "command": "node",
-      "args": ["J:\\apps\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "J:\\apps\\ndl-jp-lit-mcp",
+      "args": ["J:\\apps\\jp-lit-mcp\\dist\\src\\index.js"],
+      "cwd": "J:\\apps\\jp-lit-mcp",
       "env": {
-        "NDL_SEARCH_BASE_URL": "https://ndlsearch.ndl.go.jp/api/sru",
-        "NDL_DIGITAL_BASE_URL": "https://ndlsearch.ndl.go.jp/api/sru",
-        "CINII_RESEARCH_BASE_URL": "https://cir.nii.ac.jp/opensearch/articles",
-        "CINII_RESEARCH_RECORD_BASE_URL": "https://cir.nii.ac.jp/crid",
-        "CINII_BOOKS_HOLDINGS_BASE_URL": "https://ci.nii.ac.jp/books/opensearch/holder",
-        "CINII_RESEARCH_APP_ID": "your-cinii-app-id",
-        "JSTAGE_BASE_URL": "https://api.jstage.jst.go.jp/searchapi/do",
-        "JSTAGE_ARTICLE_BASE_URL": "https://www.jstage.jst.go.jp",
-        "JAPAN_SEARCH_BASE_URL": "https://jpsearch.go.jp/api/item/search/jps-cross",
-        "JAPAN_SEARCH_ITEM_BASE_URL": "https://jpsearch.go.jp/api/item",
-        "IRDB_SEARCH_BASE_URL": "https://irdb.nii.ac.jp/opensearch/search",
-        "IRDB_DETAIL_BASE_URL": "https://irdb.nii.ac.jp",
-        "JDCAT_BASE_URL": "https://jdcat.jsps.go.jp",
-        "KOKKAI_SPEECH_BASE_URL": "https://kokkai.ndl.go.jp/api/speech",
-        "KOKKAI_MEETING_BASE_URL": "https://kokkai.ndl.go.jp/api/meeting",
-        "TEIKOKU_SPEECH_BASE_URL": "https://teikokugikai-i.ndl.go.jp/api/emp/speech",
-        "TEIKOKU_MEETING_BASE_URL": "https://teikokugikai-i.ndl.go.jp/api/emp/meeting",
-        "NIHU_BRIDGE_SEARCH_URL": "https://api.bridge.nihu.jp/v1/integratedsearch/metadatas/search",
-        "NIHU_BRIDGE_RECORD_BASE_URL": "https://api.bridge.nihu.jp/v1/integratedsearch/metadatas"
+        "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }
     }
   }

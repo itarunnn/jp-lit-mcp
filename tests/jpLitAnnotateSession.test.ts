@@ -9,7 +9,7 @@ import { createJpLitAnnotateSessionTool } from "../src/tools/jpLitAnnotateSessio
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-annotate-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-annotate-"));
   tempDirs.push(dir);
   return dir;
 }

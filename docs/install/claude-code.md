@@ -1,6 +1,6 @@
 # Claude Code で使う
 
-このページは、`Claude Code` で `ndl-jp-lit-mcp` を使うための手順です。
+このページは、`Claude Code` で `jp-lit-mcp` を使うための手順です。
 
 ## 手順
 
@@ -20,26 +20,26 @@ npm run build
 **Windows (PowerShell)**
 
 ```powershell
-claude mcp add ndl-jp-lit -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+claude mcp add jp-lit -- node C:\path\to\jp-lit-mcp\dist\src\index.js
 ```
 
 `CINII_RESEARCH_APP_ID` を設定する場合は `--env` を使います。
 
 ```powershell
-claude mcp add ndl-jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\jp-lit-mcp\dist\src\index.js
 ```
 
 **macOS / Linux (bash / zsh)**
 
 ```bash
-claude mcp add ndl-jp-lit -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
+claude mcp add jp-lit -- node /path/to/jp-lit-mcp/dist/src/index.js
 ```
 
 ```bash
-claude mcp add ndl-jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
+claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/jp-lit-mcp/dist/src/index.js
 ```
 
-`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
+`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 補足:
 
@@ -47,9 +47,11 @@ claude mcp add ndl-jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node 
 - チームで共有したい場合は `--scope project` を付けると、リポジトリ直下に `.mcp.json` が作られます
 - 現在の設定確認は `claude mcp list` でできます
 
-完全な設定例と環境変数一覧は [README](../../README.md#mcp-登録例) を参照してください。
+各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 
 4. `Skills` をインストールします。
+
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
 
 **Windows (PowerShell)**
 

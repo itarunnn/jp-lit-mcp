@@ -8,7 +8,7 @@ import { createSessionStore } from "../../src/lib/persistence/sessionStore.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-session-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-session-"));
   tempDirs.push(dir);
   return dir;
 }

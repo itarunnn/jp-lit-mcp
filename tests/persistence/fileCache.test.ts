@@ -9,7 +9,7 @@ import { createFileCache } from "../../src/lib/persistence/fileCache.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-cache-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-cache-"));
   tempDirs.push(dir);
   return dir;
 }

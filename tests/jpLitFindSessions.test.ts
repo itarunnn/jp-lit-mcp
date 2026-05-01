@@ -10,7 +10,7 @@ import { createJpLitFindSessionsTool } from "../src/tools/jpLitFindSessions.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-find-sessions-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-find-sessions-"));
   tempDirs.push(dir);
   return dir;
 }

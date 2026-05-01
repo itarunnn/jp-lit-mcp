@@ -2,7 +2,7 @@ node_modules/
 dist/
 .env
 coverage/
-.cache/ndl-jp-lit-mcp/
+.cache/jp-lit-mcp/
 exports/
 scripts/update-codex-after-exit.ps1
 .claude/

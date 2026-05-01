@@ -11,7 +11,7 @@ import { createJpLitSearchGuidesManualsTool } from "../src/tools/jpLitSearchGuid
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-guides-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-guides-"));
   tempDirs.push(dir);
   return dir;
 }

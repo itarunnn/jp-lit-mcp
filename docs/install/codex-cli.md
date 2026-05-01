@@ -1,6 +1,6 @@
 # Codex CLI で使う
 
-このページは、`Codex CLI` を使って `ndl-jp-lit-mcp` を導入するための手順です。
+このページは、`Codex CLI` を使って `jp-lit-mcp` を導入するための手順です。
 
 ## 手順
 
@@ -31,13 +31,13 @@ npm run build
 **Windows (PowerShell)**
 
 ```powershell
-codex mcp add ndlJpLit -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+codex mcp add jpLit -- node C:\path\to\jp-lit-mcp\dist\src\index.js
 ```
 
 **macOS / Linux (bash / zsh)**
 
 ```bash
-codex mcp add ndlJpLit -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
+codex mcp add jpLit -- node /path/to/jp-lit-mcp/dist/src/index.js
 ```
 
 `CINII_RESEARCH_APP_ID` を設定する場合は `--env` フラグを使います。
@@ -45,29 +45,31 @@ codex mcp add ndlJpLit -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
 **Windows (PowerShell)**
 
 ```powershell
-codex mcp add ndlJpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\jp-lit-mcp\dist\src\index.js
 ```
 
 **macOS / Linux (bash / zsh)**
 
 ```bash
-codex mcp add ndlJpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
+codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/jp-lit-mcp/dist/src/index.js
 ```
 
-CiNii の安定利用には `CINII_RESEARCH_APP_ID` の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。未設定でも動作します。
+CiNii の安定利用には `CINII_RESEARCH_APP_ID` の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。未設定でも動作します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 補足:
 
 - 現在の設定確認は `codex mcp list`
-- 詳細確認は `codex mcp get ndlJpLit`
+- 詳細確認は `codex mcp get jpLit`
 - 設定ファイルで管理したい場合は `~/.codex/config.toml` も使えます
 
-その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
+各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 
 5. `Skills` をインストールします。
 
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
+
 ```bash
-npm run skills:install
+npm run skills:install -- codex
 ```
 
 6. `Codex` をこのリポジトリで起動します。

@@ -10,7 +10,7 @@ import type { SessionDocument } from "../../src/lib/persistence/types.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-session-history-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-session-history-"));
   tempDirs.push(dir);
   return dir;
 }

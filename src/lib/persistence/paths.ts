@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const CACHE_ROOT = ".cache/ndl-jp-lit-mcp";
+const CACHE_ROOT = ".cache/jp-lit-mcp";
 
 export function getPersistenceRoot(baseDir = process.cwd()) {
   return path.join(baseDir, CACHE_ROOT);

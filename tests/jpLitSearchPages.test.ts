@@ -9,7 +9,7 @@ import { createJpLitSearchPagesTool } from "../src/tools/jpLitSearchPages.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-pages-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-pages-"));
   tempDirs.push(dir);
   return dir;
 }

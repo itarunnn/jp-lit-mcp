@@ -18,7 +18,7 @@ import type { SourceAdapter } from "../src/sources/types.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-tool-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-tool-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -227,7 +227,7 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: "ndl_search",
       page: 1,
-      limit: 1,
+      limit: 50,
       total: 1,
       items: [createSearchItem("ndl_search", "1", "吾輩は猫である")],
       facets: {
@@ -292,7 +292,7 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: null,
       page: 1,
-      limit: 1,
+      limit: 48,
       total: 1
     });
   });

@@ -12,9 +12,9 @@ describe("README public onboarding", () => {
 
   it("explains what MCP and Skills change for users", () => {
     const readme = readFileSync("README.md", "utf8");
-    expect(readme).toContain("## この MCP はどういうものか");
-    expect(readme).toContain("## Skills を入れると何が変わるか");
-    expect(readme).toContain("## 主な source の紹介");
+    expect(readme).toContain("## 何ができるか");
+    expect(readme).toContain("## Skills を使う理由");
+    expect(readme).toContain("## 主な対応先");
   });
 
   it("links to the source usage conditions memo", () => {
@@ -27,7 +27,7 @@ describe("README public onboarding", () => {
     expect(readme).toContain("jp-lit-verification");
     expect(readme).toContain("文献検証");
     expect(readme).toContain("実在性");
-    expect(readme).toContain("入力例");
-    expect(readme).toContain("出力イメージ");
+    expect(readme).toContain("最初の依頼例");
+    expect(readme).toContain("使い方ガイド");
   });
 });

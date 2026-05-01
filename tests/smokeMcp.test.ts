@@ -120,11 +120,11 @@ describe("smoke-mcp tool manifest", () => {
   });
 
   it("writes matrix report to exports by default", () => {
-    expect(resolveLiveReportPath("J:/apps/ndl-jp-lit-mcp", undefined)).toBe(
-      "J:\\apps\\ndl-jp-lit-mcp\\exports\\live-smoke-report.json"
+    expect(resolveLiveReportPath("J:/apps/jp-lit-mcp", undefined)).toBe(
+      "J:\\apps\\jp-lit-mcp\\exports\\live-smoke-report.json"
     );
     expect(
-      resolveLiveReportPath("J:/apps/ndl-jp-lit-mcp", "J:/tmp/custom-report.json")
+      resolveLiveReportPath("J:/apps/jp-lit-mcp", "J:/tmp/custom-report.json")
     ).toBe("J:\\tmp\\custom-report.json");
   });
 });

@@ -14,5 +14,7 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("jp_lit_search_guides_manuals");
     expect(skill).toContain("jp_lit_search_guides_cases");
     expect(skill).toContain("文献DBで調べて");
+    expect(skill).toContain("何回の検索を束ねたものか");
+    expect(skill).toContain("全N件中M件取得");
   });
 });

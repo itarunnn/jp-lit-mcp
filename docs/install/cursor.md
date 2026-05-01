@@ -1,6 +1,6 @@
 # Cursor で使う
 
-このページは、`Cursor` で `ndl-jp-lit-mcp` を使うための手順です。
+このページは、`Cursor` で `jp-lit-mcp` を使うための手順です。
 
 ## 先に知っておくこと
 
@@ -27,10 +27,10 @@ npm run build
 ```json
 {
   "mcpServers": {
-    "ndl-jp-lit": {
+    "jp-lit": {
       "command": "node",
-      "args": ["C:\\path\\to\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "C:\\path\\to\\ndl-jp-lit-mcp",
+      "args": ["C:\\path\\to\\jp-lit-mcp\\dist\\src\\index.js"],
+      "cwd": "C:\\path\\to\\jp-lit-mcp",
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }
@@ -44,10 +44,10 @@ npm run build
 ```json
 {
   "mcpServers": {
-    "ndl-jp-lit": {
+    "jp-lit": {
       "command": "node",
-      "args": ["/path/to/ndl-jp-lit-mcp/dist/src/index.js"],
-      "cwd": "/path/to/ndl-jp-lit-mcp",
+      "args": ["/path/to/jp-lit-mcp/dist/src/index.js"],
+      "cwd": "/path/to/jp-lit-mcp",
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }
@@ -56,7 +56,7 @@ npm run build
 }
 ```
 
-`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。その他の環境変数と完全な設定例は [README](../../README.md#mcp-登録例) を参照してください。
+`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 補足:
 

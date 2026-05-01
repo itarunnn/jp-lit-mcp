@@ -9,7 +9,7 @@ import { createJpLitSearchFulltextTool } from "../src/tools/jpLitSearchFulltext.
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-fulltext-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-fulltext-"));
   tempDirs.push(dir);
   return dir;
 }

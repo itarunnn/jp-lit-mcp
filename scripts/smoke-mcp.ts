@@ -605,12 +605,12 @@ async function runLiveSmokeMatrix() {
 
 async function mainSinglePass(): Promise<LiveSmokeStatus> {
   const originalCwd = process.cwd();
-  const smokeDir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-smoke-"));
+  const smokeDir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-smoke-"));
   process.chdir(smokeDir);
   await resetSmokePersistence(smokeDir);
   const server = createServer();
   const client = new Client({
-    name: "ndl-jp-lit-smoke-client",
+    name: "jp-lit-smoke-client",
     version: "0.1.0"
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

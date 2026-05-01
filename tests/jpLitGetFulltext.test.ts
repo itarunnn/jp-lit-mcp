@@ -9,7 +9,7 @@ import { createJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-get-fulltext-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-get-fulltext-"));
   tempDirs.push(dir);
   return dir;
 }

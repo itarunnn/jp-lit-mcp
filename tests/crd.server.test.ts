@@ -10,7 +10,7 @@ import { createServer } from "../src/server.js";
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-crd-server-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-crd-server-"));
   tempDirs.push(dir);
   return dir;
 }

@@ -9,7 +9,7 @@ import { createJpLitSearchIllustrationsTool } from "../src/tools/jpLitSearchIllu
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-search-illustrations-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-illustrations-"));
   tempDirs.push(dir);
   return dir;
 }

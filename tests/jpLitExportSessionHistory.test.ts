@@ -13,7 +13,7 @@ import { createJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js
 const tempDirs: string[] = [];
 
 async function createTempDir() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "ndl-jp-lit-export-history-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-export-history-"));
   tempDirs.push(dir);
   return dir;
 }
