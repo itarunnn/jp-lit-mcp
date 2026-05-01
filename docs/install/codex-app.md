@@ -7,7 +7,7 @@
 - `Codex App` では `Skills` を既定で使う前提にします
 - このガイドでは、`MCP` の追加は `Codex CLI` 側で行う方法を案内します
 - `Codex App` 単体の UI より、CLI から設定した方が再現しやすく確認もしやすいためです
-- コマンド例の `/path/to/ndl-jp-lit-mcp/` は、自分が clone した実際のパスに置き換えてください
+- コマンド例のパスは、自分が clone した実際のパスに置き換えてください
 
 ## 前提
 
@@ -35,11 +35,27 @@ codex login
 
 5. `MCP` を `Codex CLI` から追加します。
 
+**Windows (PowerShell)**
+
+```powershell
+codex mcp add ndlJpLit -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+```
+
+**macOS / Linux (bash / zsh)**
+
 ```bash
 codex mcp add ndlJpLit -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
 ```
 
 `CINII_RESEARCH_APP_ID` を設定する場合は `--env` フラグを使います。
+
+**Windows (PowerShell)**
+
+```powershell
+codex mcp add ndlJpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+```
+
+**macOS / Linux (bash / zsh)**
 
 ```bash
 codex mcp add ndlJpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js

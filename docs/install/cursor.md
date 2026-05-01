@@ -7,7 +7,7 @@
 - `Cursor` では、このリポジトリ内の `.cursor/skills/jp-lit-research/` と `.cursor/skills/jp-lit-verification/` が自動検出されます
 - そのため `Skills` の追加インストールは不要です
 - `MCP` は通常 `.cursor/mcp.json` に追加します
-- `C:\\path\\to\\ndl-jp-lit-mcp\\` は、自分が clone した実際のパスに置き換えてください
+- パスは、自分が clone した実際のパスに置き換えてください
 - どのプロジェクトでも使いたい場合は `~/.cursor/mcp.json` に書く方法もあります
 
 ## 手順
@@ -22,6 +22,8 @@ npm run build
 
 3. プロジェクトルートに `.cursor/mcp.json` が無ければ作り、次を追加します。
 
+**Windows**
+
 ```json
 {
   "mcpServers": {
@@ -29,6 +31,23 @@ npm run build
       "command": "node",
       "args": ["C:\\path\\to\\ndl-jp-lit-mcp\\dist\\src\\index.js"],
       "cwd": "C:\\path\\to\\ndl-jp-lit-mcp",
+      "env": {
+        "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
+      }
+    }
+  }
+}
+```
+
+**macOS / Linux**
+
+```json
+{
+  "mcpServers": {
+    "ndl-jp-lit": {
+      "command": "node",
+      "args": ["/path/to/ndl-jp-lit-mcp/dist/src/index.js"],
+      "cwd": "/path/to/ndl-jp-lit-mcp",
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }

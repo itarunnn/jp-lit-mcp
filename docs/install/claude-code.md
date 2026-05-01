@@ -4,7 +4,7 @@
 
 ## 手順
 
-コマンド例の `C:\\path\\to\\ndl-jp-lit-mcp\\` は、自分が clone した実際のパスに置き換えてください。
+コマンド例のパスは、自分が clone した実際のパスに置き換えてください。
 Claude Code の MCP は、公式には `claude mcp add` で追加するのが基本です。
 
 1. このリポジトリを clone します。
@@ -17,6 +17,8 @@ npm run build
 
 3. `Claude Code` に MCP server を追加します。
 
+**Windows (PowerShell)**
+
 ```powershell
 claude mcp add ndl-jp-lit -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
 ```
@@ -25,6 +27,16 @@ claude mcp add ndl-jp-lit -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
 
 ```powershell
 claude mcp add ndl-jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\ndl-jp-lit-mcp\dist\src\index.js
+```
+
+**macOS / Linux (bash / zsh)**
+
+```bash
+claude mcp add ndl-jp-lit -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
+```
+
+```bash
+claude mcp add ndl-jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/ndl-jp-lit-mcp/dist/src/index.js
 ```
 
 `CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
