@@ -49,6 +49,15 @@ describe("session store history", () => {
     await expect(store.readById(archived.session_id)).resolves.toEqual(archived);
   });
 
+  it("rejects invalid archived session ids before touching the filesystem", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+
+    await expect(store.readById("../package")).rejects.toThrow(
+      "Invalid session id: ../package"
+    );
+  });
+
   it("lists archived sessions ordered by updated_at descending and skips current and broken json", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);

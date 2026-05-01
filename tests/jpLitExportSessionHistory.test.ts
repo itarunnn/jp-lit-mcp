@@ -306,11 +306,28 @@ describe("jp_lit_export_session history", () => {
 
     await expect(
       tool({
-        session_id: "missing-session-id",
+        session_id: "2026-05-01-999999",
         format: "markdown"
       })
     ).rejects.toMatchObject({
       code: "ENOENT"
+    });
+  });
+
+  it("rejects invalid session_id values at schema validation time", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await expect(
+      tool({
+        session_id: "../package",
+        format: "markdown"
+      })
+    ).rejects.toMatchObject({
+      name: "ZodError"
     });
   });
 });

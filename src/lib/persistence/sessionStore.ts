@@ -23,6 +23,8 @@ export interface SessionStore {
   readCurrent(): Promise<SessionDocument>;
 }
 
+const SESSION_ID_PATTERN = /^\d{4}-\d{2}-\d{2}-\d{6}$/;
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -55,6 +57,12 @@ function currentSessionPath(baseDir: string) {
 
 function archiveSessionPath(baseDir: string, sessionId: string) {
   return path.join(getSessionsRoot(baseDir), `${sessionId}.json`);
+}
+
+function assertValidSessionId(sessionId: string) {
+  if (!SESSION_ID_PATTERN.test(sessionId)) {
+    throw new Error(`Invalid session id: ${sessionId}`);
+  }
 }
 
 async function writeSessionFile(target: string, value: SessionDocument) {
@@ -150,6 +158,7 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
 
     async readById(sessionId) {
       await ensureDirectory();
+      assertValidSessionId(sessionId);
       return readSessionFile(archiveSessionPath(baseDir, sessionId));
     },
 

@@ -38,7 +38,7 @@ NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、Jap
 
 2026-05-01 時点の状態:
 
-- 公開ツール 12 種・対応 source 14 種・テスト 318 件すべて通過
+- 公開ツール 12 種・対応 source 14 種・テスト 320 件すべて通過
 - `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - 各 source の資料詳細 URL を拡充済み（`jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` 追加、`japan_search` / `nihu_bridge` に fallback URL 追加）
@@ -238,7 +238,7 @@ source 未指定の横断検索対象: `ndl_catalog` / `ndl_digital` / `ndl_arti
 
 ## 実装状況
 
-テスト 318 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
+テスト 320 件すべて通過。`npm test` / `npm run build` / `npm run smoke:mcp` が通る状態を維持。
 
 ### 検索パラメータ
 

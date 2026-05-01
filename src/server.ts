@@ -345,7 +345,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_export_session",
     {
-      description: "現在の調査セッションを repo 内の exports/ に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する",
+      description: "現在の調査セッション、または session_id で指定した過去セッションを repo 内の exports/ に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する",
       inputSchema: exportSessionInputSchema,
       outputSchema: exportSessionOutputSchema
     },
