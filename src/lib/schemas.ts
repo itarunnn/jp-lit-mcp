@@ -309,6 +309,34 @@ export const exportSessionOutputSchema = z.object({
   item_count: z.number().int().nonnegative()
 });
 
+export const findSessionsInputSchema = z.object({
+  query: z.string().trim().min(1),
+  limit: z.number().int().positive().max(50).default(10)
+});
+
+export const findSessionsMatchedFieldSchema = z.enum([
+  "query",
+  "selected_title",
+  "notes"
+]);
+
+export const findSessionsOutputSchema = z.object({
+  query: z.string(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(
+    z.object({
+      session_id: z.string(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      matched_fields: z.array(findSessionsMatchedFieldSchema),
+      query_preview: z.string().nullable(),
+      selected_count: z.number().int().nonnegative(),
+      note_preview: z.string().nullable()
+    })
+  )
+});
+
 const fulltextBookItemSchema = z.object({
   pid: z.string(),
   viewer_url: z.string(),
@@ -452,3 +480,5 @@ export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;
 export type ExportSessionOutput = z.infer<typeof exportSessionOutputSchema>;
+export type FindSessionsInput = z.infer<typeof findSessionsInputSchema>;
+export type FindSessionsOutput = z.infer<typeof findSessionsOutputSchema>;

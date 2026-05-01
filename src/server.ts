@@ -6,6 +6,8 @@ import {
   annotateSessionOutputSchema,
   exportSessionInputSchema,
   exportSessionOutputSchema,
+  findSessionsInputSchema,
+  findSessionsOutputSchema,
   recordInputSchema,
   recordOutputSchema,
   searchInputSchema,
@@ -51,6 +53,7 @@ import { createCrdClient } from "./sources/crd/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
+import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinates.js";
 import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
@@ -268,6 +271,7 @@ export function createServer(env: ServerEnv = process.env) {
   const recordTool = createJpLitGetRecordTool(recordService, cache, sessions);
   const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
   const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
+  const findSessionsTool = createJpLitFindSessionsTool(sessions);
   const textCoordinatesTool = createJpLitGetTextCoordinatesTool(recordService, nextDlClient, cache, sessions);
   const fulltextTool = createJpLitGetFulltextTool(recordService, nextDlClient, cache, sessions);
   const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
@@ -346,6 +350,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: exportSessionOutputSchema
     },
     exportSessionTool
+  );
+
+  server.registerTool(
+    "jp_lit_find_sessions",
+    {
+      description: "過去の調査セッションを主題・キーワード・候補タイトル・メモから検索する。過去の探索履歴を再利用したいときに使う",
+      inputSchema: findSessionsInputSchema,
+      outputSchema: findSessionsOutputSchema
+    },
+    findSessionsTool
   );
 
   server.registerTool(
