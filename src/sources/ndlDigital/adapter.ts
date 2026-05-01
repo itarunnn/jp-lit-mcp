@@ -4,7 +4,7 @@ import {
   UpstreamHttpError
 } from "../../lib/http.js";
 import { assertXmlPayload } from "../../lib/xml.js";
-import type { SourceAdapter } from "../types.js";
+import type { NdlSearchFilters, SourceAdapter } from "../types.js";
 import { projectNdlSearchDetailXml } from "../ndlSearch/projectOpenSearch.js";
 import { projectNdlSruSearchResponse } from "../ndlSearch/parseSru.js";
 import { createNextDigitalLibraryClient } from "../nextDigitalLibrary/adapter.js";
@@ -126,6 +126,34 @@ function buildIssuedClause(
   return clauses;
 }
 
+function normalizeNdlcFilter(value: string): string {
+  const trimmed = value.trim();
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `http://id.ndl.go.jp/class/ndlc/${trimmed}`;
+}
+
+function buildNdlFilterClauses(filters?: NdlSearchFilters): string[] {
+  const clauses: string[] = [];
+
+  if (filters?.subject) {
+    clauses.push(`dcterms.subject="${escapeCqlKeyword(filters.subject)}"`);
+  }
+  if (filters?.ndc) {
+    clauses.push(`dc.subject="${escapeCqlKeyword(filters.ndc)}"`);
+  }
+  if (filters?.ndlc) {
+    clauses.push(
+      `dcterms.subject="${escapeCqlKeyword(normalizeNdlcFilter(filters.ndlc))}"`
+    );
+  }
+
+  return clauses;
+}
+
 function buildSortBy(
   sortBy?: "title" | "creator" | "issued_date" | "created_date" | "modified_date",
   sortOrder?: "asc" | "desc"
@@ -149,7 +177,7 @@ export function createNdlDigitalAdapter(
 
   return {
     source: "ndl_digital",
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
       const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
       url.searchParams.set("operation", "searchRetrieve");
       url.searchParams.set("version", "1.2");
@@ -162,6 +190,7 @@ export function createNdlDigitalAdapter(
         [
           "dpid=ndl-dl",
           ...buildIssuedClause(issued_from, issued_to),
+          ...buildNdlFilterClauses(filters?.ndl),
           `anywhere="${escapeCqlKeyword(query)}"`
         ].join(" AND ")
       );

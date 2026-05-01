@@ -130,6 +130,26 @@ describe("createSearchService", () => {
     expect(parsed.issued_to).toBe("1945");
   });
 
+  it("search 入力スキーマで NDL 系 source + filters.ndl を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "書店",
+      source: "ndl_catalog",
+      filters: {
+        ndl: {
+          subject: "書籍商",
+          ndc: "024.1",
+          ndlc: "UE111"
+        }
+      }
+    });
+
+    expect(parsed.filters?.ndl).toEqual({
+      subject: "書籍商",
+      ndc: "024.1",
+      ndlc: "UE111"
+    });
+  });
+
   it("search 入力スキーマで jstage_articles source を受け付ける", () => {
     const parsed = searchInputSchema.parse({
       query: "夏目漱石",
@@ -268,6 +288,44 @@ describe("createSearchService", () => {
       expect.objectContaining({
         issued_from: "1900",
         issued_to: "1945"
+      })
+    );
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("tool handler は filters.ndl を searchService に渡す", async () => {
+    const baseDir = await createTempDir();
+    const search = vi.fn().mockResolvedValue({
+      total: 0,
+      items: []
+    });
+    const service = { search } as unknown as SearchService;
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({
+      query: "書店",
+      source: "ndl_catalog",
+      filters: {
+        ndl: {
+          subject: "書籍商",
+          ndc: "024.1"
+        }
+      }
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: {
+          ndl: {
+            subject: "書籍商",
+            ndc: "024.1"
+          }
+        }
       })
     );
 
@@ -857,6 +915,16 @@ describe("createSearchService", () => {
       query: "源氏物語",
       filters: { nihu_bridge: { institute: ["nijl"] } }
     });
+    expect(result.success).toBe(false);
+  });
+
+  it("search 入力スキーマで NDL 系以外の source + filters.ndl を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "書店",
+      source: "cinii_books",
+      filters: { ndl: { subject: "書籍商" } }
+    });
+
     expect(result.success).toBe(false);
   });
 });

@@ -66,6 +66,7 @@ export const searchItemSchema = z.object({
   material_type: z.string().nullable(),
   subjects: z.array(z.string()),
   table_of_contents: z.array(z.string()),
+  source_metadata: z.record(z.unknown()).optional(),
   duplicate_key: z.string().nullable(),
   duplicate_count: z.number().int().positive(),
   related_records: z.array(relatedSearchRecordSchema)
@@ -137,6 +138,12 @@ export const jdcatFiltersSchema = z.object({
   creator: z.string().optional()
 });
 
+export const ndlFiltersSchema = z.object({
+  subject: z.string().optional(),
+  ndc: z.string().optional(),
+  ndlc: z.string().optional()
+});
+
 export const searchInputSchema = z
   .object({
     query: z.string().trim().min(1),
@@ -152,7 +159,8 @@ export const searchInputSchema = z
     filters: z.object({
       irdb: irdbFiltersSchema.optional(),
       nihu_bridge: nihuBridgeFiltersSchema.optional(),
-      jdcat: jdcatFiltersSchema.optional()
+      jdcat: jdcatFiltersSchema.optional(),
+      ndl: ndlFiltersSchema.optional()
     }).optional()
   })
   .superRefine((data, ctx) => {
@@ -175,6 +183,20 @@ export const searchInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "filters.jdcat は source=jdcat のときのみ有効です",
         path: ["filters", "jdcat"]
+      });
+    }
+    if (
+      data.filters?.ndl !== undefined &&
+      data.source !== "ndl_search" &&
+      data.source !== "ndl_catalog" &&
+      data.source !== "ndl_digital" &&
+      data.source !== "ndl_articles" &&
+      data.source !== "ndl_articles_online"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.ndl は NDL 系 source のときのみ有効です",
+        path: ["filters", "ndl"]
       });
     }
   });

@@ -3,6 +3,7 @@ import { InvalidRequestError } from "../lib/errors.js";
 import type {
   IrdbSearchFilters,
   JdcatSearchFilters,
+  NdlSearchFilters,
   NihuBridgeSearchFilters,
   SourceAdapter
 } from "../sources/types.js";
@@ -25,6 +26,7 @@ interface SearchInput {
     irdb?: IrdbSearchFilters;
     nihu_bridge?: NihuBridgeSearchFilters;
     jdcat?: JdcatSearchFilters;
+    ndl?: NdlSearchFilters;
   };
 }
 

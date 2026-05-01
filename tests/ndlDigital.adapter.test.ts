@@ -632,6 +632,39 @@ describe("createNdlDigitalAdapter", () => {
     expect(query).toContain('dcterms.issued >= "1900"');
     expect(query).toContain('dcterms.issued <= "1945"');
   });
+
+  it("filters.ndl をデジコレ SRU の CQL 条件に変換する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => readSruFixture("search-ndl-digital.xml")
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { createNdlDigitalAdapter } = await import(
+      "../src/sources/ndlDigital/adapter.js"
+    );
+    const adapter = createNdlDigitalAdapter();
+
+    await adapter.search({
+      query: "詩集",
+      limit: 5,
+      page: 1,
+      filters: {
+        ndl: {
+          ndc: "911.56",
+          ndlc: "KH286"
+        }
+      }
+    });
+
+    const query = new URL(fetchMock.mock.calls[0][0] as string).searchParams.get("query") ?? "";
+    expect(query).toContain("dpid=ndl-dl");
+    expect(query).toContain('dc.subject="911.56"');
+    expect(query).toContain(
+      'dcterms.subject="http://id.ndl.go.jp/class/ndlc/KH286"'
+    );
+    expect(query).toContain('anywhere="詩集"');
+  });
 });
 
 describe("ndl_digital bridge: next_digital_library", () => {

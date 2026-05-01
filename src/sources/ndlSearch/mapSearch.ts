@@ -280,6 +280,19 @@ function toIssuedFields(value: string | null) {
   };
 }
 
+function readClassification(record: JsonRecord): {
+  ndc: string[];
+  ndlc: string[];
+} | null {
+  const classification = asRecord(record.classification);
+  const result = {
+    ndc: readNdlSearchStringList(classification?.ndc),
+    ndlc: readNdlSearchStringList(classification?.ndlc)
+  };
+
+  return result.ndc.length > 0 || result.ndlc.length > 0 ? result : null;
+}
+
 export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
   const record = asRecord(entry) ?? {};
   const url =
@@ -295,6 +308,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       readNdlSearchString(record["dcterms:issued"]) ??
       readNdlSearchString(record.date)
   );
+  const classification = readClassification(record);
 
   const baseSourceId = deriveSourceId(record, url);
   const ciniiCrid = readNdlSearchString(record.ciniiCrid);
@@ -349,6 +363,7 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
     table_of_contents: readNdlSearchStringList(
       record.tableOfContents ?? record.table_of_contents
     ),
+    ...(classification ? { source_metadata: { classification } } : {}),
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []

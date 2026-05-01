@@ -519,6 +519,16 @@ jp_lit_search(source=ndl_catalog, query="中央公論")
 jp_lit_search(source=cinii_books, query="中央公論")
 ```
 
+件名・NDC・NDLC から NDL 系 source を絞り込む場合は `filters.ndl` を使えます。
+
+```text
+jp_lit_search(
+  source=ndl_catalog,
+  query="神保町",
+  filters={ ndl: { subject: "書籍商", ndc: "024.1" } }
+)
+```
+
 ```text
 ndl_catalog で「近代日本 労働文化」を検索して
 ```

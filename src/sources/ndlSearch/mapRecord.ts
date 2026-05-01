@@ -71,6 +71,18 @@ function readMetaList(meta: JsonRecord | null, key: string): string[] {
   );
 }
 
+function readClassification(normalized: JsonRecord): {
+  ndc: string[];
+  ndlc: string[];
+} {
+  const classification = asRecord(normalized.classification);
+
+  return {
+    ndc: readNdlSearchStringList(classification?.ndc),
+    ndlc: readNdlSearchStringList(classification?.ndlc)
+  };
+}
+
 function readTocEntries(meta: JsonRecord | null): string[] {
   if (!meta) {
     return [];
@@ -288,6 +300,7 @@ export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null 
   }
   const { normalized, raw } = result;
   const base = mapNdlSearchSearchEntry(normalized);
+  const classification = readClassification(normalized);
 
   return {
     ...base,
@@ -330,7 +343,8 @@ export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null 
       provider_name: readNdlSearchString(
         normalized.providerName ?? normalized.provider_name ?? normalized.provider
       ),
-      raw_url: readNdlSearchString(normalized.rawUrl ?? normalized.raw_url)
+      raw_url: readNdlSearchString(normalized.rawUrl ?? normalized.raw_url),
+      classification
     },
     raw
   };

@@ -5,7 +5,7 @@ import {
 } from "../../lib/http.js";
 import { assertXmlPayload } from "../../lib/xml.js";
 import type { RecordItem, SearchItem, SourceName } from "../../lib/types.js";
-import type { SourceAdapter } from "../types.js";
+import type { NdlSearchFilters, SourceAdapter } from "../types.js";
 import { mapCiniiRecordResponseForSource } from "../ciniiResearch/mapRecord.js";
 import { mapNdlSearchRecordResponse } from "./mapRecord.js";
 import { mapNdlSearchSearchResponse } from "./mapSearch.js";
@@ -128,14 +128,47 @@ function buildIssuedClause(
   return clauses;
 }
 
+function normalizeNdlcFilter(value: string): string {
+  const trimmed = value.trim();
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `http://id.ndl.go.jp/class/ndlc/${trimmed}`;
+}
+
+function buildNdlFilterClauses(filters?: NdlSearchFilters): string[] {
+  const clauses: string[] = [];
+
+  if (filters?.subject) {
+    clauses.push(`dcterms.subject="${escapeCqlKeyword(filters.subject)}"`);
+  }
+  if (filters?.ndc) {
+    clauses.push(`dc.subject="${escapeCqlKeyword(filters.ndc)}"`);
+  }
+  if (filters?.ndlc) {
+    clauses.push(
+      `dcterms.subject="${escapeCqlKeyword(normalizeNdlcFilter(filters.ndlc))}"`
+    );
+  }
+
+  return clauses;
+}
+
 function buildCqlQuery(
   keyword: string,
   dpid?: string,
   issuedFrom?: string,
-  issuedTo?: string
+  issuedTo?: string,
+  filters?: NdlSearchFilters
 ): string {
   const keywordClause = `anywhere="${escapeCqlKeyword(keyword)}"`;
-  const clauses = [...buildIssuedClause(issuedFrom, issuedTo), keywordClause];
+  const clauses = [
+    ...buildIssuedClause(issuedFrom, issuedTo),
+    ...buildNdlFilterClauses(filters),
+    keywordClause
+  ];
 
   if (dpid) {
     clauses.unshift(`dpid=${dpid}`);
@@ -168,7 +201,7 @@ export function createNdlSearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
       const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
       url.searchParams.set("operation", "searchRetrieve");
       url.searchParams.set("version", "1.2");
@@ -178,7 +211,7 @@ export function createNdlSearchAdapter(
       url.searchParams.set("startRecord", String((page - 1) * limit + 1));
       url.searchParams.set(
         "query",
-        buildCqlQuery(query, providerId, issued_from, issued_to)
+        buildCqlQuery(query, providerId, issued_from, issued_to, filters?.ndl)
       );
       const sort = buildSortBy(sort_by, sort_order);
       if (sort) {

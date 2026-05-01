@@ -80,6 +80,7 @@ export interface SearchItemBase {
   material_type: string | null;
   subjects: string[];
   table_of_contents: string[];
+  source_metadata?: Record<string, unknown>;
   duplicate_key: string | null;
   duplicate_count: number;
   related_records: RelatedSearchRecord[];

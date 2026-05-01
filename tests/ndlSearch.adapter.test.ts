@@ -1085,6 +1085,40 @@ describe("createNdlSearchAdapter", () => {
     expect(query).toContain('anywhere="漱石"');
   });
 
+  it("filters.ndl を件名・NDC・NDLC の CQL 条件に変換する", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => readSruFixture("search-ndl-catalog-dcndl-xml.xml")
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { createNdlCatalogAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlCatalogAdapter();
+
+    await adapter.search({
+      query: "神保町",
+      limit: 5,
+      page: 1,
+      filters: {
+        ndl: {
+          subject: "書籍商",
+          ndc: "024.1",
+          ndlc: "UE111"
+        }
+      }
+    });
+
+    const query = new URL(fetchMock.mock.calls[0][0] as string).searchParams.get("query") ?? "";
+    expect(query).toContain('dcterms.subject="書籍商"');
+    expect(query).toContain('dc.subject="024.1"');
+    expect(query).toContain(
+      'dcterms.subject="http://id.ndl.go.jp/class/ndlc/UE111"'
+    );
+    expect(query).toContain('anywhere="神保町"');
+  });
+
   it("目次あり resource で table_of_contents が t35050 から抽出される", async () => {
     const recordFixture = readFixture("record-toc.json");
     const { mapNdlSearchRecordResponse } = await import(
@@ -1141,6 +1175,12 @@ describe("createNdlSearchAdapter", () => {
     // Records 1 and 2 have only rdf:resource URI subjects → empty
     expect(result.items[0]?.subjects).toEqual([]);
     expect(result.items[1]?.subjects).toEqual([]);
+    expect(result.items[0]?.source_metadata).toMatchObject({
+      classification: {
+        ndc: ["911.56"],
+        ndlc: ["KH286"]
+      }
+    });
   });
 
   it("SRU 検索結果に dcterms:tableOfContents がある場合 SearchItem.table_of_contents に反映される", async () => {

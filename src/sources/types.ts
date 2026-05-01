@@ -32,6 +32,12 @@ export interface JdcatSearchFilters {
   creator?: string;
 }
 
+export interface NdlSearchFilters {
+  subject?: string;
+  ndc?: string;
+  ndlc?: string;
+}
+
 export interface SearchParams {
   query: string;
   limit: number;
@@ -44,6 +50,7 @@ export interface SearchParams {
     irdb?: IrdbSearchFilters;
     nihu_bridge?: NihuBridgeSearchFilters;
     jdcat?: JdcatSearchFilters;
+    ndl?: NdlSearchFilters;
   };
 }
 

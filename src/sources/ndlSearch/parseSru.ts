@@ -178,6 +178,28 @@ function extractSubjects(value: unknown): string[] {
   return compactStrings(results);
 }
 
+function extractNdc(value: unknown): string[] {
+  return compactStrings(
+    toRecordArray(value).flatMap((entry) => {
+      const datatype = normalizeText(entry["@_rdf:datatype"] as string | null)?.toLowerCase();
+      const text = readNdlSearchString(entry);
+
+      return datatype?.endsWith("/ndc") && text ? [text] : [];
+    })
+  );
+}
+
+function extractNdlc(value: unknown): string[] {
+  return compactStrings(
+    toRecordArray(value).flatMap((entry) => {
+      const resource = readNdlSearchString(entry["@_rdf:resource"]);
+      const match = resource?.match(/\/class\/ndlc\/([^/]+)$/i);
+
+      return match?.[1] ? [match[1]] : [];
+    })
+  );
+}
+
 function readMaterialTypeLabel(value: unknown): string | null {
   const entries = toRecordArray(value);
 
@@ -305,6 +327,10 @@ function projectRecord(record: JsonRecord): JsonRecord | null {
     materialType,
     identifiers: extractTypedIdentifiers(bib["dcterms:identifier"]),
     subjects: extractSubjects(bib["dcterms:subject"]),
+    classification: {
+      ndc: extractNdc(bib["dc:subject"]),
+      ndlc: extractNdlc(bib["dcterms:subject"])
+    },
     tableOfContents: readNdlSearchStringList(bib["dcterms:tableOfContents"]),
     viewerUrl,
     accessNote,

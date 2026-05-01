@@ -90,6 +90,7 @@ nihu_bridge
 | `material_type` | string \| null | 資料種別 |
 | `subjects[]` | string[] | 件名 |
 | `table_of_contents[]` | string[] | 目次。source により検索結果にも入る |
+| `source_metadata` | object | source 固有情報。検索結果では分類情報などが入る場合あり |
 
 `RecordItem` ではさらに `alternative_titles` / `publication_place` / `language` / `extent` / `identifiers` / `content_access` / `source_metadata` / `raw` を返します。
 
@@ -97,6 +98,7 @@ nihu_bridge
 
 | source | 主なフィールド |
 | ------ | -------------- |
+| NDL 系検索結果 | `classification.ndc`, `classification.ndlc` |
 | `ndl_digital` | `next_digital_library`, `provider_id`, `provider_name` |
 | `cinii_books` | `holding_count`, `holdings[]` |
 | `jstage_articles` | `pdf_url`, `article_url` |
@@ -124,6 +126,7 @@ nihu_bridge
 | `filters.irdb` | object | なし | `source=irdb` のときのみ |
 | `filters.nihu_bridge` | object | なし | `source=nihu_bridge` のときのみ |
 | `filters.jdcat` | object | なし | `source=jdcat` のときのみ |
+| `filters.ndl` | object | なし | NDL 系 source のときのみ。件名・NDC・NDLC |
 
 `sort_by` の対応状況:
 
@@ -152,6 +155,16 @@ nihu_bridge
 | `keyword` | string | キーワード・件名 |
 | `journal` | string | 掲載誌 |
 | `publisher` | string | 出版者・機関 |
+
+`filters.ndl`:
+
+| フィールド | 型 | 説明 |
+| ---------- | -- | ---- |
+| `subject` | string | 件名。CQL の `dcterms.subject` 条件に変換 |
+| `ndc` | string | NDC。CQL の `dc.subject` 条件に変換 |
+| `ndlc` | string | NDLC。`KH286` 形式は `http://id.ndl.go.jp/class/ndlc/KH286` に正規化 |
+
+対応 source は `ndl_search` / `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` です。
 
 `filters.nihu_bridge`:
 
