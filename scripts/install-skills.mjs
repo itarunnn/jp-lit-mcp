@@ -84,7 +84,6 @@ function install(target) {
 console.log("Codex / Claude Code / Cursor 向け jp-lit Skills インストーラー");
 console.log(`source: ${skillsRoot}`);
 console.log(`skills: ${skillNames.join(", ")}`);
-console.log("Cursor で Skills を使う場合は docs/install/github-skills.md を参照してください。");
 
 if (platform === "all") {
   install("claude");
