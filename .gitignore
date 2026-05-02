@@ -2,11 +2,12 @@ node_modules/
 dist/
 .env
 coverage/
-.cache/jp-lit-mcp/
+.cache/
 exports/
 scripts/update-codex-after-exit.ps1
 .claude/
 .cursor/
+AGENTS.md
 advice.md
 CLAUDE.md
 debug-zassaku.ts

@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-05-01 時点の状態:
+2026-05-02 時点の状態:
 
-- 公開ツール 12 種・対応 source 14 種・テスト 320 件すべて通過
+- 公開ツール 17 種・対応 source 14 種・テスト 360 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - README / install docs / usage guide / source-usage-conditions を整備済み
@@ -14,6 +14,7 @@
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON エクスポート（`jp_lit_export_session`）に対応済み
 - 過去セッション検索（`jp_lit_find_sessions`）と `session_id` 指定 export に対応済み
+- 保存済み検索結果の一覧・検索・再整理・view export・削除（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache`）に対応済み
 
 ## 最近の更新
 
@@ -28,6 +29,8 @@
 - `filters.jdcat` を追加（`source=jdcat` のときのみ有効）
   - `subject` / `geographic` / `contributor` / `title`: Elasticsearch フィールド指定で `q` に AND 結合
   - `temporal` / `creator`: JDCat 独立パラメータとして渡す
+- Codex の Skills 配置を公式導線に合わせ、`~/.agents/skills/` へ変更
+- Cursor の Skills は repo 内 mirror ではなく、`~/.cursor/skills/` へインストールする導線に整理
 
 ## 同梱 Skills
 

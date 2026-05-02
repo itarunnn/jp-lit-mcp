@@ -4,7 +4,7 @@
   "private": false,
   "license": "MIT",
   "type": "module",
-  "description": "NDL Search and NDL Digital Collections MCP server for Japanese literature research",
+  "description": "MCP server and Skills for Japanese literature and humanities research across NDL, CiNii, J-STAGE, IRDB, and related sources",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
