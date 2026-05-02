@@ -8,6 +8,7 @@
 - [Codex CLI](install/codex-cli.md)
 - [Cursor](install/cursor.md)
 - [Claude Code](install/claude-code.md)
+- [GitHub CLI で Skills を入れる](install/github-skills.md)
 
 ---
 

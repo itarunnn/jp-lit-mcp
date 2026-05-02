@@ -36,12 +36,12 @@ Skills だけを GitHub CLI 経由に置き換えるイメージです。
 
 ## 使い方
 
-まず、公開先の GitHub repo を指定します。以下の `OWNER/REPO` は実際の GitHub リポジトリ名に置き換えてください。
+この repo を GitHub に公開したら、基本形は `itarunnn/jp-lit-mcp` です。repo 名を変更して公開する場合だけ、その部分を読み替えてください。
 
 ### 対話的に選ぶ
 
 ```bash
-gh skill install OWNER/REPO
+gh skill install itarunnn/jp-lit-mcp
 ```
 
 この形だと、repo 内の Skills を対話的に選べます。
@@ -49,13 +49,13 @@ gh skill install OWNER/REPO
 ### `jp-lit-research` を直接入れる
 
 ```bash
-gh skill install OWNER/REPO jp-lit-research
+gh skill install itarunnn/jp-lit-mcp jp-lit-research
 ```
 
 ### `jp-lit-verification` を直接入れる
 
 ```bash
-gh skill install OWNER/REPO jp-lit-verification
+gh skill install itarunnn/jp-lit-mcp jp-lit-verification
 ```
 
 ### 中身を先に確認する
@@ -63,8 +63,8 @@ gh skill install OWNER/REPO jp-lit-verification
 公開 repo から Skills を入れる前に、内容を確認することもできます。
 
 ```bash
-gh skill preview OWNER/REPO jp-lit-research
-gh skill preview OWNER/REPO jp-lit-verification
+gh skill preview itarunnn/jp-lit-mcp jp-lit-research
+gh skill preview itarunnn/jp-lit-mcp jp-lit-verification
 ```
 
 ### 更新確認
