@@ -1,9 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
 import { createJpLitDeleteCacheTool } from "../src/tools/jpLitDeleteCache.js";
 
 const tempDirs: string[] = [];
@@ -64,5 +65,30 @@ describe("jp_lit_delete_cache", () => {
     const result = await tool({ tool: "jp_lit_search", clear_all: true });
     expect(result.structuredContent.deleted).toBe(true);
     expect(result.structuredContent.deleted_count).toBe(2);
+  });
+
+  it("旧 cache root にしかない項目も削除できる", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const tool = createJpLitDeleteCacheTool(cache);
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, "legacy-k1.json"),
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: "legacy-k1",
+        saved_at: "2026-05-01T00:00:00.000Z",
+        input: { query: "foo" },
+        structured_content: { query: "foo", total: 1 }
+      }),
+      "utf8"
+    );
+
+    const result = await tool({ tool: "jp_lit_search", cache_key: "legacy-k1" });
+    expect(result.structuredContent.deleted).toBe(true);
+    expect(result.structuredContent.deleted_count).toBe(1);
+    expect(await cache.read("jp_lit_search", "legacy-k1")).toBeNull();
   });
 });

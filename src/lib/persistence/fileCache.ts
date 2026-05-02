@@ -23,6 +23,28 @@ function getLegacyCacheFilePath(baseDir: string, tool: string, key: string) {
   return path.join(getLegacyCacheRoot(baseDir), tool, `${key}.json`);
 }
 
+async function listJsonFilenames(directory: string) {
+  try {
+    return (await readdir(directory)).filter((name) => name.endsWith(".json"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [] as string[];
+    }
+    throw error;
+  }
+}
+
+async function listChildDirs(directory: string) {
+  try {
+    return await readdir(directory);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [] as string[];
+    }
+    throw error;
+  }
+}
+
 export function createFileCache(baseDir = process.cwd()): FileCache {
   return {
     async read<T>(tool: string, key: string) {
@@ -65,8 +87,18 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
     async delete(tool: string, key: string) {
       const target = getCacheFilePath(baseDir, tool, key);
+      const legacyTarget = getLegacyCacheFilePath(baseDir, tool, key);
       try {
         await rm(target, { force: false });
+        return true;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw error;
+        }
+      }
+
+      try {
+        await rm(legacyTarget, { force: false });
         return true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -78,33 +110,27 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
     async clear(tool) {
       if (tool) {
-        const directory = getToolDir(baseDir, tool);
-        let filenames: string[] = [];
-        try {
-          filenames = await readdir(directory);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            return 0;
-          }
-          throw error;
-        }
-        const targets = filenames.filter((name) => name.endsWith(".json"));
+        const directories = [
+          getToolDir(baseDir, tool),
+          path.join(getLegacyCacheRoot(baseDir), tool)
+        ];
+        const targets = (
+          await Promise.all(directories.map((directory) => listJsonFilenames(directory)))
+        ).flatMap((filenames, index) =>
+          filenames.map((filename) => path.join(directories[index]!, filename))
+        );
         await Promise.all(
-          targets.map((filename) => rm(path.join(directory, filename), { force: true }))
+          targets.map((target) => rm(target, { force: true }))
         );
         return targets.length;
       }
 
-      const root = getCacheRoot(baseDir);
-      let toolDirs: string[] = [];
-      try {
-        toolDirs = await readdir(root);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          return 0;
-        }
-        throw error;
-      }
+      const toolDirs = Array.from(
+        new Set([
+          ...(await listChildDirs(getCacheRoot(baseDir))),
+          ...(await listChildDirs(getLegacyCacheRoot(baseDir)))
+        ])
+      );
 
       let removed = 0;
       for (const toolName of toolDirs) {

@@ -1,9 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitListCacheTool } from "../src/tools/jpLitListCache.js";
@@ -216,5 +217,45 @@ describe("jp_lit_list_cache", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("旧 cache root の項目も一覧に含める", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitListCacheTool(cache, sessions, baseDir);
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+
+    await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "legacy" },
+      cache_key: "legacy-list",
+      result_ref: { tool: "jp_lit_search", cache_key: "legacy-list" },
+      selected_items: [],
+      notes: []
+    });
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, "legacy-list.json"),
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: "legacy-list",
+        saved_at: "2026-05-01T09:00:00.000Z",
+        input: { query: "legacy" },
+        structured_content: {
+          query: "legacy",
+          source: "ndl_catalog",
+          page: 1,
+          limit: 50,
+          total: 1,
+          items: [createSearchItem("ndl_catalog", "legacy", "Legacy")]
+        }
+      }),
+      "utf8"
+    );
+
+    const result = await tool({ tool: "jp_lit_search" });
+    expect(result.structuredContent.cache_keys).toContain("legacy-list");
   });
 });

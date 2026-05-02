@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { getCacheRoot } from "../lib/persistence/paths.js";
+import { getCacheRoot, getLegacyCacheRoot } from "../lib/persistence/paths.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { resolveSavedDateFilter } from "../lib/savedDateFilter.js";
@@ -49,18 +49,35 @@ export function createJpLitListCacheTool(
       }
     }
 
-    const cacheRoot = getCacheRoot(baseDir);
+    const cacheRoots = [getCacheRoot(baseDir), getLegacyCacheRoot(baseDir)];
     const targetTools = parsed.tool
       ? [parsed.tool]
-      : await readdir(cacheRoot).catch(() => [] as string[]);
+      : Array.from(
+          new Set(
+            (
+              await Promise.all(
+                cacheRoots.map((root) => readdir(root).catch(() => [] as string[]))
+              )
+            ).flat()
+          )
+        );
 
     const summaries: CachedSummary[] = [];
     for (const tool of targetTools) {
-      const toolDir = path.join(cacheRoot, tool);
-      const filenames = await readdir(toolDir).catch(() => [] as string[]);
-      const cacheKeys = filenames
-        .filter((filename) => filename.endsWith(".json"))
-        .map((filename) => filename.replace(/\.json$/i, ""));
+      const cacheKeys = Array.from(
+        new Set(
+          (
+            await Promise.all(
+              cacheRoots.map((root) =>
+                readdir(path.join(root, tool)).catch(() => [] as string[])
+              )
+            )
+          )
+            .flat()
+            .filter((filename) => filename.endsWith(".json"))
+            .map((filename) => filename.replace(/\.json$/i, ""))
+        )
+      );
 
       for (const cacheKey of cacheKeys) {
         const cached = await cache.read<Record<string, unknown>>(tool, cacheKey);

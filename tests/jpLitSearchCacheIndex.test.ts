@@ -1,9 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitSearchCacheIndexTool } from "../src/tools/jpLitSearchCacheIndex.js";
@@ -353,5 +354,45 @@ describe("jp_lit_search_cache_index", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("旧 cache root の検索結果もインデックス検索に含める", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+
+    await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "legacy game" },
+      cache_key: "legacy-game",
+      result_ref: { tool: "jp_lit_search", cache_key: "legacy-game" },
+      selected_items: [],
+      notes: ["legacy note"]
+    });
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, "legacy-game.json"),
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: "legacy-game",
+        saved_at: "2026-05-01T09:00:00.000Z",
+        input: { query: "legacy game" },
+        structured_content: {
+          query: "legacy game",
+          source: "ndl_catalog",
+          page: 1,
+          limit: 50,
+          total: 1,
+          items: [createSearchItem("ndl_catalog", "legacy", "ゲーム理論入門", "1950")]
+        }
+      }),
+      "utf8"
+    );
+
+    const result = await tool({ query: "ゲーム理論" });
+    expect(result.structuredContent.cache_keys).toContain("legacy-game");
   });
 });
