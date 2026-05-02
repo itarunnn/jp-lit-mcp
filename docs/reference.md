@@ -549,11 +549,12 @@ live smoke の主な環境変数:
 | `key_by` | string | `source_record` | 集合演算キー。`source_record` / `duplicate_key` / `title_author_year` |
 | `sort_by` | string | なし | `issued_at` / `title` |
 | `sort_order` | string | `asc` | `asc` / `desc` |
-| `limit` | number | 100 | 最大 200 |
+| `limit` | number | 30 | 最大 200 |
 | `offset` | number | 0 | 先頭スキップ件数 |
 | `filters` | object | なし | `source` / `issued_from` / `issued_to` / `online` / `digital_collection` / `title_contains` / `author_contains` |
 
 `combine=minus` は「先頭集合 - 後続集合」の差集合です。
+既定では、整理後の結果を会話で扱いやすくするため先頭 30 件だけ返します。全体件数は `total_after` で把握し、全件が必要な場合は `limit` を増やすか `jp_lit_export_view(view="refined_results", ...)` で書き出してください。
 
 ### `jp_lit_search_cache_index`
 

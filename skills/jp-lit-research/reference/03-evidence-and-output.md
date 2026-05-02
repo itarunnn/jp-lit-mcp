@@ -41,6 +41,9 @@ OCR ヒットのみで本文内容を断定しない。
 - どの基準で候補を絞ったか
 - 除外したものがあればその理由
 - `jp_lit_refine_results` を使った場合は、`total_before` / `total_after` と適用した条件（sort/filter）を明示する
+- `jp_lit_refine_results` は既定で先頭 30 件だけ返す。`total_after > 30` の場合は、「全何件中、どの順の先頭 30 件か」を明示する
+- 全件確認が必要な場合は、まず `jp_lit_export_view` で書き出す
+- `total_after > 100` や複数 cache 統合後の傾向要約が必要な場合は、任意で要約専用サブエージェントを使ってよい。ただし標準フローではない
 
 ## annotation / export
 

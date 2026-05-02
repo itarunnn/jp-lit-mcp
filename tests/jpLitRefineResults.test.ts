@@ -110,6 +110,7 @@ describe("jp_lit_refine_results", () => {
     expect(result.structuredContent.base_cache_keys).toEqual([cacheKey]);
     expect(result.structuredContent.combine).toBe("union");
     expect(result.structuredContent.key_by).toBe("source_record");
+    expect(result.structuredContent.limit).toBe(30);
     expect(result.structuredContent.total_before).toBe(3);
     expect(result.structuredContent.total_after).toBe(3);
     expect(result.structuredContent.totals_by_base).toEqual([
@@ -471,5 +472,48 @@ describe("jp_lit_refine_results", () => {
     await expect(tool({})).rejects.toThrow(
       "現在セッションに jp_lit_search の結果がありません"
     );
+  });
+
+  it("既定では整理後の先頭30件だけを返す", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const cacheKey = "limit-key";
+
+    await sessions.appendEntry(createSearchEntry(cacheKey));
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: cacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "大量" },
+      structured_content: {
+        query: "大量",
+        source: "ndl_catalog",
+        page: 1,
+        limit: 50,
+        total: 40,
+        items: Array.from({ length: 40 }, (_, index) =>
+          createSearchItem(
+            "ndl_catalog",
+            `id-${index + 1}`,
+            `資料${index + 1}`,
+            String(1900 + index)
+          )
+        )
+      }
+    });
+
+    const result = await tool({
+      sort_by: "issued_at",
+      sort_order: "asc"
+    });
+
+    expect(result.structuredContent.total_after).toBe(40);
+    expect(result.structuredContent.limit).toBe(30);
+    expect(result.structuredContent.items).toHaveLength(30);
+    expect(result.structuredContent.items[0]?.source_id).toBe("id-1");
+    expect(result.structuredContent.items.at(-1)?.source_id).toBe("id-30");
   });
 });

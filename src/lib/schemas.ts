@@ -500,7 +500,7 @@ export const refineResultsInputSchema = z.object({
     .default("source_record"),
   sort_by: z.enum(["issued_at", "title"]).optional(),
   sort_order: z.enum(["asc", "desc"]).default("asc"),
-  limit: z.number().int().positive().max(200).default(100),
+  limit: z.number().int().positive().max(200).default(30),
   offset: z.number().int().nonnegative().default(0),
   filters: refineResultsFiltersSchema.optional()
 });
