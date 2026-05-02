@@ -15,7 +15,7 @@ if (!home) {
 
 const destinations = {
   claude: join(home, ".claude", "skills"),
-  codex: join(home, ".codex", "skills")
+  codex: join(home, ".agents", "skills")
 };
 
 const codexAdapter = `<codex_skill_adapter>
@@ -67,7 +67,7 @@ metadata:
 
 function install(target) {
   if (target === "cursor") {
-    console.log("[Cursor] プロジェクト内 .cursor/skills/ は自動検出されます。インストール不要。");
+    console.log("[Cursor] repo 内 .cursor/skills/ は配布していません。Skills を使う場合は docs/install/github-skills.md を参照してください。");
     return;
   }
 
@@ -88,7 +88,7 @@ function install(target) {
 console.log("Codex / Claude Code 向け jp-lit Skills インストーラー");
 console.log(`source: ${skillsRoot}`);
 console.log(`skills: ${skillNames.join(", ")}`);
-console.log("Cursor はリポジトリ内 .cursor/skills/ を自動検出します。");
+console.log("Cursor で Skills を使う場合は docs/install/github-skills.md を参照してください。");
 
 if (platform === "all") {
   install("claude");

@@ -33,7 +33,7 @@ describe("install script messaging", () => {
   it("mentions Codex and Claude targets explicitly", () => {
     const script = readFileSync("scripts/install-skills.mjs", "utf8");
     expect(script).toContain("Codex / Claude Code");
-    expect(script).toContain("Cursor はリポジトリ内 .cursor/skills/");
+    expect(script).toContain("docs/install/github-skills.md");
     expect(script).toContain('join(repoRoot, "skills")');
     expect(script).toContain("jp-lit-verification");
   });

@@ -74,6 +74,7 @@ codex mcp list
 6. `Skills` は次でインストールできます。
 
 この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
+Codex 用の Skills は `~/.agents/skills/` に入ります。
 
 ```bash
 npm run skills:install -- codex

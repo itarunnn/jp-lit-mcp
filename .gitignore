@@ -6,6 +6,7 @@ coverage/
 exports/
 scripts/update-codex-after-exit.ps1
 .claude/
+.cursor/
 advice.md
 CLAUDE.md
 debug-zassaku.ts

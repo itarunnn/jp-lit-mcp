@@ -4,9 +4,9 @@
 
 ## 先に知っておくこと
 
-- `Cursor` では、このリポジトリ内の `.cursor/skills/jp-lit-research/` と `.cursor/skills/jp-lit-verification/` が自動検出されます
-- そのため `Skills` の追加インストールは不要です
 - `MCP` は通常 `.cursor/mcp.json` に追加します
+- `Skills` はこのページでは自動配置しません
+- `Skills` を使う場合は、別途 [GitHub CLI で Skills を入れる](github-skills.md) を参照してください
 - パスは、自分が clone した実際のパスに置き換えてください
 - どのプロジェクトでも使いたい場合は `~/.cursor/mcp.json` に書く方法もあります
 
@@ -64,7 +64,9 @@ npm run build
 - グローバルに使いたい場合は `~/.cursor/mcp.json` に同様の形式で書けます
 - editor と `cursor-agent` CLI は同じ MCP 設定を使います
 
-4. `Cursor` を再読込して、このリポジトリで対話を始めます。
+4. `Skills` も使いたい場合は、別ターミナルで [GitHub CLI で Skills を入れる](github-skills.md) の手順を実行します。
+
+5. `Cursor` を再読込して、このリポジトリで対話を始めます。
 
 最初の一言は、次のどちらかがおすすめです。
 
@@ -94,14 +96,14 @@ npm run build
 
 - `dist/src/index.js` ではなく TypeScript の source を指定している
 - `cwd` を設定していない
-- `.cursor/skills/` を別の場所へ移してしまっている
 - `.cursor/mcp.json` ではなく別の JSON に書いている
 - `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
+- `Skills` を使いたいのに、GitHub CLI 側の導入をしていない
 
 よくある見分け方:
 
 - 文献DBモードが起動しない
-  - `.cursor/skills/jp-lit-research/` と `.cursor/skills/jp-lit-verification/` が残っているか確認する
+  - [GitHub CLI で Skills を入れる](github-skills.md) の手順が済んでいるか確認する
 - MCP が使われない
   - `.cursor/mcp.json` の `command` / `args` / `cwd` が正しいか確認する
 - `node .../dist/src/index.js` の実行で失敗する
