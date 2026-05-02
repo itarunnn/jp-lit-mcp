@@ -56,6 +56,8 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 
 検索したあとの結果整理にも対応しています。今の結果を並び替える、オンライン公開だけに絞る、前回の結果と差分・共通項を取る、といった操作は、原則として保存済み結果を再利用して行います。今の検索結果だけでなく、過去に保存した検索結果も横断検索して統合できます。`jp_lit_search` の `cache.hit=true` は、その再利用元の cache が使われたことを示します。
 
+通常の Skill 導入は各アプリ向けの install guide にある `npm run skills:install -- ...` をおすすめします。GitHub CLI の `gh skill install` を使う別ルートもありますが、こちらは上級者向けです。詳しくは [GitHub CLI で Skills を入れる](docs/install/github-skills.md) を参照してください。
+
 `jp-lit-verification` Skill は、他サービスの回答や自分の文章に出てくる日本語文献候補を抽出し、実在確認済み / 部分一致 / 非実在の疑い / 混線の疑いに分けて確認します。
 
 詳しい使い方は [使い方ガイド](docs/usage-guide.md) を参照してください。
