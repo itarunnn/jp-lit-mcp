@@ -1,5 +1,5 @@
 # install-skills.ps1
-# Windows wrapper for Codex / Claude Code skill installation.
+# Windows wrapper for Codex / Claude Code / Cursor skill installation.
 
 param([string]$Platform = "all")
 

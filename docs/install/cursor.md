@@ -2,15 +2,10 @@
 
 このページは、`Cursor` で `jp-lit-mcp` を使うための手順です。
 
-## 先に知っておくこと
-
-- `MCP` は通常 `.cursor/mcp.json` に追加します
-- `Skills` はこのページでは自動配置しません
-- `Skills` を使う場合は、別途 [GitHub CLI で Skills を入れる](github-skills.md) を参照してください
-- パスは、自分が clone した実際のパスに置き換えてください
-- どのプロジェクトでも使いたい場合は `~/.cursor/mcp.json` に書く方法もあります
-
 ## 手順
+
+コマンド例のパスは、自分が clone した実際のパスに置き換えてください。
+Cursor では、`MCP` は通常 `.cursor/mcp.json` に追加します。
 
 1. このリポジトリを clone して開きます。
 2. ターミナルで次を実行します。
@@ -64,7 +59,14 @@ npm run build
 - グローバルに使いたい場合は `~/.cursor/mcp.json` に同様の形式で書けます
 - editor と `cursor-agent` CLI は同じ MCP 設定を使います
 
-4. `Skills` も使いたい場合は、別ターミナルで [GitHub CLI で Skills を入れる](github-skills.md) の手順を実行します。
+4. `Skills` をインストールします。
+
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
+Cursor 用の Skills は `~/.cursor/skills/` に入ります。
+
+```bash
+npm run skills:install -- cursor
+```
 
 5. `Cursor` を再読込して、このリポジトリで対話を始めます。
 
@@ -98,12 +100,12 @@ npm run build
 - `cwd` を設定していない
 - `.cursor/mcp.json` ではなく別の JSON に書いている
 - `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
-- `Skills` を使いたいのに、GitHub CLI 側の導入をしていない
+- `Skills` を使いたいのに、`npm run skills:install -- cursor` を実行していない
 
 よくある見分け方:
 
 - 文献DBモードが起動しない
-  - [GitHub CLI で Skills を入れる](github-skills.md) の手順が済んでいるか確認する
+  - `~/.cursor/skills/` に `jp-lit-research` と `jp-lit-verification` が入っているか確認する
 - MCP が使われない
   - `.cursor/mcp.json` の `command` / `args` / `cwd` が正しいか確認する
 - `node .../dist/src/index.js` の実行で失敗する

@@ -17,7 +17,7 @@ describe("install docs", () => {
 
     expect(codexApp).toContain("npm run skills:install");
     expect(codexCli).toContain("codex mcp add");
-    expect(cursor).toContain("GitHub CLI で Skills を入れる");
+    expect(cursor).toContain("npm run skills:install -- cursor");
     expect(claudeCode).toContain("scripts/install-skills.ps1 -Platform claude");
   });
 

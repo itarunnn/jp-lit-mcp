@@ -15,7 +15,8 @@ if (!home) {
 
 const destinations = {
   claude: join(home, ".claude", "skills"),
-  codex: join(home, ".agents", "skills")
+  codex: join(home, ".agents", "skills"),
+  cursor: join(home, ".cursor", "skills")
 };
 
 const codexAdapter = `<codex_skill_adapter>
@@ -66,11 +67,6 @@ metadata:
 }
 
 function install(target) {
-  if (target === "cursor") {
-    console.log("[Cursor] repo 内 .cursor/skills/ は配布していません。Skills を使う場合は docs/install/github-skills.md を参照してください。");
-    return;
-  }
-
   const destination = destinations[target];
   if (!destination) {
     throw new Error(`Unknown platform: ${target}. Use cursor, claude, codex, or all.`);
@@ -85,7 +81,7 @@ function install(target) {
   }
 }
 
-console.log("Codex / Claude Code 向け jp-lit Skills インストーラー");
+console.log("Codex / Claude Code / Cursor 向け jp-lit Skills インストーラー");
 console.log(`source: ${skillsRoot}`);
 console.log(`skills: ${skillNames.join(", ")}`);
 console.log("Cursor で Skills を使う場合は docs/install/github-skills.md を参照してください。");
@@ -93,6 +89,7 @@ console.log("Cursor で Skills を使う場合は docs/install/github-skills.md 
 if (platform === "all") {
   install("claude");
   install("codex");
+  install("cursor");
 } else {
   install(platform);
 }

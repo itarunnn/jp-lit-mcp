@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Unix wrapper for Codex / Claude Code skill installation.
+# Unix wrapper for Codex / Claude Code / Cursor skill installation.
 
 set -euo pipefail
 
