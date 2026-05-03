@@ -28,6 +28,13 @@ describe("npm package distribution", () => {
     expect(entrypoint).toContain("scripts/install-skills.mjs");
   });
 
+  it("documents help and version flags in the CLI entrypoint", () => {
+    const entrypoint = readFileSync("src/index.ts", "utf8");
+    expect(entrypoint).toContain('process.argv[2] === "--help"');
+    expect(entrypoint).toContain('process.argv[2] === "--version"');
+    expect(entrypoint).toContain("jp-lit-mcp install-skills <target>");
+  });
+
   it("builds before packing and ships the compiled server", () => {
     expect(packageJson.scripts?.prepack).toBe("npm run build");
     expect(packageJson.files).toContain("dist/");
