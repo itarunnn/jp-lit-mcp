@@ -48,7 +48,7 @@ nihu_bridge
 | `ndl_search` | NDL Search SRU | NDL detail JSON | no | NDL Search 参加機関 100 以上の広域検索。存在確認・初動調査向き |
 | `cinii_articles` | CiNii OpenSearch | CiNii JSON-LD | yes | 論文・記事。sort は `issued_date` のみ |
 | `cinii_books` | CiNii OpenSearch | CiNii JSON-LD + holdings | yes | 大学図書館等の図書・雑誌所蔵。`holdings[]` を返す場合あり |
-| `jstage_articles` | J-STAGE WebAPI | J-STAGE WebAPI | yes | 学協会誌。sort 未対応。PDF URL が取れる場合あり |
+| `jstage_articles` | J-STAGE WebAPI | J-STAGE 記事 HTML meta | yes | 学協会誌。sort 未対応。PDF URL が取れる場合あり。詳細は best-effort |
 | `irdb` | IRDB OpenSearch Atom | IRDB 詳細 HTML | no | 機関リポジトリ。`filters.irdb` 対応 |
 | `jdcat` | JDCat JSON API | JDCat JSON API | no | 人文学・社会科学系の研究データ。論文・図書の既定横断には含めない |
 | `nihu_bridge` | nihuBridge POST | nihuBridge REST | yes | 人文学系専門 DB 横断。`filters.nihu_bridge` 対応 |
@@ -437,7 +437,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | `CINII_BOOKS_HOLDINGS_BASE_URL` | `https://ci.nii.ac.jp/books/opensearch/holder` | CiNii Books 所蔵 |
 | `CINII_RESEARCH_APP_ID` | なし | CiNii 安定利用に推奨。実値はシークレット経由で渡す |
 | `JSTAGE_BASE_URL` | `https://api.jstage.jst.go.jp/searchapi/do` | J-STAGE 検索 |
-| `JSTAGE_ARTICLE_BASE_URL` | `https://www.jstage.jst.go.jp` | J-STAGE 詳細 |
+| `JSTAGE_ARTICLE_BASE_URL` | `https://www.jstage.jst.go.jp` | J-STAGE 記事ページ HTML 詳細 |
 | `JAPAN_SEARCH_BASE_URL` | `https://jpsearch.go.jp/api/item/search/jps-cross` | Japan Search 検索 |
 | `JAPAN_SEARCH_ITEM_BASE_URL` | `https://jpsearch.go.jp/api/item` | Japan Search 詳細 |
 | `IRDB_SEARCH_BASE_URL` | `https://irdb.nii.ac.jp/opensearch/search` | IRDB 検索 |
@@ -534,6 +534,7 @@ live smoke の主な環境変数:
 - `cinii_articles` / `cinii_books` の sort は `issued_date` のみ対応です。
 - `jstage_articles` は現行の `sort_by` / `sort_order` に対応していません。
 - `jstage_articles` の `summary` は常に `null` です。J-STAGE WebAPI はアブストラクトを返しません。
+- `jstage_articles` の detail は J-STAGE 記事ページ HTML の `citation_*` meta を使う best-effort 抽出です。
 - `japan_search` は横断ポータル source のため、既定横断検索には含めていません。
 - `japan_search` の `issued_from` / `issued_to` は年単位へ丸めます。
 - `irdb` は既定横断検索に含めていません。
@@ -541,7 +542,7 @@ live smoke の主な環境変数:
 - `irdb` の detail は IRDB 詳細画面 HTML を使います。原機関側 URI は `source_metadata.source_uri` に保持します。
 - `issued_from` / `issued_to` は `irdb` / `jdcat` では未対応です。
 - `jdcat` は研究データカタログであり、既定横断検索には含めていません。
-- `filters.jdcat` は JDCat（WEKO3）の非公式 API パラメータに依存しています。
+- `filters.jdcat` は JDCat（WEKO3）の API パラメータに依存しています。
 - `jdcat` は公開 JSON API `/api/records/` と `/api/records/{id}` を使います。
 - `jdcat` の `availability.online=true` は配布元 URI が示されていることを意味し、データ本体が無条件公開されている保証ではありません。
 - `nihu_bridge` の sort は現時点で未対応です。
