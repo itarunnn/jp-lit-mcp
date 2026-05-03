@@ -36,5 +36,6 @@ describe("install script messaging", () => {
     expect(script).toContain('cursor: join(home, ".cursor", "skills")');
     expect(script).toContain('join(repoRoot, "skills")');
     expect(script).toContain("jp-lit-verification");
+    expect(script).toContain("JP_LIT_SKILLS_HOME");
   });
 });

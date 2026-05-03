@@ -5,9 +5,25 @@
   "license": "MIT",
   "type": "module",
   "description": "MCP server and Skills for Japanese literature and humanities research across NDL, CiNii, J-STAGE, IRDB, and related sources",
+  "bin": {
+    "jp-lit-mcp": "./dist/src/index.js",
+    "jp-lit-mcp-install-skills": "./scripts/install-skills.mjs"
+  },
+  "files": [
+    "dist/",
+    "docs/",
+    "skills/",
+    "scripts/install-skills.mjs",
+    "scripts/install-skills.ps1",
+    "scripts/install-skills.sh",
+    "README.md",
+    "LICENSE",
+    "mcp-config.example.json"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
+    "prepack": "npm run build",
     "smoke:mcp": "tsx scripts/smoke-mcp.ts",
     "smoke:mcp:live-matrix": "cross-env SMOKE_LIVE_MATRIX=1 SMOKE_LIVE=1 tsx scripts/smoke-mcp.ts",
     "test": "vitest run",

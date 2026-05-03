@@ -1,79 +1,51 @@
 # Codex CLI で使う
 
-このページは、`Codex CLI` を使って `jp-lit-mcp` を導入するための手順です。
+このページは、`Codex CLI` で `jp-lit-mcp` を導入するための手順です。通常利用では、このリポジトリを clone する必要はありません。
 
-## 手順
+## 前提
 
-コマンド例のパスは、自分が clone した実際のパスに置き換えてください。
-Codex では、MCP 設定は `codex mcp add` で追加するのが基本です。必要なら `~/.codex/config.toml` を直接編集することもできます。
+- `Node.js 18` 以上と `npm` が使えること
+- `Codex CLI` にログイン済みであること
 
-1. `Codex CLI` をインストールします。
+`Codex CLI` が未導入なら、先に入れてログインします。
 
 ```bash
 npm install -g @openai/codex
-```
-
-2. ログインします。
-
-```bash
 codex login
 ```
 
-3. このリポジトリで依存関係を入れてビルドします。
+## 手順
+
+1. `MCP` を追加します。
 
 ```bash
-npm install
-npm run build
-```
-
-4. `MCP` を追加します。
-
-**Windows (PowerShell)**
-
-```powershell
-codex mcp add jpLit -- node C:\path\to\jp-lit-mcp\dist\src\index.js
-```
-
-**macOS / Linux (bash / zsh)**
-
-```bash
-codex mcp add jpLit -- node /path/to/jp-lit-mcp/dist/src/index.js
+codex mcp add jpLit -- npx -y jp-lit-mcp
 ```
 
 `CINII_RESEARCH_APP_ID` を設定する場合は `--env` フラグを使います。
 
-**Windows (PowerShell)**
-
-```powershell
-codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\jp-lit-mcp\dist\src\index.js
-```
-
-**macOS / Linux (bash / zsh)**
-
 ```bash
-codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/jp-lit-mcp/dist/src/index.js
+codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
 ```
 
 CiNii の安定利用には `CINII_RESEARCH_APP_ID` の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。未設定でも動作します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
-補足:
+2. `Skills` をインストールします。
 
-- 現在の設定確認は `codex mcp list`
-- 詳細確認は `codex mcp get jpLit`
-- 設定ファイルで管理したい場合は `~/.codex/config.toml` も使えます
-
-各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
-
-5. `Skills` をインストールします。
-
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
-Codex 用の Skills は `~/.agents/skills/` に入ります。
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.agents/skills/` に入ります。
 
 ```bash
-npm run skills:install -- codex
+npx -y -p jp-lit-mcp jp-lit-mcp-install-skills codex
 ```
 
-6. `Codex` をこのリポジトリで起動します。
+3. 設定を確認します。
+
+```bash
+codex mcp list
+codex mcp get jpLit
+```
+
+4. `Codex` を起動し、新しいセッションで文献調査を依頼します。
 
 ```bash
 codex
@@ -93,44 +65,25 @@ codex
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## 設定反映の確認
-
-まず次で MCP server が見えているか確認します。
-
-```bash
-codex mcp list
-```
-
-必要なら詳細も確認できます。
-
-```bash
-codex mcp get jpLit
-```
-
-そのうえで、このリポジトリで `codex` を起動し、新しいセッションで次を試します。
-
-```text
-文献DBで、近代日本の労働文化について、論文と図書を探してください。
-```
-
 ## つまずきやすい点と対処
 
-- `codex mcp add` の前に `npm run build` をしていない
-- パスを相対パスで書いて別ディレクトリから起動している
-- `codex login` をしていない
-- `codex mcp list` には出るが、古い Codex セッションを使い続けている
-
-よくある見分け方:
-
 - `codex mcp list` に `jpLit` が出ない
-  - 登録コマンドをやり直す
+  - `codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
 - `jpLit` は出るが対話中に使われない
-  - `codex` を起動し直して新しいセッションで試す
-- MCP 登録はできるが実行時に失敗する
-  - `npm install` と `npm run build` をやり直し、`dist/src/index.js` があるか確認する
+  - `codex` を起動し直して新しいセッションで試してください
+- 文献DBモードが起動しない
+  - `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills codex` を実行し、`~/.agents/skills/` を確認してください
 
-## 最初の確認
+各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
+
+## 開発者向け
+
+source 追加や修正をしたい場合は、このリポジトリを clone して開発します。
 
 ```bash
+git clone https://github.com/itarunnn/jp-lit-mcp.git
+cd jp-lit-mcp
+npm install
+npm run build
 npm run smoke:mcp
 ```

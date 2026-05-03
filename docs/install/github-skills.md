@@ -2,7 +2,7 @@
 
 このページは、`gh skill install` を使って `jp-lit-mcp` の Skills を入れたい人向けの別手順です。
 
-通常は、各アプリ向け install guide にある `npm run skills:install -- ...` をおすすめします。こちらは
+通常は、各アプリ向け install guide にある `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>` をおすすめします。こちらは
 
 - GitHub CLI で Skills をまとめて管理したい
 - `gh skill preview` や `gh skill update` も使いたい
@@ -28,9 +28,8 @@
 
 そのため、先に各アプリ向け install guide のうち次の部分は済ませてください。
 
-1. `npm install`
-2. `npm run build`
-3. `MCP` の登録
+1. `npx -y jp-lit-mcp` での `MCP` 登録
+2. 必要なら `CINII_RESEARCH_APP_ID` の設定
 
 Skills だけを GitHub CLI 経由に置き換えるイメージです。
 
@@ -86,7 +85,7 @@ gh skill update jp-lit-verification
 
 - 主導線:
   - 各アプリ向け install guide
-  - `npm run skills:install -- ...`
+  - `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>`
 - 別ルート:
   - `gh skill install`
 

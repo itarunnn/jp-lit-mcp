@@ -1,42 +1,24 @@
 # Claude Code で使う
 
-このページは、`Claude Code` で `jp-lit-mcp` を使うための手順です。
+このページは、`Claude Code` で `jp-lit-mcp` を使うための手順です。通常利用では、このリポジトリを clone する必要はありません。
+
+## 前提
+
+- `Node.js 18` 以上と `npm` が使えること
+- `Claude Code` が使えること
 
 ## 手順
 
-コマンド例のパスは、自分が clone した実際のパスに置き換えてください。
-Claude Code の MCP は、公式には `claude mcp add` で追加するのが基本です。
-
-1. このリポジトリを clone します。
-2. ターミナルで次を実行します。
+1. `Claude Code` に MCP server を追加します。
 
 ```bash
-npm install
-npm run build
-```
-
-3. `Claude Code` に MCP server を追加します。
-
-**Windows (PowerShell)**
-
-```powershell
-claude mcp add jp-lit -- node C:\path\to\jp-lit-mcp\dist\src\index.js
+claude mcp add jp-lit -- npx -y jp-lit-mcp
 ```
 
 `CINII_RESEARCH_APP_ID` を設定する場合は `--env` を使います。
 
-```powershell
-claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node C:\path\to\jp-lit-mcp\dist\src\index.js
-```
-
-**macOS / Linux (bash / zsh)**
-
 ```bash
-claude mcp add jp-lit -- node /path/to/jp-lit-mcp/dist/src/index.js
-```
-
-```bash
-claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /path/to/jp-lit-mcp/dist/src/index.js
+claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
 ```
 
 `CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
@@ -47,25 +29,15 @@ claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- node /pat
 - チームで共有したい場合は `--scope project` を付けると、リポジトリ直下に `.mcp.json` が作られます
 - 現在の設定確認は `claude mcp list` でできます
 
-各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
+2. `Skills` をインストールします。
 
-4. `Skills` をインストールします。
-
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
-
-**Windows (PowerShell)**
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/install-skills.ps1 -Platform claude
-```
-
-**macOS / Linux**
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が Claude Code の Skills ディレクトリに入ります。
 
 ```bash
-bash scripts/install-skills.sh claude
+npx -y -p jp-lit-mcp jp-lit-mcp-install-skills claude
 ```
 
-5. `Claude Code` を再起動するか、新しいセッションを開いて、このリポジトリで対話を始めます。
+3. `Claude Code` を再起動するか、新しいセッションを開いて文献調査を依頼します。
 
 最初の一言は、次のどちらかがおすすめです。
 
@@ -89,9 +61,7 @@ bash scripts/install-skills.sh claude
 claude mcp list
 ```
 
-`jp-lit` が表示されれば、登録自体は成功しています。
-
-そのうえで、新しいセッションを開いて次を試します。
+`jp-lit` が表示されれば、登録自体は成功しています。そのうえで、新しいセッションを開いて次を試します。
 
 ```text
 文献DBで、近代日本の労働文化について、論文と図書を探してください。
@@ -100,22 +70,28 @@ claude mcp list
 ## つまずきやすい点と対処
 
 - `Skills` をインストールしたあとに `Claude Code` を再起動していない
-- `dist/src/index.js` を作る前に MCP 登録だけしている
-- Windows で `ExecutionPolicy` に止められている
 - `claude mcp list` で server が見えていない
 - `claude mcp add ...` で登録したあとも古いセッションを開きっぱなしにしている
 
 よくある見分け方:
 
 - `claude mcp list` に `jp-lit` が出ない
-  - 登録コマンドをやり直す
+  - 登録コマンドをやり直してください
 - `jp-lit` は出るが、対話で反応しない
-  - 新しいセッションを開くか、Claude Code を再起動する
-- `node .../dist/src/index.js` で失敗する
-  - リポジトリで `npm install` と `npm run build` をやり直す
+  - 新しいセッションを開くか、Claude Code を再起動してください
+- 文献DBモードが起動しない
+  - `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills claude` を実行してください
 
-## 最初の確認
+各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
+
+## 開発者向け
+
+source 追加や修正をしたい場合は、このリポジトリを clone して開発します。
 
 ```bash
+git clone https://github.com/itarunnn/jp-lit-mcp.git
+cd jp-lit-mcp
+npm install
+npm run build
 npm run smoke:mcp
 ```

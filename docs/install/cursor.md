@@ -1,31 +1,22 @@
 # Cursor で使う
 
-このページは、`Cursor` で `jp-lit-mcp` を使うための手順です。
+このページは、`Cursor` で `jp-lit-mcp` を使うための手順です。通常利用では、このリポジトリを clone する必要はありません。
+
+## 前提
+
+- `Node.js 18` 以上と `npm` が使えること
+- `Cursor` が起動できること
 
 ## 手順
 
-コマンド例のパスは、自分が clone した実際のパスに置き換えてください。
-Cursor では、`MCP` は通常 `.cursor/mcp.json` に追加します。
-
-1. このリポジトリを clone して開きます。
-2. ターミナルで次を実行します。
-
-```bash
-npm install
-npm run build
-```
-
-3. プロジェクトルートに `.cursor/mcp.json` が無ければ作り、次を追加します。
-
-**Windows**
+1. プロジェクトルートに `.cursor/mcp.json` が無ければ作り、次を追加します。
 
 ```json
 {
   "mcpServers": {
     "jp-lit": {
-      "command": "node",
-      "args": ["C:\\path\\to\\jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "C:\\path\\to\\jp-lit-mcp",
+      "command": "npx",
+      "args": ["-y", "jp-lit-mcp"],
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }
@@ -34,24 +25,7 @@ npm run build
 }
 ```
 
-**macOS / Linux**
-
-```json
-{
-  "mcpServers": {
-    "jp-lit": {
-      "command": "node",
-      "args": ["/path/to/jp-lit-mcp/dist/src/index.js"],
-      "cwd": "/path/to/jp-lit-mcp",
-      "env": {
-        "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
-      }
-    }
-  }
-}
-```
-
-`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
+`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 補足:
 
@@ -59,16 +33,15 @@ npm run build
 - グローバルに使いたい場合は `~/.cursor/mcp.json` に同様の形式で書けます
 - editor と `cursor-agent` CLI は同じ MCP 設定を使います
 
-4. `Skills` をインストールします。
+2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方がインストールされます。
-Cursor 用の Skills は `~/.cursor/skills/` に入ります。
+この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.cursor/skills/` に入ります。
 
 ```bash
-npm run skills:install -- cursor
+npx -y -p jp-lit-mcp jp-lit-mcp-install-skills cursor
 ```
 
-5. `Cursor` を再読込して、このリポジトリで対話を始めます。
+3. `Cursor` を再読込して、このリポジトリまたは調査したい作業フォルダで対話を始めます。
 
 最初の一言は、次のどちらかがおすすめです。
 
@@ -86,9 +59,9 @@ npm run skills:install -- cursor
 
 ## 設定反映の確認
 
-まず `.cursor/mcp.json` の保存内容を見直し、`dist/src/index.js` と `cwd` のパスが実在することを確認します。
+`.cursor/mcp.json` の保存内容を見直し、`command` が `npx`、`args` が `["-y", "jp-lit-mcp"]` になっていることを確認します。
 
-そのうえで `Cursor` を再読込し、このリポジトリで新しい対話を開いて次を試します。
+そのうえで `Cursor` を再読込し、新しい対話で次を試します。
 
 ```text
 文献DBで、近代日本の労働文化について、論文と図書を探してください。
@@ -96,23 +69,27 @@ npm run skills:install -- cursor
 
 ## つまずきやすい点と対処
 
-- `dist/src/index.js` ではなく TypeScript の source を指定している
-- `cwd` を設定していない
 - `.cursor/mcp.json` ではなく別の JSON に書いている
 - `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
-- `Skills` を使いたいのに、`npm run skills:install -- cursor` を実行していない
+- `Skills` を使いたいのに、`npx -y -p jp-lit-mcp jp-lit-mcp-install-skills cursor` を実行していない
 
 よくある見分け方:
 
 - 文献DBモードが起動しない
-  - `~/.cursor/skills/` に `jp-lit-research` と `jp-lit-verification` が入っているか確認する
+  - `~/.cursor/skills/` に `jp-lit-research` と `jp-lit-verification` が入っているか確認してください
 - MCP が使われない
-  - `.cursor/mcp.json` の `command` / `args` / `cwd` が正しいか確認する
-- `node .../dist/src/index.js` の実行で失敗する
-  - リポジトリで `npm install` と `npm run build` をやり直す
+  - `.cursor/mcp.json` の `command` / `args` が正しいか確認してください
 
-## 最初の確認
+各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
+
+## 開発者向け
+
+source 追加や修正をしたい場合は、このリポジトリを clone して開発します。
 
 ```bash
+git clone https://github.com/itarunnn/jp-lit-mcp.git
+cd jp-lit-mcp
+npm install
+npm run build
 npm run smoke:mcp
 ```

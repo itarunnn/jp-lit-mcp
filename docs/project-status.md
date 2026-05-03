@@ -1,10 +1,13 @@
 # 実装状況
 
-2026-05-02 時点の状態:
+2026-05-04 時点の状態:
 
-- 公開ツール 17 種・対応 source 14 種・テスト 360 件すべて通過
+- 公開ツール 17 種・対応 source 14 種・テスト 367 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
+- GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
+- `npx -y jp-lit-mcp` による MCP 起動導線を整備済み
+- `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>` による Skills インストール導線を整備済み
 - README / install docs / usage guide / source-usage-conditions を整備済み
 - ライセンスは `MIT`
 
@@ -31,6 +34,7 @@
   - `temporal` / `creator`: JDCat 独立パラメータとして渡す
 - Codex の Skills 配置を公式導線に合わせ、`~/.agents/skills/` へ変更
 - Cursor の Skills は repo 内 mirror ではなく、`~/.cursor/skills/` へインストールする導線に整理
+- npm package の `bin` / `files` / `prepack` を整備し、通常利用では clone/build せず `npx` から使える導線に変更
 
 ## 同梱 Skills
 
@@ -52,8 +56,8 @@
 - `ndl_search` を第一関門にして `実在確認済み` / `部分一致` / `非実在の疑い` / `混線の疑い` を表で返す
 - 各候補について、判定理由・一致根拠・不一致点を文章で説明する
 
-## 公開前メモ
+## 公開後メモ
 
-- GitHub リポジトリ作成・リモート登録・push（ローカルのみ）
-- ブランチ名 `master` → `main` への改名
-- 公開文面（README・install docs）の最終確認
+- npm publish と GitHub Release は未実施。公開時は `npm pack --dry-run` の内容確認後に実行する
+- GitHub About / topics / release note を整備すると見つけてもらいやすくなる
+- 次の改善候補は doctor コマンド、cache prune、検索品質 eval
