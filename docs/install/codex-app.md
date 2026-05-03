@@ -66,6 +66,14 @@ codex mcp get jpLit
 
 そのうえで `Codex App` を開き直し、新しい対話を始めます。
 
+導入環境の基本チェックには `doctor` コマンドを使えます。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+
 ## つまずきやすい点と対処
 
 - `codex mcp list` に `jpLit` が出ない

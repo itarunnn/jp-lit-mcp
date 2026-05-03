@@ -35,6 +35,12 @@ describe("npm package distribution", () => {
     expect(entrypoint).toContain("jp-lit-mcp install-skills <target>");
   });
 
+  it("documents the doctor command in the CLI entrypoint", () => {
+    const entrypoint = readFileSync("src/index.ts", "utf8");
+    expect(entrypoint).toContain('process.argv[2] === "doctor"');
+    expect(entrypoint).toContain("jp-lit-mcp doctor");
+  });
+
   it("builds before packing and ships the compiled server", () => {
     expect(packageJson.scripts?.prepack).toBe("npm run build");
     expect(packageJson.files).toContain("dist/");

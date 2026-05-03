@@ -23,6 +23,21 @@ describe("install docs", () => {
     expect(claudeCode).toContain("npx -y jp-lit-mcp install-skills claude");
   });
 
+  it("documents the lightweight doctor command", () => {
+    const docs = [
+      readFileSync("README.md", "utf8"),
+      readFileSync("docs/install/codex-app.md", "utf8"),
+      readFileSync("docs/install/codex-cli.md", "utf8"),
+      readFileSync("docs/install/cursor.md", "utf8"),
+      readFileSync("docs/install/claude-code.md", "utf8"),
+      readFileSync("docs/usage-guide.md", "utf8")
+    ].join("\n");
+
+    expect(docs.match(/npx -y jp-lit-mcp doctor/g)?.length).toBeGreaterThanOrEqual(6);
+    expect(docs).toContain("CINII_RESEARCH_APP_ID");
+    expect(docs).toContain("live API");
+  });
+
   it("does not document the old clone-based Skills installer as the main path", () => {
     const docs = [
       readFileSync("README.md", "utf8"),

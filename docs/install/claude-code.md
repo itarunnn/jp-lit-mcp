@@ -61,6 +61,14 @@ npx -y jp-lit-mcp install-skills claude
 claude mcp list
 ```
 
+導入環境の基本チェックには `doctor` コマンドを使えます。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+
 `jp-lit` が表示されれば、登録自体は成功しています。そのうえで、新しいセッションを開いて次を試します。
 
 ```text

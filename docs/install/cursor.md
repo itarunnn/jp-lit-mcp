@@ -61,6 +61,14 @@ npx -y jp-lit-mcp install-skills cursor
 
 `.cursor/mcp.json` の保存内容を見直し、`command` が `npx`、`args` が `["-y", "jp-lit-mcp"]` になっていることを確認します。
 
+導入環境の基本チェックには `doctor` コマンドを使えます。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+
 そのうえで `Cursor` を再読込し、新しい対話で次を試します。
 
 ```text

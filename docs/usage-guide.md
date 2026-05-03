@@ -10,6 +10,14 @@
 - [Claude Code](install/claude-code.md)
 - [GitHub CLI で Skills を入れる](install/github-skills.md)
 
+導入後に環境だけ切り分けたい場合は、次の軽量診断を使えます。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。検索品質や外部 DB の応答を測る live API チェックではありません。
+
 ---
 
 ## 基本の考え方

@@ -473,6 +473,16 @@ jp_lit_search_illustrations(keyword="富士山")
 
 サンプルは [mcp-config.example.json](../mcp-config.example.json) にあります。アプリ別の登録手順は `docs/install/` 以下を参照してください。
 
+## CLI 診断
+
+導入環境の切り分けには、軽量 `doctor` コマンドを使えます。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は Node.js、パッケージバージョン、MCP entrypoint、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API アクセスは行いません。
+
 ## ローカル保存
 
 このサーバーは、検索結果や書誌取得結果を repo 内へローカル保存できます。
@@ -493,6 +503,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | テスト | `npm test` |
 | 型ビルド | `npm run build` |
 | MCP smoke check（API 疎通なし） | `npm run smoke:mcp` |
+| CLI doctor | `npx -y jp-lit-mcp doctor` |
 | live smoke matrix | `npm run smoke:mcp:live-matrix` |
 
 PowerShell で live smoke check を単発実行する例:

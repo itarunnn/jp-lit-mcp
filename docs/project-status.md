@@ -2,12 +2,13 @@
 
 2026-05-04 時点の状態:
 
-- 公開ツール 17 種・対応 source 14 種・テスト 367 件すべて通過
+- 公開ツール 17 種・対応 source 14 種・テスト 373 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
 - `npx -y jp-lit-mcp` による MCP 起動導線を整備済み
-- `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>` による Skills インストール導線を整備済み
+- `npx -y jp-lit-mcp install-skills <app>` による Skills インストール導線を整備済み
+- `npx -y jp-lit-mcp doctor` による軽量診断を整備済み
 - README / install docs / usage guide / source-usage-conditions を整備済み
 - ライセンスは `MIT`
 
@@ -21,6 +22,9 @@
 
 ## 最近の更新
 
+- `0.1.3`: `doctor` コマンドを追加。Node.js、package version、同梱 Skills、cache / exports 書き込み、`CINII_RESEARCH_APP_ID` の有無を live API なしで診断
+- `0.1.2`: `--help` / `--version` を追加
+- `0.1.1`: Windows で `npx -y jp-lit-mcp install-skills <app>` が使える導線を修正
 - `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
 - 各 source の資料詳細 URL を拡充済み
   - `jp_lit_search_fulltext` / `jp_lit_search_illustrations` に `viewer_url` を追加
@@ -58,6 +62,6 @@
 
 ## 公開後メモ
 
-- npm publish と GitHub Release は未実施。公開時は `npm pack --dry-run` の内容確認後に実行する
-- GitHub About / topics / release note を整備すると見つけてもらいやすくなる
-- 次の改善候補は doctor コマンド、cache prune、検索品質 eval
+- npm package 公開済み。公開前は `npm publish --dry-run` と tarball smoke を確認する
+- GitHub About / topics / release note は整備済み
+- 次の改善候補は Web NDL Authorities、検索品質 eval、CSL JSON / BibTeX / RIS export、cache prune
