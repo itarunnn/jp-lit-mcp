@@ -13,12 +13,12 @@ describe("npm package distribution", () => {
   ) as PackageJson;
 
   it("exposes an npx executable for the MCP server", () => {
-    expect(packageJson.bin?.["jp-lit-mcp"]).toBe("./dist/src/index.js");
+    expect(packageJson.bin?.["jp-lit-mcp"]).toBe("dist/src/index.js");
   });
 
   it("exposes an npx executable for installing bundled Skills", () => {
     expect(packageJson.bin?.["jp-lit-mcp-install-skills"]).toBe(
-      "./scripts/install-skills.mjs"
+      "scripts/install-skills.mjs"
     );
   });
 
@@ -34,11 +34,11 @@ describe("npm package distribution", () => {
 
   it("uses a node shebang in the TypeScript entrypoint", () => {
     const entrypoint = readFileSync("src/index.ts", "utf8");
-    expect(entrypoint.startsWith("#!/usr/bin/env node\n")).toBe(true);
+    expect(entrypoint).toMatch(/^#!\/usr\/bin\/env node\r?\n/);
   });
 
   it("uses a node shebang in the Skills installer", () => {
     const installer = readFileSync("scripts/install-skills.mjs", "utf8");
-    expect(installer.startsWith("#!/usr/bin/env node\n")).toBe(true);
+    expect(installer).toMatch(/^#!\/usr\/bin\/env node\r?\n/);
   });
 });
