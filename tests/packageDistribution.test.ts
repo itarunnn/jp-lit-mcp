@@ -22,6 +22,12 @@ describe("npm package distribution", () => {
     );
   });
 
+  it("supports installing bundled Skills through the main npx command", () => {
+    const entrypoint = readFileSync("src/index.ts", "utf8");
+    expect(entrypoint).toContain('process.argv[2] === "install-skills"');
+    expect(entrypoint).toContain("scripts/install-skills.mjs");
+  });
+
   it("builds before packing and ships the compiled server", () => {
     expect(packageJson.scripts?.prepack).toBe("npm run build");
     expect(packageJson.files).toContain("dist/");

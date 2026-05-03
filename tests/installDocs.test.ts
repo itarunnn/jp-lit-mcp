@@ -16,11 +16,11 @@ describe("install docs", () => {
     const claudeCode = readFileSync("docs/install/claude-code.md", "utf8");
 
     expect(codexApp).toContain("npx -y jp-lit-mcp");
-    expect(codexApp).toContain("jp-lit-mcp-install-skills codex");
+    expect(codexApp).toContain("npx -y jp-lit-mcp install-skills codex");
     expect(codexCli).toContain("codex mcp add");
     expect(codexCli).toContain("npx -y jp-lit-mcp");
-    expect(cursor).toContain("jp-lit-mcp-install-skills cursor");
-    expect(claudeCode).toContain("jp-lit-mcp-install-skills claude");
+    expect(cursor).toContain("npx -y jp-lit-mcp install-skills cursor");
+    expect(claudeCode).toContain("npx -y jp-lit-mcp install-skills claude");
   });
 
   it("does not document the old clone-based Skills installer as the main path", () => {

@@ -2,7 +2,7 @@
 
 このページは、`gh skill install` を使って `jp-lit-mcp` の Skills を入れたい人向けの別手順です。
 
-通常は、各アプリ向け install guide にある `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>` をおすすめします。こちらは
+通常は、各アプリ向け install guide にある `npx -y jp-lit-mcp install-skills <app>` をおすすめします。こちらは
 
 - GitHub CLI で Skills をまとめて管理したい
 - `gh skill preview` や `gh skill update` も使いたい
@@ -85,7 +85,7 @@ gh skill update jp-lit-verification
 
 - 主導線:
   - 各アプリ向け install guide
-  - `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills <app>`
+  - `npx -y jp-lit-mcp install-skills <app>`
 - 別ルート:
   - `gh skill install`
 

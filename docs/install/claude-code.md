@@ -34,7 +34,7 @@ claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp
 この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が Claude Code の Skills ディレクトリに入ります。
 
 ```bash
-npx -y -p jp-lit-mcp jp-lit-mcp-install-skills claude
+npx -y jp-lit-mcp install-skills claude
 ```
 
 3. `Claude Code` を再起動するか、新しいセッションを開いて文献調査を依頼します。
@@ -80,7 +80,7 @@ claude mcp list
 - `jp-lit` は出るが、対話で反応しない
   - 新しいセッションを開くか、Claude Code を再起動してください
 - 文献DBモードが起動しない
-  - `npx -y -p jp-lit-mcp jp-lit-mcp-install-skills claude` を実行してください
+  - `npx -y jp-lit-mcp install-skills claude` を実行してください
 
 各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 

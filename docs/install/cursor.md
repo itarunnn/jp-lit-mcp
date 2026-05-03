@@ -38,7 +38,7 @@
 この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.cursor/skills/` に入ります。
 
 ```bash
-npx -y -p jp-lit-mcp jp-lit-mcp-install-skills cursor
+npx -y jp-lit-mcp install-skills cursor
 ```
 
 3. `Cursor` を再読込して、このリポジトリまたは調査したい作業フォルダで対話を始めます。
@@ -71,7 +71,7 @@ npx -y -p jp-lit-mcp jp-lit-mcp-install-skills cursor
 
 - `.cursor/mcp.json` ではなく別の JSON に書いている
 - `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
-- `Skills` を使いたいのに、`npx -y -p jp-lit-mcp jp-lit-mcp-install-skills cursor` を実行していない
+- `Skills` を使いたいのに、`npx -y jp-lit-mcp install-skills cursor` を実行していない
 
 よくある見分け方:
 
