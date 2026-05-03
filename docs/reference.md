@@ -461,9 +461,8 @@ jp_lit_search_illustrations(keyword="富士山")
 {
   "mcpServers": {
     "jp-lit": {
-      "command": "node",
-      "args": ["C:\\path\\to\\jp-lit-mcp\\dist\\src\\index.js"],
-      "cwd": "C:\\path\\to\\jp-lit-mcp",
+      "command": "npx",
+      "args": ["-y", "jp-lit-mcp"],
       "env": {
         "CINII_RESEARCH_APP_ID": "your-cinii-app-id"
       }

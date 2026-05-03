@@ -15,10 +15,25 @@ describe("install docs", () => {
     const cursor = readFileSync("docs/install/cursor.md", "utf8");
     const claudeCode = readFileSync("docs/install/claude-code.md", "utf8");
 
-    expect(codexApp).toContain("npm run skills:install");
+    expect(codexApp).toContain("npx -y jp-lit-mcp");
+    expect(codexApp).toContain("jp-lit-mcp-install-skills codex");
     expect(codexCli).toContain("codex mcp add");
-    expect(cursor).toContain("npm run skills:install -- cursor");
-    expect(claudeCode).toContain("scripts/install-skills.ps1 -Platform claude");
+    expect(codexCli).toContain("npx -y jp-lit-mcp");
+    expect(cursor).toContain("jp-lit-mcp-install-skills cursor");
+    expect(claudeCode).toContain("jp-lit-mcp-install-skills claude");
+  });
+
+  it("does not document the old clone-based Skills installer as the main path", () => {
+    const docs = [
+      readFileSync("README.md", "utf8"),
+      readFileSync("docs/install/github-skills.md", "utf8"),
+      readFileSync("docs/install/codex-app.md", "utf8"),
+      readFileSync("docs/install/codex-cli.md", "utf8"),
+      readFileSync("docs/install/cursor.md", "utf8"),
+      readFileSync("docs/install/claude-code.md", "utf8")
+    ].join("\n");
+
+    expect(docs).not.toContain("npm run skills:install");
   });
 
   it("mentions verification-mode examples in install and usage docs", () => {

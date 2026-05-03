@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,9 +10,9 @@ const repoRoot = dirname(scriptDir);
 const skillsRoot = join(repoRoot, "skills");
 const skillNames = ["jp-lit-research", "jp-lit-verification"];
 
-const home = process.env.USERPROFILE ?? process.env.HOME;
+const home = process.env.JP_LIT_SKILLS_HOME ?? process.env.USERPROFILE ?? process.env.HOME;
 if (!home) {
-  throw new Error("USERPROFILE or HOME is required");
+  throw new Error("JP_LIT_SKILLS_HOME, USERPROFILE, or HOME is required");
 }
 
 const destinations = {
