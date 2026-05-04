@@ -861,6 +861,83 @@ export const authorityTermsByClassificationOutputSchema = z.object({
   })
 });
 
+export const searchKakenProjectsInputSchema = z.object({
+  query: z.string().trim().min(1),
+  limit: z.number().int().positive().max(20).default(10),
+  page: z.number().int().positive().default(1),
+  detail_limit: z.number().int().nonnegative().max(10).default(5),
+  researcher_name: z.string().trim().min(1).optional(),
+  from_fiscal_year: z.number().int().optional(),
+  to_fiscal_year: z.number().int().optional(),
+  include_outputs: z.boolean().default(true)
+});
+
+const kakenOutputTypeSchema = z.enum([
+  "journal_article",
+  "book",
+  "conference_presentation",
+  "report",
+  "other"
+]);
+
+const kakenProjectSchema = z.object({
+  project_id: z.string(),
+  title: z.string(),
+  url: z.string(),
+  principal_investigator: z.object({
+    name: z.string(),
+    affiliation: z.string().nullable(),
+    researcher_number: z.string().nullable()
+  }).nullable(),
+  fiscal_years: z.string().nullable(),
+  project_type: z.string().nullable(),
+  fields: z.array(z.string()),
+  keywords: z.array(z.string()),
+  summary: z.string().nullable(),
+  detail_fetched: z.boolean(),
+  detail_omitted_reason: z.enum([
+    "detail_limit_exceeded",
+    "include_outputs_false",
+    "fetch_failed"
+  ]).nullable(),
+  report_pdf_status: z.enum(["found", "none_found", "not_checked", "fetch_failed"]),
+  report_pdfs: z.array(z.object({
+    label: z.string(),
+    fiscal_year: z.string().nullable(),
+    url: z.string()
+  })),
+  outputs_preview: z.array(z.object({
+    type: kakenOutputTypeSchema,
+    raw_type: z.string().nullable(),
+    title: z.string(),
+    authors: z.array(z.string()),
+    year: z.string().nullable(),
+    doi: z.string().nullable(),
+    url: z.string().nullable(),
+    note: z.string().nullable()
+  })),
+  search_hints: z.object({
+    project_terms: z.array(z.string()),
+    researcher_terms: z.array(z.string()),
+    keyword_terms: z.array(z.string()),
+    caution: z.string()
+  })
+});
+
+export const searchKakenProjectsOutputSchema = z.object({
+  query: z.string(),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(kakenProjectSchema),
+  cache: z.object({
+    hit: z.boolean(),
+    cache_key: z.string(),
+    saved_at: z.string(),
+    refresh_hint: z.string().nullable()
+  }).optional()
+});
+
 export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
 export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;
 export type GuidesManualsInput = z.infer<typeof guidesManualsInputSchema>;
@@ -889,3 +966,5 @@ export type ListCacheInput = z.infer<typeof listCacheInputSchema>;
 export type ListCacheOutput = z.infer<typeof listCacheOutputSchema>;
 export type RefineResultsInput = z.infer<typeof refineResultsInputSchema>;
 export type RefineResultsOutput = z.infer<typeof refineResultsOutputSchema>;
+export type SearchKakenProjectsInput = z.infer<typeof searchKakenProjectsInputSchema>;
+export type SearchKakenProjectsOutput = z.infer<typeof searchKakenProjectsOutputSchema>;

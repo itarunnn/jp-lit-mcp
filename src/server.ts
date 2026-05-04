@@ -41,7 +41,9 @@ import {
   resolveAuthorityInputSchema,
   resolveAuthorityOutputSchema,
   authorityTermsByClassificationInputSchema,
-  authorityTermsByClassificationOutputSchema
+  authorityTermsByClassificationOutputSchema,
+  searchKakenProjectsInputSchema,
+  searchKakenProjectsOutputSchema
 } from "./lib/schemas.js";
 import { createFileCache } from "./lib/persistence/fileCache.js";
 import { createSessionExporter } from "./lib/persistence/exportSession.js";
@@ -67,6 +69,7 @@ import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adap
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
 import { createCrdClient } from "./sources/crd/client.js";
 import { createNdlAuthoritiesClient } from "./sources/ndlAuthorities/client.js";
+import { createKakenClient } from "./sources/kaken/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
@@ -87,6 +90,7 @@ import { createJpLitSearchGuidesManualsTool } from "./tools/jpLitSearchGuidesMan
 import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases.js";
 import { createJpLitResolveAuthorityTool } from "./tools/jpLitResolveAuthority.js";
 import { createJpLitFindAuthorityTermsByClassificationTool } from "./tools/jpLitFindAuthorityTermsByClassification.js";
+import { createJpLitSearchKakenProjectsTool } from "./tools/jpLitSearchKakenProjects.js";
 import { createNextDigitalLibraryClient } from "./sources/nextDigitalLibrary/adapter.js";
 
 interface ServerEnv {
@@ -281,6 +285,9 @@ export function createServer(env: ServerEnv = process.env) {
       ? { sparqlUrl: env.NDL_AUTHORITIES_SPARQL_URL }
       : {}
   );
+  const kakenClient = createKakenClient({
+    appId: env.CINII_RESEARCH_APP_ID ?? ""
+  });
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
@@ -323,6 +330,7 @@ export function createServer(env: ServerEnv = process.env) {
   const resolveAuthorityTool = createJpLitResolveAuthorityTool(ndlAuthoritiesClient, cache, sessions);
   const findAuthorityTermsByClassificationTool =
     createJpLitFindAuthorityTermsByClassificationTool(ndlAuthoritiesClient, cache, sessions);
+  const searchKakenProjectsTool = createJpLitSearchKakenProjectsTool(kakenClient, cache, sessions);
 
   const server = new McpServer(
     {
@@ -384,6 +392,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: authorityTermsByClassificationOutputSchema
     },
     findAuthorityTermsByClassificationTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_kaken_projects",
+    {
+      description: "KAKEN から研究課題を検索し、研究テーマ・キーワード・報告書 PDF・成果リストの手がかりを返す補助 tool。論文・図書の文献確定は CiNii / J-STAGE / IRDB / NDL で再確認する",
+      inputSchema: searchKakenProjectsInputSchema,
+      outputSchema: searchKakenProjectsOutputSchema
+    },
+    searchKakenProjectsTool
   );
 
   server.registerTool(
