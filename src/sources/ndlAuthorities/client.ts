@@ -64,6 +64,24 @@ function unique(values: string[]) {
   return Array.from(new Set(values.filter((value) => value.length > 0)));
 }
 
+function escapeSparqlLiteral(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildLabelCandidates(query: string) {
+  const compacted = compactAuthorityTerm(query);
+  const candidates = [query, compacted];
+
+  if (/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー]+$/u.test(compacted)) {
+    const maxSplit = Math.min(compacted.length - 1, 4);
+    for (let split = 1; split <= maxSplit; split += 1) {
+      candidates.push(`${compacted.slice(0, split)}, ${compacted.slice(split)}`);
+    }
+  }
+
+  return unique(candidates).map(escapeSparqlLiteral);
+}
+
 async function readSparqlJson(response: Response): Promise<SparqlResponse> {
   const contentType = response.headers?.get("content-type") ?? null;
   if (contentType && !contentType.toLowerCase().includes("json")) {
@@ -86,7 +104,16 @@ async function readSparqlJson(response: Response): Promise<SparqlResponse> {
 }
 
 function buildSparqlQuery(input: ResolveAuthorityInput) {
-  const escaped = input.query.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const candidateFilters = buildLabelCandidates(input.query)
+    .map(
+      (candidate) =>
+        `CONTAINS(STR(?label), "${candidate}") || EXISTS {
+    ?authority xl:altLabel ?altNode .
+    ?altNode xl:literalForm ?altMatch .
+    FILTER(CONTAINS(STR(?altMatch), "${candidate}"))
+  }`
+    )
+    .join(" ||\n    ");
   const typeFilter =
     input.type === "person"
       ? 'FILTER(CONTAINS(STR(?type), "personalNames"))'
@@ -104,18 +131,15 @@ function buildSparqlQuery(input: ResolveAuthorityInput) {
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX xl: <http://www.w3.org/2008/05/skos-xl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?authority ?label ?type ?altLabel ?sameName ?sameNameLabel ?relationLabel ?broader ?broaderLabel ?narrower ?narrowerLabel ?related ?relatedLabel
+PREFIX dcndl: <http://ndl.go.jp/dcndl/terms/>
+SELECT ?authority ?label ?type ?altLabel ?pseudonymName ?pseudonymNameLabel ?broader ?broaderLabel ?narrower ?narrowerLabel ?related ?relatedLabel
 WHERE {
   ?authority rdfs:label ?label ;
              skos:inScheme ?type .
-  FILTER(CONTAINS(STR(?label), "${escaped}") || EXISTS {
-    ?authority xl:altLabel ?altNode .
-    ?altNode xl:literalForm ?altMatch .
-    FILTER(CONTAINS(STR(?altMatch), "${escaped}"))
-  })
+  FILTER(${candidateFilters})
   ${typeFilter}
   OPTIONAL { ?authority xl:altLabel ?alt . ?alt xl:literalForm ?altLabel . }
-  OPTIONAL { ?authority skos:related ?sameName . ?sameName rdfs:label ?sameNameLabel . OPTIONAL { ?sameName skos:note ?relationLabel . } }
+  OPTIONAL { ?authority dcndl:pseudonym ?pseudonymName . ?pseudonymName rdfs:label ?pseudonymNameLabel . }
   OPTIONAL { ?authority skos:broader ?broader . ?broader rdfs:label ?broaderLabel . }
   OPTIONAL { ?authority skos:narrower ?narrower . ?narrower rdfs:label ?narrowerLabel . }
   OPTIONAL { ?authority skos:related ?related . ?related rdfs:label ?relatedLabel . }
@@ -239,14 +263,13 @@ export function createNdlAuthoritiesClient(options: NdlAuthoritiesClientOptions 
           item.variant_labels.push(altLabel);
         }
 
-        const sameNameLabel = bindingValue(binding, "sameNameLabel");
+        const sameNameLabel = bindingValue(binding, "pseudonymNameLabel");
         if ((item.type === "person" || item.type === "corporate") && sameNameLabel) {
-          const relationLabel = bindingValue(binding, "relationLabel");
           const linked = {
             label: sameNameLabel,
-            authority_uri: bindingValue(binding, "sameName"),
-            relation: normalizeRelation(relationLabel),
-            relation_label: relationLabel
+            authority_uri: bindingValue(binding, "pseudonymName"),
+            relation: normalizeRelation("筆名"),
+            relation_label: "筆名"
           };
           if (!item.same_identity_names.some((entry) => entry.label === linked.label)) {
             item.same_identity_names.push(linked);

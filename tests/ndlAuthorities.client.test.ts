@@ -5,7 +5,7 @@ import { createNdlAuthoritiesClient } from "../src/sources/ndlAuthorities/client
 
 const IROKAWA_SPARQL_JSON = {
   head: {
-    vars: ["authority", "label", "type", "altLabel", "sameName", "sameNameLabel", "relationLabel"]
+    vars: ["authority", "label", "type", "altLabel", "pseudonymName", "pseudonymNameLabel"]
   },
   results: {
     bindings: [
@@ -14,17 +14,15 @@ const IROKAWA_SPARQL_JSON = {
         label: { type: "literal", value: "色川, 武大, 1929-1989" },
         type: { type: "uri", value: "http://id.ndl.go.jp/auth#personalNames" },
         altLabel: { type: "literal", value: "色川, 武大 (イロカワ, ブダイ)" },
-        sameName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00001930" },
-        sameNameLabel: { type: "literal", value: "阿佐田, 哲也, 1929-1989" },
-        relationLabel: { type: "literal", value: "筆名" }
+        pseudonymName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00001930" },
+        pseudonymNameLabel: { type: "literal", value: "阿佐田, 哲也, 1929-1989" }
       },
       {
         authority: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00020172" },
         label: { type: "literal", value: "色川, 武大, 1929-1989" },
         type: { type: "uri", value: "http://id.ndl.go.jp/auth#personalNames" },
-        sameName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00123456" },
-        sameNameLabel: { type: "literal", value: "井上, 志摩夫, 1929-1989" },
-        relationLabel: { type: "literal", value: "筆名" }
+        pseudonymName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00123456" },
+        pseudonymNameLabel: { type: "literal", value: "井上, 志摩夫, 1929-1989" }
       }
     ]
   }
@@ -82,6 +80,18 @@ function jsonResponse(payload: unknown) {
 }
 
 describe("ndl authorities client", () => {
+  it("読点・空白なしの通常表記でも典拠ラベルに照合する検索式を作る", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse({ results: { bindings: [] } }));
+    const client = createNdlAuthoritiesClient({ fetcher });
+
+    await client.resolve({ query: "色川武大", type: "person", limit: 5 });
+
+    const url = fetcher.mock.calls[0][0] as URL;
+    const query = url.searchParams.get("query") ?? "";
+    expect(query).toContain("色川武大");
+    expect(query).toContain('CONTAINS(STR(?label), "色川, 武大")');
+  });
+
   it("色川武大の筆名を same_identity_names として正規化する", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(IROKAWA_SPARQL_JSON));
     const client = createNdlAuthoritiesClient({ fetcher });
