@@ -211,6 +211,293 @@ describe("jp_lit_export_session", () => {
     expect(written.entries[0]?.unselected_items[0]?.title).toBe("bar");
   });
 
+  it("writes CSL JSON export for selected records", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_get_record", {
+      version: 1,
+      tool: "jp_lit_get_record",
+      cache_key: "sha256-csl-record",
+      saved_at: new Date().toISOString(),
+      input: {
+        source: "jstage_articles",
+        source_id: "/article/example/1/2/1/_article/-char/ja"
+      },
+      structured_content: {
+        source: "jstage_articles",
+        source_id: "/article/example/1/2/1/_article/-char/ja",
+        title: "近代文学研究の一例",
+        subtitle: null,
+        title_reading: null,
+        authors: [
+          {
+            name: "山田太郎",
+            role: "author"
+          }
+        ],
+        publisher: "文学会",
+        journal_title: "日本文学研究",
+        issued_at: "2020-04-01",
+        issued_at_label: "2020-04-01",
+        issued_at_precision: "day",
+        summary: null,
+        url: "https://www.jstage.jst.go.jp/article/example/1/2/1/_article/-char/ja",
+        availability: {
+          online: true,
+          digital_collection: false
+        },
+        alternative_titles: [],
+        publication_place: null,
+        language: "ja",
+        material_type: "article",
+        extent: "vol.1, no.2, pp.12-34",
+        subjects: ["近代文学"],
+        identifiers: {
+          doi: "10.1234/example.1",
+          issn: "1234-5678"
+        },
+        table_of_contents: [],
+        content_access: {
+          has_page_images: false,
+          has_text_coordinates: false,
+          viewer_url: "https://www.jstage.jst.go.jp/article/example/1/2/1/_pdf",
+          access_note: null
+        },
+        source_metadata: {
+          volume: "1",
+          issue: "2",
+          first_page: "12",
+          last_page: "34"
+        },
+        raw: {}
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_get_record",
+      input: {
+        source: "jstage_articles",
+        source_id: "/article/example/1/2/1/_article/-char/ja"
+      },
+      cache_key: "sha256-csl-record",
+      result_ref: {
+        tool: "jp_lit_get_record",
+        cache_key: "sha256-csl-record"
+      },
+      selected_items: [
+        {
+          source: "jstage_articles",
+          source_id: "/article/example/1/2/1/_article/-char/ja",
+          title: "近代文学研究の一例",
+          label: "confirmed",
+          note: "detail checked"
+        }
+      ],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "selected.csl.json");
+    const result = await tool({
+      format: "csl-json",
+      profile: "selected",
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      type: string;
+      title: string;
+      author: Array<{ literal: string }>;
+      issued: { "date-parts": number[][] };
+      "container-title"?: string;
+      DOI?: string;
+      ISSN?: string;
+      volume?: string;
+      issue?: string;
+      page?: string;
+      URL?: string;
+      note?: string;
+    }>;
+
+    expect(result.structuredContent.format).toBe("csl-json");
+    expect(result.structuredContent.item_count).toBe(1);
+    expect(written).toHaveLength(1);
+    expect(written[0]).toMatchObject({
+      type: "article-journal",
+      title: "近代文学研究の一例",
+      author: [{ literal: "山田太郎" }],
+      issued: { "date-parts": [[2020, 4, 1]] },
+      "container-title": "日本文学研究",
+      DOI: "10.1234/example.1",
+      ISSN: "1234-5678",
+      volume: "1",
+      issue: "2",
+      page: "12-34",
+      URL: "https://www.jstage.jst.go.jp/article/example/1/2/1/_article/-char/ja"
+    });
+    expect(written[0]?.note).toContain("source: jstage_articles");
+    expect(written[0]?.note).toContain("selection: confirmed");
+    expect(written[0]?.note).toContain("selection note: detail checked");
+  });
+
+  it("reports CSL JSON item_count from the written items", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_get_record", {
+      version: 1,
+      tool: "jp_lit_get_record",
+      cache_key: "sha256-csl-unselected-record",
+      saved_at: new Date().toISOString(),
+      input: {
+        source: "ndl_catalog",
+        source_id: "R100"
+      },
+      structured_content: {
+        source: "ndl_catalog",
+        source_id: "R100",
+        title: "単一レコード",
+        authors: [],
+        publisher: "出版社",
+        journal_title: null,
+        issued_at: "1999",
+        issued_at_label: "1999",
+        material_type: "book",
+        identifiers: {},
+        source_metadata: {},
+        content_access: {},
+        url: null
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_get_record",
+      input: {
+        source: "ndl_catalog",
+        source_id: "R100"
+      },
+      cache_key: "sha256-csl-unselected-record",
+      result_ref: {
+        tool: "jp_lit_get_record",
+        cache_key: "sha256-csl-unselected-record"
+      },
+      selected_items: [],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "unselected.csl.json");
+    const result = await tool({
+      format: "csl-json",
+      profile: "unselected",
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      title: string;
+    }>;
+
+    expect(written).toHaveLength(1);
+    expect(written[0]?.title).toBe("単一レコード");
+    expect(result.structuredContent.item_count).toBe(written.length);
+  });
+
+  it("keeps CSL JSON full_log focused on selected records", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-csl-full-log",
+      saved_at: new Date().toISOString(),
+      input: { query: "foo" },
+      structured_content: {
+        query: "foo",
+        source: null,
+        page: 1,
+        limit: 2,
+        total: 2,
+        items: [
+          {
+            source: "ndl_catalog",
+            source_id: "S1",
+            title: "採用する本",
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            material_type: "book",
+            identifiers: {},
+            source_metadata: {},
+            content_access: {},
+            url: null
+          },
+          {
+            source: "ndl_catalog",
+            source_id: "S2",
+            title: "採用しない本",
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            material_type: "book",
+            identifiers: {},
+            source_metadata: {},
+            content_access: {},
+            url: null
+          }
+        ]
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "foo" },
+      cache_key: "sha256-csl-full-log",
+      result_ref: {
+        tool: "jp_lit_search",
+        cache_key: "sha256-csl-full-log"
+      },
+      selected_items: [
+        {
+          source: "ndl_catalog",
+          source_id: "S1",
+          title: "採用する本",
+          label: "confirmed",
+          note: null
+        }
+      ],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "full-log.csl.json");
+    const result = await tool({
+      format: "csl-json",
+      profile: "full_log",
+      include_unselected: true,
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      title: string;
+    }>;
+
+    expect(written).toHaveLength(1);
+    expect(written[0]?.title).toBe("採用する本");
+    expect(result.structuredContent.item_count).toBe(1);
+  });
+
   it("writes markdown export with selected profile", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);

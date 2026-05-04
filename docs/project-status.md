@@ -16,7 +16,7 @@
 
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
-- ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON エクスポート（`jp_lit_export_session`）に対応済み
+- ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
 - 過去セッション検索（`jp_lit_find_sessions`）と `session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache`）に対応済み
 

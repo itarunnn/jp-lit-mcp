@@ -4,11 +4,17 @@ import path from "node:path";
 import { getExportsRoot } from "./paths.js";
 import type { FileCache } from "./fileCache.js";
 import type { CacheEnvelope, SessionDocument } from "./types.js";
+import {
+  extractCslSourceItems,
+  findCslSourceItem,
+  toCslItem,
+  toFallbackSelectedItem
+} from "./cslJson.js";
 
 export interface SessionExporter {
   exportSession(input: {
     session: SessionDocument;
-    format: "markdown" | "json";
+    format: "markdown" | "json" | "csl-json";
     profile: "full_log" | "selected" | "unselected";
     outputPath?: string;
     includeUnselected: boolean;
@@ -19,9 +25,9 @@ function defaultExportPath(
   baseDir: string,
   sessionId: string,
   profile: "full_log" | "selected" | "unselected",
-  format: "markdown" | "json"
+  format: "markdown" | "json" | "csl-json"
 ) {
-  const extension = format === "markdown" ? "md" : "json";
+  const extension = format === "markdown" ? "md" : format === "csl-json" ? "csl.json" : "json";
   const basename =
     profile === "full_log" ? sessionId : `${sessionId}.${profile}`;
   return path.join(getExportsRoot(baseDir), `${basename}.${extension}`);
@@ -171,6 +177,14 @@ function filterSelectedItems(
   return entry.selected_items;
 }
 
+async function readEntryItems(
+  cache: FileCache,
+  entry: SessionDocument["entries"][number]
+) {
+  const envelope = await cache.read<unknown>(entry.result_ref.tool, entry.result_ref.cache_key);
+  return extractCslSourceItems(envelope);
+}
+
 export function createSessionExporter(
   cache: FileCache,
   baseDir = process.cwd()
@@ -191,9 +205,11 @@ export function createSessionExporter(
         }
       }
 
-      const itemCount = session.entries.reduce((sum, entry) => {
+      let itemCount = session.entries.reduce((sum, entry) => {
         const selectedCount = filterSelectedItems(entry, profile).length;
-        const unselectedCount = (profile === "full_log" && includeUnselected) || profile === "unselected"
+        const shouldCountUnselected =
+          format !== "csl-json" && profile === "full_log" && includeUnselected;
+        const unselectedCount = shouldCountUnselected || profile === "unselected"
           ? filterUnselectedItems(
               unresolvedItems.get(entry.cache_key) ?? [],
               entry.selected_items
@@ -203,7 +219,26 @@ export function createSessionExporter(
         return sum + selectedCount + unselectedCount;
       }, 0);
 
-      if (format === "json") {
+      if (format === "csl-json") {
+        const cslItems = [];
+
+        for (const entry of session.entries) {
+          const cachedItems = await readEntryItems(cache, entry);
+
+          for (const selectedItem of filterSelectedItems(entry, profile)) {
+            cslItems.push(toCslItem(selectedItem, findCslSourceItem(cachedItems, selectedItem)));
+          }
+
+          if (profile === "unselected") {
+            for (const unselectedItem of filterUnselectedItems(cachedItems, entry.selected_items)) {
+              cslItems.push(toCslItem(toFallbackSelectedItem(unselectedItem), unselectedItem));
+            }
+          }
+        }
+
+        itemCount = cslItems.length;
+        await writeFile(target, JSON.stringify(cslItems, null, 2), "utf8");
+      } else if (format === "json") {
         const payload = {
           ...session,
           entries: session.entries.map((entry) => {
