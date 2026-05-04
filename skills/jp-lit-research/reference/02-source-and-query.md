@@ -21,6 +21,31 @@
 2. 旧字・異体字を確認
 3. 関連する上位語・下位語を 1 つずつ加える
 
+## 典拠・分類からの検索語展開
+
+人名・団体名・件名・著作名・ジャンルが調査の鍵になる場合は、検索前または 0 件後に `jp_lit_resolve_authority` を使う。
+
+- 人名・団体名:
+  - `variant_terms` と `same_identity_terms` は検索語候補にしてよい。
+  - 筆名・別名義は、名義別に探すか、まとめて探すかを報告で分ける。
+- 件名:
+  - `variant_terms` は検索語候補。
+  - `reference_terms` は上位語・下位語・関連語を含むため、必要時のみ使う。
+- 著作典拠:
+  - 翻訳タイトル・別タイトルは `variant_terms` として試す。
+- ジャンル:
+  - 形式・ジャンルを探す語であり、主題としての検索とは分ける。
+
+分類記号が分かる、または古い図書で件名が弱い場合は `jp_lit_find_authority_terms_by_classification` を使う。
+
+- `NDC10` / `NDC9` / `NDC8` は現代以降の大まかな探索語候補作成に使う。
+- 戦前・古い図書では `NDC6` も検討する。
+- 分類から得た件名標目は「未知文献探索の入口」であり、正解リストではない。
+- その後の実検索では、必要に応じて次へつなぐ。
+  - `jp_lit_search(source=ndl_catalog, query=..., filters={ ndl: { subject, ndc } })`
+  - `jp_lit_search(source=ndl_digital, query=..., filters={ ndl: { ndc } })`
+  - `jp_lit_search_fulltext(keyword=..., f_ndc=...)`
+
 ## 検索時の注意
 
 - メタデータ検索が先。全文検索は後

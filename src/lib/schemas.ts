@@ -716,12 +716,113 @@ export const guidesCasesOutputSchema = z.object({
   raw: z.record(z.unknown())
 });
 
+const authorityTypeSchema = z.enum([
+  "person",
+  "corporate",
+  "subject",
+  "uniform_title",
+  "genre",
+  "unknown"
+]);
+
+const resolveAuthorityTypeSchema = z.enum([
+  "person",
+  "corporate",
+  "subject",
+  "uniform_title",
+  "genre",
+  "all"
+]);
+
+const authorityRelationSchema = z.enum([
+  "pseudonym",
+  "former_name",
+  "real_name",
+  "related_name",
+  "unknown"
+]);
+
+export const resolveAuthorityInputSchema = z.object({
+  query: z.string().trim().min(1),
+  type: resolveAuthorityTypeSchema.default("all"),
+  limit: z.number().int().positive().max(20).default(5)
+});
+
+const authorityLinkedNameSchema = z.object({
+  label: z.string(),
+  authority_uri: z.string().nullable(),
+  relation: authorityRelationSchema,
+  relation_label: z.string().nullable()
+});
+
+const authorityLinkedTermSchema = z.object({
+  label: z.string(),
+  authority_uri: z.string().nullable()
+});
+
+const authorityItemSchema = z.object({
+  authority_uri: z.string(),
+  id: z.string().nullable(),
+  type: authorityTypeSchema,
+  label: z.string(),
+  label_reading: z.string().nullable(),
+  label_romanized: z.string().nullable(),
+  variant_labels: z.array(z.string()),
+  same_identity_names: z.array(authorityLinkedNameSchema),
+  broader_terms: z.array(authorityLinkedTermSchema),
+  narrower_terms: z.array(authorityLinkedTermSchema),
+  related_terms: z.array(authorityLinkedTermSchema),
+  source_metadata: z.record(z.unknown())
+});
+
+export const resolveAuthorityOutputSchema = z.object({
+  query: z.string(),
+  type: resolveAuthorityTypeSchema,
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  items: z.array(authorityItemSchema),
+  search_hints: z.object({
+    preferred_terms: z.array(z.string()),
+    variant_terms: z.array(z.string()),
+    same_identity_terms: z.array(z.string()),
+    reference_terms: z.array(z.string()),
+    caution: z.string()
+  })
+});
+
+export const authorityClassificationSchemeSchema = z.enum(["NDC10", "NDC9", "NDC8", "NDC6"]);
+
+export const authorityTermsByClassificationInputSchema = z.object({
+  classification: z.string().trim().min(1),
+  scheme: authorityClassificationSchemeSchema.default("NDC10"),
+  limit: z.number().int().positive().max(50).default(20)
+});
+
+export const authorityTermsByClassificationOutputSchema = z.object({
+  classification: z.object({
+    scheme: authorityClassificationSchemeSchema,
+    notation: z.string()
+  }),
+  total: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  items: z.array(authorityItemSchema),
+  search_hints: z.object({
+    preferred_terms: z.array(z.string()),
+    reference_terms: z.array(z.string()),
+    caution: z.string()
+  })
+});
+
 export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
 export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;
 export type GuidesManualsInput = z.infer<typeof guidesManualsInputSchema>;
 export type GuidesManualsOutput = z.infer<typeof guidesManualsOutputSchema>;
 export type GuidesCasesInput = z.infer<typeof guidesCasesInputSchema>;
 export type GuidesCasesOutput = z.infer<typeof guidesCasesOutputSchema>;
+export type ResolveAuthorityInput = z.infer<typeof resolveAuthorityInputSchema>;
+export type ResolveAuthorityOutput = z.infer<typeof resolveAuthorityOutputSchema>;
+export type AuthorityTermsByClassificationInput = z.infer<typeof authorityTermsByClassificationInputSchema>;
+export type AuthorityTermsByClassificationOutput = z.infer<typeof authorityTermsByClassificationOutputSchema>;
 export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;

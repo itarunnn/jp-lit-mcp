@@ -306,6 +306,34 @@ OCR 系ツールはインターネット公開資料のみ対応します。`sou
 
 `items[]` には `pid` / `page` / `x` / `y` / `w` / `h` / `graphictags` / `page_image_url` / `illustration_image_url` が含まれます。`illustration_image_url` は IIIF `pct:x,y,w,h` で図版部分を切り出した直リンクです。
 
+### 典拠・分類補助
+
+#### `jp_lit_resolve_authority`
+
+Web NDL Authorities を使って、人名・団体名・件名などの典拠候補を確認します。文献そのものを検索する source ではなく、検索語展開・別名義確認・件名確認のための補助ツールです。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `query` | string | 必須 | 典拠検索語 |
+| `type` | string | `all` | `person` / `corporate` / `subject` / `uniform_title` / `genre` / `all` |
+| `limit` | number | `5` | 最大 20 |
+
+人名・団体名では、同一人物・同一団体の別名義を `same_identity_names` に入れます。色川武大のように筆名が別典拠としてリンクされている場合、`阿佐田, 哲也` などは `same_identity_names[].relation="pseudonym"` として返ります。
+
+件名では、上位語・下位語・関連語を `broader_terms` / `narrower_terms` / `related_terms` に分けます。これらは検索範囲を広げる可能性があるため、`search_hints.reference_terms` として参考扱いにします。
+
+#### `jp_lit_find_authority_terms_by_classification`
+
+Web NDL Authorities を使って、NDC などの分類から対応する件名標目を探します。分類しか分からない分野で、未知の本を探すための探索語候補を得る補助ツールです。特に古い図書では件名が付与されていない場合があるため、分類は主題探索の重要な入口になります。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `classification` | string | 必須 | 分類記号。例: `596.7` |
+| `scheme` | string | `NDC10` | `NDC10` / `NDC9` / `NDC8` / `NDC6` |
+| `limit` | number | `20` | 最大 50 |
+
+分類から得た件名標目は正解リストではなく探索語候補です。分類範囲が広い場合や NDC の版が異なる場合は、調査意図に合わせて絞り込んでください。実際の文献検索では、分類前方一致、出版年、所蔵場所、資料種別などとの掛け合わせが有効です。
+
 ### 調査セッション
 
 検索結果や詳細取得結果はキャッシュに保存され、候補の選別結果はセッションに保存できます。重い OCR / 全文 / 図版 payload は session 側に重複保存せず、cache key 参照で扱います。
@@ -452,6 +480,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | `NIHU_BRIDGE_SEARCH_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas/search` | NIHU Bridge 検索 |
 | `NIHU_BRIDGE_RECORD_BASE_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas` | NIHU Bridge 詳細 |
 | `CRD_API_BASE_URL` | `https://crd.ndl.go.jp/api/refsearch` | レファレンス協同データベース API |
+| `NDL_AUTHORITIES_SPARQL_URL` | `https://id.ndl.go.jp/auth/ndla/sparql` | Web NDL Authorities SPARQL endpoint |
 
 `NDL_SEARCH_BASE_URL` / `NDL_DIGITAL_BASE_URL` は `/api/sru` / `/api/opensearch` / `/api/bib/external/search` のどれを渡しても内部で正規化します。
 
