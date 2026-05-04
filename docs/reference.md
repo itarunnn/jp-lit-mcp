@@ -329,10 +329,12 @@ OCR 系ツールはインターネット公開資料のみ対応します。`sou
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
 | `session_id` | string | 現在のセッション | `YYYY-MM-DD-HHMMSS` |
-| `format` | string | `markdown` | `markdown` / `json` |
+| `format` | string | `markdown` | `markdown` / `json` / `csl-json` |
 | `profile` | string | `full_log` | `full_log` / `selected` / `unselected` |
 | `output_path` | string | 自動 | 出力先 |
 | `include_unselected` | boolean | true | 未採用候補を含めるか |
+
+`format="csl-json"` は、文献管理・引用処理ツールへ渡すための CSL JSON 配列を書き出します。`profile="selected"` で確認済み・候補化した文献だけを書き出す使い方を推奨します。RIS / BibTeX が必要な場合は、Zotero や変換ツール側で変換してください。
 
 #### `jp_lit_export_view`
 
@@ -491,7 +493,7 @@ npx -y jp-lit-mcp doctor
 | ---- | ------ | ---- |
 | キャッシュ | `.cache/jp-lit-mcp/cache/v1/` | 各ツールの `structuredContent` と重い payload |
 | セッション | `.cache/jp-lit-mcp/sessions/` | 採用候補、候補ラベル、短いメモ、検索全体のメモ |
-| エクスポート | `exports/` | 明示的に書き出した Markdown / JSON |
+| エクスポート | `exports/` | 明示的に書き出した Markdown / JSON / CSL JSON |
 
 明示的に export しない限り、保存物は内部ファイルとしてのみ保持されます。
 

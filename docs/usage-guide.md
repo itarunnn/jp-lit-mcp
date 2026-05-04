@@ -386,6 +386,9 @@ jp_lit_export_session(format="markdown", profile="full_log", include_unselected=
 # 採用候補だけを書き出す
 jp_lit_export_session(format="markdown", profile="selected")
 
+# 採用候補を文献管理・引用処理向けの CSL JSON で書き出す
+jp_lit_export_session(format="csl-json", profile="selected")
+
 # 候補から外したものだけを書き出す
 jp_lit_export_session(format="json", profile="unselected")
 
@@ -401,6 +404,8 @@ jp_lit_export_view(view_type="refined_results", format="markdown", output_path="
 
 `jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には「何件から何件を採用したか」「どういう基準で絞ったか」「何を外したか」など、検索全体の選別理由を入れる想定です。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
 
+`format="csl-json"` は、Zotero、citeproc、Pandoc 系ツール、他の文献管理連携へ渡すための中間形式です。RIS / BibTeX は直接出力せず、必要な場合は Zotero や変換ツール側で変換する方針です。CSL JSON には `profile="selected"` を使い、未選別の検索結果をまとめて入れない運用をおすすめします。
+
 ### どこに保存されるか
 
 保存先は 3 つあります。
@@ -411,7 +416,7 @@ jp_lit_export_view(view_type="refined_results", format="markdown", output_path="
   - 採用候補、候補ラベル、選別理由メモがセッション単位で蓄積されます
   - `jp_lit_find_sessions` はここに残っている archive session を検索します
 - 明示 export: `exports/`
-  - Markdown / JSON のユーザー向け書き出し先です
+  - Markdown / JSON / CSL JSON のユーザー向け書き出し先です
 
 考え方としては、
 
