@@ -37,7 +37,11 @@ import {
   guidesManualsInputSchema,
   guidesManualsOutputSchema,
   guidesCasesInputSchema,
-  guidesCasesOutputSchema
+  guidesCasesOutputSchema,
+  resolveAuthorityInputSchema,
+  resolveAuthorityOutputSchema,
+  authorityTermsByClassificationInputSchema,
+  authorityTermsByClassificationOutputSchema
 } from "./lib/schemas.js";
 import { createFileCache } from "./lib/persistence/fileCache.js";
 import { createSessionExporter } from "./lib/persistence/exportSession.js";
@@ -62,6 +66,7 @@ import {
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
 import { createCrdClient } from "./sources/crd/client.js";
+import { createNdlAuthoritiesClient } from "./sources/ndlAuthorities/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
@@ -80,6 +85,8 @@ import { createJpLitSearchFulltextTool } from "./tools/jpLitSearchFulltext.js";
 import { createJpLitSearchIllustrationsTool } from "./tools/jpLitSearchIllustrations.js";
 import { createJpLitSearchGuidesManualsTool } from "./tools/jpLitSearchGuidesManuals.js";
 import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases.js";
+import { createJpLitResolveAuthorityTool } from "./tools/jpLitResolveAuthority.js";
+import { createJpLitFindAuthorityTermsByClassificationTool } from "./tools/jpLitFindAuthorityTermsByClassification.js";
 import { createNextDigitalLibraryClient } from "./sources/nextDigitalLibrary/adapter.js";
 
 interface ServerEnv {
@@ -104,6 +111,7 @@ interface ServerEnv {
   NIHU_BRIDGE_SEARCH_URL?: string;
   NIHU_BRIDGE_RECORD_BASE_URL?: string;
   CRD_API_BASE_URL?: string;
+  NDL_AUTHORITIES_SPARQL_URL?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/sru";
@@ -268,6 +276,11 @@ export function createServer(env: ServerEnv = process.env) {
   const crdClient = createCrdClient(
     env.CRD_API_BASE_URL ? { baseUrl: env.CRD_API_BASE_URL } : {}
   );
+  const ndlAuthoritiesClient = createNdlAuthoritiesClient(
+    env.NDL_AUTHORITIES_SPARQL_URL
+      ? { sparqlUrl: env.NDL_AUTHORITIES_SPARQL_URL }
+      : {}
+  );
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
@@ -307,6 +320,9 @@ export function createServer(env: ServerEnv = process.env) {
   const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient, cache, sessions);
   const searchGuidesManualsTool = createJpLitSearchGuidesManualsTool(crdClient, cache, sessions);
   const searchGuidesCasesTool = createJpLitSearchGuidesCasesTool(crdClient, cache, sessions);
+  const resolveAuthorityTool = createJpLitResolveAuthorityTool(ndlAuthoritiesClient, cache, sessions);
+  const findAuthorityTermsByClassificationTool =
+    createJpLitFindAuthorityTermsByClassificationTool(ndlAuthoritiesClient, cache, sessions);
 
   const server = new McpServer(
     {
@@ -348,6 +364,26 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: guidesCasesOutputSchema
     },
     searchGuidesCasesTool
+  );
+
+  server.registerTool(
+    "jp_lit_resolve_authority",
+    {
+      description: "Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助ツール",
+      inputSchema: resolveAuthorityInputSchema,
+      outputSchema: resolveAuthorityOutputSchema
+    },
+    resolveAuthorityTool
+  );
+
+  server.registerTool(
+    "jp_lit_find_authority_terms_by_classification",
+    {
+      description: "Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す",
+      inputSchema: authorityTermsByClassificationInputSchema,
+      outputSchema: authorityTermsByClassificationOutputSchema
+    },
+    findAuthorityTermsByClassificationTool
   );
 
   server.registerTool(

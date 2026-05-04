@@ -10,9 +10,11 @@ description: >-
 
 # 日本語文献調査スキル（jp-lit-research）
 
-このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations` / `jp_lit_annotate_session` / `jp_lit_export_session`）を使った日本語人文社会系文献調査の作法を定義する。
+このスキルは jp-lit MCP（`jp_lit_search` / `jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` / `jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification` / `jp_lit_get_record` / `jp_lit_get_fulltext` / `jp_lit_search_fulltext` / `jp_lit_search_pages` / `jp_lit_get_text_coordinates` / `jp_lit_search_illustrations` / `jp_lit_annotate_session` / `jp_lit_export_session`）を使った日本語人文社会系文献調査の作法を定義する。
 
 **MCP は検索・取得に徹する。調査戦略・DB選択・検索語展開・典拠評価はこのスキルが担う。**
+
+Web NDL Authorities 系 tool は、典拠候補・別名義・分類由来の件名標目候補を取得する補助である。どの語を採用して実検索へ進めるかはこのスキルが判断する。
 
 **このスキルは、1回の検索で終わるためのものではない。小さく検索し、その結果を見て次の query や次の source を決める対話的な探索ループを支える。**
 
@@ -103,6 +105,8 @@ description: >-
 | 本文中の語を探す | `jp_lit_search_fulltext` → `jp_lit_search_pages` |
 | 図版・挿絵 | `jp_lit_search_illustrations` → `japan_search` |
 | 所蔵確認 | `ndl_catalog` → `cinii_books`（holdings） |
+| 人名・団体名・件名・著作名の典拠確認 | `jp_lit_resolve_authority` |
+| NDC などの分類から件名標目候補を作る | `jp_lit_find_authority_terms_by_classification` |
 | 人文専門DB横断（詳細） | `nihu_bridge`（ラウンドロビンモードに含まれる）|
 | 研究データ | `jdcat` |
 | 機関リポジトリ | `irdb` |

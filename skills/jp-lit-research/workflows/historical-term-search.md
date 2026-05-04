@@ -61,6 +61,25 @@ jp_lit_search(source=cinii_articles, query=現代語)
 
 を抽出し、その後の query 展開に反映する。
 
+### 2.6 件名が弱い古い図書では分類から入る
+
+戦前・古い図書では件名が付与されていない、または弱い場合がある。その場合は NDC を主題探索の入口として使う。
+
+```
+jp_lit_find_authority_terms_by_classification(classification="...", scheme="NDC6")
+```
+
+NDC6 が分からない場合は、まず NDC8/9/10 や既知資料の `source_metadata.classification.ndc` から近い分類を確認し、版違いに注意して探索語候補を作る。
+
+分類から得た件名標目は、未知文献を探すための候補語である。検索では次のように絞る。
+
+```
+jp_lit_search(source=ndl_catalog, query=候補語, filters={ ndl: { ndc: "..." } })
+jp_lit_search_fulltext(keyword=候補語, f_ndc="...")
+```
+
+分類だけで断定せず、ヒットした資料のタイトル・出版年・件名・デジコレ画像を確認する。
+
 ### 3. 旧字・異体字での検索
 
 NIHU Bridge は `normalize: true`（デフォルト）で異体字同定をしてくれる:
