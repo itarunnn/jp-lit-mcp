@@ -404,7 +404,7 @@ jp_lit_export_view(view_type="refined_results", format="markdown", output_path="
 
 `jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には「何件から何件を採用したか」「どういう基準で絞ったか」「何を外したか」など、検索全体の選別理由を入れる想定です。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
 
-`format="csl-json"` は、Zotero、citeproc、Pandoc 系ツール、他の文献管理連携へ渡すための中間形式です。RIS / BibTeX は直接出力せず、必要な場合は Zotero や変換ツール側で変換する方針です。CSL JSON には `profile="selected"` を使い、未選別の検索結果をまとめて入れない運用をおすすめします。
+`format="csl-json"` は、Zotero、citeproc、Pandoc 系ツール、他の文献管理連携へ渡すための中間形式です。RIS / BibTeX は直接出力せず、必要な場合は Zotero や変換ツール側で変換する方針です。CSL JSON には `profile="selected"` を使い、未選別の検索結果をまとめて入れない運用をおすすめします。CSL JSON の `profile="full_log"` は未採用候補を混ぜず、未採用候補だけを確認したい場合は `profile="unselected"` を使います。
 
 ### どこに保存されるか
 

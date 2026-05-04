@@ -343,6 +343,161 @@ describe("jp_lit_export_session", () => {
     expect(written[0]?.note).toContain("selection note: detail checked");
   });
 
+  it("reports CSL JSON item_count from the written items", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_get_record", {
+      version: 1,
+      tool: "jp_lit_get_record",
+      cache_key: "sha256-csl-unselected-record",
+      saved_at: new Date().toISOString(),
+      input: {
+        source: "ndl_catalog",
+        source_id: "R100"
+      },
+      structured_content: {
+        source: "ndl_catalog",
+        source_id: "R100",
+        title: "単一レコード",
+        authors: [],
+        publisher: "出版社",
+        journal_title: null,
+        issued_at: "1999",
+        issued_at_label: "1999",
+        material_type: "book",
+        identifiers: {},
+        source_metadata: {},
+        content_access: {},
+        url: null
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_get_record",
+      input: {
+        source: "ndl_catalog",
+        source_id: "R100"
+      },
+      cache_key: "sha256-csl-unselected-record",
+      result_ref: {
+        tool: "jp_lit_get_record",
+        cache_key: "sha256-csl-unselected-record"
+      },
+      selected_items: [],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "unselected.csl.json");
+    const result = await tool({
+      format: "csl-json",
+      profile: "unselected",
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      title: string;
+    }>;
+
+    expect(written).toHaveLength(1);
+    expect(written[0]?.title).toBe("単一レコード");
+    expect(result.structuredContent.item_count).toBe(written.length);
+  });
+
+  it("keeps CSL JSON full_log focused on selected records", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-csl-full-log",
+      saved_at: new Date().toISOString(),
+      input: { query: "foo" },
+      structured_content: {
+        query: "foo",
+        source: null,
+        page: 1,
+        limit: 2,
+        total: 2,
+        items: [
+          {
+            source: "ndl_catalog",
+            source_id: "S1",
+            title: "採用する本",
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            material_type: "book",
+            identifiers: {},
+            source_metadata: {},
+            content_access: {},
+            url: null
+          },
+          {
+            source: "ndl_catalog",
+            source_id: "S2",
+            title: "採用しない本",
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            material_type: "book",
+            identifiers: {},
+            source_metadata: {},
+            content_access: {},
+            url: null
+          }
+        ]
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "foo" },
+      cache_key: "sha256-csl-full-log",
+      result_ref: {
+        tool: "jp_lit_search",
+        cache_key: "sha256-csl-full-log"
+      },
+      selected_items: [
+        {
+          source: "ndl_catalog",
+          source_id: "S1",
+          title: "採用する本",
+          label: "confirmed",
+          note: null
+        }
+      ],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "full-log.csl.json");
+    const result = await tool({
+      format: "csl-json",
+      profile: "full_log",
+      include_unselected: true,
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      title: string;
+    }>;
+
+    expect(written).toHaveLength(1);
+    expect(written[0]?.title).toBe("採用する本");
+    expect(result.structuredContent.item_count).toBe(1);
+  });
+
   it("writes markdown export with selected profile", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);

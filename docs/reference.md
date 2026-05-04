@@ -334,7 +334,7 @@ OCR 系ツールはインターネット公開資料のみ対応します。`sou
 | `output_path` | string | 自動 | 出力先 |
 | `include_unselected` | boolean | true | 未採用候補を含めるか |
 
-`format="csl-json"` は、文献管理・引用処理ツールへ渡すための CSL JSON 配列を書き出します。`profile="selected"` で確認済み・候補化した文献だけを書き出す使い方を推奨します。RIS / BibTeX が必要な場合は、Zotero や変換ツール側で変換してください。
+`format="csl-json"` は、文献管理・引用処理ツールへ渡すための CSL JSON 配列を書き出します。`profile="selected"` で確認済み・候補化した文献だけを書き出す使い方を推奨します。CSL JSON では `profile="full_log"` でも未採用候補を混ぜず、未採用候補だけを確認したい場合は `profile="unselected"` を指定します。RIS / BibTeX が必要な場合は、Zotero や変換ツール側で変換してください。
 
 #### `jp_lit_export_view`
 

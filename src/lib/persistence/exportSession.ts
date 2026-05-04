@@ -205,7 +205,7 @@ export function createSessionExporter(
         }
       }
 
-      const itemCount = session.entries.reduce((sum, entry) => {
+      let itemCount = session.entries.reduce((sum, entry) => {
         const selectedCount = filterSelectedItems(entry, profile).length;
         const shouldCountUnselected =
           format !== "csl-json" && profile === "full_log" && includeUnselected;
@@ -236,6 +236,7 @@ export function createSessionExporter(
           }
         }
 
+        itemCount = cslItems.length;
         await writeFile(target, JSON.stringify(cslItems, null, 2), "utf8");
       } else if (format === "json") {
         const payload = {
