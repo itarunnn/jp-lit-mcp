@@ -1,0 +1,58 @@
+name: Source request
+description: Suggest a literature database or source to support.
+title: "[Source request]: "
+labels: ["source-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新しい DB / source の追加相談用です。API が公開されていない、利用条件が厳しい、詳細取得ができない場合は、直接対応ではなく導線・docs 扱いにすることがあります。
+  - type: input
+    id: source_name
+    attributes:
+      label: DB / source 名
+    validations:
+      required: true
+  - type: input
+    id: source_url
+    attributes:
+      label: 公式 URL
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: 使いたい理由・調査用途
+      description: どんな分野・資料で役立つかを書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API / データ取得方法
+      description: API docs、検索 API、詳細 API、OAI-PMH、SPARQL、RSS など。分からなければ「不明」と書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: terms
+    attributes:
+      label: 利用条件
+      description: 利用規約、API 利用条件、保存・再配布・クレジット表示の条件を書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: mapping
+    attributes:
+      label: 期待する書誌マッピング
+      description: title / authors / issued_at / source_id / URL / DOI など、取れる項目を分かる範囲で書いてください。
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度の感覚
+      options:
+        - 多くの利用者に効きそう
+        - 特定分野では重要
+        - 自分の用途では重要
+        - 参考提案
+    validations:
+      required: true

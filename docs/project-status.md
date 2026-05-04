@@ -19,6 +19,7 @@
 - ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
 - 過去セッション検索（`jp_lit_find_sessions`）と `session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache`）に対応済み
+- Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
 
 ## 最近の更新
 

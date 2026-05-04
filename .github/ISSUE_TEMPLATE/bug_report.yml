@@ -1,0 +1,68 @@
+name: Bug report
+description: Report install, runtime, tool, schema, cache, or export problems.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        jp-lit-mcp の不具合報告用です。調査方針や Skill の振る舞いへの違和感は "Skill behavior feedback" を使ってください。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 問題の概要
+      description: 何が起きましたか。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 実行したコマンド、MCP tool、入力 prompt などを書いてください。
+      placeholder: |
+        1. npx -y jp-lit-mcp doctor を実行
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した結果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の結果
+      description: エラーメッセージ、tool response、ログを貼れる範囲で書いてください。
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 関連領域
+      options:
+        - install / npx
+        - doctor
+        - MCP server
+        - search source
+        - cache / session
+        - export
+        - skills install
+        - other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: jp-lit-mcp version
+      placeholder: "例: 0.1.3"
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: OS、Node.js version、利用アプリを分かる範囲で書いてください。
+      placeholder: |
+        OS:
+        Node.js:
+        App: Cursor / Claude Code / Codex CLI / Codex App / other
