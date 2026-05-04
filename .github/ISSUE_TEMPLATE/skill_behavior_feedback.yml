@@ -1,0 +1,81 @@
+name: Skill behavior feedback
+description: Share research workflow feedback for jp-lit Skills.
+title: "[Skill feedback]: "
+labels: ["skill-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        jp-lit Skills の調査行動へのフィードバック用です。
+        これは「正解リスト」の提出ではなく、分野・資料種・調査経験にもとづく違和感や改善案を集めるためのものです。
+        未公開研究テーマ、個人情報、共有できない全文・画像は貼らないでください。
+  - type: dropdown
+    id: skill
+    attributes:
+      label: 対象 Skill
+      options:
+        - jp-lit-research
+        - jp-lit-verification
+        - both
+        - unsure
+    validations:
+      required: true
+  - type: input
+    id: field
+    attributes:
+      label: 分野・対象資料
+      description: 例：近代文学、俳句雑誌、地方史、議会資料、研究データなど。
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: 実際に投げた依頼文
+      description: 共有できる範囲で prompt を書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 期待した調査の進め方
+      description: 最初に見てほしかった DB、検索語、確認順序、慎重に扱ってほしかった点など。
+    validations:
+      required: true
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: 実際の進め方
+      description: どの source を見たか、どこで違和感があったかを書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: better_terms_sources
+    attributes:
+      label: 望ましい検索語・DB・判断基準
+      description: 分野の慣習、定番資料、避けたい断定などがあれば書いてください。
+  - type: dropdown
+    id: change_scope
+    attributes:
+      label: 反映してほしい範囲
+      options:
+        - 汎用ルールにしたい
+        - 特定分野の注意として入れたい
+        - docs の例として載せたい
+        - まだ相談したい
+        - unsure
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 共有してよい参考資料・根拠
+      description: URL、公開資料名、利用条件上問題ない範囲の短い説明を書いてください。
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: 共有前の確認
+      options:
+        - label: 未公開研究テーマや個人情報を含めていません。
+          required: true
+        - label: 貼り付けた資料は公開情報または共有してよい情報です。
+          required: true
