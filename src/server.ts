@@ -399,7 +399,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_refine_results",
     {
-      description: "現在セッションに保存された直近（または cache_key 指定）の jp_lit_search 結果を、upstream 再検索せずローカルでソート・フィルタして再表示する",
+      description: "保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す",
       inputSchema: refineResultsInputSchema,
       outputSchema: refineResultsOutputSchema
     },
@@ -439,7 +439,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_export_view",
     {
-      description: "キャッシュ系ビュー（一覧・横断検索・再抽出）の結果を exports/ に直接書き出す",
+      description: "キャッシュ系ビュー（一覧・横断検索・再抽出）の結果を exports/ に直接書き出す。refined_results は全件 export と重複確認ノートに対応",
       inputSchema: exportViewInputSchema,
       outputSchema: exportViewOutputSchema
     },

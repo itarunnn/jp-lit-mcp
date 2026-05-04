@@ -516,4 +516,86 @@ describe("jp_lit_refine_results", () => {
     expect(result.structuredContent.items[0]?.source_id).toBe("id-1");
     expect(result.structuredContent.items.at(-1)?.source_id).toBe("id-30");
   });
+
+  it("重複クラスタは明示されたときだけ返す", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const cacheKey = "cluster-key";
+
+    await sessions.appendEntry(createSearchEntry(cacheKey));
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: cacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "文学史" },
+      structured_content: {
+        query: "文学史",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 2,
+        items: [
+          createSearchItem("ndl_catalog", "cluster-1", "日本文学史", "1999", false, "佐藤 一郎"),
+          createSearchItem("cinii_books", "cluster-2", "日本文学史", "1999", false, "佐藤 一郎")
+        ]
+      }
+    });
+
+    const result = await tool({ cache_key: cacheKey });
+    expect(result.structuredContent).not.toHaveProperty("cluster_summary");
+    expect(result.structuredContent).not.toHaveProperty("clusters");
+
+    const clustered = await tool({
+      cache_key: cacheKey,
+      include_duplicate_clusters: true,
+      cluster_limit: 10,
+      cluster_member_limit: 3
+    });
+
+    expect(clustered.structuredContent.cluster_summary?.total_items_considered)
+      .toBeGreaterThanOrEqual(clustered.structuredContent.total_after);
+    expect(clustered.structuredContent.cluster_summary?.cluster_count).toBe(1);
+    expect(clustered.structuredContent.clusters?.[0]?.member_count).toBe(2);
+  });
+
+  it("union の重複クラスタは key_by で畳まれる前の候補から作る", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const cacheKey = "cluster-raw-key";
+
+    await sessions.appendEntry(createSearchEntry(cacheKey));
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: cacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "文学史" },
+      structured_content: {
+        query: "文学史",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 2,
+        items: [
+          createSearchItem("ndl_catalog", "raw-1", "日本文学史", "1999", false, "佐藤 一郎"),
+          createSearchItem("cinii_books", "raw-2", "日本文学史", "1999", false, "佐藤 一郎")
+        ]
+      }
+    });
+
+    const clustered = await tool({
+      cache_key: cacheKey,
+      key_by: "title_author_year",
+      include_duplicate_clusters: true
+    });
+
+    expect(clustered.structuredContent.total_after).toBe(1);
+    expect(clustered.structuredContent.cluster_summary?.total_items_considered).toBe(2);
+    expect(clustered.structuredContent.clusters?.[0]?.member_count).toBe(2);
+  });
 });

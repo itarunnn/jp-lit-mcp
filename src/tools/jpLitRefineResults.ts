@@ -1,5 +1,6 @@
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { buildDuplicateClusters } from "../lib/duplicateClustering.js";
 import { refineResultsInputSchema, refineResultsOutputSchema } from "../lib/schemas.js";
 import type { RefineResultsOutput, SearchOutput } from "../lib/schemas.js";
 
@@ -247,6 +248,19 @@ export function createJpLitRefineResultsTool(
     const filteredItems = applyFilters(combinedItems, parsed);
     const sortedItems = applySort(filteredItems, parsed);
     const slicedItems = sortedItems.slice(parsed.offset, parsed.offset + parsed.limit);
+    const rawUnionClusterCandidates = applySort(
+      applyFilters(cachedResults.flatMap((result) => result.items), parsed),
+      parsed
+    );
+    const clusterCandidates =
+      parsed.combine === "union" ? rawUnionClusterCandidates : sortedItems;
+    const clusterOutput = parsed.include_duplicate_clusters
+      ? buildDuplicateClusters(clusterCandidates, {
+          clusterLimit: parsed.cluster_limit,
+          clusterOffset: parsed.cluster_offset,
+          memberLimit: parsed.cluster_member_limit
+        })
+      : null;
 
     const structuredContent: RefineResultsOutput = refineResultsOutputSchema.parse({
       base_cache_key: cacheKeys[0],
@@ -261,7 +275,13 @@ export function createJpLitRefineResultsTool(
       total_after: sortedItems.length,
       limit: parsed.limit,
       offset: parsed.offset,
-      items: slicedItems
+      items: slicedItems,
+      ...(clusterOutput
+        ? {
+            cluster_summary: clusterOutput.summary,
+            clusters: clusterOutput.clusters
+          }
+        : {})
     });
 
     return {

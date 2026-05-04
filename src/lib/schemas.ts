@@ -521,6 +521,46 @@ const refineResultsFiltersSchema = z.object({
   author_contains: z.string().trim().min(1).optional()
 });
 
+const duplicateClusterReasonSchema = z.enum([
+  "shared_duplicate_key",
+  "title_author_year_match",
+  "title_author_match",
+  "year_match",
+  "publisher_match",
+  "multi_source",
+  "same_source_variant"
+]);
+
+const searchResultReadinessSchema = z.object({
+  level: z.enum(["strong", "medium", "weak"]),
+  reasons: z.array(z.string()),
+  missing: z.array(z.string())
+});
+
+const duplicateClusterSchema = z.object({
+  cluster_id: z.string(),
+  duplicate_confidence: z.enum(["strong", "medium", "weak"]),
+  member_count: z.number().int().positive(),
+  representative: searchItemSchema,
+  members_preview: z.array(searchItemSchema),
+  omitted_member_count: z.number().int().nonnegative(),
+  reasons: z.array(duplicateClusterReasonSchema),
+  search_result_readiness: searchResultReadinessSchema,
+  caution: z.string()
+});
+
+const duplicateClusterSummarySchema = z.object({
+  total_items_considered: z.number().int().nonnegative(),
+  cluster_count: z.number().int().nonnegative(),
+  singleton_count: z.number().int().nonnegative(),
+  strong_cluster_count: z.number().int().nonnegative(),
+  medium_cluster_count: z.number().int().nonnegative(),
+  weak_cluster_count: z.number().int().nonnegative(),
+  returned_cluster_count: z.number().int().nonnegative(),
+  cluster_limit: z.number().int().positive(),
+  cluster_offset: z.number().int().nonnegative()
+});
+
 export const refineResultsInputSchema = z.object({
   cache_key: z.string().trim().min(1).optional(),
   cache_keys: z.array(z.string().trim().min(1)).min(1).optional(),
@@ -533,6 +573,10 @@ export const refineResultsInputSchema = z.object({
   sort_order: z.enum(["asc", "desc"]).default("asc"),
   limit: z.number().int().positive().max(200).default(30),
   offset: z.number().int().nonnegative().default(0),
+  include_duplicate_clusters: z.boolean().default(false),
+  cluster_limit: z.number().int().positive().default(20),
+  cluster_offset: z.number().int().nonnegative().default(0),
+  cluster_member_limit: z.number().int().positive().default(5),
   filters: refineResultsFiltersSchema.optional()
 });
 
@@ -551,7 +595,9 @@ export const refineResultsOutputSchema = z.object({
   total_after: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
   offset: z.number().int().nonnegative(),
-  items: z.array(searchItemSchema)
+  items: z.array(searchItemSchema),
+  cluster_summary: duplicateClusterSummarySchema.optional(),
+  clusters: z.array(duplicateClusterSchema).optional()
 });
 
 export const exportViewInputSchema = z.discriminatedUnion("view", [
@@ -571,6 +617,8 @@ export const exportViewInputSchema = z.discriminatedUnion("view", [
     view: z.literal("refined_results"),
     params: refineResultsInputSchema.default({}),
     format: z.enum(["markdown", "json"]).default("markdown"),
+    export_all: z.boolean().default(false),
+    duplicate_notes: z.boolean().default(false),
     output_path: z.string().trim().min(1).optional()
   })
 ]);

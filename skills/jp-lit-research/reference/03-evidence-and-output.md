@@ -43,7 +43,16 @@ OCR ヒットのみで本文内容を断定しない。
 - `jp_lit_refine_results` を使った場合は、`total_before` / `total_after` と適用した条件（sort/filter）を明示する
 - `jp_lit_refine_results` は既定で先頭 30 件だけ返す。`total_after > 30` の場合は、「全何件中、どの順の先頭 30 件か」を明示する
 - 全件確認が必要な場合は、まず `jp_lit_export_view` で書き出す
+- 重複確認は通常の再整理に毎回混ぜない。必要なときだけ `include_duplicate_clusters=true`、全件確認では `jp_lit_export_view(view="refined_results", export_all=true, duplicate_notes=true)` を使う
 - `total_after > 100` や複数 cache 統合後の傾向要約が必要な場合は、`cache_key` / `session_id` で対象を固定したうえで、任意で要約専用サブエージェントを使ってよい。ただし標準の検索判断フローではない
+
+## 重複クラスタ確認
+
+- クラスタは自動削除ではなく、同一候補の確認材料として扱う
+- `duplicate_key` と title/author/year の近似一致から候補を出す
+- `search_result_readiness` は検索結果レベルのメタデータ充足度であり、引用確定には詳細レコードや現物確認が必要
+- サブエージェントを使う場合も、対象 `cache_key` / `session_id` を固定し、最終採否は主エージェントが統合してユーザーに確認する
+- CSL JSON へ渡す前は、重複候補を見たうえで採用項目だけを `jp_lit_annotate_session` に保存し、`jp_lit_export_session(format="csl-json", profile="selected")` で書き出す
 
 ## annotation / export
 

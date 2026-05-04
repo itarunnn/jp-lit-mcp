@@ -19,9 +19,13 @@ async function createTempDir() {
   return dir;
 }
 
-function createSearchItem(sourceId: string, title: string): SearchItem {
+function createSearchItem(
+  sourceId: string,
+  title: string,
+  source: SearchItem["source"] = "ndl_catalog"
+): SearchItem {
   return {
-    source: "ndl_catalog",
+    source,
     source_id: sourceId,
     title,
     subtitle: null,
@@ -42,6 +46,47 @@ function createSearchItem(sourceId: string, title: string): SearchItem {
     duplicate_count: 1,
     related_records: []
   };
+}
+
+async function createExportViewFixture(items: SearchItem[]) {
+  const baseDir = await createTempDir();
+  const cache = createFileCache(baseDir);
+  const sessions = createSessionStore(baseDir);
+  const listCacheTool = createJpLitListCacheTool(cache, sessions, baseDir);
+  const searchCacheIndexTool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+  const refineResultsTool = createJpLitRefineResultsTool(cache, sessions);
+  const exportViewTool = createJpLitExportViewTool(
+    {
+      listCache: listCacheTool,
+      searchCacheIndex: searchCacheIndexTool,
+      refineResults: refineResultsTool
+    },
+    baseDir
+  );
+  await sessions.appendEntry({
+    tool: "jp_lit_search",
+    input: { query: "文学" },
+    cache_key: "ev-fixture",
+    result_ref: { tool: "jp_lit_search", cache_key: "ev-fixture" },
+    selected_items: [],
+    notes: []
+  });
+  await cache.write("jp_lit_search", {
+    version: 1,
+    tool: "jp_lit_search",
+    cache_key: "ev-fixture",
+    saved_at: "2026-05-01T00:00:00.000Z",
+    input: { query: "文学" },
+    structured_content: {
+      query: "文学",
+      source: "ndl_catalog",
+      page: 1,
+      limit: items.length,
+      total: items.length,
+      items
+    }
+  });
+  return { baseDir, exportViewTool };
 }
 
 afterEach(async () => {
@@ -224,5 +269,65 @@ describe("jp_lit_export_view", () => {
     expect(result.structuredContent.item_count).toBe(2);
     expect(written.total_after).toBe(2);
     expect(written.items.map((item) => item.title)).toEqual(["文学史", "文学入門"]);
+  });
+
+  it("refined_results は export_all でページ上限を超えて全件を書き出せる", async () => {
+    const items = Array.from({ length: 205 }, (_, index) =>
+      createSearchItem(`ev-all-${index}`, `文学 ${String(index).padStart(3, "0")}`)
+    );
+    const { baseDir, exportViewTool } = await createExportViewFixture(items);
+    const outputPath = path.join(baseDir, "exports", "refined-all.json");
+
+    const result = await exportViewTool({
+      view: "refined_results",
+      params: {
+        cache_key: "ev-fixture",
+        sort_by: "title",
+        sort_order: "asc",
+        limit: 20
+      },
+      export_all: true,
+      format: "json",
+      output_path: outputPath
+    });
+
+    const written = JSON.parse(await readFile(outputPath, "utf8")) as {
+      total_after: number;
+      items: Array<{ source_id: string }>;
+    };
+    expect(result.structuredContent.item_count).toBe(205);
+    expect(written.total_after).toBe(205);
+    expect(written.items).toHaveLength(205);
+  });
+
+  it("refined_results は duplicate_notes で重複クラスタを markdown に含める", async () => {
+    const { baseDir, exportViewTool } = await createExportViewFixture([
+      createSearchItem("ev-dup-1", "吾輩は猫である", "ndl_catalog"),
+      createSearchItem("ev-dup-2", "吾輩は猫である", "cinii_books"),
+      createSearchItem("ev-uniq-1", "草枕", "ndl_catalog")
+    ]);
+    const outputPath = path.join(baseDir, "exports", "refined-duplicates.md");
+
+    const result = await exportViewTool({
+      view: "refined_results",
+      params: {
+        cache_key: "ev-fixture",
+        combine: "union",
+        key_by: "source_record",
+        cluster_offset: 1
+      },
+      export_all: true,
+      duplicate_notes: true,
+      format: "markdown",
+      output_path: outputPath
+    });
+
+    const written = await readFile(outputPath, "utf8");
+    expect(result.structuredContent.item_count).toBe(3);
+    expect(written).toContain("Duplicate Cluster Summary");
+    expect(written).toContain("Returned clusters: 1");
+    expect(written).toContain("重複クラスタは自動削除ではありません");
+    expect(written).toContain("Search result readiness");
+    expect(written).toContain("吾輩は猫である");
   });
 });
