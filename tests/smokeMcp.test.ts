@@ -27,6 +27,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_get_record",
       "jp_lit_get_text_coordinates",
       "jp_lit_list_cache",
+      "jp_lit_prune_cache",
       "jp_lit_refine_results",
       "jp_lit_search",
       "jp_lit_search_cache_index",

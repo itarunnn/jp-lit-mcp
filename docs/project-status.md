@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-05-04 時点の状態:
+2026-05-05 時点の状態:
 
-- 公開ツール 17 種・対応 source 14 種・テスト 373 件すべて通過
+- 公開ツール 18 種・対応 source 14 種・テスト 383 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
@@ -18,12 +18,13 @@
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
 - 過去セッション検索（`jp_lit_find_sessions`）と `session_id` 指定 export に対応済み
-- 保存済み検索結果の一覧・検索・再整理・view export・削除（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache`）に対応済み
+- 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
 - Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
 
 ## 最近の更新
 
 - `0.1.3`: `doctor` コマンドを追加。Node.js、package version、同梱 Skills、cache / exports 書き込み、`CINII_RESEARCH_APP_ID` の有無を live API なしで診断
+- `jp_lit_prune_cache`: 古いローカル cache を dry-run で確認してから削除できる MCP tool を追加
 - `0.1.2`: `--help` / `--version` を追加
 - `0.1.1`: Windows で `npx -y jp-lit-mcp install-skills <app>` が使える導線を修正
 - `irdb`: HTML の `&#039;` エンティティが `'` に正しくデコードされない問題を修正（`alternative_titles` 等）
@@ -65,4 +66,4 @@
 
 - npm package 公開済み。公開前は `npm publish --dry-run` と tarball smoke を確認する
 - GitHub About / topics / release note は整備済み
-- 次の改善候補は Web NDL Authorities、検索品質 eval、CSL JSON / BibTeX / RIS export、cache prune
+- 次の改善候補は Web NDL Authorities、検索品質 eval

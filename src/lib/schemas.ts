@@ -436,6 +436,37 @@ export const deleteCacheOutputSchema = z.object({
   message: z.string()
 });
 
+export const pruneCacheInputSchema = z.object({
+  older_than_days: z.number().int().positive().default(30),
+  tool: z.string().trim().min(1).optional(),
+  dry_run: z.boolean().default(true),
+  limit: z.number().int().positive().max(1000).default(100)
+});
+
+export const pruneCacheOutputSchema = z.object({
+  dry_run: z.boolean(),
+  older_than_days: z.number().int().positive(),
+  cutoff_saved_at: z.string(),
+  tool: z.string().nullable(),
+  limit: z.number().int().positive(),
+  matched_count: z.number().int().nonnegative(),
+  pruned_count: z.number().int().nonnegative(),
+  total_bytes: z.number().int().nonnegative(),
+  candidates: z.array(z.object({
+    tool: z.string(),
+    cache_key: z.string(),
+    saved_at: z.string(),
+    bytes: z.number().int().nonnegative(),
+    root: z.enum(["current", "legacy"])
+  })),
+  skipped_count: z.number().int().nonnegative(),
+  skipped: z.array(z.object({
+    path: z.string(),
+    reason: z.string()
+  })),
+  message: z.string()
+});
+
 export const listCacheInputSchema = z.object({
   tool: z.string().trim().min(1).optional(),
   session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
@@ -703,6 +734,8 @@ export type SearchCacheIndexInput = z.infer<typeof searchCacheIndexInputSchema>;
 export type SearchCacheIndexOutput = z.infer<typeof searchCacheIndexOutputSchema>;
 export type DeleteCacheInput = z.infer<typeof deleteCacheInputSchema>;
 export type DeleteCacheOutput = z.infer<typeof deleteCacheOutputSchema>;
+export type PruneCacheInput = z.infer<typeof pruneCacheInputSchema>;
+export type PruneCacheOutput = z.infer<typeof pruneCacheOutputSchema>;
 export type ListCacheInput = z.infer<typeof listCacheInputSchema>;
 export type ListCacheOutput = z.infer<typeof listCacheOutputSchema>;
 export type RefineResultsInput = z.infer<typeof refineResultsInputSchema>;

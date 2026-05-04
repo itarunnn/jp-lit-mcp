@@ -16,6 +16,8 @@ import {
   searchCacheIndexOutputSchema,
   deleteCacheInputSchema,
   deleteCacheOutputSchema,
+  pruneCacheInputSchema,
+  pruneCacheOutputSchema,
   listCacheInputSchema,
   listCacheOutputSchema,
   recordInputSchema,
@@ -68,6 +70,7 @@ import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
 import { createJpLitRefineResultsTool } from "./tools/jpLitRefineResults.js";
 import { createJpLitSearchCacheIndexTool } from "./tools/jpLitSearchCacheIndex.js";
 import { createJpLitDeleteCacheTool } from "./tools/jpLitDeleteCache.js";
+import { createJpLitPruneCacheTool } from "./tools/jpLitPruneCache.js";
 import { createJpLitListCacheTool } from "./tools/jpLitListCache.js";
 import { createJpLitSearchTool } from "./tools/jpLitSearch.js";
 import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinates.js";
@@ -290,6 +293,7 @@ export function createServer(env: ServerEnv = process.env) {
   const refineResultsTool = createJpLitRefineResultsTool(cache, sessions);
   const searchCacheIndexTool = createJpLitSearchCacheIndexTool(cache, sessions);
   const deleteCacheTool = createJpLitDeleteCacheTool(cache);
+  const pruneCacheTool = createJpLitPruneCacheTool();
   const listCacheTool = createJpLitListCacheTool(cache, sessions);
   const exportViewTool = createJpLitExportViewTool({
     listCache: listCacheTool,
@@ -424,6 +428,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: deleteCacheOutputSchema
     },
     deleteCacheTool
+  );
+
+  server.registerTool(
+    "jp_lit_prune_cache",
+    {
+      description: "古いローカルキャッシュ候補を列挙し、dry_run=false のときだけ安全に削除する",
+      inputSchema: pruneCacheInputSchema,
+      outputSchema: pruneCacheOutputSchema
+    },
+    pruneCacheTool
   );
 
   server.registerTool(

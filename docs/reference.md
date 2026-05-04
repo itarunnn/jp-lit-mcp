@@ -599,6 +599,19 @@ live smoke の主な環境変数:
 | `cache_key` | string | なし | 単体削除対象 |
 | `clear_all` | boolean | `false` | `true` で対象 tool のキャッシュを一括削除 |
 
+### `jp_lit_prune_cache`
+
+古いローカルキャッシュの削除候補を列挙し、`dry_run=false` のときだけ削除します。既定では削除せず候補確認だけを行います。対象は `.cache/jp-lit-mcp/cache/v1/` と旧保存先 `.cache/ndl-jp-lit-mcp/cache/v1/` の cache ファイルで、セッションや `exports/` は削除しません。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `older_than_days` | number | `30` | この日数より古い cache を候補にする |
+| `tool` | string | なし | 対象ツール（未指定なら全 tool） |
+| `dry_run` | boolean | `true` | `true` なら候補表示のみ。削除する場合は `false` |
+| `limit` | number | `100` | 最大 1000 |
+
+出力には `matched_count`、`pruned_count`、`total_bytes`、`candidates[]`、読み取りをスキップしたファイル数 `skipped_count` が含まれます。壊れた JSON や tool ディレクトリ名と cache 内 metadata が一致しないファイルは削除対象にせず、`skipped[]` に理由を返します。
+
 ### `jp_lit_list_cache`
 
 ローカルキャッシュの一覧と集計を返します。作成日・source・session で絞り込めます。
