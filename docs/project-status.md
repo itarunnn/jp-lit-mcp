@@ -2,7 +2,7 @@
 
 2026-05-05 時点の状態:
 
-- 公開ツール 20 種・対応 source 14 種・テスト 390 件すべて通過
+- 公開ツール 20 種・対応 source 14 種・テスト 391 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`

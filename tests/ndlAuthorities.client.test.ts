@@ -28,6 +28,34 @@ const IROKAWA_SPARQL_JSON = {
   }
 };
 
+const ASADA_SPARQL_JSON = {
+  head: {
+    vars: [
+      "authority",
+      "label",
+      "type",
+      "altLabel",
+      "pseudonymName",
+      "pseudonymNameLabel",
+      "realName",
+      "realNameLabel"
+    ]
+  },
+  results: {
+    bindings: [
+      {
+        authority: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00003403" },
+        label: { type: "literal", value: "阿佐田, 哲也, 1929-1989" },
+        type: { type: "uri", value: "http://id.ndl.go.jp/auth#personalNames" },
+        realName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00020172" },
+        realNameLabel: { type: "literal", value: "色川, 武大, 1929-1989" },
+        pseudonymName: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlna/00664229" },
+        pseudonymNameLabel: { type: "literal", value: "井上, 志摩夫, 1929-1989" }
+      }
+    ]
+  }
+};
+
 const SUBJECT_SPARQL_JSON = {
   head: {
     vars: ["authority", "label", "type", "altLabel", "broader", "broaderLabel", "related", "relatedLabel"]
@@ -122,6 +150,32 @@ describe("ndl authorities client", () => {
     expect(result.search_hints.same_identity_terms).toEqual([
       "阿佐田哲也",
       "井上志摩夫"
+    ]);
+  });
+
+  it("筆名側から検索したとき本名も same_identity_names として正規化する", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse(ASADA_SPARQL_JSON));
+    const client = createNdlAuthoritiesClient({ fetcher });
+
+    const result = await client.resolve({ query: "阿佐田哲也", type: "person", limit: 5 });
+
+    expect(result.items[0].same_identity_names).toEqual([
+      {
+        label: "井上, 志摩夫, 1929-1989",
+        authority_uri: "https://id.ndl.go.jp/auth/ndlna/00664229",
+        relation: "pseudonym",
+        relation_label: "筆名"
+      },
+      {
+        label: "色川, 武大, 1929-1989",
+        authority_uri: "https://id.ndl.go.jp/auth/ndlna/00020172",
+        relation: "real_name",
+        relation_label: "本名"
+      }
+    ]);
+    expect(result.search_hints.same_identity_terms).toEqual([
+      "井上志摩夫",
+      "色川武大"
     ]);
   });
 

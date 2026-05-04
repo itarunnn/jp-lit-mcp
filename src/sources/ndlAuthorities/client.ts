@@ -132,7 +132,7 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX xl: <http://www.w3.org/2008/05/skos-xl#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX dcndl: <http://ndl.go.jp/dcndl/terms/>
-SELECT ?authority ?label ?type ?altLabel ?pseudonymName ?pseudonymNameLabel ?broader ?broaderLabel ?narrower ?narrowerLabel ?related ?relatedLabel
+SELECT ?authority ?label ?type ?altLabel ?pseudonymName ?pseudonymNameLabel ?realName ?realNameLabel ?broader ?broaderLabel ?narrower ?narrowerLabel ?related ?relatedLabel
 WHERE {
   ?authority rdfs:label ?label ;
              skos:inScheme ?type .
@@ -140,6 +140,7 @@ WHERE {
   ${typeFilter}
   OPTIONAL { ?authority xl:altLabel ?alt . ?alt xl:literalForm ?altLabel . }
   OPTIONAL { ?authority dcndl:pseudonym ?pseudonymName . ?pseudonymName rdfs:label ?pseudonymNameLabel . }
+  OPTIONAL { ?authority dcndl:realName ?realName . ?realName rdfs:label ?realNameLabel . }
   OPTIONAL { ?authority skos:broader ?broader . ?broader rdfs:label ?broaderLabel . }
   OPTIONAL { ?authority skos:narrower ?narrower . ?narrower rdfs:label ?narrowerLabel . }
   OPTIONAL { ?authority skos:related ?related . ?related rdfs:label ?relatedLabel . }
@@ -263,16 +264,31 @@ export function createNdlAuthoritiesClient(options: NdlAuthoritiesClientOptions 
           item.variant_labels.push(altLabel);
         }
 
-        const sameNameLabel = bindingValue(binding, "pseudonymNameLabel");
-        if ((item.type === "person" || item.type === "corporate") && sameNameLabel) {
-          const linked = {
-            label: sameNameLabel,
-            authority_uri: bindingValue(binding, "pseudonymName"),
-            relation: normalizeRelation("筆名"),
-            relation_label: "筆名"
-          };
-          if (!item.same_identity_names.some((entry) => entry.label === linked.label)) {
-            item.same_identity_names.push(linked);
+        if (item.type === "person" || item.type === "corporate") {
+          const linkedNames = [
+            {
+              label: bindingValue(binding, "pseudonymNameLabel"),
+              authority_uri: bindingValue(binding, "pseudonymName"),
+              relation: normalizeRelation("筆名"),
+              relation_label: "筆名"
+            },
+            {
+              label: bindingValue(binding, "realNameLabel"),
+              authority_uri: bindingValue(binding, "realName"),
+              relation: normalizeRelation("本名"),
+              relation_label: "本名"
+            }
+          ];
+          for (const linked of linkedNames) {
+            if (!linked.label) continue;
+            if (!item.same_identity_names.some((entry) => entry.label === linked.label)) {
+              item.same_identity_names.push({
+                label: linked.label,
+                authority_uri: linked.authority_uri,
+                relation: linked.relation,
+                relation_label: linked.relation_label
+              });
+            }
           }
         }
 
