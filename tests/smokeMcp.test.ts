@@ -36,6 +36,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_fulltext",
       "jp_lit_search_guides_cases",
       "jp_lit_search_guides_manuals",
+      "jp_lit_search_kaken_projects",
       "jp_lit_search_illustrations",
       "jp_lit_search_pages"
     ]);

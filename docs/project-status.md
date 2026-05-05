@@ -2,7 +2,7 @@
 
 2026-05-05 時点の状態:
 
-- 公開ツール 20 種・対応 source 14 種・テスト 391 件すべて通過
+- 公開ツール 21 種・対応 source 14 種・テスト 402 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
@@ -20,11 +20,13 @@
 - 過去セッション検索（`jp_lit_find_sessions`）と `session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
 - Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools（`jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`）を追加済み
+- KAKEN から研究課題・研究成果報告書 PDF・成果リストの手がかりを返す補助 tool（`jp_lit_search_kaken_projects`）を追加済み。KAKEN は `jp_lit_search` の source ではなく、文献確定前の検索語展開・報告書確認の入口として扱う
 - Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
 
 ## 最近の更新
 
 - 保存済み検索結果の refined export で、重複候補クラスタと `search_result_readiness` を確認できる導線を追加
+- `jp_lit_search_kaken_projects`: KAKEN の研究課題・研究成果報告書 PDF・成果リスト preview を、文献確定前の補助 tool として追加
 - `jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`: Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools を追加
 - `0.1.3`: `doctor` コマンドを追加。Node.js、package version、同梱 Skills、cache / exports 書き込み、`CINII_RESEARCH_APP_ID` の有無を live API なしで診断
 - `jp_lit_prune_cache`: 古いローカル cache を dry-run で確認してから削除できる MCP tool を追加

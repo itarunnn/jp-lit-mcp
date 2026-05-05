@@ -209,6 +209,24 @@ nihu_bridge
 
 ### 調べ方・類似事例
 
+#### `jp_lit_search_kaken_projects`
+
+KAKEN の研究課題を検索し、研究テーマ、キーワード、研究成果報告書 PDF、成果リストの手がかりを返します。文献検索 source ではなく、テーマ把握・検索語展開・報告書 PDF 到達のための補助ツールです。成果リストに論文・図書・学会発表が含まれる場合も、それらは文献候補として扱い、CiNii / J-STAGE / IRDB / NDL などで確認してください。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `query` | string | 必須 | 研究課題を探す検索語 |
+| `limit` | number | 10 | 最大 20 |
+| `page` | number | 1 | 1 始まり |
+| `detail_limit` | number | 5 | 詳細ページを取得して報告書 PDF / 成果 preview を補完する件数。最大 10。`0` なら詳細未確認 |
+| `researcher_name` | string | なし | 研究者名での絞り込み補助 |
+| `from_fiscal_year` / `to_fiscal_year` | number | なし | 助成期間の範囲指定 |
+| `include_outputs` | boolean | true | 成果 preview を返すか |
+
+返り値では `detail_fetched` / `detail_omitted_reason` / `report_pdf_status` を必ず確認してください。`report_pdf_status="not_checked"` は PDF が無いという意味ではなく、詳細取得を省略した状態です。
+
+このツールは KAKEN OpenSearch API を使うため、`CINII_RESEARCH_APP_ID` が必要です。CiNii Research / CiNii Books と同じ NII / CiNii 系の appid を利用します。
+
 #### `jp_lit_search_guides_manuals`
 
 レファレンス協同データベースの調べ方マニュアルを検索します。書誌候補そのものではなく、どの資料・索引・参考図書から始めるかの手がかりを得るためのツールです。
@@ -458,7 +476,7 @@ jp_lit_search_illustrations(keyword="富士山")
 
 ## 環境変数
 
-通常利用では、各 source の base URL を設定する必要はありません。次の環境変数は、上流 API の URL を明示・上書きしたい場合や、テスト環境・プロキシを使う場合のためのものです。`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。
+通常利用では、各 source の base URL を設定する必要はありません。次の環境変数は、上流 API の URL を明示・上書きしたい場合や、テスト環境・プロキシを使う場合のためのものです。`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨し、KAKEN API tool では必須です。
 
 | 変数 | 既定値 | 説明 |
 | ---- | ------ | ---- |
@@ -468,7 +486,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | `CINII_RESEARCH_BASE_URL` | `https://cir.nii.ac.jp/opensearch/articles` | CiNii 系検索 |
 | `CINII_RESEARCH_RECORD_BASE_URL` | `https://cir.nii.ac.jp/crid` | CiNii 系詳細 |
 | `CINII_BOOKS_HOLDINGS_BASE_URL` | `https://ci.nii.ac.jp/books/opensearch/holder` | CiNii Books 所蔵 |
-| `CINII_RESEARCH_APP_ID` | なし | CiNii 安定利用に推奨。実値はシークレット経由で渡す |
+| `CINII_RESEARCH_APP_ID` | なし | CiNii 安定利用に推奨。KAKEN API tool では必須。実値はシークレット経由で渡す |
 | `JSTAGE_BASE_URL` | `https://api.jstage.jst.go.jp/searchapi/do` | J-STAGE 検索 |
 | `JSTAGE_ARTICLE_BASE_URL` | `https://www.jstage.jst.go.jp` | J-STAGE 記事ページ HTML 詳細 |
 | `JAPAN_SEARCH_BASE_URL` | `https://jpsearch.go.jp/api/item/search/jps-cross` | Japan Search 検索 |
@@ -489,7 +507,7 @@ jp_lit_search_illustrations(keyword="富士山")
 
 ## MCP 登録例
 
-通常は `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。設定しない場合は `env` ごと省略できます。
+通常は `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。KAKEN tool を使わない場合は `env` ごと省略できます。
 
 ```json
 {
@@ -559,6 +577,7 @@ live smoke の主な環境変数:
 ## 既知の制約
 
 - `ndl_digital` は独立 API ではなく `NDL Search SRU + dpid=ndl-dl` を使います。
+- KAKEN は `jp_lit_search` の source ではありません。`jp_lit_search_kaken_projects` は研究課題・報告書 PDF・成果リストの入口であり、成果リスト中の文献確定には使いません。
 - 次世代デジタルライブラリー API と OCR 系ツールはインターネット公開資料のみ対象です。
 - `ndl_search` は広域・初動向きです。CiNii / J-STAGE はハーベスト済みメタデータのため情報が薄く、NIHU Bridge は対象外です。
 - `ndl_articles_online` は検索のみ対応です。`jp_lit_get_record` は常に `null` になります。

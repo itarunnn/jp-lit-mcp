@@ -12,6 +12,7 @@
 | `ndl_digital` 検索部 | NDL Search と同様 | NDL Search と同様 | provider ごとの条件確認 | 同上 | 検索は NDL Search SRU を使用 |
 | 次世代デジタルライブラリー API | 原則不要 | 営利かつ継続的利用は問い合わせ | 加工時の明示など配慮事項あり | 営利かつ継続的利用は問い合わせ | OCR / 図版 / 全文はここを使用 |
 | `cinii_articles` / `cinii_books` | App ID 要 | 商用は事前連絡推奨 | 著作権法等に従い適切取扱い | 短時間大量アクセスは遮断あり | API利用登録が必要 |
+| `jp_lit_search_kaken_projects`（KAKEN） | App ID 要 | 条件確認 | 出典記載が必要 | 短時間大量アクセスは避ける | 研究課題・報告書 PDF の入口。成果リストは文献候補扱い |
 | `jstage_articles` | 非営利は不要 | 営利は申請必要 | JST 提供である旨表示、J-STAGE へのリンク | 利用者運営サービスでの 24 時間超保存・大量取得に注意 | 検索は WebAPI、詳細は記事ページ HTML meta の best-effort |
 | `irdb` | 明示的な登録要件は未確認 | 規程ベース | 規程と個別条件に従う | 個人情報・詳細HTML取得に留意 | 検索は OpenSearch、詳細は IRDB 詳細画面 HTML の best-effort |
 | `japan_search` | 公開 API に登録不要と読める | データごとに異なる | source 表記推奨、参加機関条件確認 | 個別コンテンツ条件確認 | metadata / thumbnail / content で条件が異なる |
@@ -81,6 +82,26 @@
 - 利用規約: https://support.nii.ac.jp/ja/cinii/terms
 - API 利用登録: https://support.nii.ac.jp/ja/cinii/api/developer
 - API 概要: https://support.nii.ac.jp/en/cinii/api/api_outline
+
+### KAKEN
+
+実装での利用:
+
+- `jp_lit_search_kaken_projects` は `https://kaken.nii.ac.jp/opensearch/` を使います。
+- 課題詳細ページ HTML から、研究成果報告書 PDF URL と成果 preview を best-effort で補完します。
+- KAKEN は `jp_lit_search` の source ではなく、研究課題・報告書 PDF・成果リストから次の検索語を得るための補助ツールです。
+
+確認できたこと:
+
+- KAKEN OpenSearch API は NII / CiNii 系の API 利用登録で取得した `appid` を使います。実装では `CINII_RESEARCH_APP_ID` を流用します。
+- KAKEN で公開されるコンテンツの多くは文部科学省ウェブサイト利用規約に準拠し、出典記載が求められます。
+- 一部報告書等では作成者自身が著作権を主張できる場合があります。
+- 検索結果には誤りが含まれる可能性があるため、成果リスト中の論文・図書は CiNii / J-STAGE / IRDB / NDL などで確認します。
+
+参考:
+
+- KAKEN API 概要: https://support.nii.ac.jp/ja/kaken/api/api_outline
+- KAKEN 利用規程: https://support.nii.ac.jp/ja/kaken/about/terms
 
 ### J-STAGE WebAPI
 
