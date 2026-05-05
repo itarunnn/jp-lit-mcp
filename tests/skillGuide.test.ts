@@ -47,12 +47,24 @@ describe("jp-lit-research skill guide", () => {
       "skills/jp-lit-research/reference/02-source-and-query.md",
       "utf8"
     );
+    const advisory = readFileSync(
+      "skills/jp-lit-research/heuristics/advisory-consultation.md",
+      "utf8"
+    );
     const evidence = readFileSync(
       "skills/jp-lit-research/reference/03-evidence-and-output.md",
       "utf8"
     );
     const grading = readFileSync(
       "skills/jp-lit-research/heuristics/evidence-grading.md",
+      "utf8"
+    );
+    const sourceSelection = readFileSync(
+      "skills/jp-lit-research/heuristics/source-selection.md",
+      "utf8"
+    );
+    const failureModes = readFileSync(
+      "skills/jp-lit-research/heuristics/failure-modes.md",
       "utf8"
     );
     const workflow = readFileSync(
@@ -68,6 +80,11 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceAndQuery).toContain("jp_lit_search_guides_cases");
     expect(sourceAndQuery).toContain("全N件中M件取得");
     expect(sourceAndQuery).toContain("source 未指定の横断検索は `page=1` のみ対応");
+    expect(advisory).toContain("リサーチ・ナビが参考書誌");
+    expect(advisory).toContain("参考書誌・索引・契約 DB");
+    expect(advisory).toContain("reference_tools");
+    expect(advisory).toContain("要有料DB確認");
+    expect(sourceSelection).toContain("参考書誌・索引・有料DBでの追加確認");
     expect(evidence).toContain("本文: オンライン入口あり未読");
     expect(evidence).toContain("availability.online=true");
     expect(evidence).toContain("highlights");
@@ -76,6 +93,12 @@ describe("jp-lit-research skill guide", () => {
     expect(evidence).toContain("検索全体の選別理由");
     expect(evidence).toContain("次: 発信者プロフィール確認");
     expect(evidence).toContain("長い注意書きは毎件付けない");
+    expect(sourceSelection).toContain("要有料DB確認");
+    expect(sourceSelection).toContain("ざっさくプラス");
+    expect(sourceSelection).toContain("大宅壮一文庫");
+    expect(sourceSelection).toContain("毎回の定型注意にはしない");
+    expect(failureModes).toContain("有料DB用の検索語");
+    expect(failureModes).toContain("参考書誌・索引・一般誌");
     expect(grading).toContain("内容把握の確からしさ");
     expect(grading).toContain("出版社・媒体・シリーズだけで文献の価値を確定しない");
     expect(workflow).toContain("本文未読の内容別・論点別分類");

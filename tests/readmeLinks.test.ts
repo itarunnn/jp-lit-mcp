@@ -40,4 +40,15 @@ describe("README public onboarding", () => {
     expect(readme).toContain("調査上の確認優先度");
     expect(readme).toContain("出版社や媒体だけで文献の価値を確定しません");
   });
+
+  it("documents offline bibliographies, indexes, and paid database limits in the usage guide", () => {
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    expect(usageGuide).toContain("参考書誌・索引・有料DB");
+    expect(usageGuide).toContain("参考書誌確認");
+    expect(usageGuide).toContain("有料DB");
+    expect(usageGuide).toContain("要有料DB確認");
+    expect(usageGuide).toContain("ざっさくプラス");
+    expect(usageGuide).toContain("大宅壮一文庫");
+    expect(usageGuide).toContain("毎回の注意書き");
+  });
 });
