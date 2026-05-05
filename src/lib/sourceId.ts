@@ -2,6 +2,7 @@ import { InvalidRequestError } from "./errors.js";
 import type { SourceName } from "./types.js";
 
 const NDL_SOURCE_ID_PATTERN = /^R[0-9A-Za-z-]+$/;
+const NDL_ARTICLE_SOURCE_ID_PATTERN = /^(?:R[0-9A-Za-z-]+|crid:\d{10,})$/;
 const CINII_SOURCE_ID_PATTERN = /^\d{10,}$/;
 const IRDB_SOURCE_ID_PATTERN = /^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)+$/;
 const JDCAT_SOURCE_ID_PATTERN = /^\d+$/;
@@ -11,7 +12,9 @@ const NDL_PID_PATTERN = /^\d+$/;
 
 function assertSourceId(source: SourceName, sourceId: string, pattern: RegExp, hint: string) {
   if (!pattern.test(sourceId)) {
-    throw new InvalidRequestError(`${source} の source_id 形式が不正です: ${hint}`);
+    throw new InvalidRequestError(
+      `${source} の source_id 形式が不正です: ${sourceId}（例: ${hint}）`
+    );
   }
 }
 
@@ -25,9 +28,16 @@ export function validateSourceId(source: SourceName, sourceId: string): string {
     case "ndl_search":
     case "ndl_catalog":
     case "ndl_digital":
-    case "ndl_articles":
     case "ndl_articles_online":
       assertSourceId(source, trimmed, NDL_SOURCE_ID_PATTERN, "R100000039-I1000732");
+      break;
+    case "ndl_articles":
+      assertSourceId(
+        source,
+        trimmed,
+        NDL_ARTICLE_SOURCE_ID_PATTERN,
+        "R000000004-I6744322 または crid:1520572357331530496"
+      );
       break;
     case "cinii_articles":
     case "cinii_books":

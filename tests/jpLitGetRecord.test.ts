@@ -200,6 +200,58 @@ describe("createRecordService", () => {
     expect(result).toEqual(createRecordItem("R100000039-I1000732"));
   });
 
+  it("service 層で ndl_articles の crid: source_id を受け付ける", async () => {
+    const adapter: SourceAdapter = {
+      source: "ndl_articles",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async (sourceId) => ({
+        ...createRecordItem(sourceId),
+        source: "ndl_articles"
+      })
+    };
+    const service = createRecordService([adapter]);
+
+    const result = await service.getRecord({
+      source: "ndl_articles",
+      sourceId: "crid:1520572357331530496"
+    });
+
+    expect(result.source).toBe("ndl_articles");
+    expect(result.source_id).toBe("crid:1520572357331530496");
+  });
+
+  it("service 層で ndl_articles 以外の NDL 系 source は crid: source_id を拒否する", async () => {
+    const adapters: SourceAdapter[] = [
+      {
+        source: "ndl_digital",
+        search: async () => ({ total: 0, items: [] }),
+        getRecord: async (sourceId) => createRecordItem(sourceId)
+      },
+      {
+        source: "ndl_articles_online",
+        search: async () => ({ total: 0, items: [] }),
+        getRecord: async (sourceId) => ({
+          ...createRecordItem(sourceId),
+          source: "ndl_articles_online"
+        })
+      }
+    ];
+    const service = createRecordService(adapters);
+
+    await expect(
+      service.getRecord({
+        source: "ndl_digital",
+        sourceId: "crid:1520572357331530496"
+      })
+    ).rejects.toBeInstanceOf(InvalidRequestError);
+    await expect(
+      service.getRecord({
+        source: "ndl_articles_online",
+        sourceId: "crid:1520572357331530496"
+      })
+    ).rejects.toBeInstanceOf(InvalidRequestError);
+  });
+
   it("tool handler が source_id を sourceId に変換して structuredContent を返す", async () => {
     const adapter: SourceAdapter = {
       source: "ndl_digital",
@@ -221,6 +273,27 @@ describe("createRecordService", () => {
         text: JSON.stringify(result.structuredContent, null, 2)
       }
     ]);
+  });
+
+  it("tool handler が ndl_articles の crid: source_id を詳細取得へ渡す", async () => {
+    const adapter: SourceAdapter = {
+      source: "ndl_articles",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async (sourceId) => ({
+        ...createRecordItem(sourceId),
+        source: "ndl_articles"
+      })
+    };
+    const service = createRecordService([adapter]);
+    const tool = createJpLitGetRecordTool(service);
+
+    const result = await tool({
+      source: "ndl_articles",
+      source_id: "crid:1520572357331530496"
+    });
+
+    expect(result.structuredContent.source).toBe("ndl_articles");
+    expect(result.structuredContent.source_id).toBe("crid:1520572357331530496");
   });
 
   it("未取得時は NotFoundError を投げる", async () => {
