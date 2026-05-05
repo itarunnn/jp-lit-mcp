@@ -58,4 +58,14 @@ describe("install docs", () => {
     expect(usage).toContain("出力例");
     expect(usage).toContain("判定理由");
   });
+
+  it("explains provisional organization and text-reading labels in the usage guide", () => {
+    const usage = readFileSync("docs/usage-guide.md", "utf8");
+    expect(usage).toContain("確認・本文・優先度・根拠の読み方");
+    expect(usage).toContain("availability.online=true");
+    expect(usage).toContain("エージェントが本文や該当箇所を読んだことを意味しません");
+    expect(usage).toContain("本文: オンライン入口あり未読");
+    expect(usage).toContain("次: 発信者プロフィール確認");
+    expect(usage).toContain("出版社や媒体だけで文献の価値を確定しません");
+  });
 });

@@ -30,4 +30,14 @@ describe("README public onboarding", () => {
     expect(readme).toContain("最初の依頼例");
     expect(readme).toContain("使い方ガイド");
   });
+
+  it("explains provisional organization and text-reading limits", () => {
+    const readme = readFileSync("README.md", "utf8");
+    expect(readme).toContain("仮整理");
+    expect(readme).toContain("根拠");
+    expect(readme).toContain("online=true");
+    expect(readme).toContain("エージェントが本文を読んだことを意味しません");
+    expect(readme).toContain("調査上の確認優先度");
+    expect(readme).toContain("出版社や媒体だけで文献の価値を確定しません");
+  });
 });
