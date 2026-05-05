@@ -1,7 +1,7 @@
 import { InvalidRequestError } from "./errors.js";
 import type { SourceName } from "./types.js";
 
-const NDL_SOURCE_ID_PATTERN = /^R[0-9A-Z-]+$/;
+const NDL_SOURCE_ID_PATTERN = /^R[0-9A-Za-z-]+$/;
 const CINII_SOURCE_ID_PATTERN = /^\d{10,}$/;
 const IRDB_SOURCE_ID_PATTERN = /^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)+$/;
 const JDCAT_SOURCE_ID_PATTERN = /^\d+$/;

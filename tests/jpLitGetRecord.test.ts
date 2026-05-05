@@ -168,6 +168,22 @@ describe("createRecordService", () => {
     expect(articlesOnline.source).toBe("ndl_articles_online");
   });
 
+  it("service 層で NDL Search が返す小文字サフィックス付き source_id を受け付ける", async () => {
+    const adapter: SourceAdapter = {
+      source: "ndl_digital",
+      search: async () => ({ total: 0, items: [] }),
+      getRecord: async (sourceId) => createRecordItem(sourceId)
+    };
+    const service = createRecordService([adapter]);
+
+    const result = await service.getRecord({
+      source: "ndl_digital",
+      sourceId: "R100000002-I000000011084-d1403198"
+    });
+
+    expect(result.source_id).toBe("R100000002-I000000011084-d1403198");
+  });
+
   it("source と source_id から詳細を返す", async () => {
     const adapter: SourceAdapter = {
       source: "ndl_digital",
