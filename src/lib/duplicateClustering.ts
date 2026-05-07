@@ -110,8 +110,10 @@ function sourceRank(source: ClusterItem["source"]) {
     nihu_bridge: 10,
     japan_search: 11,
     jdcat: 12,
-    kokkai_minutes: 13,
-    teikoku_minutes: 14
+    national_archives: 13,
+    jacar: 14,
+    kokkai_minutes: 15,
+    teikoku_minutes: 16
   };
   return ranks[source];
 }

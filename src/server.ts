@@ -67,6 +67,8 @@ import {
 } from "./sources/ndlSearch/adapter.js";
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
+import { createNationalArchivesAdapter } from "./sources/nationalArchives/adapter.js";
+import { createJacarAdapter } from "./sources/jacar/adapter.js";
 import { createCrdClient } from "./sources/crd/client.js";
 import { createNdlAuthoritiesClient } from "./sources/ndlAuthorities/client.js";
 import { createKakenClient } from "./sources/kaken/client.js";
@@ -114,6 +116,8 @@ interface ServerEnv {
   TEIKOKU_MEETING_BASE_URL?: string;
   NIHU_BRIDGE_SEARCH_URL?: string;
   NIHU_BRIDGE_RECORD_BASE_URL?: string;
+  NATIONAL_ARCHIVES_BASE_URL?: string;
+  JACAR_BASE_URL?: string;
   CRD_API_BASE_URL?: string;
   NDL_AUTHORITIES_SPARQL_URL?: string;
 }
@@ -265,7 +269,21 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
     nihuBridge: {
       ...(env.NIHU_BRIDGE_SEARCH_URL ? { searchUrl: env.NIHU_BRIDGE_SEARCH_URL } : {}),
       ...(env.NIHU_BRIDGE_RECORD_BASE_URL ? { recordBaseUrl: env.NIHU_BRIDGE_RECORD_BASE_URL } : {})
-    }
+    },
+    ...(env.NATIONAL_ARCHIVES_BASE_URL
+      ? {
+          nationalArchives: {
+            baseUrl: env.NATIONAL_ARCHIVES_BASE_URL
+          }
+        }
+      : {}),
+    ...(env.JACAR_BASE_URL
+      ? {
+          jacar: {
+            baseUrl: env.JACAR_BASE_URL
+          }
+        }
+      : {})
   };
 }
 
@@ -302,7 +320,9 @@ export function createServer(env: ServerEnv = process.env) {
     createCiniiBooksAdapter(adapterOptions.ciniiResearch),
     createKokkaiAdapter(adapterOptions.kokkai),
     createTeikokuAdapter(adapterOptions.teikoku),
-    createNihuBridgeAdapter(adapterOptions.nihuBridge)
+    createNihuBridgeAdapter(adapterOptions.nihuBridge),
+    createNationalArchivesAdapter(adapterOptions.nationalArchives),
+    createJacarAdapter(adapterOptions.jacar)
   ];
   const recordService = createRecordService(adapters);
   const searchTool = createJpLitSearchTool(createSearchService(adapters), cache, sessions);
@@ -347,7 +367,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search",
     {
-      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
+      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。national_archives / jacar は既定横断に含めず、公文書・外交・軍事・旧外地資料などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
       inputSchema: searchInputSchema,
       outputSchema: searchOutputSchema
     },
@@ -407,7 +427,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_record",
     {
-      description: "文献レコード詳細を取得する。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
+      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
       inputSchema: recordInputSchema,
       outputSchema: recordOutputSchema
     },

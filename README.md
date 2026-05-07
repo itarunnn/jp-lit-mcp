@@ -91,6 +91,8 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 - `jstage_articles`: 学会誌・研究論文
 - `irdb`: 大学の機関リポジトリ
 - `nihu_bridge`: 人文学系専門 DB の横断検索
+- `national_archives`: 国立公文書館DAの官庁資料・特定歴史公文書
+- `jacar`: JACAR の外交・軍事・旧外地・近現代アジア歴史資料
 - `kokkai_minutes` / `teikoku_minutes`: 国会・帝国議会会議録
 - `jdcat`: 人文学・社会科学系の研究データ
 - `japan_search`: 文化財・博物館・地域資料

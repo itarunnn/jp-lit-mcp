@@ -14,7 +14,9 @@ export const sourceSchema = z.enum([
   "cinii_books",
   "kokkai_minutes",
   "teikoku_minutes",
-  "nihu_bridge"
+  "nihu_bridge",
+  "national_archives",
+  "jacar"
 ]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 

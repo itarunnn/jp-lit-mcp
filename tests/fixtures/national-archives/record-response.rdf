@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:dcterms="http://purl.org/dc/terms/">
+  <rdf:Description rdf:about="https://www.digital.archives.go.jp/file/3148544.html">
+    <dc:title>太政官布告・第一号</dc:title>
+    <dc:creator>太政官</dc:creator>
+    <dc:date>明治元年</dc:date>
+    <dc:type>特定歴史公文書等</dc:type>
+    <dcterms:extent>画像数: 3</dcterms:extent>
+  </rdf:Description>
+</rdf:RDF>

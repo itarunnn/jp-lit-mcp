@@ -12,7 +12,9 @@ export type SourceName =
   | "cinii_books"
   | "kokkai_minutes"
   | "teikoku_minutes"
-  | "nihu_bridge";
+  | "nihu_bridge"
+  | "national_archives"
+  | "jacar";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 

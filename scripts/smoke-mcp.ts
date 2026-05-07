@@ -54,7 +54,9 @@ const LIVE_DEFAULT_QUERY_BY_SOURCE: Record<string, string> = {
   kokkai_minutes: "賭博",
   teikoku_minutes: "賭博",
   jstage_articles: "癌",
-  nihu_bridge: "源氏物語"
+  nihu_bridge: "源氏物語",
+  national_archives: "太政官",
+  jacar: "台湾総督府"
 };
 
 const OCR_FALLBACK_KEYWORD_BY_SOURCE: Record<string, string> = {
