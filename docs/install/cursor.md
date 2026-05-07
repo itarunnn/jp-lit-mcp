@@ -25,7 +25,7 @@
 }
 ```
 
-`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
+`CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 補足:
 
@@ -67,7 +67,7 @@ npx -y jp-lit-mcp install-skills cursor
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
 
 そのうえで `Cursor` を再読込し、新しい対話で次を試します。
 

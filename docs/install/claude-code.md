@@ -15,13 +15,13 @@
 claude mcp add jp-lit -- npx -y jp-lit-mcp
 ```
 
-`CINII_RESEARCH_APP_ID` を設定する場合は `--env` を使います。
+CiNii Research の API 利用登録で取得した `appid` を渡す場合は、環境変数 `CINII_RESEARCH_APP_ID` として設定します。Claude Code では `--env` を使います。
 
 ```bash
 claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
 ```
 
-`CINII_RESEARCH_APP_ID` は CiNii の安定利用に推奨します。未設定でも動作しますが、公式仕様では `appid` が必要なため、継続利用では設定してください（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
+`CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
 
 補足:
 
@@ -67,7 +67,7 @@ claude mcp list
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
 
 `jp-lit` が表示されれば、登録自体は成功しています。そのうえで、新しいセッションを開いて次を試します。
 

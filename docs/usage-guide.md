@@ -16,7 +16,7 @@
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。検索品質や外部 DB の応答を測る live API チェックではありません。
+`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。検索品質や外部 DB の応答を測る live API チェックではありません。
 
 ## 目次
 
@@ -676,7 +676,7 @@ jacar
 | `teikoku_minutes`     | 帝国議会会議録検索 API                                                    | 1890〜1947年の帝国議会の議論                                           | 発言単位で検索します                                                                                             |
 
 > **CiNii 系の認証について**  
-> `cinii_articles` / `cinii_books` は `CINII_RESEARCH_APP_ID` の設定を推奨します。`jp_lit_search_kaken_projects` は同じ appid を KAKEN API に使うため設定が必要です。実値は Git 管理外のシークレットとして扱います。
+> `cinii_articles` / `cinii_books` は、環境変数 `CINII_RESEARCH_APP_ID` の設定を推奨します。値には CiNii Research の API 利用登録で取得する `appid` を入れます。`jp_lit_search_kaken_projects` は同じ `appid` を KAKEN API に使うため設定が必要です。実値は Git 管理外のシークレットとして扱います。
 
 > **外部 DB / API の利用条件について**
 > 通常の個人調査ではローカルキャッシュとして使う想定ですが、検索結果を蓄積して公開サービス・共有サーバ・常設 bot として複数利用者に提供する場合は、source ごとの表示条件、保存条件、商用利用条件を別途確認してください。特に J-STAGE WebAPI 由来情報は、利用者運営サービスでのサーバ / クラウド上の 24 時間超キャッシュに注意が必要です。詳しくは [データ利用条件メモ](source-usage-conditions.md) を参照してください。

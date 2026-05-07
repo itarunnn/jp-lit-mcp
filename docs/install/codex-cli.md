@@ -22,13 +22,13 @@ codex login
 codex mcp add jpLit -- npx -y jp-lit-mcp
 ```
 
-`CINII_RESEARCH_APP_ID` を設定する場合は `--env` フラグを使います。
+CiNii Research の API 利用登録で取得した `appid` を渡す場合は、環境変数 `CINII_RESEARCH_APP_ID` として設定します。Codex CLI では `--env` フラグを使います。
 
 ```bash
 codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
 ```
 
-CiNii の安定利用には `CINII_RESEARCH_APP_ID` の設定を推奨します（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。未設定でも動作します。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
+`CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
 
 2. `Skills` をインストールします。
 
@@ -51,7 +51,7 @@ codex mcp get jpLit
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
+`doctor` は Node.js、パッケージバージョン、同梱 Skills、cache / exports への書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API チェックは行いません。
 
 4. `Codex` を起動し、新しいセッションで文献調査を依頼します。
 

@@ -29,7 +29,7 @@
 そのため、先に各アプリ向け install guide のうち次の部分は済ませてください。
 
 1. `npx -y jp-lit-mcp` での `MCP` 登録
-2. 必要なら `CINII_RESEARCH_APP_ID` の設定
+2. 必要なら環境変数 `CINII_RESEARCH_APP_ID` の設定
 
 Skills だけを GitHub CLI 経由に置き換えるイメージです。
 
