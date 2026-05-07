@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-05-05 時点の状態:
+2026-05-07 時点の状態:
 
-- 公開ツール 21 種・対応 source 14 種・テスト 402 件すべて通過
+- 公開ツール 21 種・対応 source 16 種・テスト 426 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
@@ -25,6 +25,7 @@
 
 ## 最近の更新
 
+- `0.3.0`: `national_archives` / `jacar` を明示 source として追加。国立公文書館DA・JACAR の目録確認に対応し、既定横断には含めない慎重な導線として運用
 - 保存済み検索結果の refined export で、重複候補クラスタと `search_result_readiness` を確認できる導線を追加
 - `jp_lit_search_kaken_projects`: KAKEN の研究課題・研究成果報告書 PDF・成果リスト preview を、文献確定前の補助 tool として追加
 - `jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`: Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools を追加
