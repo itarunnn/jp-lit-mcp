@@ -21,11 +21,14 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("検索前に短い調査方針");
     expect(skill).toContain("継続指示");
     expect(skill).toContain("調査ログ");
+    expect(skill).toContain("jp_lit_update_session_trace");
+    expect(skill).toContain("担当範囲");
     expect(skill).toContain("| # | source | query | total | 取得件数 | 抽出件数 | 備考 |");
     expect(skill).toContain("availability.online=true");
     expect(skill).toContain("本文: オンライン入口あり未読");
     expect(skill).toContain("本文: 確認済み");
     expect(skill).toContain("今回の確認範囲");
+    expect(skill).toContain("Web は補助確認");
   });
 
   it("routes detailed workflow, source, evidence, and cache guidance to references", () => {
@@ -71,11 +74,17 @@ describe("jp-lit-research skill guide", () => {
       "skills/jp-lit-research/workflows/topic-literature-review.md",
       "utf8"
     );
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
 
     expect(workflowCore).toContain("対話的な探索ループ");
     expect(workflowCore).toContain("cache_key");
     expect(workflowCore).toContain("session_id");
+    expect(workflowCore).toContain("jp_lit_update_session_trace");
+    expect(workflowCore).toContain("single writer");
+    expect(workflowCore).toContain("sequential");
     expect(workflowCore).toContain("jp_lit_refine_results");
+    expect(workflowCore).toContain("Web は主経路にしない");
+    expect(workflowCore).toContain("ユーザーが Web 調査を明示");
     expect(sourceAndQuery).toContain("jp_lit_search_guides_manuals");
     expect(sourceAndQuery).toContain("jp_lit_search_guides_cases");
     expect(sourceAndQuery).toContain("全N件中M件取得");
@@ -90,6 +99,16 @@ describe("jp-lit-research skill guide", () => {
     expect(evidence).toContain("highlights");
     expect(evidence).toContain("table_of_contents");
     expect(evidence).toContain("selected_items.note");
+    expect(evidence).toContain("search_attempt");
+    expect(evidence).toContain("evidence_scope");
+    expect(evidence).toContain("CSL JSON には trace を混ぜない");
+    expect(evidence).toContain("自費出版・個人出版支援・オンデマンド出版");
+    expect(evidence).toContain("主題一致だけで `優先: 高` にしない");
+    expect(evidence).toContain("対象文献そのものと専門的書評・批判・応答をセットで探す");
+    expect(evidence).toContain("学会誌・研究会誌・紀要・専門誌の書評");
+    expect(evidence).toContain("Web補助確認");
+    expect(evidence).toContain("文献DB由来の書誌・要旨・目次と混同しない");
+    expect(evidence).toContain("出版社・団体の性格");
     expect(evidence).toContain("検索全体の選別理由");
     expect(evidence).toContain("次: 発信者プロフィール確認");
     expect(evidence).toContain("長い注意書きは毎件付けない");
@@ -101,6 +120,16 @@ describe("jp-lit-research skill guide", () => {
     expect(failureModes).toContain("参考書誌・索引・一般誌");
     expect(grading).toContain("内容把握の確からしさ");
     expect(grading).toContain("出版社・媒体・シリーズだけで文献の価値を確定しない");
+    expect(grading).toContain("自費出版・個人出版支援・オンデマンド出版");
+    expect(grading).toContain("主題一致だけで高優先にしない");
+    expect(grading).toContain("学会誌・研究会誌・紀要・専門誌の書評");
+    expect(grading).toContain("対象文献そのものと専門的書評・批判・応答");
+    expect(grading).toContain("Web由来情報は補助確認");
+    expect(usageGuide).toContain("自費出版、個人出版支援、オンデマンド出版");
+    expect(usageGuide).toContain("主題に一致するだけで `優先: 高` にはせず");
+    expect(usageGuide).toContain("学会誌・研究会誌・紀要・専門誌の署名書評");
+    expect(usageGuide).toContain("Web は主経路ではなく補助確認");
+    expect(usageGuide).toContain("`根拠: Web補助確認`");
     expect(workflow).toContain("本文未読の内容別・論点別分類");
     expect(workflow).toContain("優先");
   });

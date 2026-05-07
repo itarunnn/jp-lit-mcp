@@ -30,7 +30,8 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_search_guides_manuals",
   "jp_lit_search_illustrations",
   "jp_lit_search_kaken_projects",
-  "jp_lit_search_pages"
+  "jp_lit_search_pages",
+  "jp_lit_update_session_trace"
 ];
 
 export const LIVE_MATRIX_SOURCES = [
@@ -210,6 +211,34 @@ async function runLocalPersistenceSmoke(client: Client) {
     ?.annotated_count;
   if (annotatedCount !== 1) {
     throw new Error("Local smoke annotation did not persist selected item.");
+  }
+
+  const traceResult = await client.callTool({
+    name: "jp_lit_update_session_trace",
+    arguments: {
+      research_goal: "smoke trace",
+      source_plans: [
+        {
+          source: "ndl_catalog",
+          status: "used",
+          reason: "local smoke search"
+        }
+      ],
+      next_actions: [
+        {
+          action: "export smoke session",
+          reason: "verify trace persists",
+          priority: "low",
+          source: "ndl_catalog"
+        }
+      ]
+    }
+  });
+  const traceData = traceResult.structuredContent as
+    | { source_plan_count?: number; next_action_count?: number }
+    | undefined;
+  if (traceData?.source_plan_count !== 1 || traceData.next_action_count !== 1) {
+    throw new Error("Local smoke trace update did not persist expected counts.");
   }
 
   const exportResult = await client.callTool({

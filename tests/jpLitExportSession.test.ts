@@ -133,6 +133,187 @@ describe("jp_lit_export_session", () => {
     expect(written).toContain("foo");
     expect(written).toContain("bar");
     expect(written).not.toContain("- foo (ndl_catalog/123)");
+    expect(written).not.toContain("Research Goal");
+    expect(written).not.toContain("Search Attempt");
+  });
+
+  it("writes trace sections in markdown export without changing selected item output", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: "sha256-trace",
+      saved_at: new Date().toISOString(),
+      input: { query: "trace" },
+      structured_content: {
+        query: "trace",
+        source: "ndl_catalog",
+        page: 1,
+        limit: 1,
+        total: 1,
+        items: [
+          {
+            source: "ndl_catalog",
+            source_id: "T1",
+            title: "trace item",
+            subtitle: null,
+            title_reading: null,
+            authors: [],
+            publisher: null,
+            journal_title: null,
+            issued_at: null,
+            issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
+            url: null,
+            availability: {
+              online: false,
+              digital_collection: false
+            },
+            material_type: null,
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: []
+          }
+        ]
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_search",
+      input: { query: "trace" },
+      cache_key: "sha256-trace",
+      result_ref: {
+        tool: "jp_lit_search",
+        cache_key: "sha256-trace"
+      },
+      selected_items: [
+        {
+          source: "ndl_catalog",
+          source_id: "T1",
+          title: "trace item",
+          label: "strong_candidate",
+          note: "still selected"
+        }
+      ],
+      notes: ["memo"]
+    });
+
+    await sessions.updateTrace({
+      research_goal: "trace を確認する",
+      scope_note: "session-level trace のみ確認",
+      source_plans: [
+        {
+          source: "ndl_catalog",
+          status: "used",
+          reason: "初動確認",
+          expected_contribution: "書誌確認"
+        }
+      ],
+      open_questions: [
+        {
+          question: "本文を見るか",
+          reason: "内容確認には本文が必要"
+        }
+      ],
+      next_actions: [
+        {
+          action: "本文確認",
+          reason: "メタデータのみでは不足",
+          priority: "high",
+          source: "ndl_digital"
+        }
+      ]
+    });
+
+    await sessions.annotateEntry({
+      tool: "jp_lit_search",
+      cache_key: "sha256-trace",
+      selected_items: [
+        {
+          source: "ndl_catalog",
+          source_id: "T1",
+          title: "trace item",
+          label: "strong_candidate",
+          note: "still selected"
+        }
+      ],
+      trace: {
+        search_attempt: {
+          source: "ndl_catalog",
+          query: "trace",
+          purpose: "trace export の確認",
+          total: 1,
+          returned_count: 1,
+          extracted_count: 1,
+          outcome: "useful"
+        },
+        decisions: [
+          {
+            kind: "hold",
+            target: {
+              source: "ndl_catalog",
+              source_id: "T1",
+              title: "trace item"
+            },
+            reason: "本文未確認のため保留",
+            evidence_refs: [
+              {
+                tool: "jp_lit_search",
+                cache_key: "sha256-trace",
+                source: "ndl_catalog",
+                source_id: "T1"
+              }
+            ]
+          }
+        ],
+        evidence_scope: [
+          {
+            target: {
+              source: "ndl_catalog",
+              source_id: "T1",
+              title: "trace item"
+            },
+            checked: "metadata",
+            body_status: "not_checked",
+            note: "書誌のみ",
+            evidence_refs: []
+          }
+        ]
+      }
+    });
+
+    const exportPath = path.join(baseDir, "exports", "trace.md");
+    await tool({
+      format: "markdown",
+      output_path: exportPath
+    });
+
+    const written = await readFile(exportPath, "utf8");
+
+    expect(written).toContain("## Research Goal");
+    expect(written).toContain("trace を確認する");
+    expect(written).toContain("## Source Plan");
+    expect(written).toContain("ndl_catalog");
+    expect(written).toContain("## Open Questions");
+    expect(written).toContain("本文を見るか");
+    expect(written).toContain("## Next Actions");
+    expect(written).toContain("本文確認");
+    expect(written).toContain("### Search Attempt");
+    expect(written).toContain("trace export の確認");
+    expect(written).toContain("### Decisions");
+    expect(written).toContain("[hold]");
+    expect(written).toContain("本文未確認のため保留");
+    expect(written).toContain("### Evidence Scope");
+    expect(written).toContain("metadata / not_checked");
+    expect(written).toContain("[strong_candidate] trace item (ndl_catalog/T1) - still selected");
   });
 
   it("writes json export with unselected items", async () => {
@@ -341,6 +522,8 @@ describe("jp_lit_export_session", () => {
     expect(written[0]?.note).toContain("source: jstage_articles");
     expect(written[0]?.note).toContain("selection: confirmed");
     expect(written[0]?.note).toContain("selection note: detail checked");
+    expect(JSON.stringify(written)).not.toContain("trace");
+    expect(JSON.stringify(written)).not.toContain("Search Attempt");
   });
 
   it("reports CSL JSON item_count from the written items", async () => {

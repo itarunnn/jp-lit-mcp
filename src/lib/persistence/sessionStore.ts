@@ -12,12 +12,16 @@ import { getLegacySessionsRoot, getSessionsRoot } from "./paths.js";
 import type {
   SessionAnnotationInput,
   SessionDocument,
-  SessionEntry
+  SessionEntry,
+  SessionEntryTrace,
+  SessionTrace,
+  SessionTraceUpdateInput
 } from "./types.js";
 
 export interface SessionStore {
   appendEntry(entry: SessionEntry): Promise<SessionDocument>;
   annotateEntry(input: SessionAnnotationInput): Promise<SessionDocument>;
+  updateTrace(input: SessionTraceUpdateInput): Promise<SessionDocument>;
   listAll(): Promise<SessionDocument[]>;
   readById(sessionId: string): Promise<SessionDocument>;
   readCurrent(): Promise<SessionDocument>;
@@ -49,6 +53,44 @@ function createEmptySession(): SessionDocument {
     updated_at: timestamp,
     entries: []
   };
+}
+
+function normalizeSessionTrace(trace: SessionDocument["trace"]): SessionTrace {
+  return {
+    ...(trace?.research_goal ? { research_goal: trace.research_goal } : {}),
+    ...(trace?.scope_note ? { scope_note: trace.scope_note } : {}),
+    source_plans: trace?.source_plans ?? [],
+    open_questions: trace?.open_questions ?? [],
+    next_actions: trace?.next_actions ?? []
+  };
+}
+
+function normalizeEntryTrace(trace: SessionEntry["trace"]): SessionEntryTrace {
+  return {
+    ...(trace?.intent ? { intent: trace.intent } : {}),
+    ...(trace?.search_attempt ? { search_attempt: trace.search_attempt } : {}),
+    decisions: trace?.decisions ?? [],
+    evidence_scope: trace?.evidence_scope ?? []
+  };
+}
+
+function hasSessionTraceContent(trace: SessionTrace) {
+  return Boolean(
+    trace.research_goal ||
+      trace.scope_note ||
+      trace.source_plans.length > 0 ||
+      trace.open_questions.length > 0 ||
+      trace.next_actions.length > 0
+  );
+}
+
+function hasEntryTraceContent(trace: SessionEntryTrace) {
+  return Boolean(
+    trace.intent ||
+      trace.search_attempt ||
+      trace.decisions.length > 0 ||
+      trace.evidence_scope.length > 0
+  );
 }
 
 function currentSessionPath(baseDir: string) {
@@ -255,8 +297,52 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
       return next;
     },
 
+    async updateTrace(input) {
+      const session = await this.readCurrent();
+      const timestamp = nowIso();
+      const currentTrace = normalizeSessionTrace(session.trace);
+      const nextTrace: SessionTrace = {
+        ...currentTrace,
+        ...(input.research_goal !== undefined
+          ? { research_goal: input.research_goal }
+          : {}),
+        ...(input.scope_note !== undefined ? { scope_note: input.scope_note } : {}),
+        source_plans: [
+          ...currentTrace.source_plans,
+          ...(input.source_plans ?? []).map((entry) => ({
+            ...entry,
+            created_at: timestamp
+          }))
+        ],
+        open_questions: [
+          ...currentTrace.open_questions,
+          ...(input.open_questions ?? []).map((entry) => ({
+            ...entry,
+            created_at: timestamp
+          }))
+        ],
+        next_actions: [
+          ...currentTrace.next_actions,
+          ...(input.next_actions ?? []).map((entry) => ({
+            ...entry,
+            created_at: timestamp
+          }))
+        ]
+      };
+
+      const next: SessionDocument = {
+        ...session,
+        updated_at: timestamp,
+        ...(hasSessionTraceContent(nextTrace) ? { trace: nextTrace } : {})
+      };
+
+      await persist(next);
+      return next;
+    },
+
     async annotateEntry(input) {
       const session = await this.readCurrent();
+      const timestamp = nowIso();
       let matched = false;
       const nextEntries = session.entries.map((entry) => {
         if (entry.tool !== input.tool || entry.cache_key !== input.cache_key) {
@@ -264,10 +350,32 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
         }
 
         matched = true;
+        const currentTrace = normalizeEntryTrace(entry.trace);
+        const inputTrace = input.trace;
+        const nextTrace: SessionEntryTrace = {
+          ...currentTrace,
+          ...(inputTrace?.intent !== undefined ? { intent: inputTrace.intent } : {}),
+          ...(inputTrace?.search_attempt !== undefined
+            ? { search_attempt: inputTrace.search_attempt }
+            : {}),
+          decisions: [
+            ...currentTrace.decisions,
+            ...(inputTrace?.decisions ?? []).map((decision) => ({
+              ...decision,
+              created_at: timestamp
+            }))
+          ],
+          evidence_scope: [
+            ...currentTrace.evidence_scope,
+            ...(inputTrace?.evidence_scope ?? [])
+          ]
+        };
+
         return {
           ...entry,
           selected_items: input.selected_items,
-          notes: input.notes ?? entry.notes
+          notes: input.notes ?? entry.notes,
+          ...(hasEntryTraceContent(nextTrace) ? { trace: nextTrace } : {})
         };
       });
 
@@ -279,7 +387,7 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
 
       const next: SessionDocument = {
         ...session,
-        updated_at: nowIso(),
+        updated_at: timestamp,
         entries: nextEntries
       };
 

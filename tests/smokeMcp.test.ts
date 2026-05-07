@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import {
   DEFAULT_LIVE_RETRY_COUNT,
@@ -14,6 +16,7 @@ import {
   resolveLiveSmokeSources,
   resolveLiveSmokeQuery
 } from "../scripts/smoke-mcp.js";
+import { createServer } from "../src/server.js";
 
 describe("smoke-mcp tool manifest", () => {
   it("tracks all runtime tools exposed by the server", () => {
@@ -38,8 +41,75 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_guides_manuals",
       "jp_lit_search_illustrations",
       "jp_lit_search_kaken_projects",
-      "jp_lit_search_pages"
+      "jp_lit_search_pages",
+      "jp_lit_update_session_trace"
     ]);
+  });
+
+  it("publishes inline evidence_refs schemas for annotate trace", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const annotateTool = tools.find((tool) => tool.name === "jp_lit_annotate_session");
+      const traceProperties = annotateTool?.inputSchema.properties?.trace as
+        | {
+            properties?: {
+              decisions?: {
+                items?: {
+                  properties?: {
+                    evidence_refs?: { items?: unknown };
+                  };
+                };
+              };
+              evidence_scope?: {
+                items?: {
+                  properties?: {
+                    evidence_refs?: { items?: unknown };
+                  };
+                };
+              };
+            };
+          }
+        | undefined;
+
+      const decisionEvidenceRefItems =
+        traceProperties?.properties?.decisions?.items?.properties?.evidence_refs?.items;
+      const scopeEvidenceRefItems =
+        traceProperties?.properties?.evidence_scope?.items?.properties?.evidence_refs?.items;
+
+      expect(decisionEvidenceRefItems).toMatchObject({
+        type: "object",
+        properties: {
+          tool: { type: "string" },
+          cache_key: { type: "string" },
+          source_id: { type: "string" },
+          quote_or_summary: { type: "string" }
+        },
+        additionalProperties: false
+      });
+      expect(scopeEvidenceRefItems).toMatchObject({
+        type: "object",
+        properties: {
+          tool: { type: "string" },
+          cache_key: { type: "string" },
+          source_id: { type: "string" },
+          quote_or_summary: { type: "string" }
+        },
+        additionalProperties: false
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("uses source-specific default queries for sparse providers", () => {

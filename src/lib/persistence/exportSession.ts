@@ -90,6 +90,175 @@ function renderUnselectedItem(item: Record<string, unknown>) {
   return `- ${title} (${source}/${sourceId})`;
 }
 
+function hasSessionTrace(session: SessionDocument) {
+  const trace = session.trace;
+  return Boolean(
+    trace?.research_goal ||
+      trace?.scope_note ||
+      trace?.source_plans?.length ||
+      trace?.open_questions?.length ||
+      trace?.next_actions?.length
+  );
+}
+
+function hasEntryTrace(entry: SessionDocument["entries"][number]) {
+  const trace = entry.trace;
+  return Boolean(
+    trace?.intent ||
+      trace?.search_attempt ||
+      trace?.decisions?.length ||
+      trace?.evidence_scope?.length
+  );
+}
+
+function renderTraceTarget(target: {
+  source?: string;
+  source_id?: string;
+  cache_key?: string;
+  title?: string;
+}) {
+  const parts = [
+    target.title,
+    target.source && target.source_id ? `${target.source}/${target.source_id}` : target.source,
+    target.cache_key
+  ].filter((value): value is string => Boolean(value));
+
+  return parts.length > 0 ? parts.join(" | ") : "(target unspecified)";
+}
+
+function renderEvidenceRefs(refs: Array<{
+  tool?: string;
+  cache_key?: string;
+  source?: string;
+  source_id?: string;
+  url?: string;
+  quote_or_summary?: string;
+}>) {
+  if (refs.length === 0) {
+    return "none";
+  }
+
+  return refs
+    .map((ref) => {
+      const parts = [
+        ref.tool && ref.cache_key ? `${ref.tool}/${ref.cache_key}` : ref.tool ?? ref.cache_key,
+        ref.source && ref.source_id ? `${ref.source}/${ref.source_id}` : ref.source,
+        ref.url,
+        ref.quote_or_summary
+      ].filter((value): value is string => Boolean(value));
+
+      return parts.join(" | ");
+    })
+    .join("; ");
+}
+
+function renderSessionTrace(lines: string[], session: SessionDocument) {
+  if (!hasSessionTrace(session)) {
+    return;
+  }
+
+  const trace = session.trace;
+  if (!trace) {
+    return;
+  }
+  const sourcePlans = trace.source_plans ?? [];
+  const openQuestions = trace.open_questions ?? [];
+  const nextActions = trace.next_actions ?? [];
+
+  if (trace.research_goal) {
+    lines.push("## Research Goal", "", trace.research_goal, "");
+  }
+
+  if (trace.scope_note) {
+    lines.push("## Scope Note", "", trace.scope_note, "");
+  }
+
+  if (sourcePlans.length > 0) {
+    lines.push("## Source Plan", "");
+    for (const plan of sourcePlans) {
+      lines.push(
+        `- [${plan.status}] ${plan.source} - ${plan.reason}${
+          plan.expected_contribution ? ` (${plan.expected_contribution})` : ""
+        }`
+      );
+    }
+    lines.push("");
+  }
+
+  if (openQuestions.length > 0) {
+    lines.push("## Open Questions", "");
+    for (const question of openQuestions) {
+      lines.push(`- ${question.question} - ${question.reason}`);
+    }
+    lines.push("");
+  }
+
+  if (nextActions.length > 0) {
+    lines.push("## Next Actions", "");
+    for (const action of nextActions) {
+      lines.push(
+        `- [${action.priority}] ${action.action} - ${action.reason}${
+          action.source ? ` (${action.source})` : ""
+        }`
+      );
+    }
+    lines.push("");
+  }
+}
+
+function renderEntryTrace(
+  lines: string[],
+  entry: SessionDocument["entries"][number]
+) {
+  if (!hasEntryTrace(entry) || !entry.trace) {
+    return;
+  }
+
+  const trace = entry.trace;
+  const decisions = trace.decisions ?? [];
+  const evidenceScope = trace.evidence_scope ?? [];
+
+  if (trace.search_attempt) {
+    const attempt = trace.search_attempt;
+    lines.push("### Search Attempt", "");
+    lines.push(`- source: ${attempt.source ?? "all"}`);
+    lines.push(`- query: ${attempt.query}`);
+    lines.push(`- purpose: ${attempt.purpose}`);
+    lines.push(`- total: ${attempt.total ?? "unknown"}`);
+    lines.push(`- returned_count: ${attempt.returned_count}`);
+    lines.push(`- extracted_count: ${attempt.extracted_count}`);
+    lines.push(`- outcome: ${attempt.outcome}`);
+    if (attempt.next_step) {
+      lines.push(`- next_step: ${attempt.next_step}`);
+    }
+    lines.push("");
+  }
+
+  if (decisions.length > 0) {
+    lines.push("### Decisions", "");
+    for (const decision of decisions) {
+      lines.push(
+        `- [${decision.kind}] ${renderTraceTarget(decision.target)} - ${decision.reason}`
+      );
+      lines.push(`  - evidence: ${renderEvidenceRefs(decision.evidence_refs)}`);
+    }
+    lines.push("");
+  }
+
+  if (evidenceScope.length > 0) {
+    lines.push("### Evidence Scope", "");
+    for (const scope of evidenceScope) {
+      lines.push(
+        `- ${renderTraceTarget(scope.target)} - ${scope.checked} / ${scope.body_status}${
+          scope.note ? ` - ${scope.note}` : ""
+        }`
+      );
+      lines.push(`  - evidence: ${renderEvidenceRefs(scope.evidence_refs)}`);
+    }
+    lines.push("");
+  }
+}
+
 function renderMarkdown(
   session: SessionDocument,
   profile: "full_log" | "selected" | "unselected",
@@ -103,6 +272,8 @@ function renderMarkdown(
     `- Updated: ${session.updated_at}`,
     ""
   ];
+
+  renderSessionTrace(lines, session);
 
   for (const entry of session.entries) {
     lines.push(`## ${entry.tool}`);
@@ -141,6 +312,8 @@ function renderMarkdown(
       }
       lines.push("");
     }
+
+    renderEntryTrace(lines, entry);
 
     if ((profile === "full_log" && includeUnselected) || profile === "unselected") {
       const unselectedItems = filterUnselectedItems(

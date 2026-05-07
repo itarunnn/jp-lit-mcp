@@ -12,7 +12,8 @@ export function createJpLitAnnotateSessionTool(sessionStore: SessionStore) {
       tool: parsed.tool,
       cache_key: parsed.cache_key,
       selected_items: parsed.selected_items,
-      notes: parsed.notes
+      notes: parsed.notes,
+      trace: parsed.trace
     });
 
     const structuredContent: AnnotateSessionOutput =

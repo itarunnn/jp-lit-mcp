@@ -301,6 +301,92 @@ export const sessionItemLabelSchema = z.enum([
   "weak_candidate"
 ]);
 
+const sourcePlanInputSchema = z.object({
+  source: sourceSchema,
+  status: z.enum(["planned", "used", "deferred", "skipped"]),
+  reason: z.string().trim().min(1),
+  expected_contribution: z.string().trim().min(1).optional()
+}).strict();
+
+const searchAttemptSchema = z.object({
+  source: sourceSchema.nullable(),
+  query: z.string().trim().min(1),
+  purpose: z.string().trim().min(1),
+  total: z.number().int().nonnegative().nullable(),
+  returned_count: z.number().int().nonnegative(),
+  extracted_count: z.number().int().nonnegative(),
+  outcome: z.enum(["useful", "partial", "empty", "noisy", "failed"]),
+  next_step: z.string().trim().min(1).optional()
+}).strict();
+
+function createEvidenceRefSchema() {
+  return z.object({
+    tool: z.string().trim().min(1).optional(),
+    cache_key: z.string().trim().min(1).optional(),
+    source: sourceSchema.optional(),
+    source_id: z.string().trim().min(1).optional(),
+    url: z.string().trim().min(1).optional(),
+    quote_or_summary: z.string().trim().min(1).optional()
+  }).strict();
+}
+
+const traceTargetSchema = z.object({
+  source: sourceSchema.optional(),
+  source_id: z.string().trim().min(1).optional(),
+  cache_key: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).optional()
+}).strict();
+
+const evidenceTargetSchema = traceTargetSchema.omit({ cache_key: true }).strict();
+
+const decisionInputSchema = z.object({
+  kind: z.enum(["adopt", "hold", "reject", "deduplicate", "needs_followup"]),
+  target: traceTargetSchema,
+  reason: z.string().trim().min(1),
+  evidence_refs: z.array(createEvidenceRefSchema())
+}).strict();
+
+const evidenceScopeInputSchema = z.object({
+  target: evidenceTargetSchema,
+  checked: z.enum([
+    "metadata",
+    "abstract",
+    "toc",
+    "fulltext_snippet",
+    "fulltext",
+    "external_review"
+  ]),
+  body_status: z.enum([
+    "not_checked",
+    "online_entry_unread",
+    "no_online_entry",
+    "restricted",
+    "confirmed"
+  ]),
+  note: z.string().trim().min(1).optional(),
+  evidence_refs: z.array(createEvidenceRefSchema())
+}).strict();
+
+const entryTraceInputSchema = z.object({
+  intent: z.string().trim().min(1).optional(),
+  search_attempt: searchAttemptSchema.optional(),
+  decisions: z.array(decisionInputSchema).optional(),
+  evidence_scope: z.array(evidenceScopeInputSchema).optional()
+}).strict();
+
+const openQuestionInputSchema = z.object({
+  question: z.string().trim().min(1),
+  reason: z.string().trim().min(1),
+  related_sources: z.array(sourceSchema).optional()
+}).strict();
+
+const nextActionInputSchema = z.object({
+  action: z.string().trim().min(1),
+  reason: z.string().trim().min(1),
+  priority: z.enum(["high", "medium", "low"]),
+  source: sourceSchema.optional()
+}).strict();
+
 export const annotateSessionInputSchema = z.object({
   tool: z.string().trim().min(1),
   cache_key: z.string().trim().min(1),
@@ -313,13 +399,30 @@ export const annotateSessionInputSchema = z.object({
       note: z.string().trim().min(1).nullable()
     })
   ),
-  notes: z.array(z.string().trim().min(1)).optional()
+  notes: z.array(z.string().trim().min(1)).optional(),
+  trace: entryTraceInputSchema.optional()
 });
 
 export const annotateSessionOutputSchema = z.object({
   session_id: z.string(),
   updated_at: z.string(),
   annotated_count: z.number().int().nonnegative()
+});
+
+export const updateSessionTraceInputSchema = z.object({
+  research_goal: z.string().trim().min(1).optional(),
+  scope_note: z.string().trim().min(1).optional(),
+  source_plans: z.array(sourcePlanInputSchema).optional(),
+  open_questions: z.array(openQuestionInputSchema).optional(),
+  next_actions: z.array(nextActionInputSchema).optional()
+}).strict();
+
+export const updateSessionTraceOutputSchema = z.object({
+  session_id: z.string(),
+  updated_at: z.string(),
+  source_plan_count: z.number().int().nonnegative(),
+  open_question_count: z.number().int().nonnegative(),
+  next_action_count: z.number().int().nonnegative()
 });
 
 export const exportSessionInputSchema = z.object({
@@ -952,6 +1055,8 @@ export type AuthorityTermsByClassificationInput = z.infer<typeof authorityTermsB
 export type AuthorityTermsByClassificationOutput = z.infer<typeof authorityTermsByClassificationOutputSchema>;
 export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
+export type UpdateSessionTraceInput = z.infer<typeof updateSessionTraceInputSchema>;
+export type UpdateSessionTraceOutput = z.infer<typeof updateSessionTraceOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;
 export type ExportSessionOutput = z.infer<typeof exportSessionOutputSchema>;
 export type ExportViewInput = z.infer<typeof exportViewInputSchema>;

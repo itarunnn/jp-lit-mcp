@@ -41,6 +41,20 @@ describe("README public onboarding", () => {
     expect(readme).toContain("出版社や媒体だけで文献の価値を確定しません");
   });
 
+  it("mentions session trace without changing CSL JSON expectations", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const reference = readFileSync("docs/reference.md", "utf8");
+
+    expect(readme).toContain("調査経過");
+    expect(readme).toContain("検索試行");
+    expect(usageGuide).toContain("jp_lit_update_session_trace");
+    expect(usageGuide).toContain("CSL JSON には調査経過");
+    expect(reference).toContain("jp_lit_update_session_trace");
+    expect(reference).toContain("source_plan_count");
+    expect(reference).toContain("CSL JSON には trace を混ぜません");
+  });
+
   it("documents offline bibliographies, indexes, and paid database limits in the usage guide", () => {
     const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
     expect(usageGuide).toContain("参考書誌・索引・有料DB");

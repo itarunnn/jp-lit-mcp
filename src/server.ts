@@ -43,7 +43,9 @@ import {
   authorityTermsByClassificationInputSchema,
   authorityTermsByClassificationOutputSchema,
   searchKakenProjectsInputSchema,
-  searchKakenProjectsOutputSchema
+  searchKakenProjectsOutputSchema,
+  updateSessionTraceInputSchema,
+  updateSessionTraceOutputSchema
 } from "./lib/schemas.js";
 import { createFileCache } from "./lib/persistence/fileCache.js";
 import { createSessionExporter } from "./lib/persistence/exportSession.js";
@@ -74,6 +76,7 @@ import { createNdlAuthoritiesClient } from "./sources/ndlAuthorities/client.js";
 import { createKakenClient } from "./sources/kaken/client.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
+import { createJpLitUpdateSessionTraceTool } from "./tools/jpLitUpdateSessionTrace.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
 import { createJpLitExportViewTool } from "./tools/jpLitExportView.js";
 import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
@@ -328,6 +331,7 @@ export function createServer(env: ServerEnv = process.env) {
   const searchTool = createJpLitSearchTool(createSearchService(adapters), cache, sessions);
   const recordTool = createJpLitGetRecordTool(recordService, cache, sessions);
   const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
+  const updateSessionTraceTool = createJpLitUpdateSessionTraceTool(sessions);
   const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
   const findSessionsTool = createJpLitFindSessionsTool(sessions);
   const refineResultsTool = createJpLitRefineResultsTool(cache, sessions);
@@ -452,6 +456,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: annotateSessionOutputSchema
     },
     annotateSessionTool
+  );
+
+  server.registerTool(
+    "jp_lit_update_session_trace",
+    {
+      description: "現在の調査セッション全体に、調査目的・確認範囲・source 選択理由・未確認事項・次アクションを追記する。検索結果や選択候補そのものではなく、調査経過と判断の台帳を残すための tool",
+      inputSchema: updateSessionTraceInputSchema,
+      outputSchema: updateSessionTraceOutputSchema
+    },
+    updateSessionTraceTool
   );
 
   server.registerTool(

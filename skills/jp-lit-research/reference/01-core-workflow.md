@@ -11,9 +11,9 @@
 1. 依頼を intent に分類する
 2. 必要なら調査前情報収集を行う
 3. source と検索語の案を作る
-4. 検索方針をユーザーに提示して確認を取る
+4. 検索方針をユーザーに提示して確認を取り、`jp_lit_update_session_trace` に調査目的と source plan を残す
 5. 最小限の source / query で検索する
-6. 結果を読み、次の一手を決める
+6. 結果を読み、検索試行・採否理由・本文確認範囲を `jp_lit_annotate_session.trace` に残す
 7. 必要なら query / source を変えて再検索する
 8. 選別過程を明示して報告する
 
@@ -40,6 +40,14 @@
 - `jp_lit_refine_results` で足りない場合のみ、query/source を変えた再検索へ進む
 - 既存結果の再整理では `total_before` / `total_after`、適用条件、表示件数を示す
 - export や annotation を求められた場合は、`selected_items.note` に個別候補の理由、`notes` に検索全体の選別理由を残す
+- 調査経過の保存は `jp_lit_update_session_trace` を使う。`source_plan_count` などの count は追加件数ではなく更新後の合計件数として扱う
+
+## Web 補助確認
+
+- 文献DB調査では Web は主経路にしない。NDL / CiNii / J-STAGE / IRDB などで候補集合を作る
+- Web は、出版社・団体の性格、著者属性、本文入口、公開PDFの所在、DB外の専門的反応を補う場合に限る
+- ユーザーが Web 調査を明示した場合、またはDB上で専門的書評・批判・応答の存在が示唆された場合だけ、Webで書評や批判を広げて探す
+- Web由来情報は `根拠: Web補助確認` とし、文献DB由来の書誌・要旨・目次・本文確認と混同しない
 
 ## intent
 
@@ -65,9 +73,11 @@
 
 - 生の検索結果や OCR payload を会話へ大量に貼り付けない
 - 内部保存した cache / session を原本とし、会話には要点と判断だけを残す
+- session trace は主エージェントの文脈維持にも使う。検索計画、source 選択ログ、検索試行ログ、採用/保留/除外理由、未確認事項、次に見る source を残す
 - 断定、引用、candidate の格上げ、競合解消、export 作成時だけ原本へ戻る
 - 通常の探索ループ（source 選択、検索語展開、候補判断、次 query の決定）は主エージェントが文脈を持って進める
-- サブエージェントは任意。単独エージェントで成立することを前提にし、`cache_key` / `session_id` で原本が固定された大量結果の再整理・重複確認・傾向要約に限って使う
+- サブエージェントは任意。まず sequential な担当分担として使い、速度目的の parallel 実行を標準にしない
+- サブエージェントに任せる場合は担当範囲と対象 `cache_key` / `session_id` を固定する。主エージェントが single writer として session trace と最終判断を統合する
 - 自然文要求は「最新化 > 削除 > 一覧 > 再抽出 > 通常検索」の順でツールへルーティングする
 - `saved_on` の `today` / `yesterday` / `last_7_days` はサーバー側で `Asia/Tokyo` 基準に解決されるため、エージェント側で日付文字列へ展開しない
 
