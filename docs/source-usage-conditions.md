@@ -18,6 +18,8 @@
 | `japan_search` | 公開 API に登録不要と読める | データごとに異なる | source 表記推奨、参加機関条件確認 | 個別コンテンツ条件確認 | metadata / thumbnail / content で条件が異なる |
 | `jdcat` | 利用者登録不要 | 配布者 / 提供者ごとに異なる | 配布者側条件確認 | 個別データ条件確認 | WEKO3 JSON API に依存するメタデータ横断検索 |
 | `nihu_bridge` | 登録要件は未確認 | 個別 DB / コンテンツ条件に依存 | 元 DB 側条件確認 | 個別確認が必要 | 利用者向け API 仕様書あり。ポータル的性格が強い |
+| `national_archives` | 二次利用申請不要と案内あり | 自由利用可と案内あり | 出典明示推奨 | Crawl-delay と高頻度アクセスに注意 | 検索HTML、RDF/XML、CSVで目録確認。画像本体は取得しない |
+| `jacar` | 一般利用可 | 規則確認 | JACAR利用規則を確認。資料画像の再利用時は画像側条件も確認 | Crawl-delay、不当な占有・浪費に注意 | 検索HTML、詳細HTML、CSVで目録確認。画像本体は取得しない |
 | `kokkai_minutes` | 不要 | NDL ウェブサイト規約に従う | 著作権帰属に注意 | 高負荷アクセス禁止、数秒空ける | 発言著作権に注意 |
 | `teikoku_minutes` | 不要 | NDL ウェブサイト規約に従う | 著作権帰属に注意 | 高負荷アクセス禁止、数秒空ける | 発言著作権に注意 |
 | `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`（CRD） | 不要 | 非営利目的に限る | クレジット表示・提供館名表示が必要 | 継続利用時は連絡先・利用内容を知らせる協力依頼あり | レファレンス協同データベース API 2.0 を使用 |
@@ -212,6 +214,43 @@
 - nihuBridge 公式説明: https://www.nihu.jp/ja/database/nihubridge.html
 - 統合検索機能 利用者向け API 仕様書: https://www.nihu.jp/files/site/doc/mid4/nihuBridge_API_specification.pdf
 - nihuBridge API チュートリアル: https://www.nihu.jp/files/site/doc/mid4/Tutorial_nihuBridgeAPI.pdf
+
+### 国立公文書館DA / JACAR
+
+対象:
+
+- `national_archives`
+- `jacar`
+
+実装での利用:
+
+- `national_archives` は国立公文書館デジタルアーカイブの検索画面 HTML、RDF/XML、CSV 出力を使い、目録メタデータを best-effort で抽出します。
+- `jacar` は JACAR の検索画面 HTML、詳細画面 HTML、CSV 出力を使い、目録メタデータを best-effort で抽出します。
+- どちらも画像ファイル本体、IIIF manifest、OCR 本文、ページ単位検索、`/contentDownload/*` / `/aj/contentDownload/*` は対象外です。
+
+確認できたこと:
+
+- 国立公文書館DAは、デジタルコンテンツおよび目録情報について、営利・非営利を問わず自由に複製・改変・再配布が可能で、二次利用の申請や手続きは不要と案内しています。
+- 国立公文書館DAは、公開・配布媒体での利用では出典明示を推奨し、改変時は改変したことを明示するよう求めています。
+- JACAR のデータベース利用規則は、データベースを広く一般に利用できるものとしつつ、不正利用、不当な占有・浪費、改竄・破壊、運用に支障を及ぼす行為を禁止しています。
+- JACAR は資料画像の利用について別ページの確認を求めています。現実装では資料画像本体を取得しないため、主にユーザーが公式レコードから画像を再利用する場合の別確認事項として扱います。
+- `https://www.digital.archives.go.jp/robots.txt` と `https://www.jacar.archives.go.jp/robots.txt` は、確認時点で `Crawl-delay: 30` と `/contentDownload/*` / `/aj/contentDownload/*` の disallow を示しています。
+
+運用メモ:
+
+- 既定横断検索には含めず、明示 source または Skill の source 選択で必要な場合だけ使います。
+- キャッシュ利用と低頻度アクセスを前提にし、連続アクセスや大量詳細取得は避けます。
+- 検索結果 HTML や詳細 HTML の抽出は公式 API 仕様に基づくものではないため、HTML 構造変更で壊れる可能性があります。引用・同定・再利用判断では公式レコード URL を確認します。
+- 403 が返る場合は VPN・ネットワーク制限の可能性もあるため、単に資料なしとは扱いません。
+
+参考:
+
+- 国立公文書館DA: https://www.digital.archives.go.jp/search
+- 国立公文書館DA データの二次利用: https://www.digital.archives.go.jp/secondary-use
+- JACAR検索: https://www.jacar.archives.go.jp/aj/search
+- JACAR利用規則: https://www.jacar.go.jp/termsofuse.html
+- robots.txt: https://www.digital.archives.go.jp/robots.txt
+- robots.txt: https://www.jacar.archives.go.jp/robots.txt
 
 ### 国会会議録検索 API
 

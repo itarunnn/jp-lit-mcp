@@ -7,6 +7,8 @@ const CINII_SOURCE_ID_PATTERN = /^\d{10,}$/;
 const IRDB_SOURCE_ID_PATTERN = /^\/[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)+$/;
 const JDCAT_SOURCE_ID_PATTERN = /^\d+$/;
 const JSTAGE_SOURCE_ID_PATTERN = /^\/article\/[A-Za-z0-9._~!$&'()*+,;=:@%-]+(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%-]+)*\/?$/;
+const NATIONAL_ARCHIVES_SOURCE_ID_PATTERN = /^\d+$/;
+const JACAR_SOURCE_ID_PATTERN = /^[A-Z]\d{10,}$/;
 const GENERIC_SAFE_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const NDL_PID_PATTERN = /^\d+$/;
 
@@ -51,6 +53,12 @@ export function validateSourceId(source: SourceName, sourceId: string): string {
       break;
     case "jstage_articles":
       assertSourceId(source, trimmed, JSTAGE_SOURCE_ID_PATTERN, "/article/example/_article/-char/ja/");
+      break;
+    case "national_archives":
+      assertSourceId(source, trimmed, NATIONAL_ARCHIVES_SOURCE_ID_PATTERN, "3148544");
+      break;
+    case "jacar":
+      assertSourceId(source, trimmed, JACAR_SOURCE_ID_PATTERN, "A01000012800");
       break;
     case "japan_search":
     case "kokkai_minutes":

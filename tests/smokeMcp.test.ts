@@ -47,6 +47,8 @@ describe("smoke-mcp tool manifest", () => {
     expect(resolveLiveSmokeQuery("ndl_catalog", undefined)).toBe("菊池寛");
     expect(resolveLiveSmokeQuery("kokkai_minutes", undefined)).toBe("賭博");
     expect(resolveLiveSmokeQuery("teikoku_minutes", undefined)).toBe("賭博");
+    expect(resolveLiveSmokeQuery("national_archives", undefined)).toBe("太政官");
+    expect(resolveLiveSmokeQuery("jacar", undefined)).toBe("台湾総督府");
     expect(resolveLiveSmokeQuery("jstage_articles", "材料")).toBe("材料");
   });
 

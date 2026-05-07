@@ -40,6 +40,8 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 - `irdb` — 機関リポジトリ、論文調査で明示的に追加（NDL モードでも薄いメタデータで含まれる）
 - `jdcat` — 研究データカタログ
 - `kokkai_minutes` / `teikoku_minutes` — 会議録
+- `national_archives` — 国立公文書館DA。官庁資料、内閣・太政官・省庁、特定歴史公文書
+- `jacar` — JACAR。外交、軍事、旧外地、植民地、朝鮮・台湾・関東州、戦前期官吏/軍人/外交官関係資料
 
 ---
 
@@ -55,7 +57,8 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 | 理工系・医学系 | 英語混じり、数値・実験の記述 | `jstage_articles` を優先 |
 | 紀要・学位論文・報告書 | 「修士論文」「紀要」「研究報告」 | `irdb` を優先 |
 | 美術・文化財・地域資料・博物館資料 | 「作品」「文化財」「地域」「コレクション」「博物館」「民具」「遺跡」「浮世絵」 | `japan_search`（主力）+ `jp_lit_search_illustrations` + `nihu_bridge`（民俗・考古補完）|
-| 議会・法令・官庁資料 | 「法律」「答弁」「審議」「議会」 | `kokkai_minutes` / `teikoku_minutes` |
+| 議会・法令・官庁資料 | 「法律」「答弁」「審議」「議会」 | `kokkai_minutes` / `teikoku_minutes`。官庁原資料・特定歴史公文書なら `national_archives` |
+| 公文書・アジア歴史資料 | 「内閣」「太政官」「省庁」「公文書」「外交」「軍事」「旧外地」「植民地」「朝鮮」「台湾」「関東州」「外務省外交史料館」「防衛研究所」 | 国内官庁・特定歴史公文書は `national_archives`、近現代アジア・外交・軍事・旧外地は `jacar` |
 | 全般（判定できない） | — | NDL + CiNii + J-STAGE の既定構成 |
 
 ---
@@ -132,6 +135,15 @@ kokkai_minutes   — 第1回国会〜現在（speech 単位で検索）
 teikoku_minutes  — 第1〜90回帝国議会（1890〜1947年）
 ```
 
+### 公文書・アジア歴史資料
+
+```
+national_archives — 国立公文書館DA。官庁資料・内閣・太政官・省庁・特定歴史公文書・国立公文書館所蔵資料
+jacar             — JACAR。外交・軍事・旧外地・植民地・朝鮮・台湾・関東州・外務省外交史料館・防衛研究所・戦前期官吏/軍人/外交官
+```
+
+リサーチ・ナビ／レファ協が国立公文書館DAまたはJACARを推奨している場合も、追加 source 候補にする。どちらも通常の文献探索の主力ではなく下位導線。画像本体・IIIF・OCR は取得せず、公式レコード URL と目録メタデータで同定する。
+
 ---
 
 ## source 別の制約
@@ -144,6 +156,8 @@ teikoku_minutes  — 第1〜90回帝国議会（1890〜1947年）
 | `irdb` | limit は 20/50/100 のみ有効（adapter が補正）|
 | `jdcat` | detail は JSON API、availability.online は公開保証ではない |
 | `nihu_bridge` | sort 未対応 |
+| `national_archives` | 既定横断外。画像本体・IIIF・OCR・contentDownload は対象外。403 は VPN・ネットワーク制限の可能性 |
+| `jacar` | 既定横断外。画像本体・IIIF・OCR・aj/contentDownload は対象外。403 は VPN・ネットワーク制限の可能性 |
 
 ---
 

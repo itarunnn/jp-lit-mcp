@@ -27,7 +27,7 @@ jstage_articles
 nihu_bridge
 ```
 
-`ndl_search` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` は、目的がはっきりしているときに `source` を明示して使います。
+`ndl_search` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` / `national_archives` / `jacar` は、目的がはっきりしているときに `source` を明示して使います。`national_archives` / `jacar` は公文書・外交・軍事・旧外地資料などの下位導線です。通常の文献探索の既定横断には含めません。
 
 ### データ量を抑える設計
 
@@ -52,6 +52,8 @@ nihu_bridge
 | `irdb` | IRDB OpenSearch Atom | IRDB 詳細 HTML | no | 機関リポジトリ。`filters.irdb` 対応 |
 | `jdcat` | JDCat JSON API | JDCat JSON API | no | 人文学・社会科学系の研究データ。論文・図書の既定横断には含めない |
 | `nihu_bridge` | nihuBridge POST | nihuBridge REST | yes | 人文学系専門 DB 横断。`filters.nihu_bridge` 対応 |
+| `national_archives` | 国立公文書館DA検索 HTML | RDF/XML + CSV | no | 特定歴史公文書、官庁資料、内閣・太政官・省庁資料の目録確認。画像本体・OCR は取得しない |
+| `jacar` | JACAR検索 HTML | 詳細 HTML + CSV | no | 近現代アジア、外交、軍事、旧外地、植民地、朝鮮・台湾・関東州関係資料の目録確認。画像本体・OCR は取得しない |
 | `japan_search` | Japan Search API | Japan Search API | no | 文化資源・美術・地域資料。最終確認は元機関 DB で行う |
 | `kokkai_minutes` | 国会会議録 API speech | 国会会議録 API meeting | no | 第1回国会以降の発言検索 |
 | `teikoku_minutes` | 帝国議会会議録 API speech | 帝国議会会議録 API meeting | no | 第1〜90回帝国議会の発言検索 |
@@ -105,6 +107,7 @@ nihu_bridge
 | `jstage_articles` | `pdf_url`, `article_url` |
 | `irdb` | `source_uri`, `repository_name`, `publication_type` |
 | `kokkai_minutes` / `teikoku_minutes` | 会議・発言単位の識別情報 |
+| `national_archives` / `jacar` | `hierarchy`, `call_number`, `holding_institution`, `creator`, `image_count`, `has_images`, `access_restriction`, `raw_csv`。`jacar` には `reference_code` も入る |
 
 ## MCP ツール
 
@@ -135,7 +138,7 @@ nihu_bridge
 - `ndl_search` / `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online`: 対応
 - `cinii_articles` / `cinii_books`: `issued_date` のみ対応
 - `japan_search`: `issued_from` / `issued_to` を `r-tempo` に変換
-- `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge`: 未対応
+- `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge` / `national_archives` / `jacar`: 未対応
 
 レスポンスの `cache`:
 
@@ -152,7 +155,7 @@ nihu_bridge
 - 国会・帝国議会: `from` / `until` に変換。年だけ渡した場合は年初・年末に補完
 - NIHU Bridge: `filters.nihu_bridge.period_from` / `period_to` がない場合のみ自動マッピング
 - Japan Search: 先頭 4 桁の年だけ使い、`r-tempo` に変換
-- IRDB / JDCat: 未対応
+- IRDB / JDCat / 国立公文書館DA / JACAR: 未対応
 
 `filters.irdb`:
 
@@ -206,6 +209,8 @@ nihu_bridge
 | `source_id` | string | 必須 |
 
 `source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。
+
+`source=national_archives` / `source=jacar` の場合、目録メタデータ、公式レコード URL、画像数や利用制限などを返します。`source_id` は `national_archives` が数値 ID、`jacar` がレファレンスコードです。画像ファイル本体、IIIF manifest、OCR 本文、ページ単位検索は初期スコープ外です。403 が返る場合は VPN やネットワーク制限の可能性があります。
 
 ### 調べ方・類似事例
 
@@ -500,6 +505,8 @@ jp_lit_search_illustrations(keyword="富士山")
 | `TEIKOKU_MEETING_BASE_URL` | `https://teikokugikai-i.ndl.go.jp/api/emp/meeting` | 帝国議会詳細 |
 | `NIHU_BRIDGE_SEARCH_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas/search` | NIHU Bridge 検索 |
 | `NIHU_BRIDGE_RECORD_BASE_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas` | NIHU Bridge 詳細 |
+| `NATIONAL_ARCHIVES_BASE_URL` | `https://www.digital.archives.go.jp` | 国立公文書館DA |
+| `JACAR_BASE_URL` | `https://www.jacar.archives.go.jp` | JACAR |
 | `CRD_API_BASE_URL` | `https://crd.ndl.go.jp/api/refsearch` | レファレンス協同データベース API |
 | `NDL_AUTHORITIES_SPARQL_URL` | `https://id.ndl.go.jp/auth/ndla/sparql` | Web NDL Authorities SPARQL endpoint |
 
@@ -599,6 +606,10 @@ live smoke の主な環境変数:
 - `jdcat` は公開 JSON API `/api/records/` と `/api/records/{id}` を使います。
 - `jdcat` の `availability.online=true` は配布元 URI が示されていることを意味し、データ本体が無条件公開されている保証ではありません。
 - `nihu_bridge` の sort は現時点で未対応です。
+- `national_archives` / `jacar` は既定横断検索に含めていません。明示指定または Skill の source 選択で必要な場合だけ使います。
+- `national_archives` / `jacar` は目録確認用です。画像本体、IIIF、OCR、`/contentDownload/*` / `/aj/contentDownload/*` は取得しません。
+- `national_archives` / `jacar` は検索 HTML と詳細補強用 CSV / RDF / HTML の best-effort 抽出です。HTML 構造変更で壊れる可能性があるため、重要な同定は公式レコード URL で確認してください。
+- `national_archives` / `jacar` は上流の `Crawl-delay: 30` とコンテンツダウンロード禁止を尊重し、キャッシュ利用と低頻度アクセスを前提にしてください。
 
 ### `jp_lit_refine_results`
 
