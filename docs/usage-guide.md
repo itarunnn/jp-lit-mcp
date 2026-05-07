@@ -531,7 +531,7 @@ jp_lit_export_session(format="csl-json", profile="selected")
 ```
 
 エージェントはこの依頼を受けて、内部では `jp_lit_export_session` を呼びます。ツール名を直接書いてもよいですが、通常は自然言語で十分です。
-過去セッション検索が必要な場合は、まず `jp_lit_find_sessions` を呼び、必要に応じて `jp_lit_export_session(session_id=...)` を続けて使います。
+過去セッション検索が必要な場合は、主題やタイトルを覚えているなら `jp_lit_find_sessions` を呼び、必要に応じて `jp_lit_export_session(session_id=...)` を続けて使います。何を調べたかをまず棚卸ししたい場合は `jp_lit_list_sessions` で過去セッションを一覧し、trace や採用候補のあるセッションから再開候補を選びます。
 
 ```text
 # 検索結果に候補ラベルとメモを付ける
@@ -555,6 +555,9 @@ jp_lit_export_session(format="json", profile="unselected")
 # 過去セッションをキーワードで探す
 jp_lit_find_sessions(query="明治期 俳句雑誌", limit=10)
 
+# 過去セッションを新しい順に一覧する
+jp_lit_list_sessions(limit=20, has_trace=true)
+
 # 見つけた session を指定して再エクスポートする
 jp_lit_export_session(session_id="2026-05-01-120000", format="markdown", profile="full_log")
 
@@ -574,7 +577,8 @@ jp_lit_export_view(view="refined_results", format="markdown", output_path="expor
   - 検索・取得結果の正規化済み payload が、ツール呼び出し結果ごとに増えていきます
 - セッション: `.cache/jp-lit-mcp/sessions/`
   - 採用候補、候補ラベル、選別理由メモ、調査経過がセッション単位で蓄積されます
-  - `jp_lit_find_sessions` はここに残っている archive session を検索します
+  - `jp_lit_list_sessions` はここに残っている archive session を一覧します
+  - `jp_lit_find_sessions` はここに残っている archive session をキーワード検索します
 - 明示 export: `exports/`
   - Markdown / JSON / CSL JSON のユーザー向け書き出し先です
 

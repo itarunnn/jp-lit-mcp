@@ -26,6 +26,7 @@ description: >-
 - 1 回の検索で終えず、結果を見て次の query / source / 深掘り可否を決める。
 - 生の検索結果、OCR payload、`raw` JSON を会話へ大量に貼らない。cache / session を原本とし、会話には要点と判断を残す。
 - 調査目的、source 選択理由、検索試行、採用/保留/除外理由、本文確認範囲、未確認事項、次アクションは `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に残す。
+- 過去調査の棚卸し・一覧・再開候補確認では `jp_lit_list_sessions` を使う。主題・タイトル・メモなど明確な検索語がある場合は `jp_lit_find_sessions` を使う。
 - サブエージェントに担当範囲を分ける場合も、速度目的の並列化を標準にしない。主エージェントが single writer として trace を統合する。
 - 最終回答には `検索概要`、`今回の確認範囲`、`調査ログ` を置く。短い回答でも圧縮して残す。
 - `調査ログ` では各検索の `total`、`取得件数`、`抽出件数` を分ける。

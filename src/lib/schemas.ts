@@ -472,6 +472,59 @@ export const findSessionsOutputSchema = z.object({
   )
 });
 
+export const listSessionsInputSchema = z.object({
+  limit: z.number().int().positive().max(100).default(20),
+  updated_from: z.string().trim().min(1).optional(),
+  updated_to: z.string().trim().min(1).optional(),
+  created_from: z.string().trim().min(1).optional(),
+  created_to: z.string().trim().min(1).optional(),
+  has_trace: z.boolean().optional(),
+  has_selected: z.boolean().optional(),
+  source: sourceSchema.optional(),
+  sort_by: z.enum(["updated_at", "created_at"]).default("updated_at"),
+  sort_order: z.enum(["desc", "asc"]).default("desc")
+});
+
+export const listSessionsOutputSchema = z.object({
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  sort_by: z.enum(["updated_at", "created_at"]),
+  sort_order: z.enum(["desc", "asc"]),
+  filters: z.object({
+    updated_from: z.string().nullable(),
+    updated_to: z.string().nullable(),
+    created_from: z.string().nullable(),
+    created_to: z.string().nullable(),
+    has_trace: z.boolean().nullable(),
+    has_selected: z.boolean().nullable(),
+    source: sourceSchema.nullable()
+  }),
+  items: z.array(
+    z.object({
+      session_id: z.string(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      research_goal: z.string().nullable(),
+      scope_note: z.string().nullable(),
+      entry_count: z.number().int().nonnegative(),
+      selected_count: z.number().int().nonnegative(),
+      source_count: z.number().int().nonnegative(),
+      sources: z.array(sourceSchema),
+      query_preview: z.string().nullable(),
+      selected_title_preview: z.string().nullable(),
+      has_trace: z.boolean(),
+      has_selected: z.boolean(),
+      trace_counts: z.object({
+        source_plan_count: z.number().int().nonnegative(),
+        open_question_count: z.number().int().nonnegative(),
+        next_action_count: z.number().int().nonnegative(),
+        decision_count: z.number().int().nonnegative(),
+        evidence_scope_count: z.number().int().nonnegative()
+      })
+    })
+  )
+});
+
 export const searchCacheIndexInputSchema = z.object({
   query: z.string().trim().min(1),
   session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
@@ -1063,6 +1116,8 @@ export type ExportViewInput = z.infer<typeof exportViewInputSchema>;
 export type ExportViewOutput = z.infer<typeof exportViewOutputSchema>;
 export type FindSessionsInput = z.infer<typeof findSessionsInputSchema>;
 export type FindSessionsOutput = z.infer<typeof findSessionsOutputSchema>;
+export type ListSessionsInput = z.infer<typeof listSessionsInputSchema>;
+export type ListSessionsOutput = z.infer<typeof listSessionsOutputSchema>;
 export type SearchCacheIndexInput = z.infer<typeof searchCacheIndexInputSchema>;
 export type SearchCacheIndexOutput = z.infer<typeof searchCacheIndexOutputSchema>;
 export type DeleteCacheInput = z.infer<typeof deleteCacheInputSchema>;

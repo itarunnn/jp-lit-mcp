@@ -44,6 +44,8 @@ import {
   authorityTermsByClassificationOutputSchema,
   searchKakenProjectsInputSchema,
   searchKakenProjectsOutputSchema,
+  listSessionsInputSchema,
+  listSessionsOutputSchema,
   updateSessionTraceInputSchema,
   updateSessionTraceOutputSchema
 } from "./lib/schemas.js";
@@ -80,6 +82,7 @@ import { createJpLitUpdateSessionTraceTool } from "./tools/jpLitUpdateSessionTra
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
 import { createJpLitExportViewTool } from "./tools/jpLitExportView.js";
 import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
+import { createJpLitListSessionsTool } from "./tools/jpLitListSessions.js";
 import { createJpLitRefineResultsTool } from "./tools/jpLitRefineResults.js";
 import { createJpLitSearchCacheIndexTool } from "./tools/jpLitSearchCacheIndex.js";
 import { createJpLitDeleteCacheTool } from "./tools/jpLitDeleteCache.js";
@@ -334,6 +337,7 @@ export function createServer(env: ServerEnv = process.env) {
   const updateSessionTraceTool = createJpLitUpdateSessionTraceTool(sessions);
   const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
   const findSessionsTool = createJpLitFindSessionsTool(sessions);
+  const listSessionsTool = createJpLitListSessionsTool(sessions);
   const refineResultsTool = createJpLitRefineResultsTool(cache, sessions);
   const searchCacheIndexTool = createJpLitSearchCacheIndexTool(cache, sessions);
   const deleteCacheTool = createJpLitDeleteCacheTool(cache);
@@ -486,6 +490,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: findSessionsOutputSchema
     },
     findSessionsTool
+  );
+
+  server.registerTool(
+    "jp_lit_list_sessions",
+    {
+      description: "過去の調査セッションを新しい順に一覧する。検索語を覚えていない調査履歴の棚卸しや再開候補探しに使う",
+      inputSchema: listSessionsInputSchema,
+      outputSchema: listSessionsOutputSchema
+    },
+    listSessionsTool
   );
 
   server.registerTool(

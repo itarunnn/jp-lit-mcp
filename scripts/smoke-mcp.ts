@@ -20,6 +20,7 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_get_record",
   "jp_lit_get_text_coordinates",
   "jp_lit_list_cache",
+  "jp_lit_list_sessions",
   "jp_lit_prune_cache",
   "jp_lit_refine_results",
   "jp_lit_resolve_authority",
@@ -239,6 +240,39 @@ async function runLocalPersistenceSmoke(client: Client) {
     | undefined;
   if (traceData?.source_plan_count !== 1 || traceData.next_action_count !== 1) {
     throw new Error("Local smoke trace update did not persist expected counts.");
+  }
+
+  const listSessionsResult = await client.callTool({
+    name: "jp_lit_list_sessions",
+    arguments: {
+      limit: 5,
+      has_trace: true,
+      has_selected: true,
+      source: "ndl_catalog"
+    }
+  });
+  const listSessionsData = listSessionsResult.structuredContent as
+    | {
+        total?: number;
+        items?: Array<{
+          has_trace?: boolean;
+          has_selected?: boolean;
+          selected_count?: number;
+          sources?: string[];
+          research_goal?: string | null;
+        }>;
+      }
+    | undefined;
+  const smokeSession = listSessionsData?.items?.find(
+    (item) =>
+      item.has_trace === true &&
+      item.has_selected === true &&
+      (item.selected_count ?? 0) > 0 &&
+      item.sources?.includes("ndl_catalog") &&
+      item.research_goal === "smoke trace"
+  );
+  if (!smokeSession || (listSessionsData?.total ?? 0) < 1) {
+    throw new Error("Local smoke session list did not expose the traced annotated session.");
   }
 
   const exportResult = await client.callTool({
