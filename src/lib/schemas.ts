@@ -16,7 +16,10 @@ export const sourceSchema = z.enum([
   "teikoku_minutes",
   "nihu_bridge",
   "national_archives",
-  "jacar"
+  "jacar",
+  "nijl_articles",
+  "kokusho",
+  "ninjal_bibliography"
 ]);
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 
@@ -146,26 +149,27 @@ export const ndlFiltersSchema = z.object({
   ndlc: z.string().optional()
 });
 
-export const searchInputSchema = z
-  .object({
-    query: z.string().trim().min(1),
-    source: sourceSchema.optional(),
-    limit: z.number().int().positive().max(100).optional(),
-    page: z.number().int().positive().default(1),
-    sort_by: z
-      .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
-      .optional(),
-    sort_order: z.enum(["asc", "desc"]).optional(),
-    force_refresh: z.boolean().default(false),
-    issued_from: z.string().optional(),
-    issued_to: z.string().optional(),
-    filters: z.object({
-      irdb: irdbFiltersSchema.optional(),
-      nihu_bridge: nihuBridgeFiltersSchema.optional(),
-      jdcat: jdcatFiltersSchema.optional(),
-      ndl: ndlFiltersSchema.optional()
-    }).optional()
-  })
+export const searchInputToolSchema = z.object({
+  query: z.string().trim().min(1),
+  source: sourceSchema.optional(),
+  limit: z.number().int().positive().max(100).optional(),
+  page: z.number().int().positive().default(1),
+  sort_by: z
+    .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
+    .optional(),
+  sort_order: z.enum(["asc", "desc"]).optional(),
+  force_refresh: z.boolean().default(false),
+  issued_from: z.string().optional(),
+  issued_to: z.string().optional(),
+  filters: z.object({
+    irdb: irdbFiltersSchema.optional(),
+    nihu_bridge: nihuBridgeFiltersSchema.optional(),
+    jdcat: jdcatFiltersSchema.optional(),
+    ndl: ndlFiltersSchema.optional()
+  }).optional()
+});
+
+export const searchInputSchema = searchInputToolSchema
   .superRefine((data, ctx) => {
     if (data.filters?.irdb !== undefined && data.source !== "irdb") {
       ctx.addIssue({

@@ -38,6 +38,18 @@ export interface NdlSearchFilters {
   ndlc?: string;
 }
 
+export interface NijlArticlesAdapterOptions {
+  baseUrl?: string;
+}
+
+export interface KokushoAdapterOptions {
+  baseUrl?: string;
+}
+
+export interface NinjalBibliographyAdapterOptions {
+  baseUrl?: string;
+}
+
 export interface SearchParams {
   query: string;
   limit: number;

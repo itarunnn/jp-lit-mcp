@@ -1,0 +1,35 @@
+{
+  "bid": "100335909",
+  "shubetsu": "M",
+  "hshomei": "伊勢物語（いせものがたり）（Isemonogatari），Ａ",
+  "kshomei": [
+    "1．伊勢物語（いせものがたり）（Isemonogatari），内",
+    "2．濱荻抄（はまおぎしょう）（Hamaogishou），外"
+  ],
+  "hshomeipdf": "伊勢物語（いせものがたり）",
+  "author": ["［秋元／安民］ ［著］"],
+  "kansu": "上中下",
+  "kansha": "刊",
+  "bpublish": ["天明３", "　"],
+  "keitai": "２６．４×１９．９ｃｍ",
+  "satsu": "３冊",
+  "keyword": "国学",
+  "chuki": ["〈注〉朱墨書入れあり。"],
+  "collection": "九州大学中央図書館，春日政治・和男文庫，春日文庫/31",
+  "d_seikyu": "DIG-KYUS-00720，208，Y",
+  "refid": [{ "kind": "NCID", "refid": "BB00000000", "url": "https://ci.nii.ac.jp/ncid/BB00000000" }],
+  "image": "1",
+  "manifest": "https://kokusho.nijl.ac.jp/biblio/100335909/manifest",
+  "licenselink": "https://creativecommons.org/licenses/by-sa/4.0/deed.ja",
+  "work": [
+    {
+      "wid": "92648",
+      "name": "伊勢の浜荻",
+      "year": "嘉永六自序・奥書",
+      "keyword": "国学",
+      "author": [{ "aid": "123", "name": "秋元／安民" }],
+      "shubetsu": "J"
+    }
+  ],
+  "doi": "https://doi.org/10.20730/100335909"
+}

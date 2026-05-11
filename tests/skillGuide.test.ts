@@ -133,4 +133,33 @@ describe("jp-lit-research skill guide", () => {
     expect(workflow).toContain("本文未読の内容別・論点別分類");
     expect(workflow).toContain("優先");
   });
+
+  it("routes specialist DB wording to explicit sources without expanding fixed-source scope", () => {
+    const sourceSelection = readFileSync(
+      "skills/jp-lit-research/heuristics/source-selection.md",
+      "utf8"
+    );
+    const dbCharacteristics = readFileSync(
+      "skills/jp-lit-research/heuristics/db-characteristics.md",
+      "utf8"
+    );
+    const sourceAndQuery = readFileSync(
+      "skills/jp-lit-research/reference/02-source-and-query.md",
+      "utf8"
+    );
+
+    for (const doc of [sourceSelection, dbCharacteristics, sourceAndQuery]) {
+      expect(doc).toContain("nijl_articles");
+      expect(doc).toContain("kokusho");
+      expect(doc).toContain("ninjal_bibliography");
+    }
+
+    expect(sourceSelection).toContain("国文学論文");
+    expect(sourceSelection).toContain("国書・古典籍");
+    expect(sourceSelection).toContain("日本語研究・日本語教育文献");
+    expect(sourceAndQuery).toContain("日本文学論文: `nijl_articles`");
+    expect(sourceAndQuery).toContain("古典籍・国書・写本・版本: `kokusho`");
+    expect(sourceAndQuery).toContain("日本語研究・日本語教育文献・国語教育文献: `ninjal_bibliography`");
+    expect(sourceSelection).toContain("有料 DB、文化資源 DB、地域アーカイブ DB は固定 source 化しない");
+  });
 });

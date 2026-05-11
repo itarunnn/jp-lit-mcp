@@ -65,4 +65,28 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("大宅壮一文庫");
     expect(usageGuide).toContain("毎回の注意書き");
   });
+
+  it("documents the specialist explicit sources and fixed-source limits", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const projectStatus = readFileSync("docs/project-status.md", "utf8");
+
+    expect(readme).toContain("nijl_articles");
+    expect(readme).toContain("国文学論文");
+    expect(readme).toContain("kokusho");
+    expect(readme).toContain("国書・古典籍");
+    expect(readme).toContain("ninjal_bibliography");
+    expect(readme).toContain("日本語研究・日本語教育文献");
+
+    expect(usageGuide).toContain("日本文学論文");
+    expect(usageGuide).toContain("jp_lit_search(source=nijl_articles");
+    expect(usageGuide).toContain("jp_lit_search(source=kokusho");
+    expect(usageGuide).toContain("jp_lit_search(source=ninjal_bibliography");
+    expect(usageGuide).toContain("文化資源 DB や地域アーカイブ DB は固定 source 化しません");
+
+    expect(projectStatus).toContain("対応 source 19 種");
+    expect(projectStatus).toContain("nijl_articles");
+    expect(projectStatus).toContain("kokusho");
+    expect(projectStatus).toContain("ninjal_bibliography");
+  });
 });

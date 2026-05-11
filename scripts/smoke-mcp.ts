@@ -58,7 +58,19 @@ const LIVE_DEFAULT_QUERY_BY_SOURCE: Record<string, string> = {
   jstage_articles: "癌",
   nihu_bridge: "源氏物語",
   national_archives: "太政官",
-  jacar: "台湾総督府"
+  jacar: "台湾総督府",
+  nijl_articles: "源氏物語",
+  kokusho: "伊勢物語",
+  ninjal_bibliography: "日本語教育"
+};
+
+const LIVE_SKIPPABLE_MESSAGE_PATTERNS_BY_SOURCE: Record<string, RegExp[]> = {
+  jdcat: [/503 Service Temporarily Unavailable/i],
+  national_archives: [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i],
+  jacar: [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i],
+  nijl_articles: [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i],
+  kokusho: [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i],
+  ninjal_bibliography: [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i]
 };
 
 const OCR_FALLBACK_KEYWORD_BY_SOURCE: Record<string, string> = {
@@ -97,6 +109,15 @@ export function resolveLiveReportPath(baseDir: string, override?: string) {
   return path.resolve(baseDir, override ?? path.join("exports", "live-smoke-report.json"));
 }
 
+export function resolveSmokeRunMode(env: {
+  SMOKE_LIVE_MATRIX?: string;
+  SMOKE_LIVE_SOURCES?: string;
+}) {
+  return env.SMOKE_LIVE_MATRIX === "1" || Boolean(env.SMOKE_LIVE_SOURCES?.trim())
+    ? "matrix"
+    : "single";
+}
+
 export function resolveOcrFallbackKeyword(source: string, override?: string) {
   return override ?? OCR_FALLBACK_KEYWORD_BY_SOURCE[source] ?? "大政奉還";
 }
@@ -114,7 +135,11 @@ export function isSkippableLiveError(
   }
 
   const message = getLiveErrorMessage(result);
-  return source === "jdcat" && message.includes("503 Service Temporarily Unavailable");
+  return (
+    LIVE_SKIPPABLE_MESSAGE_PATTERNS_BY_SOURCE[source]?.some((pattern) =>
+      pattern.test(message)
+    ) ?? false
+  );
 }
 
 export function getLiveErrorMessage(result: {
@@ -722,7 +747,7 @@ async function mainSinglePass(): Promise<LiveSmokeStatus> {
 }
 
 export async function main() {
-  if (process.env.SMOKE_LIVE_MATRIX === "1") {
+  if (resolveSmokeRunMode(process.env) === "matrix") {
     await runLiveSmokeMatrix();
     return;
   }

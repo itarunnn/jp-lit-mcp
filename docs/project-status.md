@@ -1,10 +1,10 @@
 # 実装状況
 
-2026-05-08 時点の状態:
+2026-05-11 時点の状態:
 
-- 公開ツール 22 種・対応 source 16 種・テスト 437 件すべて通過
+- 公開ツール 22 種・対応 source 19 種・テスト 452 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
-- live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり
+- live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
 - `npx -y jp-lit-mcp` による MCP 起動導線を整備済み
 - `npx -y jp-lit-mcp install-skills <app>` による Skills インストール導線を整備済み
@@ -25,6 +25,7 @@
 
 ## 最近の更新
 
+- `nijl_articles` / `kokusho` / `ninjal_bibliography`: 国文学論文、国書・古典籍、日本語研究・日本語教育文献の専門 DB を明示 source として追加。既定横断には含めず、本文・画像・manifest 本体取得をしないメタデータ確認導線として運用
 - `jp_lit_list_sessions`: 過去の調査セッションを新しい順に一覧し、trace / 採用候補 / source / 作成・更新日時で再開候補を棚卸しできる tool を追加
 - `0.3.0`: `national_archives` / `jacar` を明示 source として追加。国立公文書館DA・JACAR の目録確認に対応し、既定横断には含めない慎重な導線として運用
 - 保存済み検索結果の refined export で、重複候補クラスタと `search_result_readiness` を確認できる導線を追加

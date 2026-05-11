@@ -18,6 +18,9 @@
 | `japan_search` | 公開 API に登録不要と読める | データごとに異なる | source 表記推奨、参加機関条件確認 | 個別コンテンツ条件確認 | metadata / thumbnail / content で条件が異なる |
 | `jdcat` | 利用者登録不要 | 配布者 / 提供者ごとに異なる | 配布者側条件確認 | 個別データ条件確認 | WEKO3 JSON API に依存するメタデータ横断検索 |
 | `nihu_bridge` | 登録要件は未確認 | 個別 DB / コンテンツ条件に依存 | 元 DB 側条件確認 | 個別確認が必要 | 利用者向け API 仕様書あり。ポータル的性格が強い |
+| `nijl_articles` | 登録要件は未確認 | 規程確認。営利目的は不可が原則 | 国文学研究資料館DB利用の明記が必要な場合あり | HTML best-effort。低頻度・キャッシュ前提 | 検索HTML、詳細HTMLで国文学論文目録を確認。本文・PDF・OPAC詳細は取得しない |
+| `kokusho` | 登録要件は未確認 | 規程確認。画像等は個別条件確認 | オープンデータは表示条件に従う | JSON endpoint shape 変更に注意。低頻度・キャッシュ前提 | 書誌・著作・所在・manifest URL まで。画像・manifest 本体・OCR は取得しない |
+| `ninjal_bibliography` | 登録要件は未確認 | 営利目的は協議が必要 | 国立国語研究所の条件確認 | HTML best-effort。低頻度・キャッシュ前提 | 書誌メタデータと本文リンクURLまで。本文 PDF・外部本文は取得しない |
 | `national_archives` | 二次利用申請不要と案内あり | 自由利用可と案内あり | 出典明示推奨 | Crawl-delay と高頻度アクセスに注意 | 検索HTML、RDF/XML、CSVで目録確認。画像本体は取得しない |
 | `jacar` | 一般利用可 | 規則確認 | JACAR利用規則を確認。資料画像の再利用時は画像側条件も確認 | Crawl-delay、不当な占有・浪費に注意 | 検索HTML、詳細HTML、CSVで目録確認。画像本体は取得しない |
 | `kokkai_minutes` | 不要 | NDL ウェブサイト規約に従う | 著作権帰属に注意 | 高負荷アクセス禁止、数秒空ける | 発言著作権に注意 |
@@ -251,6 +254,110 @@
 - JACAR利用規則: https://www.jacar.go.jp/termsofuse.html
 - robots.txt: https://www.digital.archives.go.jp/robots.txt
 - robots.txt: https://www.jacar.archives.go.jp/robots.txt
+
+### 国文学・アーカイブズ学論文データベース
+
+対象:
+
+- `nijl_articles`
+
+実装での利用:
+
+- 国文学・アーカイブズ学論文データベースのうち、国文学論文の検索 HTML と詳細 HTML を使います。
+- `jp_lit_search(source=nijl_articles, ...)` は `https://ronbun.nijl.ac.jp/search/books?q=...` を取得し、検索結果一覧から論文名、著者、掲載誌、巻号、発表年、国文研請求記号、時代分類、分野を best-effort で抽出します。
+- `jp_lit_get_record(source=nijl_articles, ...)` は `https://ronbun.nijl.ac.jp/kokubun/{8桁ID}` を取得し、詳細 HTML から同定用メタデータを補完します。
+- 本文、PDF、OPAC 詳細、採録誌 CSV、画像、アーカイブズ学文献の混在取得は対象外です。
+
+確認できたこと:
+
+- 国文学研究資料館の説明では、日本文学研究論文の総合目録データベースとして、日本国内発表の雑誌・紀要・単行本（論文集）等の論文情報を掲載しています。
+- データベース利用規程では、学術調査・学術研究・教育活動のため公開され、原則無償利用とされています。
+- オープンデータを除くデータベースを利用して研究成果等を公表する場合は、当館データベース利用の明記が求められます。
+- 営利目的利用は、認める旨の記載がある場合を除き不可とされています。
+- `https://ronbun.nijl.ac.jp/robots.txt` は確認時点で `User-agent: *` / `Disallow:` です。
+
+運用メモ:
+
+- 既定横断検索には含めず、国文学論文・国文研論文・日本文学研究論文を明示的に探す場合だけ使います。
+- 公式 API ではなく HTML 抽出なので、構造変更で壊れる可能性があります。引用・同定・再利用判断では公式レコード URL を確認します。
+- キャッシュ利用と低頻度アクセスを前提にし、検索結果や詳細 HTML の大量取得は避けます。
+- `availability.online=true` は公式詳細ページがあるという意味で、本文がオンラインで読めることを意味しません。
+
+参考:
+
+- 国文学・アーカイブズ学論文データベース: https://ronbun.nijl.ac.jp/
+- 検索例: https://ronbun.nijl.ac.jp/search/books?q=%E6%BA%90%E6%B0%8F%E7%89%A9%E8%AA%9E
+- robots.txt: https://ronbun.nijl.ac.jp/robots.txt
+- 国文学研究資料館 データベース一覧: https://www.nijl.ac.jp/db/
+
+### 国書データベース
+
+対象:
+
+- `kokusho`
+
+実装での利用:
+
+- `jp_lit_search(source=kokusho, ...)` は `https://kokusho.nijl.ac.jp/api/biblioSimpleSearch?searchkbn=simple&keyword=...` を使います。
+- `jp_lit_get_record(source=kokusho, ...)` は `https://kokusho.nijl.ac.jp/api/biblioDetail/{bid}` を使います。
+- 書誌、著作、所在、刊写、請求記号、画像有無、manifest URL、ライセンス URL をメタデータとして保持します。
+- IIIF manifest 本体、IIIF image API、画像本体、OCR、翻刻本文、全件収集は対象外です。
+
+確認できたこと:
+
+- 国文学研究資料館の説明では、国内外の機関が所蔵する古典籍の書誌情報と高精細画像を検索・利用できるデータベースとされています。
+- 国書データベースは、新日本古典籍総合データベース、日本古典籍総合目録データベース、館蔵和古書目録データベース等を統合しています。
+- データベース利用規程では、当館 DB は原則無償利用とされています。
+- オープンデータについては表示された利用条件に従ったクレジット記載が必要です。画像や本文テキスト等は個別の利用条件を持つため、MCP はメタデータと公式 URL に留めます。
+- `https://kokusho.nijl.ac.jp/robots.txt` は確認時点で `User-agent: *` / `Disallow:` です。
+
+運用メモ:
+
+- 既定横断検索には含めず、国書・古典籍・写本・版本を明示的に探す場合だけ使います。
+- JSON endpoint は公式アプリが使う公開導線ですが、独立 API 仕様書として確認したものではありません。レスポンス shape 変更で壊れる可能性があります。
+- `availability.online=true` は画像公開導線または manifest URL があることを意味し、画像や本文の再利用可否を確定するものではありません。
+- manifest URL は保存しますが、自動取得しません。画像利用や再配布判断は公式ページと個別ライセンスで確認します。
+
+参考:
+
+- 国書データベース: https://kokusho.nijl.ac.jp/
+- 検索例: https://kokusho.nijl.ac.jp/api/biblioSimpleSearch?searchkbn=simple&keyword=%E4%BC%8A%E5%8B%A2%E7%89%A9%E8%AA%9E
+- robots.txt: https://kokusho.nijl.ac.jp/robots.txt
+- 国文学研究資料館 データベース一覧: https://www.nijl.ac.jp/db/
+
+### 日本語研究・日本語教育文献データベース
+
+対象:
+
+- `ninjal_bibliography`
+
+実装での利用:
+
+- `jp_lit_search(source=ninjal_bibliography, ...)` は `https://bibdb.ninjal.ac.jp/bunken/ja/result?r_freeWord_search=...&lop=and&per=20&disp=snipet` を使います。
+- `jp_lit_get_record(source=ninjal_bibliography, ...)` は `https://bibdb.ninjal.ac.jp/bunken/ja/article/{文献ID}` を使います。
+- 書誌情報、分野、キーワード、研究図書室請求記号、本文リンク URL をメタデータとして保持します。
+- 本文 PDF、外部リポジトリ本文、検索結果全件の一括ダウンロード、研究図書室 OPAC の追加取得は対象外です。
+
+確認できたこと:
+
+- 公式説明では、日本語学・日本語教育に関する研究文献のデータベースとされています。
+- 1950年から現在までの関係論文・図書を検索でき、書誌情報に加えて分野情報を付与しています。
+- Web 上に公開されている論文には本文へのリンクが付くと説明されています。
+- 利用条件では、文献データベースの著作権は国立国語研究所が保有し、営利目的利用を希望する場合は国立国語研究所との協議が必要とされています。
+- `https://bibdb.ninjal.ac.jp/robots.txt` は確認時点で `GPTBot` を disallow しています。`User-agent: *` の全面禁止は確認できませんでしたが、高頻度アクセスや一括収集は避けます。
+
+運用メモ:
+
+- 既定横断検索には含めず、日本語研究・日本語教育文献・国語教育文献を明示的に探す場合だけ使います。
+- 公式 API ではなく HTML 抽出なので、構造変更で壊れる可能性があります。引用・同定・再利用判断では公式レコード URL を確認します。
+- `availability.online=true` は本文リンクの存在だけを意味し、本文読了や再利用可能性を意味しません。
+- 本文リンク URL は保存しますが、自動取得しません。
+
+参考:
+
+- 日本語研究・日本語教育文献データベース: https://bibdb.ninjal.ac.jp/bunken/ja/
+- データベース概要: https://bibdb.ninjal.ac.jp/bunken/ja/help/about
+- robots.txt: https://bibdb.ninjal.ac.jp/robots.txt
 
 ### 国会会議録検索 API
 

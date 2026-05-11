@@ -23,6 +23,7 @@ import {
   recordInputSchema,
   recordOutputSchema,
   searchInputSchema,
+  searchInputToolSchema,
   searchOutputSchema,
   textCoordinatesInputSchema,
   textCoordinatesOutputSchema,
@@ -62,6 +63,7 @@ import { createJapanSearchAdapter } from "./sources/japanSearch/adapter.js";
 import { createIrdbAdapter } from "./sources/irdb/adapter.js";
 import { createJdcatAdapter } from "./sources/jdcat/adapter.js";
 import { createJstageArticlesAdapter } from "./sources/jstage/adapter.js";
+import { createKokushoAdapter } from "./sources/kokusho/adapter.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import {
   createNdlArticlesAdapter,
@@ -71,6 +73,8 @@ import {
 } from "./sources/ndlSearch/adapter.js";
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
 import { createNihuBridgeAdapter } from "./sources/nihuBridge/adapter.js";
+import { createNijlArticlesAdapter } from "./sources/nijlArticles/adapter.js";
+import { createNinjalBibliographyAdapter } from "./sources/ninjalBibliography/adapter.js";
 import { createNationalArchivesAdapter } from "./sources/nationalArchives/adapter.js";
 import { createJacarAdapter } from "./sources/jacar/adapter.js";
 import { createCrdClient } from "./sources/crd/client.js";
@@ -124,6 +128,9 @@ interface ServerEnv {
   NIHU_BRIDGE_RECORD_BASE_URL?: string;
   NATIONAL_ARCHIVES_BASE_URL?: string;
   JACAR_BASE_URL?: string;
+  NIJL_ARTICLES_BASE_URL?: string;
+  KOKUSHO_BASE_URL?: string;
+  NINJAL_BIBLIOGRAPHY_BASE_URL?: string;
   CRD_API_BASE_URL?: string;
   NDL_AUTHORITIES_SPARQL_URL?: string;
 }
@@ -276,6 +283,17 @@ export function resolveAdapterOptionsFromEnv(env: ServerEnv = process.env) {
       ...(env.NIHU_BRIDGE_SEARCH_URL ? { searchUrl: env.NIHU_BRIDGE_SEARCH_URL } : {}),
       ...(env.NIHU_BRIDGE_RECORD_BASE_URL ? { recordBaseUrl: env.NIHU_BRIDGE_RECORD_BASE_URL } : {})
     },
+    nijlArticles: {
+      ...(env.NIJL_ARTICLES_BASE_URL ? { baseUrl: env.NIJL_ARTICLES_BASE_URL } : {})
+    },
+    kokusho: {
+      ...(env.KOKUSHO_BASE_URL ? { baseUrl: env.KOKUSHO_BASE_URL } : {})
+    },
+    ninjalBibliography: {
+      ...(env.NINJAL_BIBLIOGRAPHY_BASE_URL
+        ? { baseUrl: env.NINJAL_BIBLIOGRAPHY_BASE_URL }
+        : {})
+    },
     ...(env.NATIONAL_ARCHIVES_BASE_URL
       ? {
           nationalArchives: {
@@ -327,6 +345,9 @@ export function createServer(env: ServerEnv = process.env) {
     createKokkaiAdapter(adapterOptions.kokkai),
     createTeikokuAdapter(adapterOptions.teikoku),
     createNihuBridgeAdapter(adapterOptions.nihuBridge),
+    createNijlArticlesAdapter(adapterOptions.nijlArticles),
+    createKokushoAdapter(adapterOptions.kokusho),
+    createNinjalBibliographyAdapter(adapterOptions.ninjalBibliography),
     createNationalArchivesAdapter(adapterOptions.nationalArchives),
     createJacarAdapter(adapterOptions.jacar)
   ];
@@ -375,8 +396,8 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search",
     {
-      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。national_archives / jacar は既定横断に含めず、公文書・外交・軍事・旧外地資料などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
-      inputSchema: searchInputSchema,
+      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
+      inputSchema: searchInputToolSchema,
       outputSchema: searchOutputSchema
     },
     searchTool
@@ -435,7 +456,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_record",
     {
-      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
+      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
       inputSchema: recordInputSchema,
       outputSchema: recordOutputSchema
     },

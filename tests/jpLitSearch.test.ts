@@ -536,7 +536,30 @@ describe("createSearchService", () => {
       japanSearch: {},
       kokkai: {},
       teikoku: {},
-      nihuBridge: {}
+      nihuBridge: {},
+      nijlArticles: {},
+      kokusho: {},
+      ninjalBibliography: {}
+    });
+  });
+
+  it("server 用の環境変数から専門 DB adapter base URL を解決する", () => {
+    const config = resolveAdapterOptionsFromEnv({
+      NIJL_ARTICLES_BASE_URL: "https://ronbun.example.test",
+      KOKUSHO_BASE_URL: "https://kokusho.example.test",
+      NINJAL_BIBLIOGRAPHY_BASE_URL: "https://bibdb.example.test"
+    });
+
+    expect(config).toMatchObject({
+      nijlArticles: {
+        baseUrl: "https://ronbun.example.test"
+      },
+      kokusho: {
+        baseUrl: "https://kokusho.example.test"
+      },
+      ninjalBibliography: {
+        baseUrl: "https://bibdb.example.test"
+      }
     });
   });
 
@@ -565,7 +588,10 @@ describe("createSearchService", () => {
       japanSearch: {},
       kokkai: {},
       teikoku: {},
-      nihuBridge: {}
+      nihuBridge: {},
+      nijlArticles: {},
+      kokusho: {},
+      ninjalBibliography: {}
     });
   });
 
@@ -593,7 +619,10 @@ describe("createSearchService", () => {
       japanSearch: {},
       kokkai: {},
       teikoku: {},
-      nihuBridge: {}
+      nihuBridge: {},
+      nijlArticles: {},
+      kokusho: {},
+      ninjalBibliography: {}
     });
   });
 
@@ -908,6 +937,78 @@ describe("createSearchService", () => {
     ]);
   });
 
+  it("横断検索の既定 source から専門 DB source は除外する", async () => {
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_catalog", "1", "catalog-result")]
+      }),
+      getRecord: async () => null
+    };
+    const nijlArticlesSearch = vi.fn().mockResolvedValue({
+      total: 1,
+      items: [
+        createSearchItem(
+          "nijl_articles" as SearchItem["source"],
+          "2",
+          "nijl-result"
+        )
+      ]
+    });
+    const kokushoSearch = vi.fn().mockResolvedValue({
+      total: 1,
+      items: [
+        createSearchItem("kokusho" as SearchItem["source"], "3", "kokusho-result")
+      ]
+    });
+    const ninjalBibliographySearch = vi.fn().mockResolvedValue({
+      total: 1,
+      items: [
+        createSearchItem(
+          "ninjal_bibliography" as SearchItem["source"],
+          "4",
+          "ninjal-result"
+        )
+      ]
+    });
+    const nijlArticlesAdapter = {
+      source: "nijl_articles",
+      search: nijlArticlesSearch,
+      getRecord: async () => null
+    } as unknown as SourceAdapter;
+    const kokushoAdapter = {
+      source: "kokusho",
+      search: kokushoSearch,
+      getRecord: async () => null
+    } as unknown as SourceAdapter;
+    const ninjalBibliographyAdapter = {
+      source: "ninjal_bibliography",
+      search: ninjalBibliographySearch,
+      getRecord: async () => null
+    } as unknown as SourceAdapter;
+    const service = createSearchService([
+      ndlCatalogAdapter,
+      nijlArticlesAdapter,
+      kokushoAdapter,
+      ninjalBibliographyAdapter
+    ]);
+
+    const result = await service.search({
+      query: "源氏物語",
+      limit: 10,
+      page: 1
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      createSearchItem("ndl_catalog", "1", "catalog-result")
+    ]);
+    expect(nijlArticlesSearch).not.toHaveBeenCalled();
+    expect(kokushoSearch).not.toHaveBeenCalled();
+    expect(ninjalBibliographySearch).not.toHaveBeenCalled();
+  });
+
   it("search 入力スキーマで source=irdb + filters.irdb を受け付ける", () => {
     const parsed = searchInputSchema.parse({
       query: "夏目漱石",
@@ -948,6 +1049,25 @@ describe("createSearchService", () => {
       source: "nihu_bridge"
     });
     expect(parsed.source).toBe("nihu_bridge");
+  });
+
+  it("search 入力スキーマで専門 DB source を明示指定として受け付ける", () => {
+    const nijlArticles = searchInputSchema.parse({
+      query: "源氏物語",
+      source: "nijl_articles"
+    });
+    const kokusho = searchInputSchema.parse({
+      query: "伊勢物語",
+      source: "kokusho"
+    });
+    const ninjalBibliography = searchInputSchema.parse({
+      query: "日本語教育",
+      source: "ninjal_bibliography"
+    });
+
+    expect(nijlArticles.source).toBe("nijl_articles");
+    expect(kokusho.source).toBe("kokusho");
+    expect(ninjalBibliography.source).toBe("ninjal_bibliography");
   });
 
   it("search 入力スキーマで source=nihu_bridge + filters.nihu_bridge を受け付ける", () => {

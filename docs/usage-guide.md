@@ -661,7 +661,28 @@ kokkai_minutes
 teikoku_minutes
 national_archives
 jacar
+nijl_articles
+kokusho
+ninjal_bibliography
 ```
+
+### 専門 DB を明示指定する例
+
+日本文学論文、古典籍、日本語研究・日本語教育文献を狙う場合は、既定横断ではなく専門 source を明示します。
+
+```text
+jp_lit_search(source=nijl_articles, query="源氏物語 受容")
+jp_lit_search(source=kokusho, query="伊勢物語")
+jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
+```
+
+- 日本文学論文・国文学論文・国文研論文: `nijl_articles`
+- 古典籍・国書・写本・版本: `kokusho`
+- 日本語研究・日本語教育文献・国語教育文献: `ninjal_bibliography`
+
+これらは専門 DB のメタデータ確認用です。`kokusho` の manifest URL や `ninjal_bibliography` の本文リンク URL は保持しますが、manifest 本体、画像本体、OCR、PDF 本文、外部本文は取得しません。
+
+有料 DB、文化資源 DB や地域アーカイブ DB は固定 source 化しません。契約 DB は人間が次に確認する場所として案内し、文化資源・地域アーカイブはまず `japan_search`、`nihu_bridge`、リサーチ・ナビ、レファ協を使って入口を作ります。
 
 ## 主な DB / source の概要
 
@@ -680,6 +701,9 @@ jacar
 | `irdb`                | IRDB。国内機関リポジトリの横断検索                                        | 紀要、学位論文、研究報告書、機関公開論文                               | 既定横断検索には含まれません                                                                                     |
 | `jdcat`               | JDCat。人文学・社会科学系の研究データカタログ                             | 調査データ、統計データ、研究データセット                               | データ本体が無条件公開とは限りません                                                                             |
 | `nihu_bridge`         | NIHU Bridge。人間文化研究機構系の専門 DB 横断                             | 国文学・歴史・民俗・日本語学など人文学専門資料                         | 横断検索に含まれます。NIHU 傘下 7 機関 100+ DB を横断します                                                      |
+| `nijl_articles`       | 国文学・アーカイブズ学論文DB                                               | 国文学論文、日本文学研究論文、国文研論文                               | 既定横断検索には含まれません。HTML best-effort で、本文・PDF・OPAC 詳細追跡は取得しません                         |
+| `kokusho`             | 国書データベース                                                           | 国書・古典籍・写本・版本の著作、書誌、所在確認                         | 既定横断検索には含まれません。manifest URL は保持しますが、manifest 本体・画像・OCR は取得しません                 |
+| `ninjal_bibliography` | 日本語研究・日本語教育文献データベース                                     | 日本語研究、日本語教育文献、国語教育文献                               | 既定横断検索には含まれません。本文リンク URL は保持しますが、本文 PDF や外部本文は取得しません                    |
 | `national_archives`   | 国立公文書館デジタルアーカイブ                                             | 官庁資料、内閣・太政官・省庁、特定歴史公文書、国立公文書館所蔵資料     | 既定横断検索には含まれません。目録確認用で、画像本体・OCR は取得せず公式レコード URL へ案内します                 |
 | `jacar`               | アジア歴史資料センター（JACAR）                                             | 近現代アジア、外交、軍事、旧外地、植民地、朝鮮・台湾・関東州関係資料   | 既定横断検索には含まれません。目録確認用で、画像本体・OCR は取得せず公式レコード URL へ案内します                 |
 | `japan_search`        | Japan Search。文化資源メタデータの横断ポータル                            | 美術、文化財、地域資料、博物館資料                                     | 最終確認は元機関 DB で行ってください                                                                             |

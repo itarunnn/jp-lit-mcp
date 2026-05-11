@@ -95,11 +95,16 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 - `jstage_articles`: 学会誌・研究論文
 - `irdb`: 大学の機関リポジトリ
 - `nihu_bridge`: 人文学系専門 DB の横断検索
+- `nijl_articles`: 国文学論文・日本文学研究論文の専門目録
+- `kokusho`: 国書・古典籍・写本・版本の書誌、著作、所在確認
+- `ninjal_bibliography`: 日本語研究・日本語教育文献・国語教育文献
 - `national_archives`: 国立公文書館DAの官庁資料・特定歴史公文書
 - `jacar`: JACAR の外交・軍事・旧外地・近現代アジア歴史資料
 - `kokkai_minutes` / `teikoku_minutes`: 国会・帝国議会会議録
 - `jdcat`: 人文学・社会科学系の研究データ
 - `japan_search`: 文化財・博物館・地域資料
+
+`nijl_articles` / `kokusho` / `ninjal_bibliography` は、目的がはっきりしているときだけ source を明示して使う専門 DB です。既定の横断検索には含めません。
 
 一覧と実装上の注意点は [技術リファレンス](docs/reference.md) にまとめています。
 

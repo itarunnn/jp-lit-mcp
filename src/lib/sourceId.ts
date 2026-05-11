@@ -9,6 +9,7 @@ const JDCAT_SOURCE_ID_PATTERN = /^\d+$/;
 const JSTAGE_SOURCE_ID_PATTERN = /^\/article\/[A-Za-z0-9._~!$&'()*+,;=:@%-]+(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%-]+)*\/?$/;
 const NATIONAL_ARCHIVES_SOURCE_ID_PATTERN = /^\d+$/;
 const JACAR_SOURCE_ID_PATTERN = /^[A-Z]\d{10,}$/;
+const NIJL_ARTICLES_SOURCE_ID_PATTERN = /^\d{8}$/;
 const GENERIC_SAFE_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const NDL_PID_PATTERN = /^\d+$/;
 
@@ -60,10 +61,15 @@ export function validateSourceId(source: SourceName, sourceId: string): string {
     case "jacar":
       assertSourceId(source, trimmed, JACAR_SOURCE_ID_PATTERN, "A01000012800");
       break;
+    case "nijl_articles":
+      assertSourceId(source, trimmed, NIJL_ARTICLES_SOURCE_ID_PATTERN, "00000002");
+      break;
     case "japan_search":
     case "kokkai_minutes":
     case "teikoku_minutes":
     case "nihu_bridge":
+    case "kokusho":
+    case "ninjal_bibliography":
       assertSourceId(source, trimmed, GENERIC_SAFE_ID_PATTERN, "英数字・._:- のみ");
       break;
     default: {

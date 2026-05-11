@@ -27,7 +27,7 @@ jstage_articles
 nihu_bridge
 ```
 
-`ndl_search` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` / `national_archives` / `jacar` は、目的がはっきりしているときに `source` を明示して使います。`national_archives` / `jacar` は公文書・外交・軍事・旧外地資料などの下位導線です。通常の文献探索の既定横断には含めません。
+`ndl_search` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` / `national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography` は、目的がはっきりしているときに `source` を明示して使います。`national_archives` / `jacar` は公文書・外交・軍事・旧外地資料などの下位導線です。`nijl_articles` は国文学論文・国文研論文、`kokusho` は国書・古典籍、`ninjal_bibliography` は日本語研究・日本語教育文献を探すための専門 DB です。通常の文献探索の既定横断には含めません。
 
 ### データ量を抑える設計
 
@@ -52,6 +52,9 @@ nihu_bridge
 | `irdb` | IRDB OpenSearch Atom | IRDB 詳細 HTML | no | 機関リポジトリ。`filters.irdb` 対応 |
 | `jdcat` | JDCat JSON API | JDCat JSON API | no | 人文学・社会科学系の研究データ。論文・図書の既定横断には含めない |
 | `nihu_bridge` | nihuBridge POST | nihuBridge REST | yes | 人文学系専門 DB 横断。`filters.nihu_bridge` 対応 |
+| `nijl_articles` | 国文学・アーカイブズ学論文DB検索 HTML | 詳細 HTML | no | 国文学論文・日本文学研究論文の専門目録。HTML best-effort。本文・PDF・OPAC 追跡は取得しない |
+| `kokusho` | 国書DB JSON endpoint | 国書DB JSON endpoint | no | 国書・古典籍の書誌、著作、所在、画像公開導線の確認。manifest URL は保持するが、manifest 本体・画像・OCR は取得しない |
+| `ninjal_bibliography` | NINJAL文献DB検索 HTML | 詳細 HTML | no | 日本語研究・日本語教育・国語教育文献。本文リンク URL は保持するが、本文は取得しない |
 | `national_archives` | 国立公文書館DA検索 HTML | RDF/XML + CSV | no | 特定歴史公文書、官庁資料、内閣・太政官・省庁資料の目録確認。画像本体・OCR は取得しない |
 | `jacar` | JACAR検索 HTML | 詳細 HTML + CSV | no | 近現代アジア、外交、軍事、旧外地、植民地、朝鮮・台湾・関東州関係資料の目録確認。画像本体・OCR は取得しない |
 | `japan_search` | Japan Search API | Japan Search API | no | 文化資源・美術・地域資料。最終確認は元機関 DB で行う |
@@ -106,6 +109,9 @@ nihu_bridge
 | `cinii_books` | `holding_count`, `holdings[]` |
 | `jstage_articles` | `pdf_url`, `article_url` |
 | `irdb` | `source_uri`, `repository_name`, `publication_type` |
+| `nijl_articles` | `nijl_article_id`, `volume`, `serial_number`, `period_classification`, `field`, `nijl_call_number`, `opac_url`, `raw_fields` |
+| `kokusho` | `bid`, `wid`, `record_kind`, `work_title`, `collection`, `call_number`, `kansha`, `volumes`, `has_images`, `manifest_url`, `license_url`, `shubetsu` |
+| `ninjal_bibliography` | `bibliography_id`, `db_kind`, `library_call_number`, `volume`, `pages`, `keywords`, `fields`, `fulltext_links`, `raw_fields` |
 | `kokkai_minutes` / `teikoku_minutes` | 会議・発言単位の識別情報 |
 | `national_archives` / `jacar` | `hierarchy`, `call_number`, `holding_institution`, `creator`, `image_count`, `has_images`, `access_restriction`, `raw_csv`。`jacar` には `reference_code` も入る |
 
@@ -138,7 +144,7 @@ nihu_bridge
 - `ndl_search` / `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online`: 対応
 - `cinii_articles` / `cinii_books`: `issued_date` のみ対応
 - `japan_search`: `issued_from` / `issued_to` を `r-tempo` に変換
-- `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge` / `national_archives` / `jacar`: 未対応
+- `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge` / `national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography`: 未対応
 
 レスポンスの `cache`:
 
@@ -211,6 +217,12 @@ nihu_bridge
 `source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。
 
 `source=national_archives` / `source=jacar` の場合、目録メタデータ、公式レコード URL、画像数や利用制限などを返します。`source_id` は `national_archives` が数値 ID、`jacar` がレファレンスコードです。画像ファイル本体、IIIF manifest、OCR 本文、ページ単位検索は初期スコープ外です。403 が返る場合は VPN やネットワーク制限の可能性があります。
+
+`source=nijl_articles` の場合、国文学・アーカイブズ学論文データベースの国文学論文 HTML から書誌メタデータを best-effort で抽出します。`source_id` は 8 桁 ID です。詳細は公式レコード URL、掲載誌、巻号、発表年月日、時代分類・分野、国文研請求記号、OPAC 入口 URL を返します。本文・PDF・OPAC 詳細の追加取得は初期スコープ外です。
+
+`source=kokusho` の場合、国書データベースの書誌 JSON から古典籍の書誌・著作・所在メタデータを返します。`source_id` は `bid` です。画像がある資料では `source_metadata.manifest_url` や `license_url` を保持しますが、IIIF manifest 本体、画像本体、OCR、翻刻本文は取得しません。
+
+`source=ninjal_bibliography` の場合、日本語研究・日本語教育文献データベースの HTML から論文・図書の書誌メタデータを best-effort で抽出します。`source_id` は文献IDです。本文リンクがある場合は `source_metadata.fulltext_links` と `content_access.viewer_url` に URL を保持しますが、本文ファイル自体は取得しません。
 
 ### 調べ方・類似事例
 
@@ -541,6 +553,9 @@ jp_lit_search_illustrations(keyword="富士山")
 | `TEIKOKU_MEETING_BASE_URL` | `https://teikokugikai-i.ndl.go.jp/api/emp/meeting` | 帝国議会詳細 |
 | `NIHU_BRIDGE_SEARCH_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas/search` | NIHU Bridge 検索 |
 | `NIHU_BRIDGE_RECORD_BASE_URL` | `https://api.bridge.nihu.jp/v1/integratedsearch/metadatas` | NIHU Bridge 詳細 |
+| `NIJL_ARTICLES_BASE_URL` | `https://ronbun.nijl.ac.jp` | 国文学・アーカイブズ学論文DB |
+| `KOKUSHO_BASE_URL` | `https://kokusho.nijl.ac.jp` | 国書データベース |
+| `NINJAL_BIBLIOGRAPHY_BASE_URL` | `https://bibdb.ninjal.ac.jp` | 日本語研究・日本語教育文献DB |
 | `NATIONAL_ARCHIVES_BASE_URL` | `https://www.digital.archives.go.jp` | 国立公文書館DA |
 | `JACAR_BASE_URL` | `https://www.jacar.archives.go.jp` | JACAR |
 | `CRD_API_BASE_URL` | `https://crd.ndl.go.jp/api/refsearch` | レファレンス協同データベース API |
@@ -617,6 +632,14 @@ live smoke の主な環境変数:
 
 `SMOKE_LIVE_SOURCE=ndl_digital` のときは、`next_digital_library.available=true` の資料があれば OCR 系ツールも検証します。`SMOKE_LIVE_SOURCE=cinii_books` のときは `holding_count` / `holdings[]` も確認します。`jdcat` は upstream `503 Service Temporarily Unavailable` のときだけ skip 扱いにします。
 
+`nijl_articles` / `kokusho` / `ninjal_bibliography` は既定の live smoke matrix には含めません。上流 HTML や公開 JSON endpoint の状態に左右されるため、確認したい場合だけ明示します。
+
+```powershell
+$env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_SOURCES="nijl_articles,kokusho,ninjal_bibliography"; npm run smoke:mcp
+```
+
+明示時の既定 query は、`nijl_articles` が `源氏物語`、`kokusho` が `伊勢物語`、`ninjal_bibliography` が `日本語教育` です。`national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography` は、403、429、上流メンテナンス、一時利用不可の応答を live smoke の skip 条件として扱います。
+
 ## 既知の制約
 
 - `ndl_digital` は独立 API ではなく `NDL Search SRU + dpid=ndl-dl` を使います。
@@ -646,6 +669,15 @@ live smoke の主な環境変数:
 - `national_archives` / `jacar` は目録確認用です。画像本体、IIIF、OCR、`/contentDownload/*` / `/aj/contentDownload/*` は取得しません。
 - `national_archives` / `jacar` は検索 HTML と詳細補強用 CSV / RDF / HTML の best-effort 抽出です。HTML 構造変更で壊れる可能性があるため、重要な同定は公式レコード URL で確認してください。
 - `national_archives` / `jacar` は上流の `Crawl-delay: 30` とコンテンツダウンロード禁止を尊重し、キャッシュ利用と低頻度アクセスを前提にしてください。
+- `nijl_articles` は既定横断検索に含めていません。国文学論文・国文研論文・日本文学研究論文を明示的に探す場合だけ使います。
+- `nijl_articles` は検索 HTML と詳細 HTML の best-effort 抽出です。HTML 構造変更で壊れる可能性があるため、重要な同定は公式レコード URL で確認してください。
+- `nijl_articles` は本文・PDF・OPAC 詳細追跡・採録誌 CSV の大量取得を行いません。OPAC URL は補助リンクとして `source_metadata.opac_url` に保持するだけです。
+- `kokusho` は既定横断検索に含めていません。国書・古典籍・写本・版本を明示的に探す場合だけ使います。
+- `kokusho` は公式アプリが使う JSON endpoint に依存しますが、独立 API 仕様書として確認したものではありません。レスポンス shape の変更で壊れる可能性があります。
+- `kokusho` は manifest URL やライセンス URL をメタデータとして保持しますが、IIIF manifest 本体、画像 API、画像本体、OCR、翻刻本文は取得しません。
+- `ninjal_bibliography` は既定横断検索に含めていません。日本語研究・日本語教育文献・国語教育文献を明示的に探す場合だけ使います。
+- `ninjal_bibliography` は検索 HTML と詳細 HTML の best-effort 抽出です。HTML 構造変更で壊れる可能性があるため、重要な同定は公式レコード URL で確認してください。
+- `ninjal_bibliography` は本文リンク URL を保持しますが、本文 PDF や外部リポジトリ本文は取得しません。
 
 ### `jp_lit_refine_results`
 

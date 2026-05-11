@@ -14,7 +14,10 @@ export type SourceName =
   | "teikoku_minutes"
   | "nihu_bridge"
   | "national_archives"
-  | "jacar";
+  | "jacar"
+  | "nijl_articles"
+  | "kokusho"
+  | "ninjal_bibliography";
 
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 

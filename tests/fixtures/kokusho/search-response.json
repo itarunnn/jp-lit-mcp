@@ -1,0 +1,41 @@
+[
+  {
+    "bid": 100335909,
+    "name": "伊勢物語",
+    "yomi": "いせものがたり",
+    "collection": "九大春日",
+    "seikyu": "DIG-KYUS-00720",
+    "kansha": "刊",
+    "year": "天明３",
+    "satsu": "３冊",
+    "shubetsu": "M",
+    "image": "1",
+    "wid": 92648,
+    "wname": "伊勢の浜荻",
+    "wkeyword": "国学",
+    "wauthor": "秋元／安民",
+    "wyear": "嘉永六自序・奥書",
+    "syear": 1783,
+    "eyear": 1783,
+    "authorhead": "秋元／安民",
+    "authorlist": ["秋元／安民"]
+  },
+  {
+    "bid": 100033055,
+    "name": "伊勢名物通神風",
+    "collection": "東洋文庫",
+    "seikyu": "033-0109-003",
+    "kansha": "刊",
+    "year": "文化１５",
+    "satsu": "１冊",
+    "shubetsu": "M",
+    "image": "0",
+    "wid": 92795,
+    "wname": "伊勢名物通神風",
+    "wkeyword": "合巻",
+    "wauthor": "式亭／三馬 作",
+    "syear": 1818,
+    "eyear": 1818,
+    "authorlist": ["式亭／三馬 作", "歌川／国直 画"]
+  }
+]

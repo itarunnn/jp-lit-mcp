@@ -13,6 +13,7 @@ import {
   resolveLiveReportPath,
   resolveLiveRetryCount,
   resolveOcrFallbackKeyword,
+  resolveSmokeRunMode,
   resolveLiveSmokeSources,
   resolveLiveSmokeQuery
 } from "../scripts/smoke-mcp.js";
@@ -113,6 +114,38 @@ describe("smoke-mcp tool manifest", () => {
     }
   });
 
+  it("publishes specialist explicit sources in jp_lit_search and jp_lit_get_record schemas", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-source-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const searchTool = tools.find((tool) => tool.name === "jp_lit_search");
+      const recordTool = tools.find((tool) => tool.name === "jp_lit_get_record");
+      const searchSourceEnum = (searchTool?.inputSchema.properties?.source as { enum?: string[] } | undefined)
+        ?.enum;
+      const recordSourceEnum = (recordTool?.inputSchema.properties?.source as { enum?: string[] } | undefined)
+        ?.enum;
+
+      expect(searchSourceEnum).toEqual(
+        expect.arrayContaining(["nijl_articles", "kokusho", "ninjal_bibliography"])
+      );
+      expect(recordSourceEnum).toEqual(
+        expect.arrayContaining(["nijl_articles", "kokusho", "ninjal_bibliography"])
+      );
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("uses source-specific default queries for sparse providers", () => {
     expect(resolveLiveSmokeQuery("jstage_articles", undefined)).toBe("癌");
     expect(resolveLiveSmokeQuery("ndl_catalog", undefined)).toBe("菊池寛");
@@ -120,6 +153,9 @@ describe("smoke-mcp tool manifest", () => {
     expect(resolveLiveSmokeQuery("teikoku_minutes", undefined)).toBe("賭博");
     expect(resolveLiveSmokeQuery("national_archives", undefined)).toBe("太政官");
     expect(resolveLiveSmokeQuery("jacar", undefined)).toBe("台湾総督府");
+    expect(resolveLiveSmokeQuery("nijl_articles", undefined)).toBe("源氏物語");
+    expect(resolveLiveSmokeQuery("kokusho", undefined)).toBe("伊勢物語");
+    expect(resolveLiveSmokeQuery("ninjal_bibliography", undefined)).toBe("日本語教育");
     expect(resolveLiveSmokeQuery("jstage_articles", "材料")).toBe("材料");
   });
 
@@ -173,6 +209,29 @@ describe("smoke-mcp tool manifest", () => {
     ).toBe(false);
   });
 
+  it("treats explicit HTML and specialist source upstream blocks as skippable live smoke failures", () => {
+    for (const source of [
+      "national_archives",
+      "jacar",
+      "nijl_articles",
+      "kokusho",
+      "ninjal_bibliography"
+    ]) {
+      expect(
+        isSkippableLiveError(source, {
+          isError: true,
+          content: [{ type: "text", text: "Upstream request failed: 429 Too Many Requests" }]
+        })
+      ).toBe(true);
+      expect(
+        isSkippableLiveError(source, {
+          isError: true,
+          content: [{ type: "text", text: "Upstream maintenance window" }]
+        })
+      ).toBe(true);
+    }
+  });
+
   it("exposes stable default live smoke matrix sources", () => {
     expect(LIVE_MATRIX_SOURCES).toEqual([
       "ndl_catalog",
@@ -185,6 +244,9 @@ describe("smoke-mcp tool manifest", () => {
       "irdb",
       "jdcat"
     ]);
+    expect(LIVE_MATRIX_SOURCES).not.toContain("nijl_articles");
+    expect(LIVE_MATRIX_SOURCES).not.toContain("kokusho");
+    expect(LIVE_MATRIX_SOURCES).not.toContain("ninjal_bibliography");
   });
 
   it("resolves live smoke sources from override or default matrix", () => {
@@ -193,6 +255,21 @@ describe("smoke-mcp tool manifest", () => {
       "ndl_catalog",
       "jdcat"
     ]);
+    expect(
+      resolveLiveSmokeSources("nijl_articles,kokusho,ninjal_bibliography")
+    ).toEqual(["nijl_articles", "kokusho", "ninjal_bibliography"]);
+  });
+
+  it("runs matrix mode when SMOKE_LIVE_SOURCES is provided", () => {
+    expect(resolveSmokeRunMode({ SMOKE_LIVE_MATRIX: "1" })).toBe("matrix");
+    expect(
+      resolveSmokeRunMode({
+        SMOKE_LIVE: "1",
+        SMOKE_LIVE_SOURCES: "nijl_articles,kokusho,ninjal_bibliography"
+      })
+    ).toBe("matrix");
+    expect(resolveSmokeRunMode({ SMOKE_LIVE: "1" })).toBe("single");
+    expect(resolveSmokeRunMode({})).toBe("single");
   });
 
   it("uses stable defaults for live retry count", () => {
