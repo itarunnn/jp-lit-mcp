@@ -72,7 +72,7 @@ LLM                      = 結果の統合と説明
 3. `ndl_digital` で官報・雑誌・新聞等の一次資料
 4. 議会関連なら `kokkai_minutes` / `teikoku_minutes`
 
-**なぜこの順か:** 近現代史は図書・論文が豊富なため、NDL・CiNii 系 source が基礎候補になる。一次資料はデジコレに多数収録されている。
+**なぜこの順か:** 近現代史は図書・論文が豊富なため、NDL・CiNii 系 source が重要な入口になる。一次資料はデジコレに多数収録されている。
 
 ---
 
@@ -134,7 +134,7 @@ LLM                      = 結果の統合と説明
 
 最低限、次を決める。
 
-- 最初に使う source（2〜4 個まで）
+- 最初に使う source（`ndl_search` + `japan_search` + 調べ方で示唆された source）
 - 初手の検索語（2〜5 個まで）
 - 調査順序
 - 先に確認すべき参考資料や索引
@@ -155,6 +155,7 @@ LLM                      = 結果の統合と説明
 ▍今回の調査計画
 - 使う source: ...
 - 検索語: ...
+- 参考書誌・有料DBの次アクション: ...
 - 調査順序: ...
 - 初手で確認すること: ...
 
@@ -182,7 +183,7 @@ LLM                      = 結果の統合と説明
 【〇〇の調べ方案内】
 
 1. まずメタデータ検索
-   → ndl_search / japan_search を基礎候補にし、調べ方案内で示唆された専門 DB / source を加えて 2〜4 個に絞る
+   → ndl_search / japan_search を既定セットにし、調べ方案内で示唆された専門 DB / source を加える
 
 2. 論文・紀要
    → cinii_articles / jstage_articles / ndl_articles / irdb
