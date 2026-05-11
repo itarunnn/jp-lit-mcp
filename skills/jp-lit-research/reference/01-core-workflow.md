@@ -38,6 +38,8 @@
 - 「今の検索を並び替えて」「この条件で絞って」系の依頼は、まず `jp_lit_refine_results` を使う
 - `jp_lit_refine_results` はローカルキャッシュ済みの `jp_lit_search` 結果を再処理するため、upstream 再検索より速く、追加ノイズも増やしにくい
 - `jp_lit_refine_results` で足りない場合のみ、query/source を変えた再検索へ進む
+- cached tool の `cache.hit=true` は保存済み結果の再利用を意味する。返答では `cache.saved_at` と、上流 API へ再検索していないことを明示する
+- 最新データが必要な場合だけ `force_refresh=true` を使う。通常の継続調査・再整理では明示リフレッシュしない
 - 既存結果の再整理では `total_before` / `total_after`、適用条件、表示件数を示す
 - export や annotation を求められた場合は、`selected_items.note` に個別候補の理由、`notes` に検索全体の選別理由を残す
 - 調査経過の保存は `jp_lit_update_session_trace` を使う。`source_plan_count` などの count は追加件数ではなく更新後の合計件数として扱う

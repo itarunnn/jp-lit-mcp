@@ -11,8 +11,8 @@
 - japan_search_or_existing_source_overlap: 一部は Japan Search / nihuBridge / CiNii Research / Web NDL Authorities と連携しているが、国書データベース本体の書誌 ID、著作 ID、種別、刊写、所在、画像有無、請求記号、manifest、利用条件が調査上重要。
 - unique_value: 新日本古典籍総合データベース、日本古典籍総合目録データベース、館蔵和古書目録データベース等を統合した古典籍 DB。著作・書誌・所在・画像公開導線をまとめて確認できる。
 - access_method: Vue app が利用している JSON endpoint。簡易検索は `GET https://kokusho.nijl.ac.jp/api/biblioSimpleSearch?searchkbn=simple&keyword=...`、詳細は `GET https://kokusho.nijl.ac.jp/api/biblioDetail/{bid}`。公開ページは `/biblio/{bid}`。
-- allowed_scope: 書誌・著作・所在・公式 URL・画像有無・manifest URL・ライセンス URL のメタデータ確認まで。低頻度・キャッシュ前提。
-- excluded_scope: 画像本体のダウンロード、IIIF image API の取得、全コマ manifest の深掘り、OCR、翻刻本文の大量取得、画像解析。
+- allowed_scope: 書誌・著作・所在・公式 URL・画像有無・manifest URL・ライセンス URL のメタデータ確認、本文検索 endpoint のスニペット、画像タグ endpoint のタグ・コマ・画像パス文字列まで。低頻度・キャッシュ前提。
+- excluded_scope: 画像本体のダウンロード、IIIF image API の取得、全コマ manifest の深掘り、本文全体・翻刻/OCR本文の一括取得、画像解析。
 - fragility: JSON endpoint は公式アプリが使う公開導線だが、独立した API 仕様書として確認したものではない。レスポンス shape 変更に備えて fixture test を厚めにする。
 
 ## 公式情報

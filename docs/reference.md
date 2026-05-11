@@ -53,7 +53,7 @@ nihu_bridge
 | `jdcat` | JDCat JSON API | JDCat JSON API | no | 人文学・社会科学系の研究データ。論文・図書の既定横断には含めない |
 | `nihu_bridge` | nihuBridge POST | nihuBridge REST | yes | 人文学系専門 DB 横断。`filters.nihu_bridge` 対応 |
 | `nijl_articles` | 国文学・アーカイブズ学論文DB検索 HTML | 詳細 HTML | no | 国文学論文・日本文学研究論文の専門目録。HTML best-effort。本文・PDF・OPAC 追跡は取得しない |
-| `kokusho` | 国書DB JSON endpoint | 国書DB JSON endpoint | no | 国書・古典籍の書誌、著作、所在、画像公開導線の確認。manifest URL は保持するが、manifest 本体・画像・OCR は取得しない |
+| `kokusho` | 国書DB JSON endpoint | 国書DB JSON endpoint | no | 国書・古典籍の書誌、著作、所在、画像公開導線の確認。本文スニペット検索と画像タグ検索は専用 tool を使う。manifest URL は保持するが、manifest 本体・画像・本文全体は取得しない |
 | `ninjal_bibliography` | NINJAL文献DB検索 HTML | 詳細 HTML | no | 日本語研究・日本語教育・国語教育文献。本文リンク URL は保持するが、本文は取得しない |
 | `national_archives` | 国立公文書館DA検索 HTML | RDF/XML + CSV | no | 特定歴史公文書、官庁資料、内閣・太政官・省庁資料の目録確認。画像本体・OCR は取得しない |
 | `jacar` | JACAR検索 HTML | 詳細 HTML + CSV | no | 近現代アジア、外交、軍事、旧外地、植民地、朝鮮・台湾・関東州関係資料の目録確認。画像本体・OCR は取得しない |
@@ -153,7 +153,26 @@ nihu_bridge
 - `saved_at`: キャッシュ保存時刻（ISO）
 - `refresh_hint`: キャッシュヒット時の再検索導線メッセージ。キャッシュ結果では保存日時と「上流APIへは再検索していません」を明示します。
 
-`runCachedTool` を使う検索・取得系ツールは、原則として同じ cache 仕様です。`force_refresh` を明示しない限り保存済み cache を優先し、cache hit 時は上流 API へ再接続しません。最新データで取り直したい場合だけ `force_refresh=true` を指定してください。
+`runCachedTool` を使う検索・取得系ツールは、原則として同じ cache 仕様です。`force_refresh` を明示しない限り保存済み cache を優先し、cache hit 時は上流 API へ再接続しません。`force_refresh` は cache key から除外されるため、同じ検索条件の保存済み cache を無視して取り直すスイッチとして働きます。最新データで取り直したい場合だけ `force_refresh=true` を指定してください。
+
+主な cached tool:
+
+- `jp_lit_search`
+- `jp_lit_get_record`
+- `jp_lit_search_fulltext`
+- `jp_lit_search_pages`
+- `jp_lit_get_text_coordinates`
+- `jp_lit_get_fulltext`
+- `jp_lit_search_illustrations`
+- `jp_lit_search_kokusho_fulltext`
+- `jp_lit_search_kokusho_image_tags`
+- `jp_lit_search_kaken_projects`
+- `jp_lit_search_guides_manuals`
+- `jp_lit_search_guides_cases`
+- `jp_lit_resolve_authority`
+- `jp_lit_find_authority_terms_by_classification`
+
+`saved_at` は保存済み cache の作成時刻であり、今回の呼び出し時刻ではありません。cache hit の場合、保存済み payload を返します。`source_id` から `pid` を解決する OCR 系ツールでも、同じ入力の cache があればその内部確認を再実行しません。
 
 `issued_from` / `issued_to` の対応状況:
 
@@ -211,11 +230,11 @@ nihu_bridge
 
 検索結果の詳細レコードを取得します。
 
-| 引数 | 型 | 説明 |
-| ---- | -- | ---- |
-| `source` | source | 必須 |
-| `source_id` | string | 必須 |
-| `force_refresh` | boolean | `true` でキャッシュを無視して upstream 再取得 |
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `source` | source | 必須 | 取得元 source |
+| `source_id` | string | 必須 | 検索結果の `source_id` |
+| `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再取得 |
 
 `source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。
 
@@ -344,28 +363,28 @@ OCR 系ツールはインターネット公開資料のみ対応します。`sou
 
 特定ページの OCR テキスト、座標、ページ画像 URL を取得します。
 
-| 引数 | 型 | 説明 |
-| ---- | -- | ---- |
-| `source` | source | `ndl_digital` のみ |
-| `source_id` | string | `pid` と排他 |
-| `pid` | string | `source_id` と排他 |
-| `page` | number | 必須 |
-| `force_refresh` | boolean | `true` でキャッシュを無視して upstream 再取得 |
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `source` | source | 必須 | `ndl_digital` のみ |
+| `source_id` | string | なし | `pid` と排他 |
+| `pid` | string | なし | `source_id` と排他 |
+| `page` | number | 必須 | 1 始まりのページ番号 |
+| `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再取得 |
 
-出力の `page_image_url` は IIIF 画像 URL です。`coordjson` の座標はフルサイズ画像のピクセル座標なので、リサイズ画像で使う場合はスケーリングが必要です。
+出力の `page_image_url` は IIIF 画像 URL です。`coordjson` の座標はフルサイズ画像のピクセル座標なので、リサイズ画像で使う場合はスケーリングが必要です。cached tool なので、出力には `cache` も含まれます。
 
 #### `jp_lit_get_fulltext`
 
 特定資料の全ページ OCR JSON を取得します。
 
-| 引数 | 型 | 説明 |
-| ---- | -- | ---- |
-| `source` | source | `ndl_digital` のみ |
-| `source_id` | string | `pid` と排他 |
-| `pid` | string | `source_id` と排他 |
-| `force_refresh` | boolean | `true` でキャッシュを無視して upstream 再取得 |
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `source` | source | 必須 | `ndl_digital` のみ |
+| `source_id` | string | なし | `pid` と排他 |
+| `pid` | string | なし | `source_id` と排他 |
+| `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再取得 |
 
-出力は `pid` / `pages` / `raw` です。大きい資料では返却が重くなることがあります。
+出力は `pid` / `pages` / `raw` / `cache` です。大きい資料では返却が重くなることがあります。
 
 #### `jp_lit_search_illustrations`
 
