@@ -104,10 +104,33 @@ GET https://kokusho.nijl.ac.jp/biblio/{bid}/manifest
   - `shubetsu`
   - `raw`
 
+## 追加調査: 本文検索・画像タグ検索
+
+国書DBガイドと Web アプリの公開 JSON endpoint から、次の導線を確認した。
+
+- `GET https://kokusho.nijl.ac.jp/api/fulltextSearch?keyword=...`
+  - `bid`, `title`, `satsu`, `koma`, `line`, `totalkoma`, `kansha`, `shubetsu`, `wkeyword`, `wname`, `authorlist`, `authorhead`, `context` などを返す。
+  - MCP では `jp_lit_search_kokusho_fulltext` として、本文スニペット、コマ、公式 URL を返す。
+- `GET https://kokusho.nijl.ac.jp/api/tagSearch?searchkbn=simple&keyword=...&page=...`
+  - `total`, `per_page`, `current_page`, `last_page`, `data[]` を返す。
+  - `data[].tag[]` には `text` と `imagepath` が含まれる。
+  - MCP では `jp_lit_search_kokusho_image_tags` として、タグ文字列、画像パス文字列、コマ、公式 URL を返す。
+
+採用範囲:
+
+- 本文検索はスニペット検索のみ。本文全体、翻刻/OCR本文の一括取得はしない。
+- 画像タグ検索はタグ・書誌・コマ・画像パス文字列のみ。画像本体や IIIF image API は取得しない。
+- どちらも cache と `force_refresh` に対応し、低頻度利用を前提にする。
+
+defer:
+
+- `GET /api/workDetail/{wid}` と `GET /api/authDetail/{aid}` は、著作/著者詳細の補強として有用だが、今回の本文検索・画像タグ検索とは独立した改善なので defer。
+- `GET /api/biblioAdvanceSearch?...` は `filters.kokusho` の設計が必要なので defer。
+
 ## 実装時の注意
 
 - `source` 未指定の既定横断には入れない。
-- 初版は書誌検索を中心にする。著作検索、著者検索、画像タグ検索、全文検索、近代書誌検索は別タスク。
+- 書誌検索は `jp_lit_search(source=kokusho)` のまま維持する。本文検索と画像タグ検索は専用 tool として分ける。
 - manifest は URL として保持するだけにする。画像 API の URL は返却しても自動取得しない。
 - 画像利用条件は個別資料・manifest 側に依存するため、再利用可否を MCP が確定しない。
 

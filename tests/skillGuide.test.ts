@@ -159,7 +159,11 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceSelection).toContain("日本語研究・日本語教育文献");
     expect(sourceAndQuery).toContain("日本文学論文: `nijl_articles`");
     expect(sourceAndQuery).toContain("古典籍・国書・写本・版本: `kokusho`");
+    expect(sourceAndQuery).toContain("jp_lit_search_kokusho_fulltext");
+    expect(sourceAndQuery).toContain("jp_lit_search_kokusho_image_tags");
     expect(sourceAndQuery).toContain("日本語研究・日本語教育文献・国語教育文献: `ninjal_bibliography`");
+    expect(dbCharacteristics).toContain("本文スニペットは `jp_lit_search_kokusho_fulltext`");
+    expect(dbCharacteristics).toContain("画像タグは `jp_lit_search_kokusho_image_tags`");
     expect(sourceSelection).toContain("有料 DB、文化資源 DB、地域アーカイブ DB は固定 source 化しない");
   });
 });

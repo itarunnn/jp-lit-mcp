@@ -30,6 +30,12 @@ interface SparqlResponse {
   };
 }
 
+type ResolveAuthorityQueryInput = Omit<ResolveAuthorityInput, "force_refresh">;
+type AuthorityTermsByClassificationQueryInput = Omit<
+  AuthorityTermsByClassificationInput,
+  "force_refresh"
+>;
+
 function bindingValue(binding: Record<string, SparqlBindingValue>, key: string) {
   return binding[key]?.value ?? null;
 }
@@ -103,7 +109,7 @@ async function readSparqlJson(response: Response): Promise<SparqlResponse> {
   }
 }
 
-function buildSparqlQuery(input: ResolveAuthorityInput) {
+function buildSparqlQuery(input: ResolveAuthorityQueryInput) {
   const candidateFilters = buildLabelCandidates(input.query)
     .map(
       (candidate) =>
@@ -149,7 +155,7 @@ LIMIT ${input.limit * 20}
 `;
 }
 
-function buildClassificationSparqlQuery(input: AuthorityTermsByClassificationInput) {
+function buildClassificationSparqlQuery(input: AuthorityTermsByClassificationQueryInput) {
   const escaped = input.classification.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const schemeUri =
     input.scheme === "NDC10"
@@ -189,7 +195,7 @@ function addLinkedTerm(
 }
 
 function buildCaution(
-  requestedType: ResolveAuthorityInput["type"],
+  requestedType: ResolveAuthorityQueryInput["type"],
   items: ResolveAuthorityOutput["items"] = []
 ) {
   const itemTypes = new Set(items.map((item) => item.type));
@@ -218,7 +224,7 @@ export function createNdlAuthoritiesClient(options: NdlAuthoritiesClientOptions 
     options.fetcher ?? ((input, init) => fetchWithTimeout(input, init));
 
   return {
-    async resolve(input: ResolveAuthorityInput): Promise<ResolveAuthorityOutput> {
+    async resolve(input: ResolveAuthorityQueryInput): Promise<ResolveAuthorityOutput> {
       const url = new URL(sparqlUrl);
       url.searchParams.set("query", buildSparqlQuery(input));
       url.searchParams.set("format", "application/sparql-results+json");
@@ -332,7 +338,7 @@ export function createNdlAuthoritiesClient(options: NdlAuthoritiesClientOptions 
     },
 
     async findTermsByClassification(
-      input: AuthorityTermsByClassificationInput
+      input: AuthorityTermsByClassificationQueryInput
     ): Promise<AuthorityTermsByClassificationOutput> {
       const url = new URL(sparqlUrl);
       url.searchParams.set("query", buildClassificationSparqlQuery(input));

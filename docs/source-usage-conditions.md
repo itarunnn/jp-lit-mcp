@@ -300,8 +300,12 @@
 
 - `jp_lit_search(source=kokusho, ...)` は `https://kokusho.nijl.ac.jp/api/biblioSimpleSearch?searchkbn=simple&keyword=...` を使います。
 - `jp_lit_get_record(source=kokusho, ...)` は `https://kokusho.nijl.ac.jp/api/biblioDetail/{bid}` を使います。
+- `jp_lit_search_kokusho_fulltext(...)` は `https://kokusho.nijl.ac.jp/api/fulltextSearch?keyword=...` を使います。
+- `jp_lit_search_kokusho_image_tags(...)` は `https://kokusho.nijl.ac.jp/api/tagSearch?searchkbn=simple&keyword=...&page=...` を使います。
 - 書誌、著作、所在、刊写、請求記号、画像有無、manifest URL、ライセンス URL をメタデータとして保持します。
-- IIIF manifest 本体、IIIF image API、画像本体、OCR、翻刻本文、全件収集は対象外です。
+- 本文検索では `bid`、コマ、行、スニペット、公式確認 URL を返しますが、本文全体は取得しません。
+- 画像タグ検索ではタグ文字列と画像パス文字列を返しますが、画像本体や IIIF image API は取得しません。
+- IIIF manifest 本体、IIIF image API、画像本体、本文一括取得、全件収集は対象外です。
 
 確認できたこと:
 
@@ -317,6 +321,7 @@
 - JSON endpoint は公式アプリが使う公開導線ですが、独立 API 仕様書として確認したものではありません。レスポンス shape 変更で壊れる可能性があります。
 - `availability.online=true` は画像公開導線または manifest URL があることを意味し、画像や本文の再利用可否を確定するものではありません。
 - manifest URL は保存しますが、自動取得しません。画像利用や再配布判断は公式ページと個別ライセンスで確認します。
+- 本文スニペットや画像タグは調査の入口です。引用・判断に使う場合は `viewer_url` / `biblio_url` から公式画面で確認します。
 
 参考:
 

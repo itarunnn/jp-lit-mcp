@@ -14,6 +14,7 @@
 | 目的 | ツール |
 |------|--------|
 | デジコレ全資料から全文横断検索 | `jp_lit_search_fulltext` |
+| 国書DB収録本文のスニペット検索 | `jp_lit_search_kokusho_fulltext` |
 | 特定資料内のページ検索 | `jp_lit_search_pages` |
 | 特定ページの OCR テキスト + 画像 URL | `jp_lit_get_text_coordinates` |
 | 資料全ページの OCR テキスト一括取得 | `jp_lit_get_fulltext` |
@@ -36,6 +37,20 @@
    → page_image_url で画像確認
    → contents で OCR テキスト確認
 ```
+
+---
+
+## フロー A2: 国書DB収録本文のスニペット検索
+
+古典籍・国書DBの本文中の語を探す依頼では、デジコレ OCR ではなく国書DB専用 tool を使う。
+
+```
+jp_lit_search_kokusho_fulltext(keyword="〇〇", limit=20)
+→ items[].bid / items[].koma / items[].snippet / items[].viewer_url を確認
+→ 重要な箇所は viewer_url から公式画面で確認
+```
+
+この tool は本文全体を取得しない。スニペットだけで断定しない。
 
 ---
 

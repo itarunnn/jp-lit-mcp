@@ -3,6 +3,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { withToolCache } from "../lib/toolCache.js";
 import {
   resolveAuthorityInputSchema,
   resolveAuthorityOutputSchema
@@ -17,13 +18,18 @@ export function createJpLitResolveAuthorityTool(
 ) {
   return async (input: unknown) => {
     const parsed = resolveAuthorityInputSchema.parse(input);
-    const { structuredContent } = await runCachedTool<ResolveAuthorityOutput>({
+    const { force_refresh, ...cacheableInput } = parsed;
+    const result = await runCachedTool<ResolveAuthorityOutput>({
       tool: "jp_lit_resolve_authority",
-      input: parsed as Record<string, unknown>,
+      input: cacheableInput as Record<string, unknown>,
       cache,
       sessions,
-      live: async () => resolveAuthorityOutputSchema.parse(await client.resolve(parsed))
+      bypassCache: force_refresh,
+      live: async () => resolveAuthorityOutputSchema.parse(await client.resolve(cacheableInput))
     });
+    const structuredContent = resolveAuthorityOutputSchema.parse(
+      withToolCache(result.structuredContent as Record<string, unknown>, result)
+    );
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(structuredContent, null, 2) }],

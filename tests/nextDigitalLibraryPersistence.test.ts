@@ -57,8 +57,9 @@ describe("next digital library persistence", () => {
       getPage: vi.fn(),
       getFulltextJson: vi.fn().mockResolvedValue(fulltextPayload)
     };
+    const recordService = makeRecordService(BASE_RECORD);
     const tool = createJpLitGetFulltextTool(
-      makeRecordService(BASE_RECORD),
+      recordService,
       nextDlClient,
       cache,
       sessions
@@ -67,8 +68,29 @@ describe("next digital library persistence", () => {
     const first = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
     const second = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
 
-    expect(first.structuredContent).toEqual(second.structuredContent);
+    expect(first.structuredContent).toMatchObject({
+      pid: "1000732",
+      pages: fulltextPayload.list,
+      raw: fulltextPayload,
+      cache: {
+        hit: false,
+        saved_at: expect.any(String),
+        refresh_hint: null
+      }
+    });
+    expect(second.structuredContent).toMatchObject({
+      pid: "1000732",
+      pages: fulltextPayload.list,
+      raw: fulltextPayload,
+      cache: {
+        hit: true,
+        cache_key: first.structuredContent.cache?.cache_key,
+        saved_at: first.structuredContent.cache?.saved_at,
+        refresh_hint: expect.stringContaining("上流APIへは再検索していません")
+      }
+    });
     expect(nextDlClient.getFulltextJson).toHaveBeenCalledTimes(1);
+    expect(recordService.getRecord).toHaveBeenCalledTimes(1);
 
     const sessionText = await readFile(path.join(getSessionsRoot(baseDir), "current.json"), "utf8");
     expect(sessionText).not.toContain("国立国会図書館");

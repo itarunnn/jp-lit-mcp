@@ -8,6 +8,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { withToolCache } from "../lib/toolCache.js";
 import type { NextDigitalLibraryClient } from "../sources/nextDigitalLibrary/adapter.js";
 import { NotFoundError } from "../lib/errors.js";
 
@@ -29,12 +30,14 @@ export function createJpLitSearchIllustrationsTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchIllustrationsInputSchema.parse(input);
+    const { force_refresh, ...cacheableInput } = parsed;
 
-    const { structuredContent } = await runCachedTool<SearchIllustrationsOutput>({
+    const result = await runCachedTool<SearchIllustrationsOutput>({
       tool: "jp_lit_search_illustrations",
-      input: parsed as Record<string, unknown>,
+      input: cacheableInput as Record<string, unknown>,
       cache,
       sessions,
+      bypassCache: force_refresh,
       live: async () => {
         const result = await nextDlClient.searchIllustrations(parsed.keyword, {
           size: parsed.size,
@@ -89,6 +92,9 @@ export function createJpLitSearchIllustrationsTool(
         });
       }
     });
+    const structuredContent = searchIllustrationsOutputSchema.parse(
+      withToolCache(result.structuredContent as Record<string, unknown>, result)
+    );
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(structuredContent, null, 2) }],

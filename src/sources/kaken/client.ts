@@ -11,6 +11,7 @@ const CAUTION =
   "KAKEN は研究課題・報告書の入口です。成果リスト中の論文・図書は、CiNii / J-STAGE / IRDB / NDL などで文献として確認してください。";
 
 type Fetcher = typeof fetchText;
+type KakenSearchInput = Omit<SearchKakenProjectsInput, "force_refresh">;
 type KakenProject = SearchKakenProjectsOutput["items"][number];
 type KakenOutput = KakenProject["outputs_preview"][number];
 
@@ -323,7 +324,7 @@ function parseSearchXml(xml: string, detailBaseUrl: string) {
   };
 }
 
-function buildSearchUrl(searchUrl: string, appId: string, input: SearchKakenProjectsInput) {
+function buildSearchUrl(searchUrl: string, appId: string, input: KakenSearchInput) {
   const url = new URL(searchUrl);
   url.searchParams.set("appid", appId);
   url.searchParams.set("kw", input.query);
@@ -351,7 +352,7 @@ export function createKakenClient(options: KakenClientOptions = {}) {
   const fetcher = options.fetcher ?? fetchText;
 
   return {
-    async searchProjects(input: SearchKakenProjectsInput): Promise<SearchKakenProjectsOutput> {
+    async searchProjects(input: KakenSearchInput): Promise<SearchKakenProjectsOutput> {
       if (!appId.trim()) {
         throw new Error("KAKEN API requires CINII_RESEARCH_APP_ID.");
       }

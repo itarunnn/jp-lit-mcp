@@ -14,6 +14,7 @@
 | 目的 | ツール / source |
 |------|---------------|
 | デジコレ全資料の図版をキーワード検索 | `jp_lit_search_illustrations` |
+| 国書DBの画像タグを検索 | `jp_lit_search_kokusho_image_tags` |
 | 図版を含む資料ページの画像 URL | `jp_lit_get_text_coordinates` |
 | 美術・文化財・博物館資料 | `jp_lit_search(source=japan_search)` |
 
@@ -53,6 +54,18 @@ jp_lit_get_text_coordinates(source=ndl_digital, pid=items[].pid, page=items[].pa
 jp_lit_search(source=japan_search, query="〇〇")
 jp_lit_get_record(source=japan_search, source_id=...)
 → source_metadata に元機関の URI が含まれることがある
+```
+
+---
+
+## フロー B2: 国書DBの画像タグ検索
+
+古典籍・国書DBの挿絵タグや図像タグを探す依頼では、国書DB専用 tool を使う。
+
+```
+jp_lit_search_kokusho_image_tags(keyword="〇〇", limit=20)
+→ items[].bid / items[].koma / items[].tag_texts / items[].viewer_url を確認
+→ 画像本体は取得しない。必要なら公式画面で確認
 ```
 
 ---

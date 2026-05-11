@@ -1,0 +1,26 @@
+[
+  {
+    "bid": 200010454,
+    "title": "源氏物語",
+    "satsu": "1",
+    "koma": 12,
+    "line": 4,
+    "totalkoma": 58,
+    "kansha": "写",
+    "shubetsu": "M",
+    "wkeyword": "春",
+    "wname": "源氏物語",
+    "authorlist": ["紫式部"],
+    "authorhead": "むらさきしきぶ",
+    "context": "いづれの御時にか、春の光のどけきころ"
+  },
+  {
+    "bid": "200010455",
+    "title": "源氏物語 二",
+    "koma": "13",
+    "line": "5",
+    "wname": "源氏物語",
+    "authorlist": ["紫式部"],
+    "context": "<em>春</em>の夜の夢"
+  }
+]

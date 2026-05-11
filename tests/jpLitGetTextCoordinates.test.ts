@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitGetTextCoordinatesTool } from "../src/tools/jpLitGetTextCoordinates.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-coordinates-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
 
 function makeRecordService(record: unknown) {
   return {
@@ -31,6 +48,7 @@ const BASE_RECORD = {
 
 describe("jp_lit_get_text_coordinates", () => {
   it("正常系: ページ OCR と座標を返す", async () => {
+    const baseDir = await createTempDir();
     const pagePayload = {
       id: "1000732_1",
       contents: [{ text: "国立" }],
@@ -38,12 +56,14 @@ describe("jp_lit_get_text_coordinates", () => {
     };
     const tool = createJpLitGetTextCoordinatesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(pagePayload)
+      makeNextDlClient(pagePayload),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     const result = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732", page: 1 });
 
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent).toMatchObject({
       pid: "1000732",
       page: 1,
       page_image_url: "https://dl.ndl.go.jp/api/iiif/1000732/R0000001/full/full/0/default.jpg",
@@ -51,12 +71,19 @@ describe("jp_lit_get_text_coordinates", () => {
       coordjson: [{ x: 10, y: 20 }],
       raw: pagePayload
     });
+    expect(result.structuredContent.cache).toMatchObject({
+      saved_at: expect.any(String),
+      cache_key: expect.any(String)
+    });
   });
 
   it("ndl_digital 以外は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetTextCoordinatesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -65,10 +92,13 @@ describe("jp_lit_get_text_coordinates", () => {
   });
 
   it("next_digital_library が null なら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const record = { ...BASE_RECORD, source_metadata: { next_digital_library: null } };
     const tool = createJpLitGetTextCoordinatesTool(
       makeRecordService(record),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -77,9 +107,12 @@ describe("jp_lit_get_text_coordinates", () => {
   });
 
   it("Page API が null を返したら NotFoundError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetTextCoordinatesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(
@@ -87,10 +120,38 @@ describe("jp_lit_get_text_coordinates", () => {
     ).rejects.toMatchObject({ name: "NotFoundError" });
   });
 
+  it("cache hit 時は pid 解決用の record lookup も再実行しない", async () => {
+    const baseDir = await createTempDir();
+    const pagePayload = {
+      id: "1000732_1",
+      contents: [{ text: "国立" }],
+      coordjson: [{ x: 10, y: 20 }]
+    };
+    const recordService = makeRecordService(BASE_RECORD);
+    const nextDlClient = makeNextDlClient(pagePayload);
+    const tool = createJpLitGetTextCoordinatesTool(
+      recordService,
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732", page: 1 });
+    const second = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732", page: 1 });
+
+    expect(first.structuredContent.cache?.hit).toBe(false);
+    expect(second.structuredContent.cache?.hit).toBe(true);
+    expect(recordService.getRecord).toHaveBeenCalledTimes(1);
+    expect(nextDlClient.getPage).toHaveBeenCalledTimes(1);
+  });
+
   it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {
+    const baseDir = await createTempDir();
     const tool = createJpLitGetTextCoordinatesTool(
       makeRecordService(BASE_RECORD),
-      makeNextDlClient(null)
+      makeNextDlClient(null),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
     );
 
     await expect(

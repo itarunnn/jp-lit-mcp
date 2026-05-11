@@ -75,12 +75,16 @@ describe("README public onboarding", () => {
     expect(readme).toContain("国文学論文");
     expect(readme).toContain("kokusho");
     expect(readme).toContain("国書・古典籍");
+    expect(readme).toContain("jp_lit_search_kokusho_fulltext");
+    expect(readme).toContain("jp_lit_search_kokusho_image_tags");
     expect(readme).toContain("ninjal_bibliography");
     expect(readme).toContain("日本語研究・日本語教育文献");
 
     expect(usageGuide).toContain("日本文学論文");
     expect(usageGuide).toContain("jp_lit_search(source=nijl_articles");
     expect(usageGuide).toContain("jp_lit_search(source=kokusho");
+    expect(usageGuide).toContain("jp_lit_search_kokusho_fulltext");
+    expect(usageGuide).toContain("jp_lit_search_kokusho_image_tags");
     expect(usageGuide).toContain("jp_lit_search(source=ninjal_bibliography");
     expect(usageGuide).toContain("文化資源 DB や地域アーカイブ DB は固定 source 化しません");
 

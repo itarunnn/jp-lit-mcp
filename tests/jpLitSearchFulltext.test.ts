@@ -173,4 +173,35 @@ describe("jp_lit_search_fulltext", () => {
     expect(result.structuredContent.total).toBe(0);
     expect(result.structuredContent.items).toHaveLength(0);
   });
+
+  it("同一入力は cache を再利用し、force_refresh=true では上流を再検索する", async () => {
+    const baseDir = await createTempDir();
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({ keyword: "大政奉還", size: 1 });
+    const second = await tool({ keyword: "大政奉還", size: 1 });
+    const refreshed = await tool({ keyword: "大政奉還", size: 1, force_refresh: true });
+
+    expect(first.structuredContent.cache).toMatchObject({
+      hit: false,
+      cache_key: expect.any(String),
+      saved_at: expect.any(String),
+      refresh_hint: null
+    });
+    expect(second.structuredContent.cache).toMatchObject({
+      hit: true,
+      cache_key: first.structuredContent.cache?.cache_key,
+      saved_at: first.structuredContent.cache?.saved_at,
+      refresh_hint: expect.stringContaining("上流APIへは再検索していません")
+    });
+    expect(second.structuredContent.cache?.refresh_hint).toContain(second.structuredContent.cache?.saved_at);
+    expect(refreshed.structuredContent.cache?.hit).toBe(false);
+    expect(refreshed.structuredContent.cache?.cache_key).toBe(first.structuredContent.cache?.cache_key);
+    expect(nextDlClient.searchBooks).toHaveBeenCalledTimes(2);
+  });
 });

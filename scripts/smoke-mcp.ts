@@ -31,6 +31,8 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_search_guides_manuals",
   "jp_lit_search_illustrations",
   "jp_lit_search_kaken_projects",
+  "jp_lit_search_kokusho_fulltext",
+  "jp_lit_search_kokusho_image_tags",
   "jp_lit_search_pages",
   "jp_lit_update_session_trace"
 ];
@@ -88,6 +90,17 @@ export function resolveLiveSmokeQuery(source: string, override?: string) {
 export function resolveLiveSmokeSources(override?: string) {
   if (!override) {
     return LIVE_MATRIX_SOURCES;
+  }
+
+  return override
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
+export function resolveLiveSmokeExtraTools(override?: string) {
+  if (!override) {
+    return [];
   }
 
   return override
@@ -454,6 +467,90 @@ async function runIllustrationSmoke(client: Client, source: string) {
   );
 }
 
+function isSkippableExtraToolError(result: { isError?: boolean; content?: Array<{ text?: string }> }) {
+  if (!result.isError) {
+    return false;
+  }
+
+  const message = getLiveErrorMessage(result);
+  return [/403\b/i, /429\b/i, /temporarily unavailable/i, /maintenance/i].some((pattern) =>
+    pattern.test(message)
+  );
+}
+
+async function runKokushoFulltextSmoke(client: Client): Promise<LiveSmokeStatus> {
+  const result = await client.callTool({
+    name: "jp_lit_search_kokusho_fulltext",
+    arguments: {
+      keyword: process.env.SMOKE_LIVE_KOKUSHO_FULLTEXT_QUERY ?? "春",
+      limit: 1,
+      page: 1
+    }
+  });
+
+  if (isSkippableExtraToolError(result as { isError?: boolean; content?: Array<{ text?: string }> })) {
+    return { status: "skipped", note: getLiveErrorMessage(result as { content?: Array<{ text?: string }> }) };
+  }
+
+  const data = result.structuredContent as
+    | { items?: Array<{ bid?: string; koma?: number | null; snippet?: string | null }> }
+    | undefined;
+  const first = data?.items?.[0];
+  if (!first?.bid || typeof first.koma !== "number" || !first.snippet) {
+    throw new Error("Kokusho fulltext smoke returned unexpected data.");
+  }
+
+  console.log(`jp_lit_search_kokusho_fulltext passed: bid=${first.bid} koma=${first.koma}`);
+  return { status: "passed", note: null };
+}
+
+async function runKokushoImageTagsSmoke(client: Client): Promise<LiveSmokeStatus> {
+  const result = await client.callTool({
+    name: "jp_lit_search_kokusho_image_tags",
+    arguments: {
+      keyword: process.env.SMOKE_LIVE_KOKUSHO_IMAGE_TAG_QUERY ?? "桜",
+      limit: 1,
+      page: 1
+    }
+  });
+
+  if (isSkippableExtraToolError(result as { isError?: boolean; content?: Array<{ text?: string }> })) {
+    return { status: "skipped", note: getLiveErrorMessage(result as { content?: Array<{ text?: string }> }) };
+  }
+
+  const data = result.structuredContent as
+    | { items?: Array<{ bid?: string; koma?: number | null; tag_texts?: string[] }> }
+    | undefined;
+  const first = data?.items?.[0];
+  if (!first?.bid || typeof first.koma !== "number" || !Array.isArray(first.tag_texts) || first.tag_texts.length === 0) {
+    throw new Error("Kokusho image tag smoke returned unexpected data.");
+  }
+
+  console.log(`jp_lit_search_kokusho_image_tags passed: bid=${first.bid} koma=${first.koma}`);
+  return { status: "passed", note: null };
+}
+
+async function runLiveExtraTools(client: Client): Promise<LiveSmokeStatus> {
+  const extraTools = resolveLiveSmokeExtraTools(process.env.SMOKE_LIVE_EXTRA_TOOLS);
+  for (const tool of extraTools) {
+    let outcome: LiveSmokeStatus;
+    if (tool === "jp_lit_search_kokusho_fulltext") {
+      outcome = await runKokushoFulltextSmoke(client);
+    } else if (tool === "jp_lit_search_kokusho_image_tags") {
+      outcome = await runKokushoImageTagsSmoke(client);
+    } else {
+      throw new Error(`Unsupported live smoke extra tool: ${tool}`);
+    }
+
+    if (outcome.status === "skipped") {
+      console.log(`Live smoke extra tool skipped: ${tool}`);
+      return outcome;
+    }
+  }
+
+  return { status: "passed", note: null };
+}
+
 type LiveSmokeStatus =
   | { status: "passed"; note?: string | null }
   | { status: "skipped"; note: string };
@@ -734,7 +831,11 @@ async function mainSinglePass(): Promise<LiveSmokeStatus> {
     console.log("Local persistence smoke passed.");
 
     if (process.env.SMOKE_LIVE === "1") {
-      return await runLiveSmoke(client);
+      const liveOutcome = await runLiveSmoke(client);
+      if (liveOutcome.status === "skipped") {
+        return liveOutcome;
+      }
+      return await runLiveExtraTools(client);
     }
 
     return { status: "passed", note: null };

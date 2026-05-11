@@ -106,6 +106,8 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 
 `nijl_articles` / `kokusho` / `ninjal_bibliography` は、目的がはっきりしているときだけ source を明示して使う専門 DB です。既定の横断検索には含めません。
 
+国書データベースについては、書誌・所在確認の `jp_lit_search(source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。
+
 一覧と実装上の注意点は [技術リファレンス](docs/reference.md) にまとめています。
 
 ## ドキュメント

@@ -117,4 +117,45 @@ describe("kokusho mapper / adapter", () => {
     expect(record?.source_id).toBe("100335909");
     expect(missing).toBeNull();
   });
+
+  it("client は書誌・詳細・全文・画像タグ URL を組み立てる", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "application/json;charset=UTF-8" },
+      json: async () => ({ ok: true })
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createKokushoClient } = await import("../src/sources/kokusho/client.js");
+    const client = createKokushoClient({ baseUrl: "https://kokusho.example.test/" });
+
+    await client.searchBiblios("伊勢物語");
+    await client.getBiblioDetail("100335909");
+    await client.searchFulltext("春");
+    await client.searchImageTags("桜", 2);
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.origin + searchUrl.pathname).toBe(
+      "https://kokusho.example.test/api/biblioSimpleSearch"
+    );
+    expect(searchUrl.searchParams.get("searchkbn")).toBe("simple");
+    expect(searchUrl.searchParams.get("keyword")).toBe("伊勢物語");
+    expect(fetch.mock.calls[1][0]).toBe(
+      "https://kokusho.example.test/api/biblioDetail/100335909"
+    );
+
+    const fulltextUrl = new URL(fetch.mock.calls[2][0] as string);
+    expect(fulltextUrl.origin + fulltextUrl.pathname).toBe(
+      "https://kokusho.example.test/api/fulltextSearch"
+    );
+    expect(fulltextUrl.searchParams.get("keyword")).toBe("春");
+
+    const tagUrl = new URL(fetch.mock.calls[3][0] as string);
+    expect(tagUrl.origin + tagUrl.pathname).toBe(
+      "https://kokusho.example.test/api/tagSearch"
+    );
+    expect(tagUrl.searchParams.get("searchkbn")).toBe("simple");
+    expect(tagUrl.searchParams.get("keyword")).toBe("桜");
+    expect(tagUrl.searchParams.get("page")).toBe("2");
+  });
 });

@@ -83,4 +83,42 @@ describe("jp_lit_search_kaken_projects", () => {
     expect(result.structuredContent.items[0].report_pdf_status).toBe("found");
     expect(result.structuredContent.items[0].search_hints.caution).toContain("KAKEN は研究課題");
   });
+
+  it("cache hit 時は保存日時と上流再検索していないことを明示し、force_refresh で再取得する", async () => {
+    const baseDir = await createTempDir();
+    const client = {
+      searchProjects: vi.fn().mockResolvedValue({
+        query: "IIIF",
+        page: 1,
+        limit: 1,
+        total: 0,
+        items: []
+      })
+    };
+    const tool = createJpLitSearchKakenProjectsTool(
+      client as never,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({ query: "IIIF", limit: 1 });
+    const second = await tool({ query: "IIIF", limit: 1 });
+    const refreshed = await tool({ query: "IIIF", limit: 1, force_refresh: true });
+
+    expect(first.structuredContent.cache).toMatchObject({
+      hit: false,
+      saved_at: expect.any(String),
+      refresh_hint: null
+    });
+    expect(second.structuredContent.cache).toMatchObject({
+      hit: true,
+      cache_key: first.structuredContent.cache?.cache_key,
+      saved_at: first.structuredContent.cache?.saved_at,
+      refresh_hint: expect.stringContaining("上流APIへは再検索していません")
+    });
+    expect(second.structuredContent.cache?.refresh_hint).toContain(second.structuredContent.cache?.saved_at);
+    expect(refreshed.structuredContent.cache?.hit).toBe(false);
+    expect(refreshed.structuredContent.cache?.cache_key).toBe(first.structuredContent.cache?.cache_key);
+    expect(client.searchProjects).toHaveBeenCalledTimes(2);
+  });
 });

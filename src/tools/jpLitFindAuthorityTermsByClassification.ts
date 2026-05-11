@@ -3,6 +3,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { withToolCache } from "../lib/toolCache.js";
 import {
   authorityTermsByClassificationInputSchema,
   authorityTermsByClassificationOutputSchema
@@ -17,16 +18,21 @@ export function createJpLitFindAuthorityTermsByClassificationTool(
 ) {
   return async (input: unknown) => {
     const parsed = authorityTermsByClassificationInputSchema.parse(input);
-    const { structuredContent } = await runCachedTool<AuthorityTermsByClassificationOutput>({
+    const { force_refresh, ...cacheableInput } = parsed;
+    const result = await runCachedTool<AuthorityTermsByClassificationOutput>({
       tool: "jp_lit_find_authority_terms_by_classification",
-      input: parsed as Record<string, unknown>,
+      input: cacheableInput as Record<string, unknown>,
       cache,
       sessions,
+      bypassCache: force_refresh,
       live: async () =>
         authorityTermsByClassificationOutputSchema.parse(
-          await client.findTermsByClassification(parsed)
+          await client.findTermsByClassification(cacheableInput)
         )
     });
+    const structuredContent = authorityTermsByClassificationOutputSchema.parse(
+      withToolCache(result.structuredContent as Record<string, unknown>, result)
+    );
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(structuredContent, null, 2) }],

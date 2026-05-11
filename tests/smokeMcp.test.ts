@@ -10,6 +10,7 @@ import {
   isSkippableLiveError,
   pickPreferredLiveRecord,
   resolveIllustrationFallbackKeyword,
+  resolveLiveSmokeExtraTools,
   resolveLiveReportPath,
   resolveLiveRetryCount,
   resolveOcrFallbackKeyword,
@@ -43,9 +44,84 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_guides_manuals",
       "jp_lit_search_illustrations",
       "jp_lit_search_kaken_projects",
+      "jp_lit_search_kokusho_fulltext",
+      "jp_lit_search_kokusho_image_tags",
       "jp_lit_search_pages",
       "jp_lit_update_session_trace"
     ]);
+  });
+
+  it("publishes kokusho extended search tools", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-kokusho-tools-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const fulltextTool = tools.find((tool) => tool.name === "jp_lit_search_kokusho_fulltext");
+      const imageTagsTool = tools.find((tool) => tool.name === "jp_lit_search_kokusho_image_tags");
+
+      expect(fulltextTool?.inputSchema.properties).toMatchObject({
+        keyword: { type: "string" },
+        limit: { type: "integer" },
+        page: { type: "integer" },
+        force_refresh: { type: "boolean" }
+      });
+      expect(imageTagsTool?.inputSchema.properties).toMatchObject({
+        keyword: { type: "string" },
+        limit: { type: "integer" },
+        page: { type: "integer" },
+        force_refresh: { type: "boolean" }
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it("publishes force_refresh on cached lookup tools", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-cache-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    const cachedToolNames = [
+      "jp_lit_get_record",
+      "jp_lit_get_fulltext",
+      "jp_lit_get_text_coordinates",
+      "jp_lit_search_pages",
+      "jp_lit_search_fulltext",
+      "jp_lit_search_illustrations",
+      "jp_lit_search_guides_manuals",
+      "jp_lit_search_guides_cases",
+      "jp_lit_resolve_authority",
+      "jp_lit_find_authority_terms_by_classification",
+      "jp_lit_search_kaken_projects"
+    ];
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      for (const toolName of cachedToolNames) {
+        const tool = tools.find((candidate) => candidate.name === toolName);
+        expect(tool?.inputSchema.properties, toolName).toMatchObject({
+          force_refresh: { type: "boolean" }
+        });
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("publishes inline evidence_refs schemas for annotate trace", async () => {
@@ -258,6 +334,18 @@ describe("smoke-mcp tool manifest", () => {
     expect(
       resolveLiveSmokeSources("nijl_articles,kokusho,ninjal_bibliography")
     ).toEqual(["nijl_articles", "kokusho", "ninjal_bibliography"]);
+  });
+
+  it("resolves extra live smoke tools from override", () => {
+    expect(resolveLiveSmokeExtraTools(undefined)).toEqual([]);
+    expect(
+      resolveLiveSmokeExtraTools(
+        "jp_lit_search_kokusho_fulltext,jp_lit_search_kokusho_image_tags"
+      )
+    ).toEqual([
+      "jp_lit_search_kokusho_fulltext",
+      "jp_lit_search_kokusho_image_tags"
+    ]);
   });
 
   it("runs matrix mode when SMOKE_LIVE_SOURCES is provided", () => {

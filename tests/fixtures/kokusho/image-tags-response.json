@@ -1,0 +1,35 @@
+{
+  "total": 2488,
+  "per_page": 100,
+  "current_page": 1,
+  "last_page": 25,
+  "data": [
+    {
+      "bid": 200002332,
+      "name": "絵本太閤記",
+      "collection": "国文研",
+      "seikyu": "ナ4-1",
+      "kansha": "刊",
+      "year": "寛政9",
+      "keitai": "半",
+      "satsu": "1",
+      "zan": "存",
+      "shubetsu": "M",
+      "koma": 7,
+      "tag": [
+        {
+          "imagepath": "/200002332/v4/image/00000007.tif/744,387,882,679",
+          "text": "桜"
+        },
+        {
+          "imagepath": "/200002332/v4/image/00000007.tif/100,100,200,200",
+          "text": "武者"
+        }
+      ],
+      "wname": "絵本太閤記",
+      "wkeyword": "桜",
+      "authorlist": ["岡田玉山"],
+      "authorhead": "おかだぎょくざん"
+    }
+  ]
+}

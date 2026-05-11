@@ -35,6 +35,10 @@ import {
   searchFulltextOutputSchema,
   searchIllustrationsInputSchema,
   searchIllustrationsOutputSchema,
+  searchKokushoFulltextInputSchema,
+  searchKokushoFulltextOutputSchema,
+  searchKokushoImageTagsInputSchema,
+  searchKokushoImageTagsOutputSchema,
   guidesManualsInputSchema,
   guidesManualsOutputSchema,
   guidesCasesInputSchema,
@@ -64,6 +68,7 @@ import { createIrdbAdapter } from "./sources/irdb/adapter.js";
 import { createJdcatAdapter } from "./sources/jdcat/adapter.js";
 import { createJstageArticlesAdapter } from "./sources/jstage/adapter.js";
 import { createKokushoAdapter } from "./sources/kokusho/adapter.js";
+import { createKokushoClient } from "./sources/kokusho/client.js";
 import { createNdlDigitalAdapter } from "./sources/ndlDigital/adapter.js";
 import {
   createNdlArticlesAdapter,
@@ -98,6 +103,8 @@ import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
 import { createJpLitSearchPagesTool } from "./tools/jpLitSearchPages.js";
 import { createJpLitSearchFulltextTool } from "./tools/jpLitSearchFulltext.js";
 import { createJpLitSearchIllustrationsTool } from "./tools/jpLitSearchIllustrations.js";
+import { createJpLitSearchKokushoFulltextTool } from "./tools/jpLitSearchKokushoFulltext.js";
+import { createJpLitSearchKokushoImageTagsTool } from "./tools/jpLitSearchKokushoImageTags.js";
 import { createJpLitSearchGuidesManualsTool } from "./tools/jpLitSearchGuidesManuals.js";
 import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases.js";
 import { createJpLitResolveAuthorityTool } from "./tools/jpLitResolveAuthority.js";
@@ -330,6 +337,7 @@ export function createServer(env: ServerEnv = process.env) {
   const kakenClient = createKakenClient({
     appId: env.CINII_RESEARCH_APP_ID ?? ""
   });
+  const kokushoClient = createKokushoClient(adapterOptions.kokusho);
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
@@ -374,6 +382,8 @@ export function createServer(env: ServerEnv = process.env) {
   const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
   const searchFulltextTool = createJpLitSearchFulltextTool(nextDlClient, cache, sessions);
   const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient, cache, sessions);
+  const searchKokushoFulltextTool = createJpLitSearchKokushoFulltextTool(kokushoClient, cache, sessions);
+  const searchKokushoImageTagsTool = createJpLitSearchKokushoImageTagsTool(kokushoClient, cache, sessions);
   const searchGuidesManualsTool = createJpLitSearchGuidesManualsTool(crdClient, cache, sessions);
   const searchGuidesCasesTool = createJpLitSearchGuidesCasesTool(crdClient, cache, sessions);
   const resolveAuthorityTool = createJpLitResolveAuthorityTool(ndlAuthoritiesClient, cache, sessions);
@@ -621,6 +631,26 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: searchIllustrationsOutputSchema
     },
     searchIllustrationsTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_kokusho_fulltext",
+    {
+      description: "国書データベースの翻刻/OCR系スニペットをキーワード検索する。本文全体・manifest 本体・画像本体は取得せず、bid、コマ番号、スニペット、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
+      inputSchema: searchKokushoFulltextInputSchema,
+      outputSchema: searchKokushoFulltextOutputSchema
+    },
+    searchKokushoFulltextTool
+  );
+
+  server.registerTool(
+    "jp_lit_search_kokusho_image_tags",
+    {
+      description: "国書データベースの画像タグをキーワード検索する。画像本体や IIIF image API は取得せず、タグ文字列、画像パス文字列、bid、コマ番号、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
+      inputSchema: searchKokushoImageTagsInputSchema,
+      outputSchema: searchKokushoImageTagsOutputSchema
+    },
+    searchKokushoImageTagsTool
   );
 
   return server;

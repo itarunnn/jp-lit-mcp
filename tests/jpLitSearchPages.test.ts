@@ -72,13 +72,18 @@ describe("jp_lit_search_pages", () => {
       keyword: "図書館"
     });
 
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent).toMatchObject({
       pid: "897115",
       keyword: "図書館",
       total: 2,
       from: 0,
       items: SEARCH_PAYLOAD.list,
       raw: SEARCH_PAYLOAD
+    });
+    expect(result.structuredContent.cache).toMatchObject({
+      hit: false,
+      saved_at: expect.any(String),
+      refresh_hint: null
     });
   });
 
@@ -147,6 +152,34 @@ describe("jp_lit_search_pages", () => {
       size: 5,
       from: 10
     });
+  });
+
+  it("cache hit 時は pid 解決用の record lookup も再実行しない", async () => {
+    const baseDir = await createTempDir();
+    const recordService = makeRecordService(BASE_RECORD);
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchPagesTool(
+      recordService,
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const first = await tool({
+      source: "ndl_digital",
+      source_id: "R100000002-I000000518610",
+      keyword: "図書館"
+    });
+    const second = await tool({
+      source: "ndl_digital",
+      source_id: "R100000002-I000000518610",
+      keyword: "図書館"
+    });
+
+    expect(first.structuredContent.cache?.hit).toBe(false);
+    expect(second.structuredContent.cache?.hit).toBe(true);
+    expect(recordService.getRecord).toHaveBeenCalledTimes(1);
+    expect(nextDlClient.searchPages).toHaveBeenCalledTimes(1);
   });
 
   it("pid に数字以外が含まれる場合は InvalidRequestError を投げる", async () => {

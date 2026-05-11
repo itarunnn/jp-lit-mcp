@@ -54,7 +54,8 @@ describe("createRecordService", () => {
 
     expect(parsed).toEqual({
       source: "ndl_digital",
-      source_id: "123"
+      source_id: "123",
+      force_refresh: false
     });
   });
 
@@ -266,7 +267,11 @@ describe("createRecordService", () => {
       source_id: "R100000039-I1000732"
     });
 
-    expect(result.structuredContent).toEqual(createRecordItem("R100000039-I1000732"));
+    expect(result.structuredContent).toMatchObject(createRecordItem("R100000039-I1000732"));
+    expect(result.structuredContent.cache).toMatchObject({
+      saved_at: expect.any(String),
+      cache_key: expect.any(String)
+    });
     expect(result.content).toEqual([
       {
         type: "text",

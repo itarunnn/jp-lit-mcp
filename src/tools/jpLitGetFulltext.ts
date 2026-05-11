@@ -4,6 +4,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { withToolCache } from "../lib/toolCache.js";
 import {
   fulltextInputSchema,
   fulltextOutputSchema
@@ -23,6 +24,9 @@ async function resolvePid(
   recordService: RecordService
 ): Promise<string> {
   if (parsed.pid) return validateNdlPid(parsed.pid);
+  if (!parsed.source_id) {
+    throw new InvalidRequestError("source_id または pid のいずれかは必須です");
+  }
 
   const record = await recordService.getRecord({
     source: parsed.source as "ndl_digital",
@@ -52,13 +56,19 @@ export function createJpLitGetFulltextTool(
       );
     }
 
-    const pid = await resolvePid(parsed, recordService);
-    const { structuredContent } = await runCachedTool<FulltextOutput>({
+    if (!parsed.source_id && !parsed.pid) {
+      throw new InvalidRequestError("source_id または pid のいずれかは必須です");
+    }
+    const validatedInput = parsed.pid ? { ...parsed, pid: validateNdlPid(parsed.pid) } : parsed;
+    const { force_refresh, ...cacheableInput } = validatedInput;
+    const result = await runCachedTool<FulltextOutput>({
       tool: "jp_lit_get_fulltext",
-      input: { ...(parsed as Record<string, unknown>), pid },
+      input: cacheableInput as Record<string, unknown>,
       cache,
       sessions,
+      bypassCache: force_refresh,
       live: async () => {
+        const pid = await resolvePid(validatedInput, recordService);
         const fulltextData = await nextDlClient.getFulltextJson(pid);
 
         if (!fulltextData) {
@@ -76,6 +86,9 @@ export function createJpLitGetFulltextTool(
         });
       }
     });
+    const structuredContent = fulltextOutputSchema.parse(
+      withToolCache(result.structuredContent as Record<string, unknown>, result)
+    );
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(structuredContent, null, 2) }],

@@ -63,10 +63,15 @@ describe("jp_lit_get_fulltext", () => {
 
     const result = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
 
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent).toMatchObject({
       pid: "1000732",
       pages: fulltextPayload.list,
       raw: fulltextPayload
+    });
+    expect(result.structuredContent.cache).toMatchObject({
+      hit: false,
+      saved_at: expect.any(String),
+      refresh_hint: null
     });
   });
 
@@ -82,10 +87,15 @@ describe("jp_lit_get_fulltext", () => {
 
     const result = await tool({ source: "ndl_digital", source_id: "R100000039-I1000732" });
 
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent).toMatchObject({
       pid: "1000732",
       pages: [{ page: 1, text: "国立国会図書館" }],
       raw: fulltextPayload
+    });
+    expect(result.structuredContent.cache).toMatchObject({
+      hit: false,
+      saved_at: expect.any(String),
+      refresh_hint: null
     });
   });
 

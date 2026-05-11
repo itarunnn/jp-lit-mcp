@@ -3,6 +3,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { buildToolCacheInfo } from "../lib/toolCache.js";
 import { searchInputSchema } from "../lib/schemas.js";
 import type { SearchOutput } from "../lib/schemas.js";
 import type { createSearchService } from "../services/searchService.js";
@@ -50,14 +51,7 @@ export function createJpLitSearchTool(
 
     const response: SearchOutput = {
       ...structuredContent,
-      cache: {
-        hit: cacheHit,
-        cache_key: cacheKey,
-        saved_at: savedAt,
-        refresh_hint: cacheHit
-          ? "キャッシュ結果です。最新データで再検索したい場合は force_refresh=true を指定してください。"
-          : null
-      }
+      cache: buildToolCacheInfo({ cacheHit, cacheKey, savedAt })
     };
 
     return {

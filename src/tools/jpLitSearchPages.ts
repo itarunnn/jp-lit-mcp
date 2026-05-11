@@ -4,6 +4,7 @@ import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import { withToolCache } from "../lib/toolCache.js";
 import {
   searchPagesInputSchema,
   searchPagesOutputSchema
@@ -23,6 +24,9 @@ async function resolvePid(
   recordService: RecordService
 ): Promise<string> {
   if (parsed.pid) return validateNdlPid(parsed.pid);
+  if (!parsed.source_id) {
+    throw new InvalidRequestError("source_id または pid のいずれかは必須です");
+  }
 
   const record = await recordService.getRecord({
     source: parsed.source as "ndl_digital",
@@ -52,13 +56,19 @@ export function createJpLitSearchPagesTool(
       );
     }
 
-    const pid = await resolvePid(parsed, recordService);
-    const { structuredContent } = await runCachedTool<SearchPagesOutput>({
+    if (!parsed.source_id && !parsed.pid) {
+      throw new InvalidRequestError("source_id または pid のいずれかは必須です");
+    }
+    const validatedInput = parsed.pid ? { ...parsed, pid: validateNdlPid(parsed.pid) } : parsed;
+    const { force_refresh, ...cacheableInput } = validatedInput;
+    const result = await runCachedTool<SearchPagesOutput>({
       tool: "jp_lit_search_pages",
-      input: { ...(parsed as Record<string, unknown>), pid },
+      input: cacheableInput as Record<string, unknown>,
       cache,
       sessions,
+      bypassCache: force_refresh,
       live: async () => {
+        const pid = await resolvePid(validatedInput, recordService);
         const searchResult = await nextDlClient.searchPages(pid, parsed.keyword, {
           size: parsed.size,
           from: parsed.from
@@ -81,6 +91,9 @@ export function createJpLitSearchPagesTool(
         });
       }
     });
+    const structuredContent = searchPagesOutputSchema.parse(
+      withToolCache(result.structuredContent as Record<string, unknown>, result)
+    );
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(structuredContent, null, 2) }],

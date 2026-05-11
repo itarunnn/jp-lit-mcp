@@ -53,6 +53,15 @@ const facetsSchema = z.object({
   issued_years: z.record(z.string(), z.number())
 });
 
+const toolCacheSchema = z.object({
+  hit: z.boolean(),
+  cache_key: z.string(),
+  saved_at: z.string(),
+  refresh_hint: z.string().nullable()
+});
+
+const forceRefreshFieldSchema = z.boolean().default(false);
+
 export const searchItemSchema = z.object({
   source: sourceSchema,
   source_id: z.string(),
@@ -210,7 +219,8 @@ export const searchInputSchema = searchInputToolSchema
 
 export const recordInputSchema = z.object({
   source: sourceSchema,
-  source_id: z.string().trim().min(1)
+  source_id: z.string().trim().min(1),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const searchOutputSchema = z.object({
@@ -229,15 +239,16 @@ export const searchOutputSchema = z.object({
   }).optional()
 });
 
-export const recordOutputSchema = recordItemSchema;
+export const recordOutputSchema = recordItemSchema.extend({
+  cache: toolCacheSchema.optional()
+});
 
 export const textCoordinatesInputSchema = z.object({
   source: sourceSchema,
   source_id: z.string().trim().min(1).optional(),
   pid: z.string().trim().min(1).optional(),
-  page: z.number().int().positive()
-}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
-  message: "source_id または pid のいずれかは必須です"
+  page: z.number().int().positive(),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const textCoordinatesOutputSchema = z.object({
@@ -246,21 +257,22 @@ export const textCoordinatesOutputSchema = z.object({
   page_image_url: z.string(),
   contents: z.unknown(),
   coordjson: z.unknown(),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 export const fulltextInputSchema = z.object({
   source: sourceSchema,
   source_id: z.string().trim().min(1).optional(),
-  pid: z.string().trim().min(1).optional()
-}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
-  message: "source_id または pid のいずれかは必須です"
+  pid: z.string().trim().min(1).optional(),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const fulltextOutputSchema = z.object({
   pid: z.string(),
   pages: z.unknown(),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 export const searchPagesInputSchema = z.object({
@@ -269,9 +281,8 @@ export const searchPagesInputSchema = z.object({
   pid: z.string().trim().min(1).optional(),
   keyword: z.string().trim().min(1),
   size: z.number().int().positive().max(100).default(20),
-  from: z.number().int().nonnegative().default(0)
-}).refine(d => d.source_id !== undefined || d.pid !== undefined, {
-  message: "source_id または pid のいずれかは必須です"
+  from: z.number().int().nonnegative().default(0),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const searchPagesOutputSchema = z.object({
@@ -280,7 +291,8 @@ export const searchPagesOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   from: z.number().int().nonnegative(),
   items: z.unknown(),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 export type IrdbFilters = z.infer<typeof irdbFiltersSchema>;
@@ -816,7 +828,8 @@ export const searchFulltextInputSchema = z.object({
   size: z.number().int().positive().max(100).default(20),
   from: z.number().int().nonnegative().default(0),
   f_ndc: z.string().optional(),
-  fc_is_classic: z.boolean().optional()
+  fc_is_classic: z.boolean().optional(),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const searchFulltextOutputSchema = z.object({
@@ -825,7 +838,8 @@ export const searchFulltextOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   from: z.number().int().nonnegative(),
   items: z.array(fulltextBookItemSchema),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 export type SearchFulltextInput = z.infer<typeof searchFulltextInputSchema>;
@@ -851,7 +865,8 @@ const illustrationItemSchema = z.object({
 export const searchIllustrationsInputSchema = z.object({
   keyword: z.string().trim().min(1),
   size: z.number().int().positive().max(100).default(20),
-  from: z.number().int().nonnegative().default(0)
+  from: z.number().int().nonnegative().default(0),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const searchIllustrationsOutputSchema = z.object({
@@ -859,7 +874,70 @@ export const searchIllustrationsOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   from: z.number().int().nonnegative(),
   items: z.array(illustrationItemSchema),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
+});
+
+export const searchKokushoFulltextInputSchema = z.object({
+  keyword: z.string().trim().min(1),
+  limit: z.number().int().positive().max(100).default(20),
+  page: z.number().int().positive().default(1),
+  force_refresh: z.boolean().default(false)
+});
+
+const kokushoPersonSchema = z.object({
+  name: z.string(),
+  role: z.string().nullable()
+});
+
+const searchKokushoFulltextItemSchema = z.object({
+  bid: z.string(),
+  source_id: z.string(),
+  title: z.string().nullable(),
+  work_title: z.string().nullable(),
+  authors: z.array(kokushoPersonSchema),
+  koma: z.number().int().positive().nullable(),
+  line: z.number().int().positive().nullable(),
+  snippet: z.string().nullable(),
+  viewer_url: z.string(),
+  biblio_url: z.string(),
+  source_metadata: z.record(z.unknown())
+});
+
+export const searchKokushoFulltextOutputSchema = z.object({
+  keyword: z.string(),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(searchKokushoFulltextItemSchema),
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
+});
+
+export const searchKokushoImageTagsInputSchema = searchKokushoFulltextInputSchema;
+
+const searchKokushoImageTagItemSchema = z.object({
+  bid: z.string(),
+  source_id: z.string(),
+  title: z.string().nullable(),
+  work_title: z.string().nullable(),
+  authors: z.array(kokushoPersonSchema),
+  koma: z.number().int().positive().nullable(),
+  tag_texts: z.array(z.string()),
+  image_paths: z.array(z.string()),
+  viewer_url: z.string(),
+  biblio_url: z.string(),
+  source_metadata: z.record(z.unknown())
+});
+
+export const searchKokushoImageTagsOutputSchema = z.object({
+  keyword: z.string(),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(searchKokushoImageTagItemSchema),
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 const crdLibGroupSchema = z.enum([
@@ -877,7 +955,8 @@ const guidesSearchInputBaseSchema = z.object({
   limit: z.number().int().positive().max(20).default(10),
   page: z.number().int().positive().default(1),
   lib_id: z.string().trim().min(1).optional(),
-  lib_group: crdLibGroupSchema.optional()
+  lib_group: crdLibGroupSchema.optional(),
+  force_refresh: forceRefreshFieldSchema
 });
 
 const guidesBaseItemSchema = z.object({
@@ -913,7 +992,8 @@ export const guidesManualsOutputSchema = z.object({
   limit: z.number().int().positive(),
   total: z.number().int().nonnegative(),
   items: z.array(guidesManualItemSchema),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 export const guidesCasesOutputSchema = z.object({
@@ -923,7 +1003,8 @@ export const guidesCasesOutputSchema = z.object({
   limit: z.number().int().positive(),
   total: z.number().int().nonnegative(),
   items: z.array(guidesCaseItemSchema),
-  raw: z.record(z.unknown())
+  raw: z.record(z.unknown()),
+  cache: toolCacheSchema.optional()
 });
 
 const authorityTypeSchema = z.enum([
@@ -955,7 +1036,8 @@ const authorityRelationSchema = z.enum([
 export const resolveAuthorityInputSchema = z.object({
   query: z.string().trim().min(1),
   type: resolveAuthorityTypeSchema.default("all"),
-  limit: z.number().int().positive().max(20).default(5)
+  limit: z.number().int().positive().max(20).default(5),
+  force_refresh: forceRefreshFieldSchema
 });
 
 const authorityLinkedNameSchema = z.object({
@@ -997,7 +1079,8 @@ export const resolveAuthorityOutputSchema = z.object({
     same_identity_terms: z.array(z.string()),
     reference_terms: z.array(z.string()),
     caution: z.string()
-  })
+  }),
+  cache: toolCacheSchema.optional()
 });
 
 export const authorityClassificationSchemeSchema = z.enum(["NDC10", "NDC9", "NDC8", "NDC6"]);
@@ -1005,7 +1088,8 @@ export const authorityClassificationSchemeSchema = z.enum(["NDC10", "NDC9", "NDC
 export const authorityTermsByClassificationInputSchema = z.object({
   classification: z.string().trim().min(1),
   scheme: authorityClassificationSchemeSchema.default("NDC10"),
-  limit: z.number().int().positive().max(50).default(20)
+  limit: z.number().int().positive().max(50).default(20),
+  force_refresh: forceRefreshFieldSchema
 });
 
 export const authorityTermsByClassificationOutputSchema = z.object({
@@ -1020,7 +1104,8 @@ export const authorityTermsByClassificationOutputSchema = z.object({
     preferred_terms: z.array(z.string()),
     reference_terms: z.array(z.string()),
     caution: z.string()
-  })
+  }),
+  cache: toolCacheSchema.optional()
 });
 
 export const searchKakenProjectsInputSchema = z.object({
@@ -1031,7 +1116,8 @@ export const searchKakenProjectsInputSchema = z.object({
   researcher_name: z.string().trim().min(1).optional(),
   from_fiscal_year: z.number().int().optional(),
   to_fiscal_year: z.number().int().optional(),
-  include_outputs: z.boolean().default(true)
+  include_outputs: z.boolean().default(true),
+  force_refresh: forceRefreshFieldSchema
 });
 
 const kakenOutputTypeSchema = z.enum([
@@ -1092,16 +1178,15 @@ export const searchKakenProjectsOutputSchema = z.object({
   limit: z.number().int().positive(),
   total: z.number().int().nonnegative(),
   items: z.array(kakenProjectSchema),
-  cache: z.object({
-    hit: z.boolean(),
-    cache_key: z.string(),
-    saved_at: z.string(),
-    refresh_hint: z.string().nullable()
-  }).optional()
+  cache: toolCacheSchema.optional()
 });
 
 export type SearchIllustrationsInput = z.infer<typeof searchIllustrationsInputSchema>;
 export type SearchIllustrationsOutput = z.infer<typeof searchIllustrationsOutputSchema>;
+export type SearchKokushoFulltextInput = z.infer<typeof searchKokushoFulltextInputSchema>;
+export type SearchKokushoFulltextOutput = z.infer<typeof searchKokushoFulltextOutputSchema>;
+export type SearchKokushoImageTagsInput = z.infer<typeof searchKokushoImageTagsInputSchema>;
+export type SearchKokushoImageTagsOutput = z.infer<typeof searchKokushoImageTagsOutputSchema>;
 export type GuidesManualsInput = z.infer<typeof guidesManualsInputSchema>;
 export type GuidesManualsOutput = z.infer<typeof guidesManualsOutputSchema>;
 export type GuidesCasesInput = z.infer<typeof guidesCasesInputSchema>;
