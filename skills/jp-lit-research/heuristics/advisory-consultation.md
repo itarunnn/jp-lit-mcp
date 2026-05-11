@@ -61,10 +61,12 @@ jp_lit_search_guides_cases(query=テーマ, limit=3)
 
 `cases` は「どういう切り口で再検索するか」「どんな順番で追うか」を決める材料として使う。
 
-### 2. リサーチ・ナビを確認する（WebFetch）
+### 2. リサーチ・ナビを確認する（Web 検索）
 
-ドメインを判定して、下記テーブルから最も近い URL を WebFetch する。
-対応する URL がなければ `https://ndlsearch.ndl.go.jp/rnavi/humanities/` のインデックスを fetch して関連ガイドを探す。
+リサーチ・ナビは API / MCP source ではなく Web 上の調べ方案内として扱う。まず Web 検索で `site:ndlsearch.ndl.go.jp/rnavi <固有名詞または主題語>` を試す。固有名詞 query が不発なら `site:ndlsearch.ndl.go.jp/rnavi <調査類型> 調べ方`、`人物文献 伝記 探す`、`雑誌記事 探し方`、`新聞記事 探し方`、`日本文学 論文 調べ方` のように抽象化する。
+
+ドメインが明らかな場合は、下記テーブルから最も近い URL も開いて確認する。
+対応する URL がなければ `https://ndlsearch.ndl.go.jp/rnavi/humanities/` のインデックスまたはリサーチ・ナビトップを開いて関連ガイドを探す。
 
 | ドメイン | URL |
 |---------|-----|
@@ -80,6 +82,7 @@ jp_lit_search_guides_cases(query=テーマ, limit=3)
 - 推奨する索引・参考図書・DB → `source_candidates` / `reference_tools`
 - 調査上の注意点・基本順序 → `suggested_sequence`
 - 分野固有の主題語 → `keyword_candidates`
+- 試した Web 検索 query とヒット / 不発の状態 → trace / 調査ログ
 
 リサーチ・ナビは query 候補そのものより、**分野全体の入口・調査順序・見るべき資料類型**の補正に重みを置く。
 
@@ -132,7 +135,7 @@ jp_lit_search_guides_cases(query=テーマ, limit=3)
 ## 結果がない場合
 
 - レファ協でヒット 0 件: 上位語・類義語でリトライし、それでもなければスキップ
-- リサーチ・ナビに対応ページなし: インデックス（`rnavi/humanities/`）から近い分野のページを fetch する。見つからなければスキップ
+- リサーチ・ナビに対応ページなし: `site:ndlsearch.ndl.go.jp/rnavi ...` の抽象 query とインデックス（`rnavi/humanities/`）確認を試す。見つからなければスキップし、試した query と「対応ページなし」を trace / 調査ログに残す
 
 ---
 

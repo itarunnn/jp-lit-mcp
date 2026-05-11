@@ -46,7 +46,7 @@ LLM                      = 結果の統合と説明
 `research_guide` intent では常に調査前情報収集を行う。
 
 - レファ協（`jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`）で類似事例・マニュアルを確認
-- ドメインに対応するリサーチ・ナビ URL を WebFetch
+- Web 検索でリサーチ・ナビの該当ページを探し、見つかったページまたはドメインに対応する URL を開いて確認
 - 得られたキーワード・DB候補・調査手順をステップ 3 の分野別シナリオと照合して、`keyword_candidates` / `source_candidates` / `reference_tools` / `suggested_sequence` を作る
 
 ### 3. 分野別調査シナリオ
@@ -150,7 +150,7 @@ LLM                      = 結果の統合と説明
 ▍調査前情報収集
 - レファ協マニュアル: ...
 - レファ協事例: ...
-- リサーチ・ナビ: ...
+- リサーチ・ナビ: ...（Web検索 query / 参照ページ / 不発なら対応ページなし）
 
 ▍今回の調査計画
 - 使う source: ...
