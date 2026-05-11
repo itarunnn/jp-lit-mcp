@@ -19,14 +19,20 @@
 
 ## いつ使うか
 
+未知の文献・資料・調べ方を探索する調査では、実検索の前に原則としてこの手順を使う。レファ協とリサーチ・ナビを見て、最初に叩く source、検索語、見るべき索引・参考図書を決めてから MCP 検索へ進む。
+
+省略してよいのは、タイトル・著者・ISBN・NCID・DOI などが明確で、単純な所蔵確認・書誌確認だけを行う場合。省略後に 0 件、ノイズ過多、初出・掲載号・一般誌記事探索へ分岐したら、この手順に戻る。
+
 | intent | 実行条件 |
 |--------|---------|
 | `research_guide` | 常に実行 |
-| `topic_literature_review` | 原則実行（書誌が明確な場合は省略可）|
-| `historical_term_search` | 近代以前・旧字・別称・初出調査など、検索語の展開が必要な場合 |
-| `bibliography_lookup` | 初出調査のみ実行。通常の所蔵・書誌確認は省略 |
+| `topic_literature_review` | 実行 |
+| `historical_term_search` | 実行 |
+| `bibliography_lookup` | 単純な所蔵・書誌確認は省略可。初出、掲載号、雑誌記事、同定困難、0 件時は実行 |
 | `fulltext_page_lookup` | 省略 |
 | `image_illustration_search` | 美術・文化財・地域資料の場合のみ実行 |
+
+`topic_literature_review` であっても、人名単独、回想記事、雑誌目次、一般誌記事、初出、掲載号探索、0 件・ノイズ過多の再計画では省略しない。レファ協は「類似質問と調査プロセス」、リサーチ・ナビは「分野別の調査順序と見るべき索引」を補うために使う。
 
 ---
 
@@ -99,6 +105,7 @@ jp_lit_search_guides_cases(query=テーマ, limit=3)
 - レファ協やリサーチ・ナビの本文を結論として扱わない
 - 長文引用をしない
 - `reference_tools` と `source` を混同しない
+- `ndl_search` / `japan_search` は基礎候補として扱い、リサーチ・ナビやレファ協が示した専門 DB / source を押しのけない
 - 初手の実検索 source は 2〜4 個まで
 - 初手 query は 2〜5 個まで
 

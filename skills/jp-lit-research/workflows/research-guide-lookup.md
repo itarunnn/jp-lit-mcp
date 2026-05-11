@@ -72,7 +72,7 @@ LLM                      = 結果の統合と説明
 3. `ndl_digital` で官報・雑誌・新聞等の一次資料
 4. 議会関連なら `kokkai_minutes` / `teikoku_minutes`
 
-**なぜこの順か:** 近現代史は図書・論文が豊富なため、まず NDL+CiNii で網羅。一次資料はデジコレに多数収録されている。
+**なぜこの順か:** 近現代史は図書・論文が豊富なため、NDL・CiNii 系 source が基礎候補になる。一次資料はデジコレに多数収録されている。
 
 ---
 
@@ -182,7 +182,7 @@ LLM                      = 結果の統合と説明
 【〇〇の調べ方案内】
 
 1. まずメタデータ検索
-   → jp_lit_search で NDL・CiNii・J-STAGE を横断
+   → ndl_search / japan_search を基礎候補にし、調べ方案内で示唆された専門 DB / source を加えて 2〜4 個に絞る
 
 2. 論文・紀要
    → cinii_articles / jstage_articles / ndl_articles / irdb

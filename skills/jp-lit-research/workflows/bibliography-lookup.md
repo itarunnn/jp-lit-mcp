@@ -10,6 +10,17 @@
 
 ## フロー
 
+### 0. 調査前情報収集の要否
+
+タイトル・著者・ISBN・NCID・DOI などが明確で、単純な所蔵確認・書誌確認だけを行う場合は、レファ協・リサーチ・ナビ確認を省略してよい。
+
+次の場合は、実検索前または行き詰まった時点で [heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) に戻り、レファ協・リサーチ・ナビから調査計画を作る。
+
+- 初出、掲載号、雑誌記事、一般誌記事を探す
+- 書誌情報が曖昧で同定が難しい
+- 通常の所蔵・書誌検索で 0 件またはノイズ過多
+- どの索引・参考図書・DB から見るべきか不明
+
 ### 1. 図書・雑誌の所蔵確認
 
 ```
@@ -53,7 +64,7 @@ jp_lit_get_record(source=ndl_digital, source_id=...)
 1. `jp_lit_search(source=ndl_articles, query=論文タイトル, sort_by=issued_date, sort_order=asc)`
 2. `jp_lit_search(source=cinii_articles, query=..., sort_by=issued_date, sort_order=asc)`
 3. ヒットしない場合 → `jp_lit_search_fulltext(keyword=...)` で全文から探す
-4. どの索引や参考資料から見るべきか不明なら、[heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) を初出調査の例外として使う
+4. [heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) で、レファ協・リサーチ・ナビから有効な索引・参考資料・調査順序を確認する
 5. さらに必要なら [historical-term-search.md](historical-term-search.md) へ
 
 初出調査で advisory を使うときは、レファ協やリサーチ・ナビから

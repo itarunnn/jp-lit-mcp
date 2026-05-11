@@ -2,7 +2,7 @@
 
 2026-05-11 時点の状態:
 
-- 公開ツール 25 種・対応 source 19 種・テスト 468 件すべて通過
+- 公開ツール 25 種・対応 source 19 種・テスト 470 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
@@ -59,7 +59,7 @@
 - Claude Code / Codex / Cursor 対応
 - 起動語「文献DBで」「文献DBを始めます」で発火。一度発火したらセッション中継続
 - 全モードで調査計画を提示してユーザーの確認を取ってから実行する（plan-first）
-- 調査前情報収集（CRD・NDL リサーチ・ナビ）は intent に応じて計画生成前に実行し、結果を計画に反映する
+- 未知の文献・資料・調べ方を探索する調査では、実検索前に調査前情報収集（CRD・NDL リサーチ・ナビ）を行い、結果を計画に反映する
 - source の選択は語尾ベースの深度判定ではなく、計画確認の対話を通じてユーザーと決める設計
 - 検索 MCP（`jp_lit_search` / `jp_lit_get_record` 等）はユーザー確認後のみ実行
 - 全報告テンプレートに source（DB名）を付記

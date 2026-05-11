@@ -1,8 +1,29 @@
 # source 選択ルール
 
+## 実検索の初動原則
+
+レファ協・NDL リサーチ・ナビを参考に調査計画を立てた後、実検索の初動では、原則として `source` 未指定のラウンドロビン検索を使わない。
+
+実検索に入るときは、次を基礎候補にしつつ、レファ協・リサーチ・ナビで示唆された source 候補を加えて、初手の実検索 source を 2〜4 個に絞る。
+
+```text
+基礎候補:
+- ndl_search    — NDL Search 参加機関を広く確認する
+- japan_search  — 昭和館・地域/文化資源系・雑誌目次などの入口を確認する
+
+追加候補:
+- レファ協・リサーチ・ナビが示唆した専門 DB / source
+- ドメイン判定で必要な個別 source
+```
+
+その後、見つかった媒体名・著者名・件名・巻号を使って `ndl_catalog` / `ndl_digital` / `ndl_articles` / `cinii_articles` / `cinii_books` などへ分解する。
+
+`japan_search` は既定横断に含まれない。人物回想、雑誌目次、地域アーカイブ、昭和館、博物館・文化資源系の可能性がある調査では、必ず明示的に候補に入れる。
+`ndl_search` / `japan_search` は専門 DB を押しのける固定順序ではない。調査前情報収集で `nijl_articles`、`kokusho`、`ninjal_bibliography`、`nihu_bridge`、`irdb`、`jdcat`、`national_archives`、`jacar` などが強く示唆された場合は、基礎候補と並べて初手計画に入れる。
+
 ## 横断検索の使い方
 
-横断検索には **NDL モード（ndl_search）** と **ラウンドロビンモード（source 未指定）** の 2 つがある。
+横断検索には **NDL モード（ndl_search）** と **ラウンドロビンモード（source 未指定）** の 2 つがある。ただし実検索の初動は `source` を明示し、`ndl_search` / `japan_search` / 調査前情報収集で示唆された専門 DB から 2〜4 個を選ぶ。ラウンドロビンモードは補助的に使う。
 
 ### NDL モード: `jp_lit_search(source=ndl_search)`
 
@@ -19,11 +40,11 @@ NDL Search に参加する **100 機関以上**を 1 リクエストで横断す
 - `nihu_bridge`（NIHU 独自 API）はカバーしない
 - getRecord 結果は NDL detail API に依存（CiNii / J-STAGE 固有フィールドは取れない）
 
-**使う場面:** 「ざっと存在確認したい」「どのくらいあるか把握したい」「地方アーカイブ・青空文庫も含めて広く見たい」
+**使う場面:** 「ざっと存在確認したい」「どのくらいあるか把握したい」「地方アーカイブ・青空文庫も含めて広く見たい」。新規テーマの基礎候補にする。
 
 ### ラウンドロビンモード: `jp_lit_search`（source 未指定）
 
-ネイティブ API を持つ source を並列呼び出し（ラウンドロビン）。著者情報・所蔵・PDF リンクなどが充実する。
+ネイティブ API を持つ文献系 source を並列呼び出し（ラウンドロビン）。著者情報・所蔵・PDF リンクなどが充実する。
 
 対象:
 ```
@@ -31,12 +52,14 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 / cinii_articles / cinii_books / jstage_articles / nihu_bridge
 ```
 
-**使う場面:** 詳細調査や所蔵確認・PDF 取得・nihu_bridge での人文専門 DB 横断が必要なとき。
+**使う場面:** 8 source を同じ query で比較する強い理由があるとき。例: 文献系 source 全体に同時に当てて重複候補を見たい、`nihu_bridge` を含む文献系ミックス検索を明示的に行いたい、source 別に分解する前の補助スキャンをしたい。
+
+**避ける場面:** 新規テーマの初手、人物名だけの探索、回想記事・雑誌目次・地域アーカイブ・文化資源が疑われる探索。これらは `ndl_search` + `japan_search` を基礎候補にし、調査前情報収集で示唆された専門 DB / source と並べて計画する。
 
 ---
 
 以下は横断検索に含まれない（source 指定が必要）:
-- `japan_search` — ポータル系、文化財・美術に特化して使う
+- `japan_search` — ポータル系、昭和館・地域資料・文化財・美術に特化して使う
 - `irdb` — 機関リポジトリ、論文調査で明示的に追加（NDL モードでも薄いメタデータで含まれる）
 - `jdcat` — 研究データカタログ
 - `kokkai_minutes` / `teikoku_minutes` — 会議録
@@ -62,7 +85,8 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 | 美術・文化財・地域資料・博物館資料 | 「作品」「文化財」「地域」「コレクション」「博物館」「民具」「遺跡」「浮世絵」 | `japan_search`（主力）+ `jp_lit_search_illustrations` + `nihu_bridge`（民俗・考古補完）|
 | 議会・法令・官庁資料 | 「法律」「答弁」「審議」「議会」 | `kokkai_minutes` / `teikoku_minutes`。官庁原資料・特定歴史公文書なら `national_archives` |
 | 公文書・アジア歴史資料 | 「内閣」「太政官」「省庁」「公文書」「外交」「軍事」「旧外地」「植民地」「朝鮮」「台湾」「関東州」「外務省外交史料館」「防衛研究所」 | 国内官庁・特定歴史公文書は `national_archives`、近現代アジア・外交・軍事・旧外地は `jacar` |
-| 全般（判定できない） | — | NDL + CiNii + J-STAGE の既定構成 |
+| 人物回想・雑誌目次・一般誌記事 | 人名単独、回想、追想、雑誌名、昭和戦後一般誌、掲載号探索 | `ndl_search` + `japan_search` → `ndl_articles` / `ndl_catalog` / `cinii_books` |
+| 全般（判定できない） | — | `ndl_search` + `japan_search` を基礎候補にし、レファ協・リサーチ・ナビで示唆された source を加えて 2〜4 個に絞る |
 
 ---
 

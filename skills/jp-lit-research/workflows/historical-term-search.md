@@ -13,7 +13,7 @@
 
 人文社会系の文献では、現代語のまま検索するだけでは不十分なことが多い。**検索語展開を先に行ってから検索する**。
 
-近代以前・旧字・別称・初出調査が絡む場合は、必要に応じて [heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) を使い、レファ協やリサーチ・ナビから別称・調査順序・参考索引を補う。
+近代以前・旧字・別称・初出調査が絡む場合は、実検索前に [heuristics/advisory-consultation.md](../heuristics/advisory-consultation.md) を使い、レファ協やリサーチ・ナビから別称・調査順序・参考索引を補う。
 
 詳細な展開手順は [heuristics/query-expansion.md](../heuristics/query-expansion.md) を参照。
 
@@ -45,9 +45,9 @@ jp_lit_search(source=cinii_articles, query=現代語)
 
 展開した語で個別に検索し、ヒットした語だけを採用する（LLM 推測の幻覚を避けるため、ヒット確認が必要）。
 
-### 2.5 条件付きで調査前情報収集を使う
+### 2.5 調査前情報収集で補正する
 
-次のような場合は advisory-consultation を実行してよい。
+次のような場合は advisory-consultation を省略しない。
 
 - 現代語では何を旧表記に直すべきか見当がつかない
 - 人名・事項の別称が多い

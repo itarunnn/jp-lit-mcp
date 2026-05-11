@@ -9,7 +9,7 @@
 ## 基本フロー
 
 1. 依頼を intent に分類する
-2. 必要なら調査前情報収集を行う
+2. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う
 3. source と検索語の案を作る
 4. 検索方針をユーザーに提示して確認を取り、`jp_lit_update_session_trace` に調査目的と source plan を残す
 5. 最小限の source / query で検索する
@@ -62,13 +62,19 @@
 
 ## 調査前情報収集
 
-次の条件で、検索前にレファ協と NDL リサーチ・ナビを参照する。
+調査を始める前に、まずレファ協と NDL リサーチ・ナビを参考にして調査計画を立てる。ここでの「調査」は、未知の文献・資料・調べ方を探索する依頼を指す。
+
+調査前情報収集では、レファ協から類似質問・調査プロセス・参考資料を、リサーチ・ナビから分野別の調査順序・見るべき索引や参考図書を拾い、`first_pass_plan` に反映する。
+
+例外として、タイトル・著者・ISBN・NCID・DOI などが明確で、単純な所蔵確認・書誌確認だけを行う場合は省略してよい。省略した場合でも、0 件・ノイズ過多・初出/掲載号/一般誌記事へ分岐した時点で、レファ協・リサーチ・ナビに戻って計画を作り直す。
+
+intent 別の扱い:
 
 - `research_guide`: 常に実行
-- `topic_literature_review`: 原則実行
-- `historical_term_search`: 用語・時代・異体字が複雑な場合
-- `bibliography_lookup`: 初出調査のみ
-- `image_illustration_search`: 美術・文化財・地域資料のみ
+- `topic_literature_review`: 実行
+- `historical_term_search`: 実行
+- `bibliography_lookup`: 単純な所蔵・書誌確認は省略可。初出、掲載号、雑誌記事、同定困難、0 件時は実行
+- `image_illustration_search`: 美術・文化財・地域資料なら実行
 - `fulltext_page_lookup`: 省略
 
 ## 会話運用

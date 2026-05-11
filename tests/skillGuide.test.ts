@@ -29,6 +29,12 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("本文: 確認済み");
     expect(skill).toContain("今回の確認範囲");
     expect(skill).toContain("Web は補助確認");
+    expect(skill).toContain(
+      "実検索前にレファ協・NDL リサーチ・ナビを参考にして調査計画を立てる"
+    );
+    expect(skill).toContain(
+      "原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う"
+    );
   });
 
   it("routes detailed workflow, source, evidence, and cache guidance to references", () => {
@@ -130,8 +136,155 @@ describe("jp-lit-research skill guide", () => {
     expect(usageGuide).toContain("学会誌・研究会誌・紀要・専門誌の署名書評");
     expect(usageGuide).toContain("Web は主経路ではなく補助確認");
     expect(usageGuide).toContain("`根拠: Web補助確認`");
+    expect(usageGuide).toContain(
+      "未知の文献・資料・調べ方を探索する調査の場合、検索前に原則として"
+    );
+    expect(usageGuide).toContain("0 件・ノイズ過多・初出/掲載号/一般誌記事探索");
+    expect(usageGuide).toContain("リサーチ・ナビ、レファ協を入口候補として計画します");
     expect(workflow).toContain("本文未読の内容別・論点別分類");
     expect(workflow).toContain("優先");
+  });
+
+  it("uses CRD and Research Navi before searches to build the research plan", () => {
+    const workflowCore = readFileSync(
+      "skills/jp-lit-research/reference/01-core-workflow.md",
+      "utf8"
+    );
+    const advisory = readFileSync(
+      "skills/jp-lit-research/heuristics/advisory-consultation.md",
+      "utf8"
+    );
+    const failureModes = readFileSync(
+      "skills/jp-lit-research/heuristics/failure-modes.md",
+      "utf8"
+    );
+    const workflowTopic = readFileSync(
+      "skills/jp-lit-research/workflows/topic-literature-review.md",
+      "utf8"
+    );
+    const workflowBibliography = readFileSync(
+      "skills/jp-lit-research/workflows/bibliography-lookup.md",
+      "utf8"
+    );
+    const workflowHistoricalTerm = readFileSync(
+      "skills/jp-lit-research/workflows/historical-term-search.md",
+      "utf8"
+    );
+    const workflowImageIllustration = readFileSync(
+      "skills/jp-lit-research/workflows/image-illustration-search.md",
+      "utf8"
+    );
+    const clarifyingQuestions = readFileSync(
+      "skills/jp-lit-research/heuristics/clarifying-questions.md",
+      "utf8"
+    );
+
+    expect(workflowCore).toContain(
+      "調査を始める前に、まずレファ協と NDL リサーチ・ナビを参考にして調査計画を立てる"
+    );
+    expect(workflowCore).toContain(
+      "単純な所蔵確認・書誌確認だけを行う場合は省略してよい"
+    );
+    expect(advisory).toContain(
+      "未知の文献・資料・調べ方を探索する調査では、実検索の前に原則としてこの手順を使う"
+    );
+    expect(advisory).toContain("| `topic_literature_review` | 実行 |");
+    expect(advisory).toContain("| `historical_term_search` | 実行 |");
+    expect(workflowTopic).toContain(
+      "テーマ文献探索では、原則としてレファ協とリサーチ・ナビを検索計画の材料にする"
+    );
+    expect(workflowTopic).toContain(
+      "人名単独、回想記事、雑誌目次、一般誌記事、初出、掲載号探索"
+    );
+    expect(advisory).toContain(
+      "人名単独、回想記事、雑誌目次、一般誌記事、初出、掲載号探索、0 件・ノイズ過多の再計画では省略しない"
+    );
+    expect(failureModes).toContain(
+      "難航時にレファ協・リサーチ・ナビで、別の資料類型・索引・調査順序を確認したか"
+    );
+    expect(failureModes).toContain("jp_lit_search_guides_manuals");
+    expect(failureModes).toContain("雑誌の総目次・バックナンバー");
+    expect(workflowTopic).toContain("reference_tools");
+    expect(workflowBibliography).toContain("調査前情報収集の要否");
+    expect(workflowBibliography).toContain("単純な所蔵確認・書誌確認だけを行う場合");
+    expect(workflowBibliography).toContain("初出、掲載号、雑誌記事、一般誌記事を探す");
+    expect(workflowHistoricalTerm).toContain(
+      "近代以前・旧字・別称・初出調査が絡む場合は、実検索前に"
+    );
+    expect(workflowHistoricalTerm).toContain("advisory-consultation を省略しない");
+    expect(workflowImageIllustration).toContain(
+      "美術・文化財・博物館資料・地域資料が絡む場合は、実検索前に"
+    );
+    expect(clarifyingQuestions).toContain(
+      "未知の文献・資料・調べ方を探索する調査では、レファ協・NDL リサーチ・ナビを参考にした計画を示す"
+    );
+    expect(clarifyingQuestions).toContain(
+      "単純な所蔵確認として、ndl_catalog で「○○」を確認します"
+    );
+  });
+
+  it("keeps initial searches explicit and avoids source-unspecified round-robin by default", () => {
+    const sourceSelection = readFileSync(
+      "skills/jp-lit-research/heuristics/source-selection.md",
+      "utf8"
+    );
+    const sourceAndQuery = readFileSync(
+      "skills/jp-lit-research/reference/02-source-and-query.md",
+      "utf8"
+    );
+    const workflowResearchGuide = readFileSync(
+      "skills/jp-lit-research/workflows/research-guide-lookup.md",
+      "utf8"
+    );
+    const workflowTopic = readFileSync(
+      "skills/jp-lit-research/workflows/topic-literature-review.md",
+      "utf8"
+    );
+
+    expect(sourceSelection).toContain(
+      "レファ協・NDL リサーチ・ナビを参考に調査計画を立てた後、実検索の初動では、原則として `source` 未指定のラウンドロビン検索を使わない"
+    );
+    expect(sourceSelection).toContain(
+      "レファ協・リサーチ・ナビで示唆された source 候補を加えて、初手の実検索 source を 2〜4 個に絞る"
+    );
+    expect(sourceSelection).toContain(
+      "`ndl_search` / `japan_search` は専門 DB を押しのける固定順序ではない"
+    );
+    expect(sourceSelection).toContain(
+      "`ndl_search` + `japan_search` を基礎候補にし、調査前情報収集で示唆された専門 DB / source と並べて計画する"
+    );
+    expect(sourceAndQuery).toContain(
+      "新規テーマでは、レファ協・NDL リサーチ・ナビを参考に調査計画を立ててから実検索へ進む"
+    );
+    expect(sourceAndQuery).toContain(
+      "実検索では、原則として `source` 未指定の `jp_lit_search(query=...)` から始めない"
+    );
+    expect(sourceAndQuery).toContain(
+      "レファ協・リサーチ・ナビで示唆された source 候補と組み合わせ、初手は 2〜4 source に絞る"
+    );
+    expect(sourceAndQuery).toContain(
+      "リサーチ・ナビやレファ協が示す専門 DB は、当該分野では基礎候補より有効な入口になりうる"
+    );
+
+    for (const doc of [sourceSelection, sourceAndQuery]) {
+      expect(doc).toContain("ndl_search");
+      expect(doc).toContain("japan_search");
+    }
+
+    expect(sourceAndQuery).toContain(
+      "`source` 未指定の既定横断は `japan_search` と `ndl_search` を含まない"
+    );
+    expect(sourceSelection).toContain("人物回想・雑誌目次・一般誌記事");
+    expect(workflowTopic).toContain("`ndl_search` と `japan_search` を基礎候補");
+    expect(workflowTopic).toContain("レファ協・リサーチ・ナビで示唆された専門 DB / source");
+    expect(workflowResearchGuide).toContain(
+      "ndl_search / japan_search を基礎候補にし、調べ方案内で示唆された専門 DB / source を加えて 2〜4 個に絞る"
+    );
+
+    expect(workflowResearchGuide).not.toContain(
+      "jp_lit_search で NDL・CiNii・J-STAGE を横断"
+    );
+    expect(sourceSelection).not.toContain("NDL + CiNii + J-STAGE の既定構成");
   });
 
   it("routes specialist DB wording to explicit sources without expanding fixed-source scope", () => {
