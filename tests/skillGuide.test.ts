@@ -348,8 +348,8 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceSelection).toContain("search_books");
     expect(sourceSelection).toContain("REST API は ISBN 既知の所蔵確認");
     expect(sourceAndQuery).toContain("地方人物・地方紙・地方雑誌・郷土資料");
-    expect(sourceAndQuery).toContain("Web 検索で実在館名を拾ってからカーリル MCP");
-    expect(sourceAndQuery).toContain("Web 検索で実在する地域図書館名");
+    expect(sourceAndQuery).toContain("`search_libraries` で地域名・館種・ネットワーク名");
+    expect(sourceAndQuery).toContain("Web 検索はパスファインダー");
     expect(sourceAndQuery).toContain("記事名ではなく媒体名・巻号");
     expect(sourceAndQuery).toContain("県立図書館を基準点として外さない");
     expect(sourceAndQuery).toContain("該当都道府県立図書館");

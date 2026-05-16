@@ -27,6 +27,10 @@ interface RegionalLibraryPlan {
     purpose: string;
     free: string;
   }>;
+  searchLibrariesQueries: Array<{
+    purpose: string;
+    keyword: string;
+  }>;
   concreteNameDiscoveryQueries: Array<{
     purpose: string;
     free: string;
@@ -130,9 +134,16 @@ describe("regional library planning script", () => {
       tools: ["search_libraries", "search_books"],
       maxSystems: 15,
       workflow:
-        "まず Web 検索で実在する地域図書館・専門資料機関・パスファインダー・新聞/雑誌所蔵一覧を拾い、その館名や資料室名を search_libraries に渡す。",
+        "カーリル MCP の search_libraries で地域名・館種・ネットワーク名・専門資料機関名を検索し、候補の systemid を得る。Web 検索はパスファインダー、新聞/雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない資料室の補助確認に使う。",
       restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。"
     });
+    expect(plan.searchLibrariesQueries).toEqual(
+      expect.arrayContaining([
+        { purpose: "地域名 + 図書館", keyword: "岐阜県中津川市 図書館" },
+        { purpose: "都道府県立図書館", keyword: "岐阜県立図書館" },
+        { purpose: "郷土資料候補", keyword: "岐阜県中津川市 郷土資料" }
+      ])
+    );
     expect(plan.concreteNameDiscoveryQueries).toEqual(
       expect.arrayContaining([
         { purpose: "人物名 + 出身地", free: "山田太郎 出身地" },

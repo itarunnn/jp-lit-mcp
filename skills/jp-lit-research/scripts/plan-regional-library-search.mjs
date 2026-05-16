@@ -233,6 +233,42 @@ function addQuery(queries, seen, purpose, free) {
   queries.push({ purpose, free: normalized });
 }
 
+function addKeywordQuery(queries, seen, purpose, keyword) {
+  const normalized = keyword.trim();
+  if (!normalized || seen.has(normalized)) {
+    return;
+  }
+  seen.add(normalized);
+  queries.push({ purpose, keyword: normalized });
+}
+
+function buildSearchLibrariesQueries(regionCandidates, specialistLibraryCandidates) {
+  const queries = [];
+  const seen = new Set();
+
+  for (const candidate of regionCandidates) {
+    for (const keyword of candidate.searchLibrariesKeywords ?? []) {
+      let purpose = "地域名 + 図書館";
+      if (/立図書館|立中央図書館/.test(keyword)) {
+        purpose = "都道府県立図書館";
+      } else if (/郷土資料/.test(keyword)) {
+        purpose = "郷土資料候補";
+      } else if (/中央図書館/.test(keyword)) {
+        purpose = "市区町村中央館";
+      }
+      addKeywordQuery(queries, seen, purpose, keyword);
+    }
+  }
+
+  for (const candidate of specialistLibraryCandidates) {
+    for (const keyword of candidate.searchLibrariesKeywords ?? []) {
+      addKeywordQuery(queries, seen, "専門資料機関候補", keyword);
+    }
+  }
+
+  return queries;
+}
+
 function buildSearchBooksQueries(input) {
   const people = arrayField(input, "personNames");
   const places = arrayField(input, "placeNames");
@@ -323,11 +359,15 @@ function buildPlan(input) {
       tools: ["search_libraries", "search_books"],
       maxSystems: 15,
       workflow:
-        "まず Web 検索で実在する地域図書館・専門資料機関・パスファインダー・新聞/雑誌所蔵一覧を拾い、その館名や資料室名を search_libraries に渡す。",
+        "カーリル MCP の search_libraries で地域名・館種・ネットワーク名・専門資料機関名を検索し、候補の systemid を得る。Web 検索はパスファインダー、新聞/雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない資料室の補助確認に使う。",
       restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。"
     },
     specialistLibraryCandidates,
     specialistDiscoveryQueries: buildSpecialistDiscoveryQueries(input),
+    searchLibrariesQueries: buildSearchLibrariesQueries(
+      regionCandidates,
+      specialistLibraryCandidates
+    ),
     concreteNameDiscoveryQueries: buildConcreteNameDiscoveryQueries(input),
     searchBooksQueries: buildSearchBooksQueries(input),
     fallbackActions: [

@@ -102,6 +102,8 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("docs/regional-public-library-research.md");
     expect(usageGuide).toContain("カーリル Remote MCP");
     expect(usageGuide).toContain("地域候補を優先づけたうえで");
+    expect(usageGuide).toContain("`search_libraries` で地域名・館種・ネットワーク名");
+    expect(usageGuide).toContain("Web 検索はパスファインダー");
     expect(usageGuide).toContain("県立図書館を基準点として外さない");
     expect(usageGuide).toContain("該当都道府県立図書館");
     expect(usageGuide).toContain("発行地・活動地に対応する中央館");
