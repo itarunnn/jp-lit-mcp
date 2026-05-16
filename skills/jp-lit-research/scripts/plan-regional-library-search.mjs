@@ -322,10 +322,140 @@ function buildSearchBooksQueries(input) {
   return queries;
 }
 
+function normalizeClientEnvironment(input) {
+  const value = String(
+    input?.clientEnvironment ?? input?.environment ?? input?.client ?? ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "_");
+  if (!value) {
+    return "unspecified";
+  }
+  if (value === "claude" || value === "claude_code") {
+    return "claude_code";
+  }
+  if (value === "chatgpt" || value === "chat_gpt" || value === "gpt") {
+    return "chatgpt";
+  }
+  if (value === "codex_app" || value === "codex_cli") {
+    return "codex";
+  }
+  return value;
+}
+
+function shouldIncludeChatGptPrompt(input, clientEnvironment) {
+  return (
+    clientEnvironment === "codex" ||
+    clientEnvironment === "chatgpt" ||
+    input?.promptMode === true ||
+    input?.outputPrompt === true ||
+    input?.mode === "prompt"
+  );
+}
+
+function buildCalilAccess(input, clientEnvironment) {
+  const directClient =
+    clientEnvironment === "cursor" || clientEnvironment === "claude_code";
+  const codexClient = clientEnvironment === "codex";
+  const chatGptClient = clientEnvironment === "chatgpt";
+
+  return {
+    clientEnvironment,
+    directUse:
+      directClient
+        ? "available_if_user_registered_calil_ai_remote_mcp"
+        : "not_assumed",
+    codexFallback:
+      codexClient
+        ? "generate_chatgpt_calil_prompt_for_user_to_run"
+        : "not_needed",
+    notes: directClient
+      ? [
+          "Cursor / Claude Code では、ユーザーがカーリルAI Remote MCPを事前登録・OAuth認可していれば同一エージェントから search_libraries / search_books を使う。",
+          "カーリルの結果は jp-lit 側の NDL / CiNii / Japan Search / レファ協結果と統合評価する。"
+        ]
+      : chatGptClient
+        ? [
+            "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
+            "jp-lit 側で作った検索計画を貼り付け、結果を jp-lit 側へ戻して統合評価する。"
+          ]
+        : codexClient
+          ? [
+              "Codex ではカーリルAI Remote MCP の直接利用を前提にしない。",
+              "jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
+            ]
+          : [
+              "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
+              "不明な場合は、貼り付け用プロンプトを生成して ChatGPT + カーリルAI で実行する。"
+            ]
+  };
+}
+
+function formatBulletQueries(queries, key) {
+  return queries
+    .slice(0, 24)
+    .map((query, index) => `${index + 1}. ${query.purpose}: ${query[key]}`)
+    .join("\n");
+}
+
+function buildChatGptCalilPrompt(input, planDraft) {
+  const subject = unique([
+    ...arrayField(input, "personNames"),
+    ...arrayField(input, "mediaNames"),
+    ...arrayField(input, "organizationNames"),
+    ...arrayField(input, "topics")
+  ]).join(" / ") || "地域資料・地方公共図書館調査";
+  const regionLabels = planDraft.regionCandidates
+    .map((candidate) => `${candidate.label}（${candidate.type}）`)
+    .join("、") || "未確定";
+  const specialistLabels = planDraft.specialistLibraryCandidates
+    .map((candidate) => candidate.label)
+    .join("、") || "未確定";
+  const libraryQueries = formatBulletQueries(
+    planDraft.searchLibrariesQueries,
+    "keyword"
+  );
+  const bookQueries = formatBulletQueries(planDraft.searchBooksQueries, "free");
+
+  return [
+    "あなたはカーリルAI Remote MCPを使える調査補助者です。以下の地域資料・地方公共図書館調査を実行してください。",
+    "",
+    `調査対象: ${subject}`,
+    `地域候補: ${regionLabels}`,
+    `専門領域・専門資料機関候補: ${specialistLabels}`,
+    "",
+    "手順:",
+    "1. search_libraries で下の図書館検索語を順に試し、候補館名、systemid、地域・館種・採用理由を整理してください。",
+    "2. 最大15館に絞るときは、県立図書館を基準点として外さず、市区町村中央館、広域ネットワーク、発行地・活動地の中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室を組み合わせてください。",
+    "3. 採用した systemid 群に対して search_books を使い、下の蔵書検索語を試してください。地方紙・地方雑誌は記事名ではなく媒体名・巻号・発行地を重視してください。",
+    "4. 結果は、検索語、systemid、館名、書誌、所蔵館、所蔵範囲、閲覧条件、ヒットしなかった検索語、追加で各館OPACやレファレンス確認が必要な点に分けて返してください。",
+    "5. カーリルで見つからない文学館・記念館・資料館・資料室・専門団体は、検索できなかったものとして明示し、Web/直接OPAC/レファレンス照会の次アクションに分けてください。",
+    "",
+    "search_libraries に渡す検索語:",
+    libraryQueries || "なし",
+    "",
+    "search_books に渡す検索語:",
+    bookQueries || "なし",
+    "",
+    "返答フォーマット:",
+    "- 図書館候補: 館名 / systemid / 採用理由 / 優先度",
+    "- 蔵書候補: 書誌 / 検索語 / 所蔵館 / 所蔵・閲覧条件 / 確認状態",
+    "- ヒットなし・保留: 検索語 / 理由",
+    "- 次アクション: 各館OPAC、新聞・雑誌所蔵一覧、専門資料機関、レファレンス相談"
+  ].join("\n");
+}
+
 function buildPlan(input) {
   const topics = arrayField(input, "topics");
   const regionCandidates = buildRegionCandidates(input);
   const specialistLibraryCandidates = buildSpecialistLibraryCandidates(input);
+  const searchLibrariesQueries = buildSearchLibrariesQueries(
+    regionCandidates,
+    specialistLibraryCandidates
+  );
+  const searchBooksQueries = buildSearchBooksQueries(input);
+  const clientEnvironment = normalizeClientEnvironment(input);
   const hasLocalPersonTopic = topics.some((topic) =>
     /地方人物|郷土人物|出身者|在住者/.test(topic)
   );
@@ -340,7 +470,7 @@ function buildPlan(input) {
     ...(arrayField(input, "organizationNames").length ? ["地域団体資料"] : [])
   ]);
 
-  return {
+  const plan = {
     mode: "regional_public_library_search_plan",
     regionalSignals,
     regionCandidates,
@@ -360,16 +490,14 @@ function buildPlan(input) {
       maxSystems: 15,
       workflow:
         "カーリル MCP の search_libraries で地域名・館種・ネットワーク名・専門資料機関名を検索し、候補の systemid を得る。Web 検索はパスファインダー、新聞/雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない資料室の補助確認に使う。",
-      restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。"
+      restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。",
+      access: buildCalilAccess(input, clientEnvironment)
     },
     specialistLibraryCandidates,
     specialistDiscoveryQueries: buildSpecialistDiscoveryQueries(input),
-    searchLibrariesQueries: buildSearchLibrariesQueries(
-      regionCandidates,
-      specialistLibraryCandidates
-    ),
+    searchLibrariesQueries,
     concreteNameDiscoveryQueries: buildConcreteNameDiscoveryQueries(input),
-    searchBooksQueries: buildSearchBooksQueries(input),
+    searchBooksQueries,
     fallbackActions: [
       "地域パスファインダーを確認する",
       "各館 OPAC を直接確認する",
@@ -379,6 +507,12 @@ function buildPlan(input) {
       "図書館レファレンス相談を次アクションに残す"
     ]
   };
+
+  if (shouldIncludeChatGptPrompt(input, clientEnvironment)) {
+    plan.chatGptCalilPrompt = buildChatGptCalilPrompt(input, plan);
+  }
+
+  return plan;
 }
 
 try {

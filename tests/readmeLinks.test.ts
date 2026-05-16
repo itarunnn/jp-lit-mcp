@@ -110,6 +110,11 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("隣接自治体や旧郡域の館");
     expect(usageGuide).toContain("専門図書館・資料室");
     expect(usageGuide).toContain("scripts/plan-regional-library-search.mjs");
+    expect(usageGuide).toContain("clientEnvironment: \"codex\"");
+    expect(usageGuide).toContain("chatGptCalilPrompt");
+    expect(usageGuide).toContain("ChatGPT + カーリルAI");
+    const readme = readFileSync("README.md", "utf8");
+    expect(readme).toContain("ChatGPT + カーリルAI");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");

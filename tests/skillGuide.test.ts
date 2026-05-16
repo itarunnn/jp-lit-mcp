@@ -347,6 +347,8 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceSelection).toContain("search_libraries");
     expect(sourceSelection).toContain("search_books");
     expect(sourceSelection).toContain("REST API は ISBN 既知の所蔵確認");
+    expect(sourceSelection).toContain("Cursor / Claude Code");
+    expect(sourceSelection).toContain("clientEnvironment: \"codex\"");
     expect(sourceAndQuery).toContain("地方人物・地方紙・地方雑誌・郷土資料");
     expect(sourceAndQuery).toContain("`search_libraries` で地域名・館種・ネットワーク名");
     expect(sourceAndQuery).toContain("Web 検索はパスファインダー");
@@ -372,6 +374,8 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalDoc).toContain("大学図書館および専門図書館のサポートを追加");
     expect(regionalDoc).toContain("SPECIAL");
     expect(regionalDoc).toContain("専門図書館・資料室");
+    expect(regionalDoc).toContain("ChatGPT + カーリルAI");
+    expect(regionalDoc).toContain("chatGptCalilPrompt");
     expect(regionalSkillReference).toContain("地域資料サービス");
     expect(regionalSkillReference).toContain("カーリル for AI");
     expect(regionalSkillReference).toContain("Remote MCP");
@@ -382,7 +386,11 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalSkillReference).toContain("発行地・活動地に対応する中央館");
     expect(regionalSkillReference).toContain("隣接自治体や旧郡域の館");
     expect(regionalSkillReference).toContain("専門図書館・資料室");
+    expect(regionalSkillReference).toContain("Cursor / Claude Code");
+    expect(regionalSkillReference).toContain("ChatGPT + カーリルAI");
+    expect(regionalSkillReference).toContain("chatGptCalilPrompt");
     expect(skill).toContain("scripts/plan-regional-library-search.mjs");
+    expect(skill).toContain("clientEnvironment: \"codex\"");
     expect(regionalSkillReference).toContain(
       "scripts/plan-regional-library-search.mjs"
     );

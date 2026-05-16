@@ -17,6 +17,12 @@ interface RegionalLibraryPlan {
     maxSystems: number;
     workflow: string;
     restApiUse: string;
+    access: {
+      clientEnvironment: string;
+      directUse: string;
+      codexFallback: string;
+      notes: string[];
+    };
   };
   specialistLibraryCandidates: Array<{
     label: string;
@@ -40,6 +46,7 @@ interface RegionalLibraryPlan {
     free: string;
   }>;
   fallbackActions: string[];
+  chatGptCalilPrompt?: string;
 }
 
 function runPlanner(input: unknown): RegionalLibraryPlan {
@@ -135,7 +142,16 @@ describe("regional library planning script", () => {
       maxSystems: 15,
       workflow:
         "カーリル MCP の search_libraries で地域名・館種・ネットワーク名・専門資料機関名を検索し、候補の systemid を得る。Web 検索はパスファインダー、新聞/雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない資料室の補助確認に使う。",
-      restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。"
+      restApiUse: "ISBN既知の所蔵確認のみ。キーワード蔵書検索には使わない。",
+      access: {
+        clientEnvironment: "unspecified",
+        directUse: "not_assumed",
+        codexFallback: "not_needed",
+        notes: [
+          "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
+          "不明な場合は、貼り付け用プロンプトを生成して ChatGPT + カーリルAI で実行する。"
+        ]
+      }
     });
     expect(plan.searchLibrariesQueries).toEqual(
       expect.arrayContaining([
@@ -290,5 +306,32 @@ describe("regional library planning script", () => {
       ])
     );
     expect(plan.fallbackActions).toContain("専門団体・資料室・機関誌/会報の照会先を確認する");
+  });
+
+  it("generates a ChatGPT Calil prompt for Codex fallback", () => {
+    const plan = runPlanner({
+      clientEnvironment: "codex",
+      personNames: ["阿部徳蔵"],
+      placeNames: ["東京都"],
+      subjectKeywords: ["演芸"],
+      topics: ["人物文献探索"]
+    });
+
+    expect(plan.calilMcp.access).toEqual({
+      clientEnvironment: "codex",
+      directUse: "not_assumed",
+      codexFallback: "generate_chatgpt_calil_prompt_for_user_to_run",
+      notes: [
+        "Codex ではカーリルAI Remote MCP の直接利用を前提にしない。",
+        "jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
+      ]
+    });
+    expect(plan.chatGptCalilPrompt).toContain("カーリルAI Remote MCP");
+    expect(plan.chatGptCalilPrompt).toContain("search_libraries");
+    expect(plan.chatGptCalilPrompt).toContain("search_books");
+    expect(plan.chatGptCalilPrompt).toContain("最大15館");
+    expect(plan.chatGptCalilPrompt).toContain("東京都立図書館");
+    expect(plan.chatGptCalilPrompt).toContain("阿部徳蔵");
+    expect(plan.chatGptCalilPrompt).toContain("結果は、検索語、systemid、館名");
   });
 });
