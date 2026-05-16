@@ -39,5 +39,6 @@ describe("Calil Remote MCP smoke test support", () => {
     expect(usageGuide).toContain("ChatGPT はカーリル側の対応先");
     expect(usageGuide).toContain("Cursor / Claude Code");
     expect(usageGuide).toContain("ChatGPT + カーリルAI");
+    expect(usageGuide).toContain("往復 1 回で済ませる想定");
   });
 });

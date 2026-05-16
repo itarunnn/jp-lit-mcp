@@ -113,6 +113,9 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("clientEnvironment: \"codex\"");
     expect(usageGuide).toContain("chatGptCalilPrompt");
     expect(usageGuide).toContain("ChatGPT + カーリルAI");
+    expect(usageGuide).toContain("`search_libraries` による館候補探し");
+    expect(usageGuide).toContain("`search_books` による蔵書検索までを 1 つのプロンプト");
+    expect(usageGuide).toContain("往復 1 回で済ませる想定");
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("ChatGPT + カーリルAI");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
