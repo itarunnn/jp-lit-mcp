@@ -771,7 +771,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 
 地域候補と検索語を JSON で整理したい場合は、Skill 同梱の `scripts/plan-regional-library-search.mjs` を使えます。このスクリプトはカーリルを直接呼ばず、人名から地域を割る query、媒体名・団体名から所蔵館や資料室を探す query、カーリル Remote MCP に渡す前の検索計画を作る補助です。
 
-開発 checkout でカーリル Remote MCP への live 接続を確認する場合は、Codex の MCP 設定ではなく、この repo の Node smoke script として `npm run smoke:calil-mcp` を使えます。初回はブラウザで OAuth 認可が必要です。カーリル公式の対応表に Codex は明示されていないため、通常の利用者は ChatGPT、Claude Code、Cursor など対応済み AI アプリ側にカーリル Remote MCP を登録して使います。
+開発 checkout でカーリル Remote MCP への live 接続を確認する場合は、Codex の MCP 設定ではなく、この repo の Node smoke script として `npm run smoke:calil-mcp` を使えます。初回はブラウザで OAuth 認可が必要です。カーリル公式の対応表に Codex は明示されていません。ChatGPT はカーリル側の対応先ですが、この repo の `jp-lit-mcp` と同梱 Skill をそのまま動かす導入先ではありません。`jp-lit-mcp` とカーリル Remote MCP を同じ調査フローで併用する場合は、Cursor / Claude Code など、両方の MCP を同一エージェントから使える環境を前提にします。
 
 地方紙・地方雑誌は、記事名ではなく媒体名・巻号で所蔵確認するのが基本です。詳しい判断規則は [地方公共図書館・地域資料調査メモ](regional-public-library-research.md)（repo 内パス: `docs/regional-public-library-research.md`）を参照してください。
 

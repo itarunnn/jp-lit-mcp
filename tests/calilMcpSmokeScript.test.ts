@@ -32,6 +32,10 @@ describe("Calil Remote MCP smoke test support", () => {
     expect(regionalDoc).toContain("API キー登録は不要");
     expect(regionalDoc).toContain("Codex は明示されていない");
     expect(regionalDoc).toContain("Codex App / Codex CLI の MCP 設定としてカーリル OAuth が通るとは扱わない");
+    expect(regionalDoc).toContain("ChatGPT はカーリル側の対応先");
+    expect(regionalDoc).toContain("Cursor / Claude Code");
     expect(usageGuide).toContain("Codex の MCP 設定ではなく");
+    expect(usageGuide).toContain("ChatGPT はカーリル側の対応先");
+    expect(usageGuide).toContain("Cursor / Claude Code");
   });
 });
