@@ -117,7 +117,9 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("`search_books` による蔵書検索までを 1 つのプロンプト");
     expect(usageGuide).toContain("往復 1 回で済ませる想定");
     const readme = readFileSync("README.md", "utf8");
-    expect(readme).toContain("ChatGPT + カーリルAI");
+    expect(readme).toContain("カーリルAI（カーリル Remote MCP）にも対応");
+    expect(readme).toContain("カーリル Remote MCP の設定と初回 OAuth 認可が別途必要");
+    expect(readme).toContain("カーリルAI対応クライアントへ貼る検索プロンプト");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");
