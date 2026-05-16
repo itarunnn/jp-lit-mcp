@@ -376,6 +376,8 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalDoc).toContain("専門図書館・資料室");
     expect(regionalDoc).toContain("ChatGPT + カーリルAI");
     expect(regionalDoc).toContain("chatGptCalilPrompt");
+    expect(regionalDoc).toContain("館候補を探すための検索語");
+    expect(regionalDoc).toContain("実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側");
     expect(regionalSkillReference).toContain("地域資料サービス");
     expect(regionalSkillReference).toContain("カーリル for AI");
     expect(regionalSkillReference).toContain("Remote MCP");
@@ -389,6 +391,8 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalSkillReference).toContain("Cursor / Claude Code");
     expect(regionalSkillReference).toContain("ChatGPT + カーリルAI");
     expect(regionalSkillReference).toContain("chatGptCalilPrompt");
+    expect(regionalSkillReference).toContain("館候補を探すための検索語");
+    expect(regionalSkillReference).toContain("実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側");
     expect(skill).toContain("scripts/plan-regional-library-search.mjs");
     expect(skill).toContain("clientEnvironment: \"codex\"");
     expect(regionalSkillReference).toContain(

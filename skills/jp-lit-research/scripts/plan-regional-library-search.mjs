@@ -43,12 +43,15 @@ function readInput() {
 
 function libraryKeywords(label, type) {
   if (type === "prefecture") {
-    return [
+    const keywords = [
       `${label}立図書館`,
-      `${label}立中央図書館`,
       `${label} 図書館`,
       `${label} 郷土資料`
     ];
+    if (label === "東京都" || label === "大阪府") {
+      keywords.splice(1, 0, `${label}立中央図書館`);
+    }
+    return keywords;
   }
   if (type === "city") {
     return [`${label} 中央図書館`, `${label} 図書館`, `${label} 郷土資料`];

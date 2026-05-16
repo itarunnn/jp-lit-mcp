@@ -92,7 +92,6 @@ describe("regional library planning script", () => {
           ]),
           searchLibrariesKeywords: expect.arrayContaining([
             "岐阜県立図書館",
-            "岐阜県立中央図書館",
             "岐阜県 郷土資料"
           ])
         }),
@@ -207,6 +206,9 @@ describe("regional library planning script", () => {
     ]);
     expect(plan.regionCandidates[0]?.searchLibrariesKeywords).toContain(
       "秋田県立図書館"
+    );
+    expect(plan.regionCandidates[0]?.searchLibrariesKeywords).not.toContain(
+      "秋田県立中央図書館"
     );
     expect(plan.searchBooksQueries.filter((query) => query.free === "山田太郎"))
       .toHaveLength(1);
@@ -333,5 +335,39 @@ describe("regional library planning script", () => {
     expect(plan.chatGptCalilPrompt).toContain("東京都立図書館");
     expect(plan.chatGptCalilPrompt).toContain("阿部徳蔵");
     expect(plan.chatGptCalilPrompt).toContain("結果は、検索語、systemid、館名");
+  });
+
+  it("normalizes Codex app aliases to the prompt fallback", () => {
+    const plan = runPlanner({
+      clientEnvironment: "codex-app",
+      placeNames: ["岐阜県中津川市"],
+      mediaNames: ["東濃新報"],
+      topics: ["地方紙"]
+    });
+
+    expect(plan.calilMcp.access.clientEnvironment).toBe("codex");
+    expect(plan.calilMcp.access.directUse).toBe("not_assumed");
+    expect(plan.calilMcp.access.codexFallback).toBe(
+      "generate_chatgpt_calil_prompt_for_user_to_run"
+    );
+    expect(plan.chatGptCalilPrompt).toContain("search_libraries");
+    expect(plan.chatGptCalilPrompt).toContain("search_books");
+    expect(plan.chatGptCalilPrompt).toContain("東濃新報");
+  });
+
+  it("treats Cursor and Claude Code as direct Calil MCP environments", () => {
+    for (const clientEnvironment of ["cursor", "claude-code"]) {
+      const plan = runPlanner({
+        clientEnvironment,
+        placeNames: ["岐阜県中津川市"],
+        topics: ["地方人物"]
+      });
+
+      expect(plan.calilMcp.access.directUse).toBe(
+        "available_if_user_registered_calil_ai_remote_mcp"
+      );
+      expect(plan.calilMcp.access.codexFallback).toBe("not_needed");
+      expect(plan.chatGptCalilPrompt).toBeUndefined();
+    }
   });
 });
