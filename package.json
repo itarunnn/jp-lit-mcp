@@ -26,6 +26,7 @@
     "prepack": "npm run build",
     "smoke:mcp": "tsx scripts/smoke-mcp.ts",
     "smoke:mcp:live-matrix": "cross-env SMOKE_LIVE_MATRIX=1 SMOKE_LIVE=1 tsx scripts/smoke-mcp.ts",
+    "smoke:calil-mcp": "tsx scripts/smoke-calil-mcp.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "skills:install": "node scripts/install-skills.mjs"

@@ -677,6 +677,7 @@ npx -y jp-lit-mcp doctor
 | MCP smoke check（API 疎通なし） | `npm run smoke:mcp` |
 | CLI doctor | `npx -y jp-lit-mcp doctor` |
 | live smoke matrix | `npm run smoke:mcp:live-matrix` |
+| カーリル Remote MCP live smoke | `npm run smoke:calil-mcp` |
 
 PowerShell で live smoke check を単発実行する例:
 
@@ -691,6 +692,8 @@ live smoke の主な環境変数:
 - `SMOKE_LIVE_SOURCES`: matrix 対象 source のカンマ区切り指定
 - `SMOKE_LIVE_RETRY_COUNT`: source ごとの retry 回数。既定は `2`
 - `SMOKE_LIVE_REPORT_PATH`: matrix レポート出力先。既定は `exports/live-smoke-report.json`
+
+カーリル Remote MCP は外部 MCP なので、通常の `smoke:mcp` には含めません。開発 checkout で接続確認する場合は `npm run smoke:calil-mcp` を使います。初回はブラウザで OAuth 認可が必要です。`CALIL_MCP_LIBRARY_QUERY`、`CALIL_MCP_BOOK_QUERY`、`CALIL_MCP_LIMIT`、`CALIL_MCP_SKIP_BOOK_SEARCH=1`、`CALIL_MCP_OPEN_BROWSER=1` で確認内容を調整できます。
 
 `SMOKE_LIVE_SOURCE=ndl_digital` のときは、`next_digital_library.available=true` の資料があれば OCR 系ツールも検証します。`SMOKE_LIVE_SOURCE=cinii_books` のときは `holding_count` / `holdings[]` も確認します。`jdcat` は upstream `503 Service Temporarily Unavailable` のときだけ skip 扱いにします。
 
