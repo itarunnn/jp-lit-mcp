@@ -70,6 +70,7 @@ export interface OpenQuestion {
   question: string;
   reason: string;
   related_sources?: string[];
+  evidence_refs?: EvidenceRef[];
   created_at: string;
 }
 
@@ -78,6 +79,7 @@ export interface NextAction {
   reason: string;
   priority: NextActionPriority;
   source?: string;
+  evidence_refs?: EvidenceRef[];
   created_at: string;
 }
 
@@ -135,6 +137,8 @@ export interface EvidenceScopeEntry {
 }
 
 export interface SessionEntryTrace {
+  agent_label?: string;
+  task_scope?: string;
   intent?: string;
   search_attempt?: SearchAttempt;
   decisions: DecisionEntry[];
@@ -165,6 +169,8 @@ export interface SessionAnnotationInput {
   selected_items: SessionSelectedItem[];
   notes?: string[];
   trace?: {
+    agent_label?: string;
+    task_scope?: string;
     intent?: string;
     search_attempt?: SearchAttempt;
     decisions?: Array<Omit<DecisionEntry, "created_at">>;

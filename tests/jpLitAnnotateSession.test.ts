@@ -101,6 +101,8 @@ describe("jp_lit_annotate_session", () => {
       cache_key: "sha256-a",
       selected_items: [],
       trace: {
+        agent_label: "Japan Search 担当",
+        task_scope: "昭和館巻号候補の切り分け",
         intent: "topic_literature_review",
         search_attempt: {
           source: "ndl_catalog",
@@ -126,6 +128,8 @@ describe("jp_lit_annotate_session", () => {
     const session = await sessions.readCurrent();
 
     expect(result.structuredContent.annotated_count).toBe(0);
+    expect(session.entries[0]?.trace?.agent_label).toBe("Japan Search 担当");
+    expect(session.entries[0]?.trace?.task_scope).toBe("昭和館巻号候補の切り分け");
     expect(session.entries[0]?.trace?.intent).toBe("topic_literature_review");
     expect(session.entries[0]?.trace?.decisions[0]?.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });

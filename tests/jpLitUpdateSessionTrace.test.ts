@@ -41,7 +41,16 @@ describe("jp_lit_update_session_trace", () => {
         {
           question: "戦前期を含めるか",
           reason: "検索語が変わるため",
-          related_sources: ["ndl_digital"]
+          related_sources: ["ndl_digital"],
+          evidence_refs: [
+            {
+              tool: "jp_lit_search",
+              cache_key: "sha256-a",
+              source: "ndl_digital",
+              source_id: "R100",
+              quote_or_summary: "戦前期資料候補"
+            }
+          ]
         }
       ],
       next_actions: [
@@ -49,7 +58,13 @@ describe("jp_lit_update_session_trace", () => {
           action: "NDL デジコレ全文で旧語を検索する",
           reason: "同時代資料を補うため",
           priority: "medium",
-          source: "ndl_digital"
+          source: "ndl_digital",
+          evidence_refs: [
+            {
+              source: "ndl_digital",
+              source_id: "R100"
+            }
+          ]
         }
       ]
     });
@@ -72,6 +87,8 @@ describe("jp_lit_update_session_trace", () => {
     expect(second.structuredContent.next_action_count).toBe(1);
     expect(session.trace?.research_goal).toBe("近代日本の労働文化を調べる");
     expect(session.trace?.source_plans[0]?.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(session.trace?.open_questions[0]?.evidence_refs?.[0]?.source_id).toBe("R100");
+    expect(session.trace?.next_actions[0]?.evidence_refs?.[0]?.source_id).toBe("R100");
   });
 
   it("rejects caller-supplied created_at values", async () => {

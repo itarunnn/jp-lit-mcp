@@ -220,7 +220,15 @@ describe("jp_lit_export_session", () => {
       open_questions: [
         {
           question: "本文を見るか",
-          reason: "内容確認には本文が必要"
+          reason: "内容確認には本文が必要",
+          evidence_refs: [
+            {
+              tool: "jp_lit_search",
+              cache_key: "sha256-trace",
+              source: "ndl_catalog",
+              source_id: "T1"
+            }
+          ]
         }
       ],
       next_actions: [
@@ -228,7 +236,13 @@ describe("jp_lit_export_session", () => {
           action: "本文確認",
           reason: "メタデータのみでは不足",
           priority: "high",
-          source: "ndl_digital"
+          source: "ndl_digital",
+          evidence_refs: [
+            {
+              source: "ndl_catalog",
+              source_id: "T1"
+            }
+          ]
         }
       ]
     });
@@ -246,6 +260,8 @@ describe("jp_lit_export_session", () => {
         }
       ],
       trace: {
+        agent_label: "NDL/CiNii 担当",
+        task_scope: "書誌と本文入口の確認",
         search_attempt: {
           source: "ndl_catalog",
           query: "trace",
@@ -304,8 +320,13 @@ describe("jp_lit_export_session", () => {
     expect(written).toContain("ndl_catalog");
     expect(written).toContain("## Open Questions");
     expect(written).toContain("本文を見るか");
+    expect(written).toContain("evidence:");
+    expect(written).toContain("ndl_catalog/T1");
     expect(written).toContain("## Next Actions");
     expect(written).toContain("本文確認");
+    expect(written).toContain("### Agent Scope");
+    expect(written).toContain("NDL/CiNii 担当");
+    expect(written).toContain("書誌と本文入口の確認");
     expect(written).toContain("### Search Attempt");
     expect(written).toContain("trace export の確認");
     expect(written).toContain("### Decisions");

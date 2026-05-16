@@ -39,6 +39,7 @@ npx -y jp-lit-mcp doctor
 - [MCP 単体で使う場合](#mcp-単体で使う場合)
 - [主な DB / source の概要](#主な-db--source-の概要)
   - [参考書誌・索引・有料DBでの追加確認](#参考書誌索引有料dbでの追加確認)
+  - [地方公共図書館・地域資料の追加確認](#地方公共図書館地域資料の追加確認)
 - [結果の読み方](#結果の読み方)
 - [典拠の強さ（3 段階の整理）](#典拠の強さ3-段階の整理)
 - [調査がうまくいかない時](#調査がうまくいかない時)
@@ -155,9 +156,9 @@ Amazon レビュー、読書メーター、匿名レビュー、SNS 短文、検
 
 ### サブエージェント利用について
 
-通常の探索ループ、つまり source 選択、検索語展開、候補判断、次 query の決定は、主エージェントが文脈を持ったまま進めます。調査経過は session trace に残すため、担当範囲を分ける運用はできますが、速度目的の並列化を標準フローにはしません。
+通常の探索ループ、つまり source 選択、検索語展開、候補判断、次 query の決定は、主エージェントが文脈を持ったまま統合します。一方で、独立した調査線が複数ある場合は、サブエージェント分担をデフォルト寄りに検討します。たとえば、NDL/CiNii の書誌・所蔵確認、Japan Search/文化資源確認、専門領域 Web 補助確認、地域公共図書館・専門資料室導線は並行しやすい担当範囲です。
 
-サブエージェントを使う場合は、まず sequential な分担として、対象 `cache_key` / `session_id` と担当範囲を固定します。source 選択ログ、検索試行、採用/保留/除外理由、未確認事項は主エージェントが single writer として統合し、必要に応じて `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に保存します。`jp-lit-mcp` と同梱 Skills は、単独のエージェントでも調査を進められるように設計しています。
+サブエージェントを使う場合は、対象 `cache_key` / `session_id`、担当範囲、使ってよい source、返してほしい要約形式を固定します。各担当は検索試行、採用/保留/除外理由、本文確認範囲、未確認事項を trace に残し、主エージェントへ短いサマリーと根拠参照を返します。主エージェントは必要に応じて trace を読み、重複・競合・優先度を整理し、最終判断と回答を統合する single writer になります。`jp-lit-mcp` と同梱 Skills は、単独のエージェントでも調査を進められるように設計しています。
 
 ---
 
@@ -584,7 +585,7 @@ jp_lit_export_session(session_id="2026-05-01-120000", format="markdown", profile
 jp_lit_export_view(view="refined_results", format="markdown", output_path="exports/refined-results.md")
 ```
 
-`jp_lit_update_session_trace` は、調査目的、scope、source 選択理由、未確認事項、次アクションをセッション全体に保存します。`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には検索全体の選別理由を入れ、`trace.search_attempt` / `trace.decisions` / `trace.evidence_scope` には検索試行・採否理由・本文確認範囲を残せます。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
+`jp_lit_update_session_trace` は、調査目的、scope、source 選択理由、未確認事項、次アクションをセッション全体に保存します。未確認事項や次アクションが特定候補に紐づく場合は、`open_questions[].evidence_refs[]` / `next_actions[].evidence_refs[]` に `cache_key`、`source_id`、URL、短い根拠メモを残せます。`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には検索全体の選別理由を入れ、`trace.agent_label` / `trace.task_scope` にはサブエージェントや担当範囲、`trace.search_attempt` / `trace.decisions` / `trace.evidence_scope` には検索試行・採否理由・本文確認範囲を残せます。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
 
 `format="csl-json"` は、Zotero、citeproc、Pandoc 系ツール、他の文献管理連携へ渡すための中間形式です。RIS / BibTeX は直接出力せず、必要な場合は Zotero や変換ツール側で変換する方針です。CSL JSON には調査経過を混ぜず、`profile="selected"` を使い、未選別の検索結果をまとめて入れない運用をおすすめします。CSL JSON の `profile="full_log"` は未採用候補を混ぜず、未採用候補だけを確認したい場合は `profile="unselected"` を使います。
 
@@ -761,6 +762,16 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 - 大宅壮一文庫: "人物名" "事件名"
 - 新聞系 DB: "事件名" "年月" "地名"
 ```
+
+### 地方公共図書館・地域資料の追加確認
+
+地方人物・地方紙・地方雑誌・郷土資料では、NDL / CiNii / J-STAGE だけでは資料の所在が薄いことがあります。Skill 併用時は、人物名だけでなく地名、旧地名、出身地、在住地、活動地、発行地、媒体名、団体名から地域候補を作り、地域候補を優先づけたうえで公共図書館の OPAC や所蔵一覧へ進むことがあります。
+
+カーリル Remote MCP が使える環境では、地域候補を整理し、まず Web 検索で実在する地域図書館、地域パスファインダー、新聞・雑誌所蔵一覧、郷土資料ページを拾います。人名はまず出身地・居住地・活動地・郷土人物としての地域を割り、地域から図書館へ進めます。文学館、記念館、資料館、専門図書館、資料室への直接導線は補助として探します。媒体名・団体名からは所蔵館や資料室の導線も探します。そのうえで、`search_libraries` と `search_books` を使う導線を検討します。県立図書館を基準点として外さないうえで、該当都道府県立図書館、該当市区町村中央館、県内/広域の図書館ネットワーク、発行地・活動地に対応する中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室を組み合わせます。カーリル REST API は ISBN 既知の所蔵確認向きで、人物名・地名・地方紙名によるキーワード蔵書検索には使いません。
+
+地域候補と検索語を JSON で整理したい場合は、Skill 同梱の `scripts/plan-regional-library-search.mjs` を使えます。このスクリプトはカーリルを直接呼ばず、人名から地域を割る query、媒体名・団体名から所蔵館や資料室を探す query、カーリル Remote MCP に渡す前の検索計画を作る補助です。
+
+地方紙・地方雑誌は、記事名ではなく媒体名・巻号で所蔵確認するのが基本です。詳しい判断規則は [地方公共図書館・地域資料調査メモ](regional-public-library-research.md)（repo 内パス: `docs/regional-public-library-research.md`）を参照してください。
 
 ---
 

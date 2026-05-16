@@ -93,4 +93,23 @@ describe("README public onboarding", () => {
     expect(projectStatus).toContain("kokusho");
     expect(projectStatus).toContain("ninjal_bibliography");
   });
+
+  it("documents regional public library research as a Skill-guided route", () => {
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const regionalDoc = readFileSync("docs/regional-public-library-research.md", "utf8");
+
+    expect(usageGuide).toContain("地方人物・地方紙・地方雑誌・郷土資料");
+    expect(usageGuide).toContain("docs/regional-public-library-research.md");
+    expect(usageGuide).toContain("カーリル Remote MCP");
+    expect(usageGuide).toContain("地域候補を優先づけたうえで");
+    expect(usageGuide).toContain("県立図書館を基準点として外さない");
+    expect(usageGuide).toContain("該当都道府県立図書館");
+    expect(usageGuide).toContain("発行地・活動地に対応する中央館");
+    expect(usageGuide).toContain("隣接自治体や旧郡域の館");
+    expect(usageGuide).toContain("専門図書館・資料室");
+    expect(usageGuide).toContain("scripts/plan-regional-library-search.mjs");
+    expect(regionalDoc).toContain("https://calil.jp/ai/");
+    expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
+    expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");
+  });
 });

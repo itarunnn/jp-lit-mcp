@@ -34,7 +34,7 @@ description: >-
 - 生の検索結果、OCR payload、`raw` JSON を会話へ大量に貼らない。cache / session を原本とし、会話には要点と判断を残す。
 - 調査目的、source 選択理由、検索試行、採用/保留/除外理由、本文確認範囲、未確認事項、次アクションは `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に残す。
 - 過去調査の棚卸し・一覧・再開候補確認では `jp_lit_list_sessions` を使う。主題・タイトル・メモなど明確な検索語がある場合は `jp_lit_find_sessions` を使う。
-- サブエージェントに担当範囲を分ける場合も、速度目的の並列化を標準にしない。主エージェントが single writer として trace を統合する。
+- 独立した調査線が複数ある場合は、サブエージェント分担をデフォルト寄りに検討する。各担当は担当範囲・検索ログ・採否理由・未確認事項を trace に残し、短いサマリーを返す。主エージェントは必要に応じて trace を読み、最終判断と回答を統合する single writer になる。
 - 最終回答には `検索概要`、`今回の確認範囲`、`調査ログ` を置く。短い回答でも圧縮して残す。
 - `調査ログ` では各検索の `total`、`取得件数`、`抽出件数` を分ける。
 - 検索しなかった場合も `調査ログ: 今回は検索なし（理由: ...）` と明示する。
@@ -92,6 +92,8 @@ description: >-
 - `heuristics/db-characteristics.md`: DB の特性説明が必要な場合。
 - `heuristics/clarifying-questions.md`: 検索前確認や曖昧さ解消が必要な場合。
 - `workflows/`: intent ごとの詳細手順が必要な場合。
+- `reference/regional-public-library-research.md`: 地方人物・地方紙・地方雑誌・郷土資料で、地域公共図書館とカーリル Remote MCP を使う場合。
+- `scripts/plan-regional-library-search.mjs`: 地域候補とカーリル MCP 用検索計画を JSON で整理したい場合。
 
 既存結果の再整理、並べ替え、差分、export、annotation を求められたら、`reference/01-core-workflow.md` と関連 tool 説明を読む。
 

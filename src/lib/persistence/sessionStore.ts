@@ -67,6 +67,8 @@ function normalizeSessionTrace(trace: SessionDocument["trace"]): SessionTrace {
 
 function normalizeEntryTrace(trace: SessionEntry["trace"]): SessionEntryTrace {
   return {
+    ...(trace?.agent_label ? { agent_label: trace.agent_label } : {}),
+    ...(trace?.task_scope ? { task_scope: trace.task_scope } : {}),
     ...(trace?.intent ? { intent: trace.intent } : {}),
     ...(trace?.search_attempt ? { search_attempt: trace.search_attempt } : {}),
     decisions: trace?.decisions ?? [],
@@ -86,7 +88,9 @@ function hasSessionTraceContent(trace: SessionTrace) {
 
 function hasEntryTraceContent(trace: SessionEntryTrace) {
   return Boolean(
-    trace.intent ||
+    trace.agent_label ||
+      trace.task_scope ||
+      trace.intent ||
       trace.search_attempt ||
       trace.decisions.length > 0 ||
       trace.evidence_scope.length > 0
@@ -354,6 +358,12 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
         const inputTrace = input.trace;
         const nextTrace: SessionEntryTrace = {
           ...currentTrace,
+          ...(inputTrace?.agent_label !== undefined
+            ? { agent_label: inputTrace.agent_label }
+            : {}),
+          ...(inputTrace?.task_scope !== undefined
+            ? { task_scope: inputTrace.task_scope }
+            : {}),
           ...(inputTrace?.intent !== undefined ? { intent: inputTrace.intent } : {}),
           ...(inputTrace?.search_attempt !== undefined
             ? { search_attempt: inputTrace.search_attempt }

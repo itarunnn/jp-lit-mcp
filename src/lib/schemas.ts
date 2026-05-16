@@ -384,6 +384,8 @@ const evidenceScopeInputSchema = z.object({
 }).strict();
 
 const entryTraceInputSchema = z.object({
+  agent_label: z.string().trim().min(1).optional(),
+  task_scope: z.string().trim().min(1).optional(),
   intent: z.string().trim().min(1).optional(),
   search_attempt: searchAttemptSchema.optional(),
   decisions: z.array(decisionInputSchema).optional(),
@@ -393,14 +395,16 @@ const entryTraceInputSchema = z.object({
 const openQuestionInputSchema = z.object({
   question: z.string().trim().min(1),
   reason: z.string().trim().min(1),
-  related_sources: z.array(sourceSchema).optional()
+  related_sources: z.array(sourceSchema).optional(),
+  evidence_refs: z.array(createEvidenceRefSchema()).optional()
 }).strict();
 
 const nextActionInputSchema = z.object({
   action: z.string().trim().min(1),
   reason: z.string().trim().min(1),
   priority: z.enum(["high", "medium", "low"]),
-  source: sourceSchema.optional()
+  source: sourceSchema.optional(),
+  evidence_refs: z.array(createEvidenceRefSchema()).optional()
 }).strict();
 
 export const annotateSessionInputSchema = z.object({

@@ -190,6 +190,80 @@ describe("smoke-mcp tool manifest", () => {
     }
   });
 
+  it("publishes agent scope and session-level evidence refs in trace schemas", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-session-trace-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const annotateTool = tools.find((tool) => tool.name === "jp_lit_annotate_session");
+      const annotateTraceProperties = annotateTool?.inputSchema.properties?.trace as
+        | {
+            properties?: {
+              agent_label?: unknown;
+              task_scope?: unknown;
+            };
+          }
+        | undefined;
+
+      expect(annotateTraceProperties?.properties).toMatchObject({
+        agent_label: { type: "string" },
+        task_scope: { type: "string" }
+      });
+
+      const updateTool = tools.find((tool) => tool.name === "jp_lit_update_session_trace");
+      const updateProperties = updateTool?.inputSchema.properties as
+        | {
+            open_questions?: {
+              items?: {
+                properties?: {
+                  evidence_refs?: { items?: unknown };
+                };
+              };
+            };
+            next_actions?: {
+              items?: {
+                properties?: {
+                  evidence_refs?: { items?: unknown };
+                };
+              };
+            };
+          }
+        | undefined;
+
+      const openQuestionEvidenceRefs =
+        updateProperties?.open_questions?.items?.properties?.evidence_refs?.items;
+      const nextActionEvidenceRefs =
+        updateProperties?.next_actions?.items?.properties?.evidence_refs?.items;
+
+      for (const evidenceRefItems of [
+        openQuestionEvidenceRefs,
+        nextActionEvidenceRefs
+      ]) {
+        expect(evidenceRefItems).toMatchObject({
+          type: "object",
+          properties: {
+            tool: { type: "string" },
+            cache_key: { type: "string" },
+            source_id: { type: "string" },
+            quote_or_summary: { type: "string" }
+          },
+          additionalProperties: false
+        });
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("publishes specialist explicit sources in jp_lit_search and jp_lit_get_record schemas", async () => {
     const server = createServer();
     const client = new Client({

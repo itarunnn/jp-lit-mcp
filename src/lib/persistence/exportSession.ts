@@ -189,6 +189,9 @@ function renderSessionTrace(lines: string[], session: SessionDocument) {
     lines.push("## Open Questions", "");
     for (const question of openQuestions) {
       lines.push(`- ${question.question} - ${question.reason}`);
+      if (question.evidence_refs?.length) {
+        lines.push(`  - evidence: ${renderEvidenceRefs(question.evidence_refs)}`);
+      }
     }
     lines.push("");
   }
@@ -201,6 +204,9 @@ function renderSessionTrace(lines: string[], session: SessionDocument) {
           action.source ? ` (${action.source})` : ""
         }`
       );
+      if (action.evidence_refs?.length) {
+        lines.push(`  - evidence: ${renderEvidenceRefs(action.evidence_refs)}`);
+      }
     }
     lines.push("");
   }
@@ -217,6 +223,17 @@ function renderEntryTrace(
   const trace = entry.trace;
   const decisions = trace.decisions ?? [];
   const evidenceScope = trace.evidence_scope ?? [];
+
+  if (trace.agent_label || trace.task_scope) {
+    lines.push("### Agent Scope", "");
+    if (trace.agent_label) {
+      lines.push(`- agent: ${trace.agent_label}`);
+    }
+    if (trace.task_scope) {
+      lines.push(`- task_scope: ${trace.task_scope}`);
+    }
+    lines.push("");
+  }
 
   if (trace.search_attempt) {
     const attempt = trace.search_attempt;

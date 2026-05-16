@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("jp-lit-research skill guide", () => {
@@ -87,7 +87,8 @@ describe("jp-lit-research skill guide", () => {
     expect(workflowCore).toContain("session_id");
     expect(workflowCore).toContain("jp_lit_update_session_trace");
     expect(workflowCore).toContain("single writer");
-    expect(workflowCore).toContain("sequential");
+    expect(workflowCore).toContain("サブエージェント分担をデフォルト寄りに検討");
+    expect(workflowCore).toContain("短いサマリーと根拠参照");
     expect(workflowCore).toContain("jp_lit_refine_results");
     expect(workflowCore).toContain("Web は主経路にしない");
     expect(workflowCore).toContain("ユーザーが Web 調査を明示");
@@ -318,5 +319,75 @@ describe("jp-lit-research skill guide", () => {
     expect(dbCharacteristics).toContain("本文スニペットは `jp_lit_search_kokusho_fulltext`");
     expect(dbCharacteristics).toContain("画像タグは `jp_lit_search_kokusho_image_tags`");
     expect(sourceSelection).toContain("有料 DB、文化資源 DB、地域アーカイブ DB は固定 source 化しない");
+  });
+
+  it("routes regional public library research through local-materials guidance and Calil MCP", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const sourceSelection = readFileSync(
+      "skills/jp-lit-research/heuristics/source-selection.md",
+      "utf8"
+    );
+    const sourceAndQuery = readFileSync(
+      "skills/jp-lit-research/reference/02-source-and-query.md",
+      "utf8"
+    );
+    const regionalDoc = readFileSync(
+      "docs/regional-public-library-research.md",
+      "utf8"
+    );
+    const regionalSkillReference = readFileSync(
+      "skills/jp-lit-research/reference/regional-public-library-research.md",
+      "utf8"
+    );
+
+    expect(skill).toContain("reference/regional-public-library-research.md");
+    expect(sourceSelection).toContain("地域資料サービス");
+    expect(sourceSelection).toContain("地方公共図書館ルート");
+    expect(sourceSelection).toContain("カーリル Remote MCP");
+    expect(sourceSelection).toContain("search_libraries");
+    expect(sourceSelection).toContain("search_books");
+    expect(sourceSelection).toContain("REST API は ISBN 既知の所蔵確認");
+    expect(sourceAndQuery).toContain("地方人物・地方紙・地方雑誌・郷土資料");
+    expect(sourceAndQuery).toContain("Web 検索で実在館名を拾ってからカーリル MCP");
+    expect(sourceAndQuery).toContain("Web 検索で実在する地域図書館名");
+    expect(sourceAndQuery).toContain("記事名ではなく媒体名・巻号");
+    expect(sourceAndQuery).toContain("県立図書館を基準点として外さない");
+    expect(sourceAndQuery).toContain("該当都道府県立図書館");
+    expect(sourceAndQuery).toContain("発行地・活動地に対応する中央館");
+    expect(sourceAndQuery).toContain("隣接自治体や旧郡域の館");
+
+    expect(regionalDoc).toContain("地域資料サービス");
+    expect(regionalDoc).toContain("郷土資料");
+    expect(regionalDoc).toContain("公共図書館パスファインダーリンク集");
+    expect(regionalDoc).toContain("カーリル for AI");
+    expect(regionalDoc).toContain("Remote MCP");
+    expect(regionalDoc).toContain("最大15館");
+    expect(regionalDoc).toContain("REST API はキーワード蔵書検索に使わない");
+    expect(regionalDoc).toContain("人物名だけでなく地名・媒体名・団体名・発行地");
+    expect(regionalDoc).toContain("地方紙・地方雑誌は記事名より媒体名");
+    expect(regionalDoc).toContain("県立図書館は地域資料の基準点として外さない");
+    expect(regionalDoc).toContain("該当都道府県立図書館");
+    expect(regionalDoc).toContain("発行地・活動地に対応する中央館");
+    expect(regionalDoc).toContain("隣接自治体や旧郡域の館");
+    expect(regionalDoc).toContain("大学図書館および専門図書館のサポートを追加");
+    expect(regionalDoc).toContain("SPECIAL");
+    expect(regionalDoc).toContain("専門図書館・資料室");
+    expect(regionalSkillReference).toContain("地域資料サービス");
+    expect(regionalSkillReference).toContain("カーリル for AI");
+    expect(regionalSkillReference).toContain("Remote MCP");
+    expect(regionalSkillReference).toContain("最大15館");
+    expect(regionalSkillReference).toContain("REST API はキーワード蔵書検索に使わない");
+    expect(regionalSkillReference).toContain("県立図書館は地域資料の基準点として外さない");
+    expect(regionalSkillReference).toContain("該当都道府県立図書館");
+    expect(regionalSkillReference).toContain("発行地・活動地に対応する中央館");
+    expect(regionalSkillReference).toContain("隣接自治体や旧郡域の館");
+    expect(regionalSkillReference).toContain("専門図書館・資料室");
+    expect(skill).toContain("scripts/plan-regional-library-search.mjs");
+    expect(regionalSkillReference).toContain(
+      "scripts/plan-regional-library-search.mjs"
+    );
+    expect(
+      existsSync("skills/jp-lit-research/scripts/plan-regional-library-search.mjs")
+    ).toBe(true);
   });
 });
