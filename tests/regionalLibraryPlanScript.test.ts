@@ -20,7 +20,6 @@ interface RegionalLibraryPlan {
     access: {
       clientEnvironment: string;
       directUse: string;
-      codexFallback: string;
       notes: string[];
     };
   };
@@ -46,7 +45,6 @@ interface RegionalLibraryPlan {
     free: string;
   }>;
   fallbackActions: string[];
-  chatGptCalilPrompt?: string;
 }
 
 function runPlanner(input: unknown): RegionalLibraryPlan {
@@ -145,10 +143,9 @@ describe("regional library planning script", () => {
       access: {
         clientEnvironment: "unspecified",
         directUse: "not_assumed",
-        codexFallback: "not_needed",
         notes: [
           "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
-          "不明な場合は、貼り付け用プロンプトを生成して ChatGPT + カーリルAI で実行する。"
+          "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
         ]
       }
     });
@@ -322,32 +319,12 @@ describe("regional library planning script", () => {
     expect(plan.calilMcp.access).toEqual({
       clientEnvironment: "codex",
       directUse: "available_after_codex_mcp_login",
-      codexFallback: "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable",
       notes: [
         "Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。",
-        "初回 OAuth 認可後は、保存された認証情報を使って新しい Codex セッションから search_libraries / search_books を呼ぶ。直結できない環境だけ貼り付け用プロンプトへ fallback する。"
+        "初回 OAuth 認可後は、保存された認証情報を使って新しい Codex セッションから search_libraries / search_books を呼ぶ。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC や図書館レファレンスへ進む。"
       ]
     });
-    expect(plan.chatGptCalilPrompt).toBeUndefined();
-  });
-
-  it("generates a ChatGPT Calil prompt only for explicit Codex fallback", () => {
-    const plan = runPlanner({
-      clientEnvironment: "codex",
-      calilMcpAvailable: false,
-      personNames: ["阿部徳蔵"],
-      placeNames: ["東京都"],
-      subjectKeywords: ["演芸"],
-      topics: ["人物文献探索"]
-    });
-
-    expect(plan.chatGptCalilPrompt).toContain("カーリルAI Remote MCP");
-    expect(plan.chatGptCalilPrompt).toContain("search_libraries");
-    expect(plan.chatGptCalilPrompt).toContain("search_books");
-    expect(plan.chatGptCalilPrompt).toContain("最大15館");
-    expect(plan.chatGptCalilPrompt).toContain("東京都立図書館");
-    expect(plan.chatGptCalilPrompt).toContain("阿部徳蔵");
-    expect(plan.chatGptCalilPrompt).toContain("結果は、検索語、systemid、館名");
+    expect(Object.keys(plan)).not.toContain("chatGpt" + "CalilPrompt");
   });
 
   it("normalizes Codex app aliases to direct Calil MCP access", () => {
@@ -362,24 +339,7 @@ describe("regional library planning script", () => {
     expect(plan.calilMcp.access.directUse).toBe(
       "available_after_codex_mcp_login"
     );
-    expect(plan.calilMcp.access.codexFallback).toBe(
-      "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable"
-    );
-    expect(plan.chatGptCalilPrompt).toBeUndefined();
-  });
-
-  it("normalizes Codex app aliases to prompt fallback when Calil MCP is unavailable", () => {
-    const plan = runPlanner({
-      clientEnvironment: "codex-app",
-      calilMcpAvailable: false,
-      placeNames: ["岐阜県中津川市"],
-      mediaNames: ["東濃新報"],
-      topics: ["地方紙"]
-    });
-
-    expect(plan.chatGptCalilPrompt).toContain("search_libraries");
-    expect(plan.chatGptCalilPrompt).toContain("search_books");
-    expect(plan.chatGptCalilPrompt).toContain("東濃新報");
+    expect(Object.keys(plan)).not.toContain("chatGpt" + "CalilPrompt");
   });
 
   it("treats Cursor and Claude Code as direct Calil MCP environments", () => {
@@ -393,8 +353,7 @@ describe("regional library planning script", () => {
       expect(plan.calilMcp.access.directUse).toBe(
         "available_if_user_registered_calil_ai_remote_mcp"
       );
-      expect(plan.calilMcp.access.codexFallback).toBe("not_needed");
-      expect(plan.chatGptCalilPrompt).toBeUndefined();
+      expect(Object.keys(plan)).not.toContain("chatGpt" + "CalilPrompt");
     }
   });
 });

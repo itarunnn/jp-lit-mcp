@@ -348,7 +348,7 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceSelection).toContain("search_books");
     expect(sourceSelection).toContain("REST API は ISBN 既知の所蔵確認");
     expect(sourceSelection).toContain("Cursor / Claude Code / Codex");
-    expect(sourceSelection).toContain("calilMcpAvailable: false");
+    expect(sourceSelection).toContain("MCP / OAuth 設定を直し");
     expect(sourceAndQuery).toContain("地方人物・地方紙・地方雑誌・郷土資料");
     expect(sourceAndQuery).toContain("`search_libraries` で地域名・館種・ネットワーク名");
     expect(sourceAndQuery).toContain("Web 検索はパスファインダー");
@@ -376,10 +376,8 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalDoc).toContain("専門図書館・資料室");
     expect(regionalDoc).toContain("直結できることを確認済み");
     expect(regionalDoc).toContain("localhost");
-    expect(regionalDoc).toContain("ChatGPT + カーリルAI");
-    expect(regionalDoc).toContain("chatGptCalilPrompt");
-    expect(regionalDoc).toContain("館候補を探すための検索語");
-    expect(regionalDoc).toContain("実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側");
+    expect(regionalDoc).toContain("カーリル MCP 用の `search_libraries` / `search_books` 計画");
+    expect(regionalDoc).toContain("地域パスファインダー、各館 OPAC");
     expect(regionalSkillReference).toContain("地域資料サービス");
     expect(regionalSkillReference).toContain("カーリル for AI");
     expect(regionalSkillReference).toContain("Remote MCP");
@@ -391,12 +389,10 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalSkillReference).toContain("隣接自治体や旧郡域の館");
     expect(regionalSkillReference).toContain("専門図書館・資料室");
     expect(regionalSkillReference).toContain("Cursor / Claude Code / Codex");
-    expect(regionalSkillReference).toContain("ChatGPT + カーリルAI");
-    expect(regionalSkillReference).toContain("chatGptCalilPrompt");
-    expect(regionalSkillReference).toContain("館候補を探すための検索語");
-    expect(regionalSkillReference).toContain("実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側");
+    expect(regionalSkillReference).toContain("カーリル MCP 用の `search_libraries` / `search_books` 計画");
+    expect(regionalSkillReference).toContain("MCP / OAuth 設定を直し");
     expect(skill).toContain("scripts/plan-regional-library-search.mjs");
-    expect(skill).toContain("calilMcpAvailable: false");
+    expect(skill).toContain("search_libraries");
     expect(regionalSkillReference).toContain(
       "scripts/plan-regional-library-search.mjs"
     );

@@ -67,7 +67,7 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 
 `jp-lit-research` Skill を使うと、検索前に調査計画を立て、必要に応じてレファ協や NDL リサーチ・ナビを見ながら、source と検索語を組み立てます。調査は一回の検索で終わらせず、候補を見ながら次の query や DB を選び直す前提です。
 
-地域資料・地方人物・地方紙・地方雑誌の探索では、NDL / CiNii / Japan Search だけで拾えない公共図書館の蔵書確認も調査線に入れられます。カーリルAI（カーリル Remote MCP）にも対応し、Skill 側で地域候補を整理し、県立図書館と市区町村中央館、広域ネットワーク、郷土資料室、関連する専門資料機関を組み合わせて探す運用を案内します。カーリルAIを実検索に使うには、利用する AI クライアント側でカーリル Remote MCP の設定と初回 OAuth 認可が別途必要です。Codex CLI でも Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できます。直結できない環境では、カーリルAI対応クライアントへ貼る検索プロンプトを fallback として出す運用になります。
+地域資料・地方人物・地方紙・地方雑誌の探索では、NDL / CiNii / Japan Search だけで拾えない公共図書館の蔵書確認も調査線に入れられます。カーリルAI（カーリル Remote MCP）にも対応し、Skill 側で地域候補を整理し、県立図書館と市区町村中央館、広域ネットワーク、郷土資料室、関連する専門資料機関を組み合わせて探す運用を案内します。カーリルAIを実検索に使うには、利用する AI クライアント側でカーリル Remote MCP の設定と初回 OAuth 認可が別途必要です。Codex CLI でも Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できます。
 
 カーリル Remote MCP の接続確認は、開発 checkout では `npm run smoke:calil-mcp` でも行えます。これは Codex の MCP 設定とは別の Node smoke script で、初回はブラウザで OAuth 認可が必要です。
 

@@ -347,17 +347,6 @@ function normalizeClientEnvironment(input) {
   return value;
 }
 
-function shouldIncludeChatGptPrompt(input, clientEnvironment) {
-  return (
-    clientEnvironment === "chatgpt" ||
-    input?.calilMcpAvailable === false ||
-    input?.calilDirectAvailable === false ||
-    input?.promptMode === true ||
-    input?.outputPrompt === true ||
-    input?.mode === "prompt"
-  );
-}
-
 function buildCalilAccess(input, clientEnvironment) {
   const directClient =
     clientEnvironment === "cursor" ||
@@ -374,14 +363,10 @@ function buildCalilAccess(input, clientEnvironment) {
         : directClient
         ? "available_if_user_registered_calil_ai_remote_mcp"
         : "not_assumed",
-    codexFallback:
-      codexClient
-        ? "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable"
-        : "not_needed",
     notes: codexClient
       ? [
           "Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。",
-          "初回 OAuth 認可後は、保存された認証情報を使って新しい Codex セッションから search_libraries / search_books を呼ぶ。直結できない環境だけ貼り付け用プロンプトへ fallback する。"
+          "初回 OAuth 認可後は、保存された認証情報を使って新しい Codex セッションから search_libraries / search_books を呼ぶ。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC や図書館レファレンスへ進む。"
         ]
       : directClient
         ? [
@@ -395,63 +380,9 @@ function buildCalilAccess(input, clientEnvironment) {
           ]
           : [
               "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
-              "不明な場合は、貼り付け用プロンプトを生成して ChatGPT + カーリルAI で実行する。"
+              "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
             ]
   };
-}
-
-function formatBulletQueries(queries, key) {
-  return queries
-    .slice(0, 24)
-    .map((query, index) => `${index + 1}. ${query.purpose}: ${query[key]}`)
-    .join("\n");
-}
-
-function buildChatGptCalilPrompt(input, planDraft) {
-  const subject = unique([
-    ...arrayField(input, "personNames"),
-    ...arrayField(input, "mediaNames"),
-    ...arrayField(input, "organizationNames"),
-    ...arrayField(input, "topics")
-  ]).join(" / ") || "地域資料・地方公共図書館調査";
-  const regionLabels = planDraft.regionCandidates
-    .map((candidate) => `${candidate.label}（${candidate.type}）`)
-    .join("、") || "未確定";
-  const specialistLabels = planDraft.specialistLibraryCandidates
-    .map((candidate) => candidate.label)
-    .join("、") || "未確定";
-  const libraryQueries = formatBulletQueries(
-    planDraft.searchLibrariesQueries,
-    "keyword"
-  );
-  const bookQueries = formatBulletQueries(planDraft.searchBooksQueries, "free");
-
-  return [
-    "あなたはカーリルAI Remote MCPを使える調査補助者です。以下の地域資料・地方公共図書館調査を実行してください。",
-    "",
-    `調査対象: ${subject}`,
-    `地域候補: ${regionLabels}`,
-    `専門領域・専門資料機関候補: ${specialistLabels}`,
-    "",
-    "手順:",
-    "1. search_libraries で下の図書館検索語を順に試し、候補館名、systemid、地域・館種・採用理由を整理してください。",
-    "2. 最大15館に絞るときは、県立図書館を基準点として外さず、市区町村中央館、広域ネットワーク、発行地・活動地の中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室を組み合わせてください。",
-    "3. 採用した systemid 群に対して search_books を使い、下の蔵書検索語を試してください。地方紙・地方雑誌は記事名ではなく媒体名・巻号・発行地を重視してください。",
-    "4. 結果は、検索語、systemid、館名、書誌、所蔵館、所蔵範囲、閲覧条件、ヒットしなかった検索語、追加で各館OPACやレファレンス確認が必要な点に分けて返してください。",
-    "5. カーリルで見つからない文学館・記念館・資料館・資料室・専門団体は、検索できなかったものとして明示し、Web/直接OPAC/レファレンス照会の次アクションに分けてください。",
-    "",
-    "search_libraries に渡す検索語:",
-    libraryQueries || "なし",
-    "",
-    "search_books に渡す検索語:",
-    bookQueries || "なし",
-    "",
-    "返答フォーマット:",
-    "- 図書館候補: 館名 / systemid / 採用理由 / 優先度",
-    "- 蔵書候補: 書誌 / 検索語 / 所蔵館 / 所蔵・閲覧条件 / 確認状態",
-    "- ヒットなし・保留: 検索語 / 理由",
-    "- 次アクション: 各館OPAC、新聞・雑誌所蔵一覧、専門資料機関、レファレンス相談"
-  ].join("\n");
 }
 
 function buildPlan(input) {
@@ -515,10 +446,6 @@ function buildPlan(input) {
       "図書館レファレンス相談を次アクションに残す"
     ]
   };
-
-  if (shouldIncludeChatGptPrompt(input, clientEnvironment)) {
-    plan.chatGptCalilPrompt = buildChatGptCalilPrompt(input, plan);
-  }
 
   return plan;
 }
