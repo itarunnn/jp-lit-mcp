@@ -35,7 +35,7 @@ description: >-
 - 調査目的、source 選択理由、検索試行、採用/保留/除外理由、本文確認範囲、未確認事項、次アクションは `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に残す。
 - 過去調査の棚卸し・一覧・再開候補確認では `jp_lit_list_sessions` を使う。主題・タイトル・メモなど明確な検索語がある場合は `jp_lit_find_sessions` を使う。
 - 独立した調査線が複数ある場合は、サブエージェント分担をデフォルト寄りに検討する。各担当は担当範囲・検索ログ・採否理由・未確認事項を trace に残し、短いサマリーを返す。主エージェントは必要に応じて trace を読み、最終判断と回答を統合する single writer になる。
-- 地方公共図書館ルートでカーリルAIを使う場合、Cursor / Claude Code ではユーザーがカーリルAI Remote MCP を事前登録・OAuth認可済みなら同一エージェントから使える。Codex ではカーリルAIの直接利用を前提にせず、`scripts/plan-regional-library-search.mjs` に `clientEnvironment: "codex"` を渡して ChatGPT + カーリルAI 用プロンプトを生成し、ユーザーが実行した結果を受け取って統合評価する。
+- 地方公共図書館ルートでカーリルAIを使う場合、Cursor / Claude Code ではユーザーがカーリルAI Remote MCP を事前登録・OAuth認可済みなら同一エージェントから使える。Codex でもまず Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できるかを第一候補として扱う。直結できない場合だけ、`scripts/plan-regional-library-search.mjs` に `clientEnvironment: "codex"` を渡して ChatGPT + カーリルAI 用プロンプトを生成し、ユーザーが実行した結果を受け取って統合評価する。
 - 最終回答には `検索概要`、`今回の確認範囲`、`調査ログ` を置く。短い回答でも圧縮して残す。
 - `調査ログ` では各検索の `total`、`取得件数`、`抽出件数` を分ける。
 - 検索しなかった場合も `調査ログ: 今回は検索なし（理由: ...）` と明示する。

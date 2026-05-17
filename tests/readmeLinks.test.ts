@@ -119,6 +119,7 @@ describe("README public onboarding", () => {
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("カーリルAI（カーリル Remote MCP）にも対応");
     expect(readme).toContain("カーリル Remote MCP の設定と初回 OAuth 認可が別途必要");
+    expect(readme).toContain("Codex CLI の Streamable HTTP MCP / OAuth で直結を試し");
     expect(readme).toContain("カーリルAI対応クライアントへ貼る検索プロンプト");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");

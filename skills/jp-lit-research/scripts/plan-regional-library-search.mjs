@@ -366,12 +366,14 @@ function buildCalilAccess(input, clientEnvironment) {
   return {
     clientEnvironment,
     directUse:
-      directClient
+      codexClient
+        ? "available_if_codex_mcp_login_succeeds"
+        : directClient
         ? "available_if_user_registered_calil_ai_remote_mcp"
         : "not_assumed",
     codexFallback:
       codexClient
-        ? "generate_chatgpt_calil_prompt_for_user_to_run"
+        ? "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable"
         : "not_needed",
     notes: directClient
       ? [
@@ -385,8 +387,8 @@ function buildCalilAccess(input, clientEnvironment) {
           ]
         : codexClient
           ? [
-              "Codex ではカーリルAI Remote MCP の直接利用を前提にしない。",
-              "jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
+              "Codex ではまず Streamable HTTP MCP / OAuth でカーリルAI Remote MCP へ直結できるかを試す。",
+              "直結できない場合は、jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
             ]
           : [
               "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",

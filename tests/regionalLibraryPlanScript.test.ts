@@ -321,11 +321,11 @@ describe("regional library planning script", () => {
 
     expect(plan.calilMcp.access).toEqual({
       clientEnvironment: "codex",
-      directUse: "not_assumed",
-      codexFallback: "generate_chatgpt_calil_prompt_for_user_to_run",
+      directUse: "available_if_codex_mcp_login_succeeds",
+      codexFallback: "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable",
       notes: [
-        "Codex ではカーリルAI Remote MCP の直接利用を前提にしない。",
-        "jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
+        "Codex ではまず Streamable HTTP MCP / OAuth でカーリルAI Remote MCP へ直結できるかを試す。",
+        "直結できない場合は、jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
       ]
     });
     expect(plan.chatGptCalilPrompt).toContain("カーリルAI Remote MCP");
@@ -346,9 +346,11 @@ describe("regional library planning script", () => {
     });
 
     expect(plan.calilMcp.access.clientEnvironment).toBe("codex");
-    expect(plan.calilMcp.access.directUse).toBe("not_assumed");
+    expect(plan.calilMcp.access.directUse).toBe(
+      "available_if_codex_mcp_login_succeeds"
+    );
     expect(plan.calilMcp.access.codexFallback).toBe(
-      "generate_chatgpt_calil_prompt_for_user_to_run"
+      "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable"
     );
     expect(plan.chatGptCalilPrompt).toContain("search_libraries");
     expect(plan.chatGptCalilPrompt).toContain("search_books");

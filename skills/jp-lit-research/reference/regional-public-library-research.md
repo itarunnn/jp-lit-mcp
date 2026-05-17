@@ -25,7 +25,7 @@
 
 この用途でカーリルを使う場合は、カーリル Remote MCP を外部 MCP として併用する。`jp-lit-mcp` 側は地域推定、検索語設計、見るべき館の優先順位づけ、結果評価を担当し、カーリル MCP は公共図書館 OPAC の実検索を担当する。
 
-実行環境ごとの扱いは分ける。Cursor / Claude Code では、ユーザーが事前にカーリルAI Remote MCP を登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex では現時点でカーリルAI Remote MCP の直接利用を前提にしない。Codex では `scripts/plan-regional-library-search.mjs` に `clientEnvironment: "codex"` を渡して ChatGPT + カーリルAI へ貼るプロンプトを生成する。`jp-lit` 側が作るのは、地域候補、館候補を探すための検索語、15館以内へ絞る優先順位、蔵書検索語である。実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側のカーリルAIで実行してもらい、結果を Codex に戻してから `jp-lit` 側で NDL / CiNii / Japan Search / レファ協などの結果と統合評価する。
+実行環境ごとの扱いは分ける。Cursor / Claude Code では、ユーザーが事前にカーリルAI Remote MCP を登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex でもまず Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できるかを第一候補として扱う。直結できない場合は `scripts/plan-regional-library-search.mjs` に `clientEnvironment: "codex"` を渡して ChatGPT + カーリルAI へ貼るプロンプトを生成する。fallback で `jp-lit` 側が作るのは、地域候補、館候補を探すための検索語、15館以内へ絞る優先順位、蔵書検索語である。実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側のカーリルAIで実行してもらい、結果を Codex に戻してから `jp-lit` 側で NDL / CiNii / Japan Search / レファ協などの結果と統合評価する。
 
 ## 発動条件
 
