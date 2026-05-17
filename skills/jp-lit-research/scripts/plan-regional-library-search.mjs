@@ -353,7 +353,6 @@ function buildCalilAccess(input, clientEnvironment) {
     clientEnvironment === "claude_code" ||
     clientEnvironment === "codex";
   const codexClient = clientEnvironment === "codex";
-  const chatGptClient = clientEnvironment === "chatgpt";
 
   return {
     clientEnvironment,
@@ -373,15 +372,12 @@ function buildCalilAccess(input, clientEnvironment) {
             "Cursor / Claude Code では、ユーザーがカーリルAI Remote MCPを事前登録・OAuth認可していれば同一エージェントから search_libraries / search_books を使う。",
             "カーリルの結果は jp-lit 側の NDL / CiNii / Japan Search / レファ協結果と統合評価する。"
           ]
-        : chatGptClient
-        ? [
-            "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
-            "jp-lit 側で作った検索計画を貼り付け、結果を jp-lit 側へ戻して統合評価する。"
+        : [
+            clientEnvironment === "chatgpt"
+              ? "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。"
+              : "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
+            "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
           ]
-          : [
-              "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
-              "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
-            ]
   };
 }
 

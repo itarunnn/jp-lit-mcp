@@ -356,4 +356,24 @@ describe("regional library planning script", () => {
       expect(Object.keys(plan)).not.toContain("chatGpt" + "CalilPrompt");
     }
   });
+
+  it("does not emit a ChatGPT copy-paste fallback plan", () => {
+    const plan = runPlanner({
+      clientEnvironment: "chatgpt",
+      placeNames: ["岐阜県中津川市"],
+      topics: ["地方人物"]
+    });
+
+    expect(plan.calilMcp.access).toEqual({
+      clientEnvironment: "chatgpt",
+      directUse: "not_assumed",
+      notes: [
+        "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
+        "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
+      ]
+    });
+    expect(JSON.stringify(plan)).not.toContain("貼り付け");
+    expect(JSON.stringify(plan)).not.toContain("戻して");
+    expect(Object.keys(plan)).not.toContain("chatGpt" + "CalilPrompt");
+  });
 });
