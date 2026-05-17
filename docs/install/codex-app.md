@@ -55,6 +55,17 @@ npx -y jp-lit-mcp install-skills codex
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
+## カーリルAIを併用する場合
+
+地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別にカーリル Remote MCP を Codex CLI に登録します。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。認可後は通常、新しい Codex App の対話で再利用されます。
+
+```bash
+codex mcp add calil --url https://mcp-beta.calil.jp/mcp
+codex mcp login calil
+```
+
+設定後は `Codex App` を開き直し、新しい対話で確認してください。環境によっては `~/.codex/config.toml` で `oauth_resource = "https://mcp-beta.calil.jp"` や localhost callback の固定が必要になる場合があります。
+
 ## 設定反映の確認
 
 まず CLI 側で MCP 登録を確認します。

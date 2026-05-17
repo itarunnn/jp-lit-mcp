@@ -25,7 +25,7 @@
 
 この用途でカーリルを使う場合は、カーリル Remote MCP を外部 MCP として併用する。`jp-lit-mcp` 側は地域推定、検索語設計、見るべき館の優先順位づけ、結果評価を担当し、カーリル MCP は公共図書館 OPAC の実検索を担当する。
 
-実行環境ごとの扱いは分ける。Cursor / Claude Code では、ユーザーが事前にカーリルAI Remote MCP を登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex でもまず Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できるかを第一候補として扱う。直結できない場合は `scripts/plan-regional-library-search.mjs` に `clientEnvironment: "codex"` を渡して ChatGPT + カーリルAI へ貼るプロンプトを生成する。fallback で `jp-lit` 側が作るのは、地域候補、館候補を探すための検索語、15館以内へ絞る優先順位、蔵書検索語である。実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側のカーリルAIで実行してもらい、結果を Codex に戻してから `jp-lit` 側で NDL / CiNii / Japan Search / レファ協などの結果と統合評価する。
+実行環境ごとの扱いは分ける。Cursor / Claude Code / Codex では、ユーザーが事前にカーリルAI Remote MCP を登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。カーリルは localhost callback を既定で許可しているため、ローカルで動く Codex CLI ではこの経路を使う。直結できない環境だけ、`scripts/plan-regional-library-search.mjs` に `calilMcpAvailable: false` または `promptMode: true` を渡して ChatGPT + カーリルAI へ貼るプロンプトを生成する。fallback で `jp-lit` 側が作るのは、地域候補、館候補を探すための検索語、15館以内へ絞る優先順位、蔵書検索語である。実際の館候補探し、`systemid` 取得、館群の選定、蔵書検索は GPT 側のカーリルAIで実行してもらい、結果を Codex に戻してから `jp-lit` 側で NDL / CiNii / Japan Search / レファ協などの結果と統合評価する。
 
 ## 発動条件
 
@@ -77,13 +77,14 @@
 
 専門図書館・資料室が効きそうな例は、新聞博物館・新聞ライブラリー系、文学館・郷土人物記念館の資料室、博物館・文書館・地域資料センター、業界団体・企業史料室、大学の地域研究センター / 附属図書館、県史編さん室・自治体史料室系。
 
-地域候補と検索語を手早く構造化したい場合は、`scripts/plan-regional-library-search.mjs` に JSON を渡して、カーリル MCP 用の `search_libraries` / `search_books` 計画と Web 補助確認 query を作る。これはカーリルを直接呼ばない補助スクリプトである。人名だけでは地方人物扱いにせず、人物名から出身地・ゆかり地域を確認する query を出すに留める。地域候補や地方人物 topic が与えられた場合に、地域図書館へつなぐ下書きとして使う。専門領域が強い場合は `subjectKeywords` を渡し、専門館名が未確定でも、カーリルの `search_libraries` 用候補と、専門資料機関・協会・研究会・機関誌・会報への Web 補助導線を作る。媒体名・団体名からは所蔵館・資料室の手がかりも拾い、最大15館以内へ絞るための下書きとして使う。Codex では `clientEnvironment: "codex"` を追加し、出力された `chatGptCalilPrompt` をユーザーに提示する。
+地域候補と検索語を手早く構造化したい場合は、`scripts/plan-regional-library-search.mjs` に JSON を渡して、カーリル MCP 用の `search_libraries` / `search_books` 計画と Web 補助確認 query を作る。これはカーリルを直接呼ばない補助スクリプトである。人名だけでは地方人物扱いにせず、人物名から出身地・ゆかり地域を確認する query を出すに留める。地域候補や地方人物 topic が与えられた場合に、地域図書館へつなぐ下書きとして使う。専門領域が強い場合は `subjectKeywords` を渡し、専門館名が未確定でも、カーリルの `search_libraries` 用候補と、専門資料機関・協会・研究会・機関誌・会報への Web 補助導線を作る。媒体名・団体名からは所蔵館・資料室の手がかりも拾い、最大15館以内へ絞るための下書きとして使う。直結できない環境の fallback では `calilMcpAvailable: false` または `promptMode: true` を追加し、出力された `chatGptCalilPrompt` をユーザーに提示する。
 
 ```powershell
 @'
 {
   "personNames": ["山田太郎"],
   "clientEnvironment": "codex",
+  "calilMcpAvailable": false,
   "placeNames": ["岐阜県中津川市"],
   "mediaNames": ["東濃新報"],
   "publicationPlaces": ["中津川"],

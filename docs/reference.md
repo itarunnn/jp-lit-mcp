@@ -693,7 +693,7 @@ live smoke の主な環境変数:
 - `SMOKE_LIVE_RETRY_COUNT`: source ごとの retry 回数。既定は `2`
 - `SMOKE_LIVE_REPORT_PATH`: matrix レポート出力先。既定は `exports/live-smoke-report.json`
 
-カーリル Remote MCP は外部 MCP なので、通常の `smoke:mcp` には含めません。repo 付属の smoke script で接続確認する場合は、Codex の MCP 設定とは別に Node smoke script として `npm run smoke:calil-mcp` を使います。初回はブラウザで OAuth 認可が必要です。Codex で実利用する場合は、まず Codex CLI の Streamable HTTP MCP / OAuth 設定で直結を試し、必要に応じて `oauth_resource = "https://mcp-beta.calil.jp"` や OAuth callback port / URL を調整します。`CALIL_MCP_LIBRARY_QUERY`、`CALIL_MCP_BOOK_QUERY`、`CALIL_MCP_LIMIT`、`CALIL_MCP_SKIP_BOOK_SEARCH=1`、`CALIL_MCP_OPEN_BROWSER=1` で smoke 内容を調整できます。
+カーリル Remote MCP は外部 MCP なので、通常の `smoke:mcp` には含めません。repo 付属の smoke script で接続確認する場合は、Codex の MCP 設定とは別に Node smoke script として `npm run smoke:calil-mcp` を使います。初回はブラウザで OAuth 認可が必要です。Codex で実利用する場合は、`codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` で直結できます。必要に応じて `oauth_resource = "https://mcp-beta.calil.jp"` や OAuth callback port / URL を調整します。`CALIL_MCP_LIBRARY_QUERY`、`CALIL_MCP_BOOK_QUERY`、`CALIL_MCP_LIMIT`、`CALIL_MCP_SKIP_BOOK_SEARCH=1`、`CALIL_MCP_OPEN_BROWSER=1` で smoke 内容を調整できます。
 
 `SMOKE_LIVE_SOURCE=ndl_digital` のときは、`next_digital_library.available=true` の資料があれば OCR 系ツールも検証します。`SMOKE_LIVE_SOURCE=cinii_books` のときは `holding_count` / `holdings[]` も確認します。`jdcat` は upstream `503 Service Temporarily Unavailable` のときだけ skip 扱いにします。
 

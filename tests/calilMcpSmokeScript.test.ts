@@ -32,7 +32,8 @@ describe("Calil Remote MCP smoke test support", () => {
     expect(regionalDoc).toContain("初回 OAuth 認可");
     expect(regionalDoc).toContain("API キー登録は不要");
     expect(regionalDoc).toContain("Codex は明示されていない");
-    expect(regionalDoc).toContain("直結を第一候補として試し");
+    expect(regionalDoc).toContain("localhost のリダイレクト先 URI は既定で許可");
+    expect(regionalDoc).toContain("直結できることを確認済み");
     expect(regionalDoc).toContain("oauth_resource = \"https://mcp-beta.calil.jp\"");
     expect(regionalDoc).toContain("Claude Code");
     expect(regionalDoc).toContain("Cursor");
@@ -40,6 +41,7 @@ describe("Calil Remote MCP smoke test support", () => {
     expect(usageGuide).toContain("codex mcp add calil --url https://mcp-beta.calil.jp/mcp");
     expect(usageGuide).toContain("codex mcp login calil");
     expect(usageGuide).toContain("oauth_resource = \"https://mcp-beta.calil.jp\"");
+    expect(usageGuide).toContain("localhost");
     expect(usageGuide).toContain("ChatGPT + カーリルAI");
     expect(usageGuide).toContain("往復 1 回で済ませる想定");
   });

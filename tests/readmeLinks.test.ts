@@ -110,7 +110,7 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("隣接自治体や旧郡域の館");
     expect(usageGuide).toContain("専門図書館・資料室");
     expect(usageGuide).toContain("scripts/plan-regional-library-search.mjs");
-    expect(usageGuide).toContain("clientEnvironment: \"codex\"");
+    expect(usageGuide).toContain("calilMcpAvailable: false");
     expect(usageGuide).toContain("chatGptCalilPrompt");
     expect(usageGuide).toContain("ChatGPT + カーリルAI");
     expect(usageGuide).toContain("`search_libraries` による館候補探し");
@@ -119,8 +119,8 @@ describe("README public onboarding", () => {
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("カーリルAI（カーリル Remote MCP）にも対応");
     expect(readme).toContain("カーリル Remote MCP の設定と初回 OAuth 認可が別途必要");
-    expect(readme).toContain("Codex CLI の Streamable HTTP MCP / OAuth で直結を試し");
-    expect(readme).toContain("カーリルAI対応クライアントへ貼る検索プロンプト");
+    expect(readme).toContain("Codex CLI でも Streamable HTTP MCP / OAuth");
+    expect(readme).toContain("検索プロンプトを fallback");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");

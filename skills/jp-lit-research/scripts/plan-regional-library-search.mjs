@@ -349,8 +349,9 @@ function normalizeClientEnvironment(input) {
 
 function shouldIncludeChatGptPrompt(input, clientEnvironment) {
   return (
-    clientEnvironment === "codex" ||
     clientEnvironment === "chatgpt" ||
+    input?.calilMcpAvailable === false ||
+    input?.calilDirectAvailable === false ||
     input?.promptMode === true ||
     input?.outputPrompt === true ||
     input?.mode === "prompt"
@@ -359,7 +360,9 @@ function shouldIncludeChatGptPrompt(input, clientEnvironment) {
 
 function buildCalilAccess(input, clientEnvironment) {
   const directClient =
-    clientEnvironment === "cursor" || clientEnvironment === "claude_code";
+    clientEnvironment === "cursor" ||
+    clientEnvironment === "claude_code" ||
+    clientEnvironment === "codex";
   const codexClient = clientEnvironment === "codex";
   const chatGptClient = clientEnvironment === "chatgpt";
 
@@ -367,7 +370,7 @@ function buildCalilAccess(input, clientEnvironment) {
     clientEnvironment,
     directUse:
       codexClient
-        ? "available_if_codex_mcp_login_succeeds"
+        ? "available_after_codex_mcp_login"
         : directClient
         ? "available_if_user_registered_calil_ai_remote_mcp"
         : "not_assumed",
@@ -375,21 +378,21 @@ function buildCalilAccess(input, clientEnvironment) {
       codexClient
         ? "fallback_to_chatgpt_calil_prompt_if_direct_oauth_unavailable"
         : "not_needed",
-    notes: directClient
+    notes: codexClient
       ? [
-          "Cursor / Claude Code では、ユーザーがカーリルAI Remote MCPを事前登録・OAuth認可していれば同一エージェントから search_libraries / search_books を使う。",
-          "カーリルの結果は jp-lit 側の NDL / CiNii / Japan Search / レファ協結果と統合評価する。"
+          "Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。",
+          "初回 OAuth 認可後は、保存された認証情報を使って新しい Codex セッションから search_libraries / search_books を呼ぶ。直結できない環境だけ貼り付け用プロンプトへ fallback する。"
         ]
-      : chatGptClient
+      : directClient
+        ? [
+            "Cursor / Claude Code では、ユーザーがカーリルAI Remote MCPを事前登録・OAuth認可していれば同一エージェントから search_libraries / search_books を使う。",
+            "カーリルの結果は jp-lit 側の NDL / CiNii / Japan Search / レファ協結果と統合評価する。"
+          ]
+        : chatGptClient
         ? [
             "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
             "jp-lit 側で作った検索計画を貼り付け、結果を jp-lit 側へ戻して統合評価する。"
           ]
-        : codexClient
-          ? [
-              "Codex ではまず Streamable HTTP MCP / OAuth でカーリルAI Remote MCP へ直結できるかを試す。",
-              "直結できない場合は、jp-lit 側で検索計画と貼り付け用プロンプトを作り、ユーザーが ChatGPT + カーリルAI で実行した結果を Codex に戻す。"
-            ]
           : [
               "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
               "不明な場合は、貼り付け用プロンプトを生成して ChatGPT + カーリルAI で実行する。"
