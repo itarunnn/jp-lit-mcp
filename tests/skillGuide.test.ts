@@ -142,6 +142,10 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(usageGuide).toContain("0 件・ノイズ過多・初出/掲載号/一般誌記事探索");
     expect(usageGuide).toContain("リサーチ・ナビ、レファ協を入口候補として計画します");
+    expect(usageGuide).toContain(
+      "リサーチ・ナビの曖昧検索は API / MCP source ではなく"
+    );
+    expect(usageGuide).toContain("isFuzzy=true");
     expect(workflow).toContain("本文未読の内容別・論点別分類");
     expect(workflow).toContain("優先");
   });
@@ -161,6 +165,10 @@ describe("jp-lit-research skill guide", () => {
     );
     const workflowTopic = readFileSync(
       "skills/jp-lit-research/workflows/topic-literature-review.md",
+      "utf8"
+    );
+    const workflowResearchGuide = readFileSync(
+      "skills/jp-lit-research/workflows/research-guide-lookup.md",
       "utf8"
     );
     const workflowBibliography = readFileSync(
@@ -200,6 +208,11 @@ describe("jp-lit-research skill guide", () => {
     expect(advisory).toContain(
       "人名単独、回想記事、雑誌目次、一般誌記事、初出、掲載号探索、0 件・ノイズ過多の再計画では省略しない"
     );
+    expect(advisory).toContain(
+      "曖昧検索は API / MCP source として扱わず、リサーチ・ナビ画面での再検索リンクとして使う"
+    );
+    expect(advisory).toContain("isFuzzy=true");
+    expect(workflowResearchGuide).toContain("リサーチ・ナビ曖昧検索リンク");
     expect(failureModes).toContain(
       "難航時にレファ協・リサーチ・ナビで、別の資料類型・索引・調査順序を確認したか"
     );

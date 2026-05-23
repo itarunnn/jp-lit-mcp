@@ -66,6 +66,8 @@
 
 抽象 query で得た「この DB / 索引 / 参考図書が有効」という示唆は、実検索初手の追加 source や次の人間確認先に反映する。リサーチ・ナビで対応ページが見つからない場合も、試した Web 検索 query と不発理由を trace / 調査ログに残す。抽象 query が不発でも、実検索初手の既定セットは `ndl_search` + `japan_search` とする。
 
+リサーチ・ナビの曖昧検索は、表記揺れ・誤字・脱字・類似表現の再確認に使える。ただし API / MCP source ではないため、`jp_lit_search` の source としては扱わない。使う場合は `https://ndlsearch.ndl.go.jp/rnavi/search?keyword=<URL encoded query>&isFuzzy=true` を調査ログまたは次アクションに残し、ページ内容を確認できた場合だけ調査順序や検索語候補へ反映する。
+
 ## researchmap 個人ページの扱い
 
 researchmap は API tool 化しない。通常の文献検索ではまず CiNii / J-STAGE / IRDB / NDL / NIHU 系を使い、研究者名だけを入口にした探索は常用しない。
