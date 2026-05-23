@@ -922,3 +922,5 @@ ndl_catalog で「近代日本 労働文化」を検索して
 ```
 
 レファレンス協同データベースの調べ方や類似事例を確認したい場合は、`jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` の結果に含まれる `search_keywords` / `guide_headings` / `answer_process` / `reference_sources` を見て、次の検索語を組み立てます。
+
+NDL リサーチ・ナビの曖昧検索は API / MCP source ではなく、リサーチ・ナビ画面で調べ方案内を探し直すための補助導線です。レファ協 API の `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` が薄い場合や、固有名詞 query が表記揺れで不発になりそうな場合は、`https://ndlsearch.ndl.go.jp/rnavi/search?keyword=<検索語>&isFuzzy=true` を確認リンクとして調査ログや次アクションに残します。見つかったページは、資料そのものの根拠ではなく、見るべき DB・索引・参考書誌・検索語を決める材料として扱います。
