@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { readFileSync } from "node:fs";
 
 import {
   DEFAULT_LIVE_RETRY_COUNT,
@@ -20,7 +21,33 @@ import {
 } from "../scripts/smoke-mcp.js";
 import { createServer } from "../src/server.js";
 
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  version: string;
+};
+
 describe("smoke-mcp tool manifest", () => {
+  it("publishes the package version in MCP serverInfo", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-version-test-client",
+      version: "1.0.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      expect(client.getServerVersion()).toEqual({
+        name: "jp-lit-mcp",
+        version: packageJson.version
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   it("tracks all runtime tools exposed by the server", () => {
     expect(EXPECTED_TOOL_NAMES).toEqual([
       "jp_lit_annotate_session",

@@ -1,19 +1,12 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { runDoctor } from "./doctor.js";
+import { readPackageVersion } from "./lib/packageInfo.js";
 import { startServer } from "./server.js";
-
-function findPackageJson() {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  return [
-    resolve(currentDir, "../../package.json"),
-    resolve(currentDir, "../package.json")
-  ].find((candidate) => existsSync(candidate));
-}
 
 function printHelp() {
   console.log(`jp-lit-mcp
@@ -35,18 +28,6 @@ Examples:
   npx -y jp-lit-mcp
   npx -y jp-lit-mcp doctor
   npx -y jp-lit-mcp install-skills codex`);
-}
-
-function readVersion() {
-  const packageJsonPath = findPackageJson();
-  if (!packageJsonPath) {
-    throw new Error("package.json not found");
-  }
-
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
-    version?: string;
-  };
-  return packageJson.version ?? "0.0.0";
 }
 
 async function runSkillsInstaller() {
@@ -72,12 +53,12 @@ async function main() {
   }
 
   if (process.argv[2] === "--version" || process.argv[2] === "-v") {
-    console.log(readVersion());
+    console.log(readPackageVersion());
     return;
   }
 
   if (process.argv[2] === "doctor") {
-    const result = runDoctor({ packageVersion: readVersion() });
+    const result = runDoctor({ packageVersion: readPackageVersion() });
     if (!result.ok) {
       process.exitCode = 1;
     }

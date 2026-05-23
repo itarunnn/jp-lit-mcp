@@ -57,6 +57,7 @@ import {
 import { createFileCache } from "./lib/persistence/fileCache.js";
 import { createSessionExporter } from "./lib/persistence/exportSession.js";
 import { createSessionStore } from "./lib/persistence/sessionStore.js";
+import { readPackageVersion } from "./lib/packageInfo.js";
 import { createRecordService } from "./services/recordService.js";
 import { createSearchService } from "./services/searchService.js";
 import {
@@ -394,7 +395,7 @@ export function createServer(env: ServerEnv = process.env) {
   const server = new McpServer(
     {
       name: "jp-lit-mcp",
-      version: "0.1.0"
+      version: readPackageVersion()
     },
     {
       capabilities: {
