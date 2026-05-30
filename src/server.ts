@@ -437,7 +437,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_resolve_authority",
     {
-      description: "Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助ツール",
+      description: "read-only。Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助 tool。分類記号から件名候補を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
       inputSchema: resolveAuthorityInputSchema,
       outputSchema: resolveAuthorityOutputSchema
     },
@@ -447,7 +447,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_find_authority_terms_by_classification",
     {
-      description: "Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す",
+      description: "read-only。Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す。分類記号が分かるときの語彙展開に使い、人名・件名の文字列から典拠候補を探す場合は jp_lit_resolve_authority、文献検索本体は jp_lit_search を使う",
       inputSchema: authorityTermsByClassificationInputSchema,
       outputSchema: authorityTermsByClassificationOutputSchema
     },
@@ -487,7 +487,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_annotate_session",
     {
-      description: "write: session。現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものや cache は変更せず、採否・保留・弱候補などの選別判断だけを追加する。単なる履歴検索には jp_lit_find_sessions / jp_lit_list_sessions を使う",
+      description: "write: session。現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものや cache は変更せず、採否・保留・弱候補などの選別判断だけを追加する。調査全体の目的・未確認事項・次アクションは jp_lit_update_session_trace、単なる履歴検索には jp_lit_find_sessions / jp_lit_list_sessions を使う",
       inputSchema: annotateSessionInputSchema,
       outputSchema: annotateSessionOutputSchema
     },
@@ -587,7 +587,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_text_coordinates",
     {
-      description: "NDL デジタルコレクション資料のページ単位 OCR テキストと座標を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: "read-only。NDL デジタルコレクション資料のページ単位 OCR テキストと座標を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。ページ番号を探す段階では jp_lit_search_pages、全文一括取得は jp_lit_get_fulltext を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: textCoordinatesInputSchema,
       outputSchema: textCoordinatesOutputSchema
     },
@@ -597,7 +597,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_fulltext",
     {
-      description: "NDL デジタルコレクション資料の全文 OCR JSON を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: "read-only。NDL デジタルコレクション資料の全文 OCR JSON を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。特定ページだけ確認する場合は jp_lit_get_text_coordinates、資料内検索でページを探す場合は jp_lit_search_pages を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: fulltextInputSchema,
       outputSchema: fulltextOutputSchema
     },
@@ -607,7 +607,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_pages",
     {
-      description: "NDL デジタルコレクション資料内のページをキーワードで全文検索する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: "read-only。NDL デジタルコレクション資料内のページをキーワードで全文検索する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。全資料から候補 pid を探す段階では jp_lit_search_fulltext、特定ページの OCR テキストと画像 URL 確認は jp_lit_get_text_coordinates を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: searchPagesInputSchema,
       outputSchema: searchPagesOutputSchema
     },
@@ -617,7 +617,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_fulltext",
     {
-      description: "NDL デジタルコレクション全資料を対象に OCR 全文テキストからキーワード検索する（公開範囲のみ）。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ jp_lit_search_pages 等で直接利用できる",
+      description: "read-only。NDL デジタルコレクション全資料を対象に OCR 全文テキストからキーワード検索する（公開範囲のみ）。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う",
       inputSchema: searchFulltextInputSchema,
       outputSchema: searchFulltextOutputSchema
     },

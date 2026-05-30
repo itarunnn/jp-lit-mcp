@@ -80,6 +80,46 @@ describe("tool definition quality", () => {
     }
   });
 
+  it("read-only tool は副作用がないことを description に明示する", async () => {
+    const tools = await listPublishedTools();
+    const readOnlyTools = [
+      "jp_lit_search_cache_index",
+      "jp_lit_list_cache",
+      "jp_lit_find_sessions",
+      "jp_lit_list_sessions",
+      "jp_lit_refine_results",
+      "jp_lit_resolve_authority",
+      "jp_lit_find_authority_terms_by_classification"
+    ];
+
+    for (const toolName of readOnlyTools) {
+      const tool = tools.find((candidate) => candidate.name === toolName);
+      expect(tool?.description, toolName).toMatch(/read-only|読み取るだけ/);
+    }
+  });
+
+  it("関連 tool は代替 tool との差分を description に含める", async () => {
+    const tools = await listPublishedTools();
+    const expectations = [
+      ["jp_lit_search_cache_index", /jp_lit_search|jp_lit_list_cache|jp_lit_refine_results/],
+      ["jp_lit_list_cache", /jp_lit_search_cache_index|jp_lit_delete_cache|jp_lit_prune_cache/],
+      ["jp_lit_export_session", /jp_lit_export_view/],
+      ["jp_lit_export_view", /jp_lit_export_session/],
+      ["jp_lit_annotate_session", /jp_lit_update_session_trace/],
+      ["jp_lit_update_session_trace", /jp_lit_annotate_session/],
+      ["jp_lit_search_fulltext", /jp_lit_search_pages/],
+      ["jp_lit_search_pages", /jp_lit_search_fulltext|jp_lit_get_text_coordinates/],
+      ["jp_lit_get_text_coordinates", /jp_lit_search_pages|jp_lit_get_fulltext/],
+      ["jp_lit_resolve_authority", /jp_lit_search|jp_lit_find_authority_terms_by_classification/],
+      ["jp_lit_find_authority_terms_by_classification", /jp_lit_resolve_authority|jp_lit_search/]
+    ] as const;
+
+    for (const [toolName, pattern] of expectations) {
+      const tool = tools.find((candidate) => candidate.name === toolName);
+      expect(tool?.description, toolName).toMatch(pattern);
+    }
+  });
+
   it("公開 tool の top-level input property description coverage は 90% 以上", async () => {
     const tools = await listPublishedTools();
     let total = 0;
