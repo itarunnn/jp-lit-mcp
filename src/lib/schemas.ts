@@ -60,7 +60,29 @@ const toolCacheSchema = z.object({
   refresh_hint: z.string().nullable()
 });
 
-const forceRefreshFieldSchema = z.boolean().default(false);
+const sourceInputFieldSchema = sourceSchema.describe(
+  "検索・取得・記録対象の情報源ID。jp_lit_search の結果や source plan に含まれる source を指定する。"
+);
+
+const optionalSourceInputFieldSchema = sourceSchema.optional().describe(
+  "結果を特定 source に絞る。未指定の場合は tool ごとの既定動作に従う。"
+);
+
+const forceRefreshFieldSchema = z.boolean().default(false).describe(
+  "true の場合はローカル cache を使わず upstream API から再取得する。false の場合は保存済み cache を優先する。"
+);
+
+const sessionIdInputFieldSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/)
+  .describe("調査セッションID。形式は YYYY-MM-DD-HHMMSS。過去セッションを指定して絞り込むときだけ使う。");
+
+const cacheKeyInputFieldSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .describe("保存済み tool 実行結果を指す cache_key。jp_lit_search や cache 一覧 tool の戻り値から渡す。");
 
 export const searchItemSchema = z.object({
   source: sourceSchema,
@@ -115,12 +137,12 @@ export const recordItemSchema = z.object({
 });
 
 export const irdbFiltersSchema = z.object({
-  fulltext: z.boolean().optional(),
-  title: z.string().optional(),
-  author: z.string().optional(),
-  keyword: z.string().optional(),
-  journal: z.string().optional(),
-  publisher: z.string().optional()
+  fulltext: z.boolean().optional().describe("IRDB で本文ありの資料に絞る場合は true を指定する。"),
+  title: z.string().optional().describe("IRDB のタイトル欄を絞る語。"),
+  author: z.string().optional().describe("IRDB の著者・作成者欄を絞る語。"),
+  keyword: z.string().optional().describe("IRDB のキーワード・主題欄を絞る語。"),
+  journal: z.string().optional().describe("IRDB の掲載誌名で絞る語。"),
+  publisher: z.string().optional().describe("IRDB の出版者・機関名で絞る語。")
 });
 
 export const nihuBridgeInstituteSchema = z.enum([
@@ -128,54 +150,55 @@ export const nihuBridgeInstituteSchema = z.enum([
 ]);
 
 export const nihuBridgeBboxSchema = z.object({
-  lat1: z.number(),
-  lon1: z.number(),
-  lat2: z.number(),
-  lon2: z.number()
+  lat1: z.number().describe("地理範囲の緯度 1。"),
+  lon1: z.number().describe("地理範囲の経度 1。"),
+  lat2: z.number().describe("地理範囲の緯度 2。"),
+  lon2: z.number().describe("地理範囲の経度 2。")
 });
 
 export const nihuBridgeFiltersSchema = z.object({
-  institute: z.array(nihuBridgeInstituteSchema).optional(),
-  database: z.array(z.string()).optional(),
-  normalize: z.boolean().optional(),
-  period_from: z.string().optional(),
-  period_to: z.string().optional(),
-  bbox: nihuBridgeBboxSchema.optional()
+  institute: z.array(nihuBridgeInstituteSchema).optional().describe("NIHU Bridge の institute ID 配列。分かっている場合だけ指定する。"),
+  database: z.array(z.string()).optional().describe("NIHU Bridge の database ID 配列。特定データベースに絞る場合に使う。"),
+  normalize: z.boolean().optional().describe("NIHU Bridge の正規化検索を使うかどうか。"),
+  period_from: z.string().optional().describe("時代・年代範囲の下限。"),
+  period_to: z.string().optional().describe("時代・年代範囲の上限。"),
+  bbox: nihuBridgeBboxSchema.optional().describe("地理範囲を lat/lon の bounding box で絞る。")
 });
 
 export const jdcatFiltersSchema = z.object({
-  subject: z.string().optional(),
-  geographic: z.string().optional(),
-  contributor: z.string().optional(),
-  title: z.string().optional(),
-  temporal: z.string().optional(),
-  creator: z.string().optional()
+  subject: z.string().optional().describe("JDCat の subject による絞り込み。"),
+  geographic: z.string().optional().describe("JDCat の geographic coverage による絞り込み。"),
+  contributor: z.string().optional().describe("JDCat の contributor による絞り込み。"),
+  title: z.string().optional().describe("JDCat の title による絞り込み。"),
+  temporal: z.string().optional().describe("JDCat の temporal coverage による絞り込み。"),
+  creator: z.string().optional().describe("JDCat の creator による絞り込み。")
 });
 
 export const ndlFiltersSchema = z.object({
-  subject: z.string().optional(),
-  ndc: z.string().optional(),
-  ndlc: z.string().optional()
+  subject: z.string().optional().describe("NDL 系 source の件名による絞り込み。"),
+  ndc: z.string().optional().describe("NDL 系 source の NDC 分類記号による絞り込み。"),
+  ndlc: z.string().optional().describe("NDL 系 source の NDLC 分類記号による絞り込み。")
 });
 
 export const searchInputToolSchema = z.object({
-  query: z.string().trim().min(1),
-  source: sourceSchema.optional(),
-  limit: z.number().int().positive().max(100).optional(),
-  page: z.number().int().positive().default(1),
+  query: z.string().trim().min(1).describe("検索語。資料名、著者名、主題語、機関名などを指定する。"),
+  source: optionalSourceInputFieldSchema.describe("検索対象 source。未指定なら既定の 8 source 横断検索になるが、新規テーマの初手では通常 ndl_search と japan_search などを明示指定する。"),
+  limit: z.number().int().positive().max(100).optional().describe("1 回の検索で返す最大件数。最大 100。未指定時は source ごとの既定値を使う。"),
+  page: z.number().int().positive().default(1).describe("検索結果ページ番号。1 始まり。"),
   sort_by: z
     .enum(["title", "creator", "issued_date", "created_date", "modified_date"])
-    .optional(),
-  sort_order: z.enum(["asc", "desc"]).optional(),
-  force_refresh: z.boolean().default(false),
-  issued_from: z.string().optional(),
-  issued_to: z.string().optional(),
+    .optional()
+    .describe("source が対応する場合の並び替え項目。未対応 source では無視されることがある。"),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("sort_by 指定時の昇順 asc / 降順 desc。"),
+  force_refresh: forceRefreshFieldSchema,
+  issued_from: z.string().optional().describe("刊行年・日付の下限。年だけの '1900' など source が扱う文字列表現で指定する。"),
+  issued_to: z.string().optional().describe("刊行年・日付の上限。issued_from と組み合わせて範囲指定する。"),
   filters: z.object({
-    irdb: irdbFiltersSchema.optional(),
-    nihu_bridge: nihuBridgeFiltersSchema.optional(),
-    jdcat: jdcatFiltersSchema.optional(),
-    ndl: ndlFiltersSchema.optional()
-  }).optional()
+    irdb: irdbFiltersSchema.optional().describe("source=irdb のときだけ有効な追加 filter。"),
+    nihu_bridge: nihuBridgeFiltersSchema.optional().describe("source=nihu_bridge のときだけ有効な追加 filter。"),
+    jdcat: jdcatFiltersSchema.optional().describe("source=jdcat のときだけ有効な追加 filter。"),
+    ndl: ndlFiltersSchema.optional().describe("NDL 系 source のときだけ有効な追加 filter。")
+  }).optional().describe("source 固有の追加 filter。対象 source と一致しない filter は validation error になる。")
 });
 
 export const searchInputSchema = searchInputToolSchema
@@ -218,8 +241,8 @@ export const searchInputSchema = searchInputToolSchema
   });
 
 export const recordInputSchema = z.object({
-  source: sourceSchema,
-  source_id: z.string().trim().min(1),
+  source: sourceInputFieldSchema,
+  source_id: z.string().trim().min(1).describe("source 内のレコードID。jp_lit_search の items[].source_id を指定する。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -244,10 +267,10 @@ export const recordOutputSchema = recordItemSchema.extend({
 });
 
 export const textCoordinatesInputSchema = z.object({
-  source: sourceSchema,
-  source_id: z.string().trim().min(1).optional(),
-  pid: z.string().trim().min(1).optional(),
-  page: z.number().int().positive(),
+  source: sourceInputFieldSchema.describe("通常は ndl_digital。source_id を使う場合は jp_lit_get_record で OCR 利用可否を確認してから指定する。"),
+  source_id: z.string().trim().min(1).optional().describe("NDL デジタルコレクションの source_id。pid が分かる場合は pid を優先できる。"),
+  pid: z.string().trim().min(1).optional().describe("次世代デジタルライブラリーの pid。jp_lit_search_fulltext の結果から直接渡せる。"),
+  page: z.number().int().positive().describe("取得するページ番号。1 始まり。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -262,9 +285,9 @@ export const textCoordinatesOutputSchema = z.object({
 });
 
 export const fulltextInputSchema = z.object({
-  source: sourceSchema,
-  source_id: z.string().trim().min(1).optional(),
-  pid: z.string().trim().min(1).optional(),
+  source: sourceInputFieldSchema.describe("通常は ndl_digital。source_id を使う場合は jp_lit_get_record で OCR 利用可否を確認してから指定する。"),
+  source_id: z.string().trim().min(1).optional().describe("NDL デジタルコレクションの source_id。pid が分かる場合は pid を優先できる。"),
+  pid: z.string().trim().min(1).optional().describe("次世代デジタルライブラリーの pid。jp_lit_search_fulltext の結果から直接渡せる。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -276,12 +299,12 @@ export const fulltextOutputSchema = z.object({
 });
 
 export const searchPagesInputSchema = z.object({
-  source: sourceSchema,
-  source_id: z.string().trim().min(1).optional(),
-  pid: z.string().trim().min(1).optional(),
-  keyword: z.string().trim().min(1),
-  size: z.number().int().positive().max(100).default(20),
-  from: z.number().int().nonnegative().default(0),
+  source: sourceInputFieldSchema.describe("通常は ndl_digital。source_id を使う場合は jp_lit_get_record で OCR 利用可否を確認してから指定する。"),
+  source_id: z.string().trim().min(1).optional().describe("NDL デジタルコレクションの source_id。pid が分かる場合は pid を優先できる。"),
+  pid: z.string().trim().min(1).optional().describe("次世代デジタルライブラリーの pid。jp_lit_search_fulltext の結果から直接渡せる。"),
+  keyword: z.string().trim().min(1).describe("資料内 OCR テキストから探す語。"),
+  size: z.number().int().positive().max(100).default(20).describe("返すページ一致の最大件数。最大 100。"),
+  from: z.number().int().nonnegative().default(0).describe("検索結果の offset。0 始まり。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -318,52 +341,52 @@ export const sessionItemLabelSchema = z.enum([
 ]);
 
 const sourcePlanInputSchema = z.object({
-  source: sourceSchema,
-  status: z.enum(["planned", "used", "deferred", "skipped"]),
-  reason: z.string().trim().min(1),
-  expected_contribution: z.string().trim().min(1).optional()
+  source: sourceInputFieldSchema,
+  status: z.enum(["planned", "used", "deferred", "skipped"]).describe("source を使う予定・使用済み・保留・除外のどれとして扱うか。"),
+  reason: z.string().trim().min(1).describe("その source 選択または除外の理由。"),
+  expected_contribution: z.string().trim().min(1).optional().describe("その source が調査に寄与すると期待する内容。")
 }).strict();
 
 const searchAttemptSchema = z.object({
-  source: sourceSchema.nullable(),
-  query: z.string().trim().min(1),
-  purpose: z.string().trim().min(1),
-  total: z.number().int().nonnegative().nullable(),
-  returned_count: z.number().int().nonnegative(),
-  extracted_count: z.number().int().nonnegative(),
-  outcome: z.enum(["useful", "partial", "empty", "noisy", "failed"]),
-  next_step: z.string().trim().min(1).optional()
+  source: sourceSchema.nullable().describe("試行した source。横断検索など特定不能な場合は null。"),
+  query: z.string().trim().min(1).describe("実際に試した検索語。"),
+  purpose: z.string().trim().min(1).describe("この検索を行った目的。"),
+  total: z.number().int().nonnegative().nullable().describe("tool が返した総件数。不明な場合は null。"),
+  returned_count: z.number().int().nonnegative().describe("実際に返ってきた件数。"),
+  extracted_count: z.number().int().nonnegative().describe("候補として抽出・検討した件数。"),
+  outcome: z.enum(["useful", "partial", "empty", "noisy", "failed"]).describe("検索試行の評価。"),
+  next_step: z.string().trim().min(1).optional().describe("この検索結果を受けた次の行動。")
 }).strict();
 
 function createEvidenceRefSchema() {
   return z.object({
-    tool: z.string().trim().min(1).optional(),
-    cache_key: z.string().trim().min(1).optional(),
-    source: sourceSchema.optional(),
-    source_id: z.string().trim().min(1).optional(),
-    url: z.string().trim().min(1).optional(),
-    quote_or_summary: z.string().trim().min(1).optional()
+    tool: z.string().trim().min(1).optional().describe("根拠を得た tool 名。例: jp_lit_search。"),
+    cache_key: z.string().trim().min(1).optional().describe("根拠を含む保存済み実行結果の cache_key。"),
+    source: optionalSourceInputFieldSchema,
+    source_id: z.string().trim().min(1).optional().describe("根拠となる source 内レコードID。"),
+    url: z.string().trim().min(1).optional().describe("根拠確認に使った公式 URL。"),
+    quote_or_summary: z.string().trim().min(1).optional().describe("根拠箇所の短い引用または要約。")
   }).strict();
 }
 
 const traceTargetSchema = z.object({
-  source: sourceSchema.optional(),
-  source_id: z.string().trim().min(1).optional(),
-  cache_key: z.string().trim().min(1).optional(),
-  title: z.string().trim().min(1).optional()
+  source: optionalSourceInputFieldSchema,
+  source_id: z.string().trim().min(1).optional().describe("対象候補の source 内レコードID。"),
+  cache_key: z.string().trim().min(1).optional().describe("対象候補を含む保存済み実行結果の cache_key。"),
+  title: z.string().trim().min(1).optional().describe("対象候補のタイトル。")
 }).strict();
 
 const evidenceTargetSchema = traceTargetSchema.omit({ cache_key: true }).strict();
 
 const decisionInputSchema = z.object({
-  kind: z.enum(["adopt", "hold", "reject", "deduplicate", "needs_followup"]),
-  target: traceTargetSchema,
-  reason: z.string().trim().min(1),
-  evidence_refs: z.array(createEvidenceRefSchema())
+  kind: z.enum(["adopt", "hold", "reject", "deduplicate", "needs_followup"]).describe("候補に対する判断種別。"),
+  target: traceTargetSchema.describe("判断対象の候補。"),
+  reason: z.string().trim().min(1).describe("その判断にした理由。"),
+  evidence_refs: z.array(createEvidenceRefSchema()).describe("判断の根拠となる tool 結果や URL。")
 }).strict();
 
 const evidenceScopeInputSchema = z.object({
-  target: evidenceTargetSchema,
+  target: evidenceTargetSchema.describe("確認範囲を記録する対象候補。"),
   checked: z.enum([
     "metadata",
     "abstract",
@@ -371,56 +394,56 @@ const evidenceScopeInputSchema = z.object({
     "fulltext_snippet",
     "fulltext",
     "external_review"
-  ]),
+  ]).describe("確認した根拠の範囲。"),
   body_status: z.enum([
     "not_checked",
     "online_entry_unread",
     "no_online_entry",
     "restricted",
     "confirmed"
-  ]),
-  note: z.string().trim().min(1).optional(),
-  evidence_refs: z.array(createEvidenceRefSchema())
+  ]).describe("本文・実体確認の状態。"),
+  note: z.string().trim().min(1).optional().describe("確認範囲に関する短い補足。"),
+  evidence_refs: z.array(createEvidenceRefSchema()).describe("確認範囲の根拠となる tool 結果や URL。")
 }).strict();
 
 const entryTraceInputSchema = z.object({
-  agent_label: z.string().trim().min(1).optional(),
-  task_scope: z.string().trim().min(1).optional(),
-  intent: z.string().trim().min(1).optional(),
-  search_attempt: searchAttemptSchema.optional(),
-  decisions: z.array(decisionInputSchema).optional(),
-  evidence_scope: z.array(evidenceScopeInputSchema).optional()
+  agent_label: z.string().trim().min(1).optional().describe("この記録を残す agent や作業者の短いラベル。"),
+  task_scope: z.string().trim().min(1).optional().describe("この注釈が対象とする作業範囲。"),
+  intent: z.string().trim().min(1).optional().describe("この注釈・検索・選別の意図。"),
+  search_attempt: searchAttemptSchema.optional().describe("この entry に対応する検索試行の記録。"),
+  decisions: z.array(decisionInputSchema).optional().describe("候補採否・重複・保留などの判断記録。"),
+  evidence_scope: z.array(evidenceScopeInputSchema).optional().describe("候補ごとにどこまで確認したかの記録。")
 }).strict();
 
 const openQuestionInputSchema = z.object({
-  question: z.string().trim().min(1),
-  reason: z.string().trim().min(1),
-  related_sources: z.array(sourceSchema).optional(),
-  evidence_refs: z.array(createEvidenceRefSchema()).optional()
+  question: z.string().trim().min(1).describe("未解決の確認事項。"),
+  reason: z.string().trim().min(1).describe("その確認事項が残っている理由。"),
+  related_sources: z.array(sourceSchema).optional().describe("関係する source ID の配列。"),
+  evidence_refs: z.array(createEvidenceRefSchema()).optional().describe("未解決事項の根拠や関連する tool 結果。")
 }).strict();
 
 const nextActionInputSchema = z.object({
-  action: z.string().trim().min(1),
-  reason: z.string().trim().min(1),
-  priority: z.enum(["high", "medium", "low"]),
-  source: sourceSchema.optional(),
-  evidence_refs: z.array(createEvidenceRefSchema()).optional()
+  action: z.string().trim().min(1).describe("次に行う具体的な調査アクション。"),
+  reason: z.string().trim().min(1).describe("そのアクションが必要な理由。"),
+  priority: z.enum(["high", "medium", "low"]).describe("次アクションの優先度。"),
+  source: optionalSourceInputFieldSchema,
+  evidence_refs: z.array(createEvidenceRefSchema()).optional().describe("次アクションの根拠や関連する tool 結果。")
 }).strict();
 
 export const annotateSessionInputSchema = z.object({
-  tool: z.string().trim().min(1),
-  cache_key: z.string().trim().min(1),
+  tool: z.string().trim().min(1).describe("注釈対象の結果を生成した tool 名。通常は jp_lit_search または jp_lit_refine_results。"),
+  cache_key: cacheKeyInputFieldSchema,
   selected_items: z.array(
     z.object({
-      source: sourceSchema,
-      source_id: z.string().trim().min(1),
-      title: z.string().trim().min(1),
-      label: sessionItemLabelSchema,
-      note: z.string().trim().min(1).nullable()
+      source: sourceInputFieldSchema,
+      source_id: z.string().trim().min(1).describe("選別した候補の source 内レコードID。"),
+      title: z.string().trim().min(1).describe("選別した候補のタイトル。"),
+      label: sessionItemLabelSchema.describe("候補の選別ラベル。confirmed, strong_candidate, weak_candidate のいずれか。"),
+      note: z.string().trim().min(1).nullable().describe("候補ごとの短い選別メモ。不要なら null。")
     })
-  ),
-  notes: z.array(z.string().trim().min(1)).optional(),
-  trace: entryTraceInputSchema.optional()
+  ).describe("現在の調査セッションに保存する選別済み候補。未選別の検索結果そのものは変更しない。"),
+  notes: z.array(z.string().trim().min(1)).optional().describe("この注釈 entry 全体に対する補足メモ。"),
+  trace: entryTraceInputSchema.optional().describe("検索意図、判断、根拠確認範囲などの調査経過。")
 });
 
 export const annotateSessionOutputSchema = z.object({
@@ -430,11 +453,11 @@ export const annotateSessionOutputSchema = z.object({
 });
 
 export const updateSessionTraceInputSchema = z.object({
-  research_goal: z.string().trim().min(1).optional(),
-  scope_note: z.string().trim().min(1).optional(),
-  source_plans: z.array(sourcePlanInputSchema).optional(),
-  open_questions: z.array(openQuestionInputSchema).optional(),
-  next_actions: z.array(nextActionInputSchema).optional()
+  research_goal: z.string().trim().min(1).optional().describe("現在の調査セッション全体の目的。"),
+  scope_note: z.string().trim().min(1).optional().describe("調査範囲、除外範囲、確認済み範囲の説明。"),
+  source_plans: z.array(sourcePlanInputSchema).optional().describe("source ごとの利用予定・利用済み・保留・除外理由。"),
+  open_questions: z.array(openQuestionInputSchema).optional().describe("未解決の確認事項。"),
+  next_actions: z.array(nextActionInputSchema).optional().describe("次に取るべき調査アクション。")
 }).strict();
 
 export const updateSessionTraceOutputSchema = z.object({
@@ -446,13 +469,14 @@ export const updateSessionTraceOutputSchema = z.object({
 });
 
 export const exportSessionInputSchema = z.object({
-  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
-  format: z.enum(["markdown", "json", "csl-json"]).default("markdown"),
+  session_id: sessionIdInputFieldSchema.optional().describe("書き出す過去セッションID。未指定なら現在の調査セッションを書き出す。"),
+  format: z.enum(["markdown", "json", "csl-json"]).default("markdown").describe("出力形式。markdown は人間向け、json は完全な構造化ログ、csl-json は文献管理向け。"),
   profile: z
     .enum(["full_log", "selected", "unselected"])
-    .default("full_log"),
-  output_path: z.string().trim().min(1).optional(),
-  include_unselected: z.boolean().default(true)
+    .default("full_log")
+    .describe("書き出す範囲。full_log は全履歴、selected は選別済み候補、unselected は未選別候補。"),
+  output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
+  include_unselected: z.boolean().default(true).describe("markdown/json の full_log で未選別候補を含めるかどうか。")
 });
 
 export const exportSessionOutputSchema = z.object({
@@ -465,8 +489,8 @@ export const exportSessionOutputSchema = z.object({
 });
 
 export const findSessionsInputSchema = z.object({
-  query: z.string().trim().min(1),
-  limit: z.number().int().positive().max(50).default(10)
+  query: z.string().trim().min(1).describe("過去セッションの検索語。主題、候補タイトル、メモ、検索語 preview に部分一致する。"),
+  limit: z.number().int().positive().max(50).default(10).describe("返すセッション候補の最大件数。最大 50。")
 });
 
 export const findSessionsMatchedFieldSchema = z.enum([
@@ -493,16 +517,16 @@ export const findSessionsOutputSchema = z.object({
 });
 
 export const listSessionsInputSchema = z.object({
-  limit: z.number().int().positive().max(100).default(20),
-  updated_from: z.string().trim().min(1).optional(),
-  updated_to: z.string().trim().min(1).optional(),
-  created_from: z.string().trim().min(1).optional(),
-  created_to: z.string().trim().min(1).optional(),
-  has_trace: z.boolean().optional(),
-  has_selected: z.boolean().optional(),
-  source: sourceSchema.optional(),
-  sort_by: z.enum(["updated_at", "created_at"]).default("updated_at"),
-  sort_order: z.enum(["desc", "asc"]).default("desc")
+  limit: z.number().int().positive().max(100).default(20).describe("返すセッション件数。最大 100。"),
+  updated_from: z.string().trim().min(1).optional().describe("updated_at の下限 ISO datetime。"),
+  updated_to: z.string().trim().min(1).optional().describe("updated_at の上限 ISO datetime。"),
+  created_from: z.string().trim().min(1).optional().describe("created_at の下限 ISO datetime。"),
+  created_to: z.string().trim().min(1).optional().describe("created_at の上限 ISO datetime。"),
+  has_trace: z.boolean().optional().describe("調査目的・source plan・次アクションなど trace を持つセッションだけに絞る。"),
+  has_selected: z.boolean().optional().describe("選別済み候補を持つセッションだけに絞る。"),
+  source: optionalSourceInputFieldSchema,
+  sort_by: z.enum(["updated_at", "created_at"]).default("updated_at").describe("セッション一覧の並び替え項目。"),
+  sort_order: z.enum(["desc", "asc"]).default("desc").describe("セッション一覧の並び順。desc は新しい順。")
 });
 
 export const listSessionsOutputSchema = z.object({
@@ -546,18 +570,19 @@ export const listSessionsOutputSchema = z.object({
 });
 
 export const searchCacheIndexInputSchema = z.object({
-  query: z.string().trim().min(1),
-  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
-  source: sourceSchema.optional(),
-  issued_from: z.string().optional(),
-  issued_to: z.string().optional(),
+  query: z.string().trim().min(1).describe("保存済み jp_lit_search 結果内で探す語。元の検索語、タイトル、著者、件名、source_id を NFKC 正規化して部分一致検索する。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("このセッションに紐づく jp_lit_search cache だけを検索する。未指定なら全セッションに紐づく cache を対象にする。"),
+  source: optionalSourceInputFieldSchema.describe("保存済み検索結果の source を絞る。例: ndl_catalog, cinii_books。未指定なら source を問わない。"),
+  issued_from: z.string().optional().describe("結果 item の issued_at 下限。年だけの '1900' など、既存データと同じ文字列表現で比較する。"),
+  issued_to: z.string().optional().describe("結果 item の issued_at 上限。issued_from と組み合わせて刊行年範囲を絞る。"),
   saved_on: z
     .string()
     .regex(/^(\d{4}-\d{2}-\d{2}|today|yesterday|last_7_days)$/)
-    .optional(),
-  saved_from: z.string().optional(),
-  saved_to: z.string().optional(),
-  limit: z.number().int().positive().max(200).default(50)
+    .optional()
+    .describe("cache 保存日の簡易指定。YYYY-MM-DD, today, yesterday, last_7_days のいずれか。"),
+  saved_from: z.string().optional().describe("cache saved_at の下限 ISO datetime。saved_on より細かく保存時刻を絞る場合に使う。"),
+  saved_to: z.string().optional().describe("cache saved_at の上限 ISO datetime。saved_from と組み合わせて保存時刻を絞る。"),
+  limit: z.number().int().positive().max(200).default(50).describe("返す cache entry の最大件数。最大 200。")
 });
 
 export const searchCacheIndexOutputSchema = z.object({
@@ -591,9 +616,9 @@ export const searchCacheIndexOutputSchema = z.object({
 
 export const deleteCacheInputSchema = z
   .object({
-    tool: z.string().trim().min(1).default("jp_lit_search"),
-    cache_key: z.string().trim().min(1).optional(),
-    clear_all: z.boolean().default(false)
+    tool: z.string().trim().min(1).default("jp_lit_search").describe("削除対象の tool cache 名。既定は jp_lit_search。"),
+    cache_key: cacheKeyInputFieldSchema.optional().describe("削除する個別 cache_key。clear_all=false の場合は必須。"),
+    clear_all: z.boolean().default(false).describe("true の場合は指定 tool の cache を全削除する破壊的操作。false の場合は cache_key 単位で削除する。")
   })
   .superRefine((data, ctx) => {
     if (!data.clear_all && !data.cache_key) {
@@ -615,10 +640,10 @@ export const deleteCacheOutputSchema = z.object({
 });
 
 export const pruneCacheInputSchema = z.object({
-  older_than_days: z.number().int().positive().default(30),
-  tool: z.string().trim().min(1).optional(),
-  dry_run: z.boolean().default(true),
-  limit: z.number().int().positive().max(1000).default(100)
+  older_than_days: z.number().int().positive().default(30).describe("この日数より古い cache を prune 候補にする。"),
+  tool: z.string().trim().min(1).optional().describe("対象 tool cache 名。未指定なら全 tool cache を対象にする。"),
+  dry_run: z.boolean().default(true).describe("true なら削除せず候補だけ返す。false のときだけ実際に古い cache を削除する。"),
+  limit: z.number().int().positive().max(1000).default(100).describe("列挙または削除する候補の最大件数。最大 1000。")
 });
 
 export const pruneCacheOutputSchema = z.object({
@@ -646,16 +671,17 @@ export const pruneCacheOutputSchema = z.object({
 });
 
 export const listCacheInputSchema = z.object({
-  tool: z.string().trim().min(1).optional(),
-  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
+  tool: z.string().trim().min(1).optional().describe("一覧対象の tool cache 名。未指定なら全 tool cache を対象にする。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("このセッションに紐づく cache だけを一覧する。"),
   saved_on: z
     .string()
     .regex(/^(\d{4}-\d{2}-\d{2}|today|yesterday|last_7_days)$/)
-    .optional(),
-  saved_from: z.string().optional(),
-  saved_to: z.string().optional(),
-  source: sourceSchema.optional(),
-  limit: z.number().int().positive().max(500).default(100)
+    .optional()
+    .describe("cache 保存日の簡易指定。YYYY-MM-DD, today, yesterday, last_7_days のいずれか。"),
+  saved_from: z.string().optional().describe("cache saved_at の下限 ISO datetime。"),
+  saved_to: z.string().optional().describe("cache saved_at の上限 ISO datetime。"),
+  source: optionalSourceInputFieldSchema.describe("保存済み検索結果の source で絞る。source を持たない cache には一致しない。"),
+  limit: z.number().int().positive().max(500).default(100).describe("返す cache entry の最大件数。最大 500。")
 });
 
 export const listCacheOutputSchema = z.object({
@@ -690,13 +716,13 @@ export const listCacheOutputSchema = z.object({
 });
 
 const refineResultsFiltersSchema = z.object({
-  source: sourceSchema.optional(),
-  issued_from: z.string().optional(),
-  issued_to: z.string().optional(),
-  online: z.boolean().optional(),
-  digital_collection: z.boolean().optional(),
-  title_contains: z.string().trim().min(1).optional(),
-  author_contains: z.string().trim().min(1).optional()
+  source: optionalSourceInputFieldSchema,
+  issued_from: z.string().optional().describe("結果 item の issued_at 下限。"),
+  issued_to: z.string().optional().describe("結果 item の issued_at 上限。"),
+  online: z.boolean().optional().describe("availability.online が指定値と一致する item に絞る。"),
+  digital_collection: z.boolean().optional().describe("availability.digital_collection が指定値と一致する item に絞る。"),
+  title_contains: z.string().trim().min(1).optional().describe("タイトルに含まれる語で部分一致 filter する。"),
+  author_contains: z.string().trim().min(1).optional().describe("著者名に含まれる語で部分一致 filter する。")
 });
 
 const duplicateClusterReasonSchema = z.enum([
@@ -740,22 +766,23 @@ const duplicateClusterSummarySchema = z.object({
 });
 
 export const refineResultsInputSchema = z.object({
-  cache_key: z.string().trim().min(1).optional(),
-  cache_keys: z.array(z.string().trim().min(1)).min(1).optional(),
-  session_id: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/).optional(),
-  combine: z.enum(["union", "intersection", "minus"]).default("union"),
+  cache_key: cacheKeyInputFieldSchema.optional().describe("再抽出する単一の jp_lit_search cache_key。cache_keys と同時指定しない。"),
+  cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("集合演算する複数の jp_lit_search cache_key。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("セッションに紐づく検索 cache を対象にする場合のセッションID。"),
+  combine: z.enum(["union", "intersection", "minus"]).default("union").describe("複数 cache の集合演算。union は和集合、intersection は積集合、minus は先頭から後続を除外する。"),
   key_by: z
     .enum(["source_record", "duplicate_key", "title_author_year"])
-    .default("source_record"),
-  sort_by: z.enum(["issued_at", "title"]).optional(),
-  sort_order: z.enum(["asc", "desc"]).default("asc"),
-  limit: z.number().int().positive().max(200).default(30),
-  offset: z.number().int().nonnegative().default(0),
-  include_duplicate_clusters: z.boolean().default(false),
-  cluster_limit: z.number().int().positive().default(20),
-  cluster_offset: z.number().int().nonnegative().default(0),
-  cluster_member_limit: z.number().int().positive().default(5),
-  filters: refineResultsFiltersSchema.optional()
+    .default("source_record")
+    .describe("集合演算時に item を同一視するキー。source_record は source+source_id、duplicate_key は正規化重複キー、title_author_year はタイトル著者年。"),
+  sort_by: z.enum(["issued_at", "title"]).optional().describe("再抽出結果の並び替え項目。未指定なら元の順序を保つ。"),
+  sort_order: z.enum(["asc", "desc"]).default("asc").describe("sort_by 指定時の並び順。"),
+  limit: z.number().int().positive().max(200).default(30).describe("返す item の最大件数。最大 200。"),
+  offset: z.number().int().nonnegative().default(0).describe("返す item の offset。0 始まり。"),
+  include_duplicate_clusters: z.boolean().default(false).describe("true の場合は重複候補クラスタを追加で返す。"),
+  cluster_limit: z.number().int().positive().default(20).describe("返す重複クラスタの最大件数。"),
+  cluster_offset: z.number().int().nonnegative().default(0).describe("重複クラスタ一覧の offset。0 始まり。"),
+  cluster_member_limit: z.number().int().positive().default(5).describe("各重複クラスタで preview する member の最大件数。"),
+  filters: refineResultsFiltersSchema.optional().describe("保存済み結果に対するローカル filter。upstream 再検索は行わない。")
 });
 
 export const refineResultsOutputSchema = z.object({
@@ -780,24 +807,24 @@ export const refineResultsOutputSchema = z.object({
 
 export const exportViewInputSchema = z.discriminatedUnion("view", [
   z.object({
-    view: z.literal("cache_list"),
-    params: listCacheInputSchema.default({}),
-    format: z.enum(["markdown", "json"]).default("markdown"),
-    output_path: z.string().trim().min(1).optional()
+    view: z.literal("cache_list").describe("書き出すビュー種別。cache_list は jp_lit_list_cache 相当の一覧。"),
+    params: listCacheInputSchema.default({}).describe("cache_list に渡す filter と pagination。"),
+    format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
   }),
   z.object({
-    view: z.literal("cache_query"),
-    params: searchCacheIndexInputSchema,
-    format: z.enum(["markdown", "json"]).default("markdown"),
-    output_path: z.string().trim().min(1).optional()
+    view: z.literal("cache_query").describe("書き出すビュー種別。cache_query は jp_lit_search_cache_index 相当の横断検索結果。"),
+    params: searchCacheIndexInputSchema.describe("cache_query に渡す検索条件。"),
+    format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
   }),
   z.object({
-    view: z.literal("refined_results"),
-    params: refineResultsInputSchema.default({}),
-    format: z.enum(["markdown", "json"]).default("markdown"),
-    export_all: z.boolean().default(false),
-    duplicate_notes: z.boolean().default(false),
-    output_path: z.string().trim().min(1).optional()
+    view: z.literal("refined_results").describe("書き出すビュー種別。refined_results は jp_lit_refine_results 相当の再抽出結果。"),
+    params: refineResultsInputSchema.default({}).describe("refined_results に渡す再抽出条件。"),
+    format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
+    export_all: z.boolean().default(false).describe("true の場合は limit/offset を超えて対象結果を全件 export する。"),
+    duplicate_notes: z.boolean().default(false).describe("true の場合は重複候補クラスタの確認ノートを出力に含める。"),
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
   })
 ]);
 
@@ -827,12 +854,12 @@ const fulltextBookItemSchema = z.object({
 });
 
 export const searchFulltextInputSchema = z.object({
-  keyword: z.string().trim().min(1),
-  searchfield: z.enum(["contentonly", "metaonly", "all"]).default("contentonly"),
-  size: z.number().int().positive().max(100).default(20),
-  from: z.number().int().nonnegative().default(0),
-  f_ndc: z.string().optional(),
-  fc_is_classic: z.boolean().optional(),
+  keyword: z.string().trim().min(1).describe("NDL デジタルコレクション公開範囲の OCR / メタデータから探す語。"),
+  searchfield: z.enum(["contentonly", "metaonly", "all"]).default("contentonly").describe("検索対象。contentonly は本文 OCR、metaonly はメタデータ、all は両方。"),
+  size: z.number().int().positive().max(100).default(20).describe("返す資料候補の最大件数。最大 100。"),
+  from: z.number().int().nonnegative().default(0).describe("検索結果の offset。0 始まり。"),
+  f_ndc: z.string().optional().describe("NDL デジタルコレクションの NDC filter。分かっている場合だけ指定する。"),
+  fc_is_classic: z.boolean().optional().describe("古典籍フラグで絞る場合に指定する。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -867,9 +894,9 @@ const illustrationItemSchema = z.object({
 });
 
 export const searchIllustrationsInputSchema = z.object({
-  keyword: z.string().trim().min(1),
-  size: z.number().int().positive().max(100).default(20),
-  from: z.number().int().nonnegative().default(0),
+  keyword: z.string().trim().min(1).describe("NDL デジタルコレクション公開範囲の図版タグ・周辺テキストから探す語。"),
+  size: z.number().int().positive().max(100).default(20).describe("返す図版候補の最大件数。最大 100。"),
+  from: z.number().int().nonnegative().default(0).describe("検索結果の offset。0 始まり。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -883,10 +910,10 @@ export const searchIllustrationsOutputSchema = z.object({
 });
 
 export const searchKokushoFulltextInputSchema = z.object({
-  keyword: z.string().trim().min(1),
-  limit: z.number().int().positive().max(100).default(20),
-  page: z.number().int().positive().default(1),
-  force_refresh: z.boolean().default(false)
+  keyword: z.string().trim().min(1).describe("国書データベースの翻刻/OCR スニペットまたは画像タグから探す語。"),
+  limit: z.number().int().positive().max(100).default(20).describe("返す候補の最大件数。最大 100。"),
+  page: z.number().int().positive().default(1).describe("検索結果ページ番号。1 始まり。"),
+  force_refresh: forceRefreshFieldSchema
 });
 
 const kokushoPersonSchema = z.object({
@@ -955,11 +982,11 @@ const crdLibGroupSchema = z.enum([
 ]);
 
 const guidesSearchInputBaseSchema = z.object({
-  query: z.string().trim().min(1),
-  limit: z.number().int().positive().max(20).default(10),
-  page: z.number().int().positive().default(1),
-  lib_id: z.string().trim().min(1).optional(),
-  lib_group: crdLibGroupSchema.optional(),
+  query: z.string().trim().min(1).describe("レファレンス協同データベースから探す調べ方・事例の検索語。"),
+  limit: z.number().int().positive().max(20).default(10).describe("返す事例・マニュアルの最大件数。最大 20。"),
+  page: z.number().int().positive().default(1).describe("検索結果ページ番号。1 始まり。"),
+  lib_id: z.string().trim().min(1).optional().describe("特定図書館の CRD library ID に絞る場合に指定する。"),
+  lib_group: crdLibGroupSchema.optional().describe("公共図書館、大学図書館、専門図書館などの館種で絞る。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -1038,9 +1065,9 @@ const authorityRelationSchema = z.enum([
 ]);
 
 export const resolveAuthorityInputSchema = z.object({
-  query: z.string().trim().min(1),
-  type: resolveAuthorityTypeSchema.default("all"),
-  limit: z.number().int().positive().max(20).default(5),
+  query: z.string().trim().min(1).describe("確認したい人名・団体名・件名・統一タイトルなどの典拠検索語。"),
+  type: resolveAuthorityTypeSchema.default("all").describe("探す典拠種別。all は人名・団体名・件名などを横断する。"),
+  limit: z.number().int().positive().max(20).default(5).describe("返す典拠候補の最大件数。最大 20。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -1090,9 +1117,9 @@ export const resolveAuthorityOutputSchema = z.object({
 export const authorityClassificationSchemeSchema = z.enum(["NDC10", "NDC9", "NDC8", "NDC6"]);
 
 export const authorityTermsByClassificationInputSchema = z.object({
-  classification: z.string().trim().min(1),
-  scheme: authorityClassificationSchemeSchema.default("NDC10"),
-  limit: z.number().int().positive().max(50).default(20),
+  classification: z.string().trim().min(1).describe("NDC などの分類記号。例: 910.26。"),
+  scheme: authorityClassificationSchemeSchema.default("NDC10").describe("分類体系。既定は NDC10。"),
+  limit: z.number().int().positive().max(50).default(20).describe("返す件名標目候補の最大件数。最大 50。"),
   force_refresh: forceRefreshFieldSchema
 });
 
@@ -1113,14 +1140,14 @@ export const authorityTermsByClassificationOutputSchema = z.object({
 });
 
 export const searchKakenProjectsInputSchema = z.object({
-  query: z.string().trim().min(1),
-  limit: z.number().int().positive().max(20).default(10),
-  page: z.number().int().positive().default(1),
-  detail_limit: z.number().int().nonnegative().max(10).default(5),
-  researcher_name: z.string().trim().min(1).optional(),
-  from_fiscal_year: z.number().int().optional(),
-  to_fiscal_year: z.number().int().optional(),
-  include_outputs: z.boolean().default(true),
+  query: z.string().trim().min(1).describe("KAKEN から探す研究課題名・キーワード・研究テーマ。"),
+  limit: z.number().int().positive().max(20).default(10).describe("返す研究課題候補の最大件数。最大 20。"),
+  page: z.number().int().positive().default(1).describe("検索結果ページ番号。1 始まり。"),
+  detail_limit: z.number().int().nonnegative().max(10).default(5).describe("詳細ページを追加取得する候補数。0 なら詳細取得しない。最大 10。"),
+  researcher_name: z.string().trim().min(1).optional().describe("研究代表者・研究分担者名で絞る場合に指定する。"),
+  from_fiscal_year: z.number().int().optional().describe("研究期間の開始年度下限。"),
+  to_fiscal_year: z.number().int().optional().describe("研究期間の終了年度上限。"),
+  include_outputs: z.boolean().default(true).describe("true の場合は成果リスト preview も取得する。文献確定は CiNii / J-STAGE / IRDB / NDL で再確認する。"),
   force_refresh: forceRefreshFieldSchema
 });
 
