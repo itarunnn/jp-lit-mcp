@@ -75,6 +75,35 @@ const DETAIL_HTML = `<!doctype html>
   </body>
 </html>`;
 
+const SEARCH_XML_WITH_LOCALIZED_SUMMARIES = `<?xml version="1.0" encoding="UTF-8"?>
+<grantAwards>
+  <totalResults>1</totalResults>
+  <startIndex>1</startIndex>
+  <itemsPerPage>20</itemsPerPage>
+  <grantAward id="KAKENHI-PROJECT-25K04084" awardNumber="25K04084">
+    <urlList>
+      <url>https://kaken.nii.ac.jp/grant/KAKENHI-PROJECT-25K04084/</url>
+    </urlList>
+    <summary xml:lang="ja">
+      <title>言語データ連結システムの開発</title>
+      <category>基盤研究(C)</category>
+      <member sequence="1" eradCode="70578369" role="principal_investigator">
+        <institution>筑波大学</institution>
+        <department>図書館情報メディア系</department>
+        <personalName><fullName>永井 正勝</fullName></personalName>
+        <enriched><researcherNumber type="erad">70578369</researcherNumber></enriched>
+      </member>
+      <keywordList>
+        <keyword sequence="1">IIIF</keyword>
+      </keywordList>
+    </summary>
+    <summary xml:lang="en">
+      <title>Development of a linked language data system</title>
+      <category>Grant-in-Aid for Scientific Research (C)</category>
+    </summary>
+  </grantAward>
+</grantAwards>`;
+
 describe("kaken client", () => {
   it("OpenSearch XML と詳細 HTML を軽量な研究課題ヒントに正規化する", async () => {
     const fetcher = vi.fn(async (url: URL) => {
@@ -131,6 +160,61 @@ describe("kaken client", () => {
       report_pdf_status: "not_checked"
     });
     expect(result.items[0].search_hints.caution).toContain("CiNii / J-STAGE / IRDB / NDL");
+  });
+
+  it("KAKEN API の rw は許容値へ丸めつつ返却件数は limit で絞る", async () => {
+    const fetcher = vi.fn(async (url: URL) => {
+      if (url.pathname.includes("/opensearch")) {
+        return { text: SEARCH_XML, contentType: "application/xml" };
+      }
+      return { text: DETAIL_HTML, contentType: "text/html; charset=utf-8" };
+    });
+    const client = createKakenClient({ appId: "test-app", fetcher });
+
+    const result = await client.searchProjects({
+      query: "IIIF",
+      limit: 1,
+      page: 1,
+      detail_limit: 0,
+      include_outputs: false
+    });
+
+    const searchUrl = fetcher.mock.calls[0]?.[0];
+    expect(searchUrl).toBeInstanceOf(URL);
+    expect(searchUrl?.searchParams.get("rw")).toBe("20");
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.project_id).toBe("19K20626");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("live XML の複数 summary から日本語 summary を選んで正規化する", async () => {
+    const fetcher = vi.fn(async (url: URL) => {
+      if (url.pathname.includes("/opensearch")) {
+        return { text: SEARCH_XML_WITH_LOCALIZED_SUMMARIES, contentType: "application/xml" };
+      }
+      return { text: DETAIL_HTML, contentType: "text/html; charset=utf-8" };
+    });
+    const client = createKakenClient({ appId: "test-app", fetcher });
+
+    const result = await client.searchProjects({
+      query: "IIIF",
+      limit: 1,
+      page: 1,
+      detail_limit: 0,
+      include_outputs: false
+    });
+
+    expect(result.items[0]).toMatchObject({
+      project_id: "25K04084",
+      title: "言語データ連結システムの開発",
+      project_type: "基盤研究(C)",
+      principal_investigator: {
+        name: "永井 正勝",
+        affiliation: "筑波大学 図書館情報メディア系",
+        researcher_number: "70578369"
+      },
+      keywords: ["IIIF"]
+    });
   });
 
   it("CINII_RESEARCH_APP_ID がない場合は明確に失敗する", async () => {

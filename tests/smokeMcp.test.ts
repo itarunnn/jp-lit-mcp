@@ -17,7 +17,8 @@ import {
   resolveOcrFallbackKeyword,
   resolveSmokeRunMode,
   resolveLiveSmokeSources,
-  resolveLiveSmokeQuery
+  resolveLiveSmokeQuery,
+  SUPPORTED_LIVE_EXTRA_TOOLS
 } from "../scripts/smoke-mcp.js";
 import { createServer } from "../src/server.js";
 
@@ -438,12 +439,14 @@ describe("smoke-mcp tool manifest", () => {
   });
 
   it("resolves extra live smoke tools from override", () => {
+    expect(SUPPORTED_LIVE_EXTRA_TOOLS).toContain("jp_lit_search_kaken_projects");
     expect(resolveLiveSmokeExtraTools(undefined)).toEqual([]);
     expect(
       resolveLiveSmokeExtraTools(
-        "jp_lit_search_kokusho_fulltext,jp_lit_search_kokusho_image_tags"
+        "jp_lit_search_kaken_projects,jp_lit_search_kokusho_fulltext,jp_lit_search_kokusho_image_tags"
       )
     ).toEqual([
+      "jp_lit_search_kaken_projects",
       "jp_lit_search_kokusho_fulltext",
       "jp_lit_search_kokusho_image_tags"
     ]);

@@ -7,6 +7,7 @@ import type {
 
 const DEFAULT_SEARCH_URL = "https://kaken.nii.ac.jp/opensearch/";
 const DEFAULT_DETAIL_BASE_URL = "https://kaken.nii.ac.jp/ja/grant/";
+const RESULT_WINDOWS = [20, 50, 100, 200, 500] as const;
 const CAUTION =
   "KAKEN は研究課題・報告書の入口です。成果リスト中の論文・図書は、CiNii / J-STAGE / IRDB / NDL などで文献として確認してください。";
 
@@ -86,6 +87,11 @@ function firstText(record: Record<string, unknown>, key: string) {
   return textOf(record[key]);
 }
 
+function selectLocalizedRecord(value: unknown, lang: string) {
+  const records = asRecordArray(value);
+  return records.find((record) => attr(record, "xml:lang") === lang) ?? records[0] ?? {};
+}
+
 function normalizeProjectId(awardNumber: string | null, id: string | null) {
   const raw = awardNumber ?? id ?? "";
   return raw.replace(/^KAKENHI-PROJECT-/, "");
@@ -154,7 +160,7 @@ function mapGrantAward(
   grantAward: Record<string, unknown>,
   detailBaseUrl: string
 ): KakenProject {
-  const summary = isRecord(grantAward.summary) ? grantAward.summary : {};
+  const summary = selectLocalizedRecord(grantAward.summary, "ja");
   const projectId = normalizeProjectId(attr(grantAward, "awardNumber"), attr(grantAward, "id"));
   const urlList = isRecord(grantAward.urlList) ? grantAward.urlList : {};
   const url = normalizeKakenUrl(textOf(asArray(urlList.url)[0]), projectId, detailBaseUrl);
@@ -324,12 +330,16 @@ function parseSearchXml(xml: string, detailBaseUrl: string) {
   };
 }
 
+function normalizeResultWindow(limit: number) {
+  return RESULT_WINDOWS.find((window) => limit <= window) ?? RESULT_WINDOWS[RESULT_WINDOWS.length - 1];
+}
+
 function buildSearchUrl(searchUrl: string, appId: string, input: KakenSearchInput) {
   const url = new URL(searchUrl);
   url.searchParams.set("appid", appId);
   url.searchParams.set("kw", input.query);
   url.searchParams.set("format", "xml");
-  url.searchParams.set("rw", String(input.limit));
+  url.searchParams.set("rw", String(normalizeResultWindow(input.limit)));
   url.searchParams.set("lang", "ja");
   if (input.researcher_name) {
     url.searchParams.set("qg", input.researcher_name);

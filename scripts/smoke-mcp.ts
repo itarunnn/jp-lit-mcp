@@ -51,6 +51,12 @@ export const LIVE_MATRIX_SOURCES = [
 
 export const DEFAULT_LIVE_RETRY_COUNT = 2;
 
+export const SUPPORTED_LIVE_EXTRA_TOOLS = [
+  "jp_lit_search_kaken_projects",
+  "jp_lit_search_kokusho_fulltext",
+  "jp_lit_search_kokusho_image_tags"
+];
+
 const LIVE_DEFAULT_QUERY_BY_SOURCE: Record<string, string> = {
   ndl_catalog: "菊池寛",
   ndl_digital: "菊池寛",
@@ -530,11 +536,43 @@ async function runKokushoImageTagsSmoke(client: Client): Promise<LiveSmokeStatus
   return { status: "passed", note: null };
 }
 
+async function runKakenProjectsSmoke(client: Client): Promise<LiveSmokeStatus> {
+  const query = process.env.SMOKE_LIVE_KAKEN_QUERY ?? "19K20626";
+  const result = await client.callTool({
+    name: "jp_lit_search_kaken_projects",
+    arguments: {
+      query,
+      limit: 1,
+      page: 1,
+      detail_limit: 0,
+      include_outputs: false,
+      force_refresh: true
+    }
+  });
+
+  if (result.isError) {
+    throw new Error(getLiveErrorMessage(result as { content?: Array<{ text?: string }> }));
+  }
+
+  const data = result.structuredContent as
+    | { total?: number; items?: Array<{ project_id?: string; title?: string }> }
+    | undefined;
+  const first = data?.items?.[0];
+  if (typeof data?.total !== "number" || data.total < 1 || !first?.project_id || !first.title) {
+    throw new Error("KAKEN projects smoke returned no project data.");
+  }
+
+  console.log(`jp_lit_search_kaken_projects passed: query=${query} project_id=${first.project_id}`);
+  return { status: "passed", note: null };
+}
+
 async function runLiveExtraTools(client: Client): Promise<LiveSmokeStatus> {
   const extraTools = resolveLiveSmokeExtraTools(process.env.SMOKE_LIVE_EXTRA_TOOLS);
   for (const tool of extraTools) {
     let outcome: LiveSmokeStatus;
-    if (tool === "jp_lit_search_kokusho_fulltext") {
+    if (tool === "jp_lit_search_kaken_projects") {
+      outcome = await runKakenProjectsSmoke(client);
+    } else if (tool === "jp_lit_search_kokusho_fulltext") {
       outcome = await runKokushoFulltextSmoke(client);
     } else if (tool === "jp_lit_search_kokusho_image_tags") {
       outcome = await runKokushoImageTagsSmoke(client);

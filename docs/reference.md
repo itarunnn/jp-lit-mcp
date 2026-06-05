@@ -705,10 +705,10 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_SOURCES="nijl_articles,kokusho,ninjal_bibli
 
 明示時の既定 query は、`nijl_articles` が `源氏物語`、`kokusho` が `伊勢物語`、`ninjal_bibliography` が `日本語教育` です。`national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography` は、403、429、上流メンテナンス、一時利用不可の応答を live smoke の skip 条件として扱います。
 
-国書DBの拡張 tool を live smoke する場合は、通常の source matrix ではなく `SMOKE_LIVE_EXTRA_TOOLS` を使います。
+KAKEN や国書DBの拡張 tool を live smoke する場合は、通常の source matrix ではなく `SMOKE_LIVE_EXTRA_TOOLS` を使います。
 
 ```powershell
-$env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kokusho_fulltext,jp_lit_search_kokusho_image_tags"; npm run smoke:mcp
+$env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,jp_lit_search_kokusho_fulltext,jp_lit_search_kokusho_image_tags"; npm run smoke:mcp
 ```
 
 ## 既知の制約
