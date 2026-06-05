@@ -91,6 +91,9 @@ npx -y jp-lit-mcp doctor
   - CLI 側の登録ができていません。`codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
 - `jpLit` は出るが App で使えない
   - `Codex App` を開き直して新しい対話を作ってください
+- KAKEN で `KAKEN API requires CINII_RESEARCH_APP_ID.` が出る
+  - `CINII_RESEARCH_APP_ID` がユーザー環境変数にあっても、起動済みの `Codex App` や MCP 子プロセスに渡っていない場合があります。`Codex App` を開き直して新しい対話を作るか、`codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp` で MCP 設定に明示してください。
+  - 既存設定を手で直す場合は、利用者の `~/.codex/config.toml` にある登録名に合わせて `[mcp_servers.<登録名>.env]` を追加し、`CINII_RESEARCH_APP_ID = "your-cinii-app-id"` を置きます。実値は Git 管理しないでください。
 - Skill だけ動いて MCP が使えない
   - `codex mcp get jpLit` で `npx -y jp-lit-mcp` が登録されているか確認してください
 
