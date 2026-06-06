@@ -88,7 +88,8 @@ describe("jp-lit-research skill guide", () => {
     expect(workflowCore).toContain("jp_lit_update_session_trace");
     expect(workflowCore).toContain("single writer");
     expect(workflowCore).toContain("サブエージェント分担をデフォルト寄りに検討");
-    expect(workflowCore).toContain("短いサマリーと根拠参照");
+    expect(workflowCore).toContain("調査トレース報告");
+    expect(workflowCore).toContain("brief summary ではなく");
     expect(workflowCore).toContain("jp_lit_refine_results");
     expect(workflowCore).toContain("Web は主経路にしない");
     expect(workflowCore).toContain("ユーザーが Web 調査を明示");
@@ -148,6 +149,53 @@ describe("jp-lit-research skill guide", () => {
     expect(usageGuide).toContain("isFuzzy=true");
     expect(workflow).toContain("本文未読の内容別・論点別分類");
     expect(workflow).toContain("優先");
+  });
+
+  it("requires subagent handoff reports instead of brief summaries", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const workflowCore = readFileSync(
+      "skills/jp-lit-research/reference/01-core-workflow.md",
+      "utf8"
+    );
+    const evidence = readFileSync(
+      "skills/jp-lit-research/reference/03-evidence-and-output.md",
+      "utf8"
+    );
+    const combined = `${skill}\n${workflowCore}\n${evidence}`;
+
+    expect(combined).not.toContain("短いサマリー");
+    expect(skill).toContain("調査トレース報告");
+    expect(skill).toContain("cache は検索結果・取得 payload の保管場所");
+    expect(skill).toContain("サブエージェント使用時は handoff report");
+    expect(workflowCore).toContain("current report");
+    expect(workflowCore).toContain("変更履歴");
+    expect(evidence).toContain("## 調査トレース報告");
+
+    for (const required of [
+      "担当範囲",
+      "session_id",
+      "cache_key",
+      "使用 source",
+      "検索語",
+      "件数の読み方",
+      "主な検索試行",
+      "採用候補",
+      "保留候補",
+      "除外理由",
+      "本文確認範囲",
+      "根拠参照",
+      "未確認事項",
+      "主エージェントへの判断ポイント",
+      "変更履歴",
+    ]) {
+      expect(evidence).toContain(required);
+    }
+
+    expect(evidence).toContain("total は検索元が返した総ヒット数");
+    expect(evidence).toContain("取得件数は実際に取得して読めた件数");
+    expect(evidence).toContain(
+      "抽出件数は主要候補・保留候補・除外代表などへ選別した件数"
+    );
   });
 
   it("uses CRD and Research Navi before searches to build the research plan", () => {
