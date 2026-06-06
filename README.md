@@ -81,6 +81,8 @@ MCP 単体でも検索はできますが、source の選択、検索語の展開
 
 調査が長くなる場合は、検索結果だけでなく、調査目的、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項、次アクションもセッションに残せます。過去セッションは一覧・キーワード検索でき、Markdown / JSON export ではこの調査経過も読み返せます。CSL JSON は文献管理・引用処理向けなので、調査経過は混ぜず、採用文献の書誌情報だけを出します。
 
+調査後に残るものは、cache / session trace / handoff report / 最終回答で役割が違います。cache は検索結果・取得 payload の保管、session trace は調査過程の復元用、handoff report は主エージェントや人間が判断するための整理済み report、最終回答はその場でユーザーに返す報告です。サブエージェント使用時は handoff report を必須にし、単独エージェント時は長い調査や研究ノート化したい調査で必要に応じて作成します。詳しくは [使い方ガイド](docs/usage-guide.md#調査後に残るもの) を参照してください。
+
 人名の筆名・別名義や件名の確認には Web NDL Authorities を使う補助ツールも利用できます。たとえば色川武大と阿佐田哲也のような名義関係を確認し、名義別に探すか、まとめて探すかを分けられます。NDC などの分類から件名標目を逆引きして、未知の本を探すための探索語候補を作ることもできます。
 
 通常の Skill 導入は各アプリ向けの install guide にある `npx -y jp-lit-mcp install-skills <app>` をおすすめします。GitHub CLI の `gh skill install` を使う別ルートもありますが、こちらは上級者向けです。詳しくは [GitHub CLI で Skills を入れる](docs/install/github-skills.md) を参照してください。

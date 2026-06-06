@@ -198,6 +198,25 @@ describe("jp-lit-research skill guide", () => {
     );
   });
 
+  it("documents cache, session trace, final answer, and handoff report roles", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const combinedDocs = `${readme}\n${usageGuide}`;
+
+    expect(combinedDocs).not.toContain("短いサマリー");
+    expect(usageGuide).toContain("### 調査後に残るもの");
+    expect(usageGuide).toContain("cache");
+    expect(usageGuide).toContain("session trace");
+    expect(usageGuide).toContain("最終回答");
+    expect(usageGuide).toContain("調査トレース報告 / handoff report");
+    expect(usageGuide).toContain("session trace は復元用");
+    expect(usageGuide).toContain("handoff report は判断用");
+    expect(usageGuide).toContain("サブエージェント使用時は必須");
+    expect(usageGuide).toContain("単独エージェント時は必要に応じて作成");
+    expect(readme).toContain("調査後に残るもの");
+    expect(readme).toContain("cache / session trace / handoff report");
+  });
+
   it("uses CRD and Research Navi before searches to build the research plan", () => {
     const workflowCore = readFileSync(
       "skills/jp-lit-research/reference/01-core-workflow.md",
