@@ -187,6 +187,39 @@ describe("jp-lit-research skill guide", () => {
     );
   });
 
+  it("documents Next Digital Library compound query limits", () => {
+    const fulltextWorkflow = readFileSync(
+      "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+      "utf8"
+    );
+    const queryExpansion = readFileSync(
+      "skills/jp-lit-research/heuristics/query-expansion.md",
+      "utf8"
+    );
+    const failureModes = readFileSync(
+      "skills/jp-lit-research/heuristics/failure-modes.md",
+      "utf8"
+    );
+
+    expect(fulltextWorkflow).toContain(
+      "`jp_lit_search_fulltext` では空白 AND や `AND` 演算子を上流仕様として期待しない"
+    );
+    expect(fulltextWorkflow).toContain(
+      "複合語 0 件を、両語が同一資料に存在しない証拠として扱わない"
+    );
+    expect(fulltextWorkflow).toContain(
+      "`jp_lit_search_pages` は既知 PID 内の補助確認として使う"
+    );
+    expect(queryExpansion).toContain(
+      "デジコレ OCR では、複合検索語より単語単位の検索語展開を優先する"
+    );
+    expect(failureModes).toContain("複合語 0 件を不在証明にしない");
+    expect(failureModes).toContain("単独語検索と複合語検索を分けて調査ログに残す");
+    expect(fulltextWorkflow).toContain(
+      "実例: `キューリン` 単独では hit=25、`キューリン 博士` は hit=0"
+    );
+  });
+
   it("requires subagent handoff reports instead of brief summaries", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     const workflowCore = readFileSync(
