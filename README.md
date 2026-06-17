@@ -1,130 +1,127 @@
-﻿# jp-lit-mcp
+# jp-lit-mcp
 
-NDL Search、NDL デジタルコレクション、CiNii Research、J-STAGE、IRDB、JDCat、nihuBridge、国会・帝国議会会議録などを、AI エージェントから横断的に使うための日本語文献探索向け MCP サーバーです。
+`jp-lit-mcp` は、日本語文献・資料調査を AI エージェントが進めるための MCP server + Skills set です。NDL Search、CiNii、J-STAGE、国書、国会・帝国議会会議録などを横断しながら、検索、候補整理、実在性確認、調査ログ化を支援します。
 
-MCP は検索・取得の道具を提供し、同梱の Skills は「どの DB を使うか」「どんな検索語を試すか」「結果をどう評価するか」を対話の中で補助します。
+## Skill と MCP の役割
 
-## まず使うアプリを選ぶ
+MCP は検索・取得の道具です。データベースへ問い合わせ、書誌、所蔵、OCR、会議録、研究データなどを返します。
 
-導入でいちばんつまずきやすいのは、アプリごとの MCP / Skills 設定の違いです。まずは使用するアプリの手順を開いてください。
+Skills は調査の進め方です。どの source から入るか、検索語をどう広げるか、候補をどう評価するか、本文確認の有無をどうラベルづけするかを案内します。
 
-前提として、`Node.js 18` 以上と `npm` が必要です。通常利用ではリポジトリを clone せず、`npx` から MCP サーバーと Skills インストーラーを実行できます。
+- `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料・地方人物、本文・図版探索などを扱います。
+- `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill。
 
-- [Cursor での導入手順](docs/install/cursor.md)
-- [Claude Code での導入手順](docs/install/claude-code.md)
-- [Codex CLI での導入手順](docs/install/codex-cli.md)
-- [Codex App での導入手順](docs/install/codex-app.md)
-- [GitHub CLI で Skills を入れる](docs/install/github-skills.md)
+## 最短導入
 
-## 最短の始め方
+通常利用では、このリポジトリを clone せずに `npx` から使えます。
 
-1. 使うアプリの導入手順どおりに `npx -y jp-lit-mcp` を MCP として登録する
-2. `npx -y jp-lit-mcp install-skills <app>` で Skills を入れる
-3. アプリ上で調査を依頼する
+前提は `Node.js 18` 以上と `npm` です。
 
-導入後の切り分けには、軽量診断コマンドを使えます。
+Codex で Skills を先に入れる最短コマンドは次です。Cursor / Claude Code では末尾の target を `cursor` / `claude` に読み替えます。
+
+```bash
+npx -y jp-lit-mcp install-skills codex
+```
+
+MCP 登録やアプリ別の設定は、利用するアプリの guide を選んで進めてください。
+
+- [Codex App](docs/install/codex-app.md)
+- [Codex CLI](docs/install/codex-cli.md)
+- [Cursor](docs/install/cursor.md)
+- [Claude Code](docs/install/claude-code.md)
+
+導入後の切り分けには、次を実行します。
 
 ```bash
 npx -y jp-lit-mcp doctor
 ```
 
-このコマンドは `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports ディレクトリの書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。CiNii 系 source の安定利用と KAKEN API tool で使います。外部 DB への live API アクセスは行いません。
+`doctor` は Node.js、package、同梱 Skills、cache / exports の書き込み、`CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する appid 用の環境変数です。`doctor` は外部 DB への live API アクセスは行いません。
 
-開発や source 追加をしたい場合だけ、このリポジトリを clone して `npm install` / `npm run build` / `npm run smoke:mcp` を実行してください。
-
-最初の依頼例:
+## 最初の依頼例
 
 ```text
 文献DBで、近代日本の労働文化について、論文と図書を探してください。
 ```
 
 ```text
-文献DBを始めます。明治期の俳句雑誌について、最初に見るべき資料と、使うべき DB を教えてください。
+文献DBを始めます。明治期の俳句雑誌について、最初に見るべき資料と使うべき DB を教えてください。
 ```
 
 ```text
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## 何ができるか
+## Skill でできること
 
-- 図書・論文・雑誌記事・会議録・研究データを探す
-- NDL / CiNii Books などで所蔵や書誌詳細を確認する
-- レファレンス協同データベースの調べ方マニュアル・事例を参照する
-- NDL デジタルコレクションの OCR 全文、ページ座標、図版・挿絵を扱う
-- 貼り付けた文章に出てくる文献の実在性を確認する
-- 保存した調査結果をあとから絞り込み・統合・再整理し、Markdown / JSON / CSL JSON で書き出す
-- 調査目的、source 選択、検索試行、採用/保留理由、未確認事項、次アクションなどの調査経過を保存する
-- 過去の調査セッションを一覧・検索し、数日後でも調査経緯をたどって再開する
+- 調査目的から source 候補を選び、検索語を段階的に広げる。
+- 図書、論文、雑誌記事、会議録、研究データ、デジタル化資料を探す。
+- 書誌、所蔵、オンライン入口、OCR 全文、要旨、目次、会議録本文を確認する。
+- 地域資料・地方人物の調査で、県立図書館、市区町村中央館、専門資料室などの確認線を組む。
+- カーリル Remote MCP（外部 MCP）と併用し、地域の図書館探索を Skill-guided route として扱う。利用する AI クライアント側で別途設定し、初回 OAuth 認可が必要です。
+- `jp-lit-verification` で文献候補の実在確認済み / 部分一致 / 非実在の疑い / 混線の疑いを整理する。
 
-CSL JSON で書き出した調査結果は、Zotero、Pandoc、citeproc 系ツールなどの文献管理・引用処理に渡せます。
+詳細な source 別の使い分けは [使い方ガイド](docs/usage-guide.md) と [技術リファレンス](docs/reference.md) に置いています。
 
-対応 source や MCP ツールの詳細は [技術リファレンス](docs/reference.md) を参照してください。
+## 調査後に残るもの
 
-## Skills を使う理由
+調査後に残るものは、cache / session trace / handoff report / 最終回答で役割が違います。
 
-MCP 単体でも検索はできますが、source の選択、検索語の展開、結果の評価は利用者側で考える必要があります。
-
-`jp-lit-research` Skill を使うと、検索前に調査計画を立て、必要に応じてレファ協や NDL リサーチ・ナビを見ながら、source と検索語を組み立てます。調査は一回の検索で終わらせず、候補を見ながら次の query や DB を選び直す前提です。
-
-地域資料・地方人物・地方紙・地方雑誌の探索では、NDL / CiNii / Japan Search だけで拾えない公共図書館の蔵書確認も調査線に入れられます。カーリルAI（カーリル Remote MCP）にも対応し、Skill 側で地域候補を整理し、県立図書館と市区町村中央館、広域ネットワーク、郷土資料室、関連する専門資料機関を組み合わせて探す運用を案内します。カーリルAIを実検索に使うには、利用する AI クライアント側でカーリル Remote MCP の設定と初回 OAuth 認可が別途必要です。Codex CLI でも Streamable HTTP MCP / OAuth でカーリル Remote MCP へ直結できます。
-
-カーリル Remote MCP の接続確認は、開発 checkout では `npm run smoke:calil-mcp` でも行えます。これは Codex の MCP 設定とは別の Node smoke script で、初回はブラウザで OAuth 認可が必要です。
-
-結果を返すときは、書誌情報だけでなく、全文検索の `highlights` や概要・目次の短い抜粋もできるだけ添えて、「なぜその資料を出したか」が分かる形にします。ページ位置の特定は必要時だけ別ツールで行います。
-
-`jp-lit-mcp` は、LLM が文献の内容把握や学術的位置づけを最終決定するためのものではありません。本文を読んでいない文献でも、タイトル・要旨・目次・書評・出版社紹介・Web 上の断片から仮整理することがあります。その場合は、本文読解ではないことと、何を根拠にした整理かを明示します。`online=true` や PDF / HTML / デジコレへのリンクは、オンライン上に入口があることを示すだけで、エージェントが本文を読んだことを意味しません。
-
-候補はフラットに並べるだけでなく、資料種別、出版社・媒体、著者属性、引用・書評状況、本文確認状況を手がかりに、調査上の確認優先度を仮に付けます。ただし出版社や媒体だけで文献の価値を確定しません。確認優先度は、人間が次に何を見るべきかを決めるための作業上の目安です。
-
-検索したあとの結果整理にも対応しています。今の結果を並び替える、オンライン公開だけに絞る、前回の結果と差分・共通項を取る、といった操作は、原則として保存済み結果を再利用して行います。今の検索結果だけでなく、過去に保存した検索結果も横断検索して統合できます。検索・取得系ツールの `cache.hit=true` は、保存済み cache を再利用したことを示します。この場合は上流 API へ再検索していないこと、保存日時 `cache.saved_at`、再取得する場合の `force_refresh=true` 導線を返り値で明示します。古いローカル cache は `jp_lit_prune_cache` で候補を確認してから削除できます。
-
-調査が長くなる場合は、検索結果だけでなく、調査目的、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項、次アクションもセッションに残せます。過去セッションは一覧・キーワード検索でき、Markdown / JSON export ではこの調査経過も読み返せます。CSL JSON は文献管理・引用処理向けなので、調査経過は混ぜず、採用文献の書誌情報だけを出します。
-
-調査後に残るものは、cache / session trace / handoff report / 最終回答で役割が違います。cache は検索結果・取得 payload の保管、session trace は調査過程の復元用、handoff report は主エージェントや人間が判断するための整理済み report、最終回答はその場でユーザーに返す報告です。サブエージェント使用時は handoff report を必須にし、単独エージェント時は長い調査や研究ノート化したい調査で必要に応じて作成します。詳しくは [使い方ガイド](docs/usage-guide.md#調査後に残るもの) を参照してください。
-
-人名の筆名・別名義や件名の確認には Web NDL Authorities を使う補助ツールも利用できます。たとえば色川武大と阿佐田哲也のような名義関係を確認し、名義別に探すか、まとめて探すかを分けられます。NDC などの分類から件名標目を逆引きして、未知の本を探すための探索語候補を作ることもできます。
-
-通常の Skill 導入は各アプリ向けの install guide にある `npx -y jp-lit-mcp install-skills <app>` をおすすめします。GitHub CLI の `gh skill install` を使う別ルートもありますが、こちらは上級者向けです。詳しくは [GitHub CLI で Skills を入れる](docs/install/github-skills.md) を参照してください。
-
-`jp-lit-verification` Skill は、他サービスの回答や自分の文章に出てくる日本語文献候補を抽出し、実在確認済み / 部分一致 / 非実在の疑い / 混線の疑いに分けて確認します。
-
-詳しい使い方は [使い方ガイド](docs/usage-guide.md) を参照してください。
+- cache: 検索・取得 payload の再利用用。
+- session trace: 調査経過、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項を復元するための記録。
+- handoff report: 主エージェントや人間が判断するための整理済み report。
+- CSL JSON: 文献管理・引用処理向けの書誌 export。調査経過は混ぜず、採用文献の書誌情報だけを出します。
 
 ## 主な対応先
 
-よく使う source は次のとおりです。
+README では対応先を絞って示します。詳細な source / tool catalog は [docs/reference.md](docs/reference.md) を参照してください。
 
-- `ndl_catalog`: 国立国会図書館や所蔵情報を調べる入口
-- `ndl_digital`: 国立国会図書館デジタルコレクション
-- `cinii_articles` / `cinii_books`: 論文、大学図書館の本・雑誌
-- `jstage_articles`: 学会誌・研究論文
-- `irdb`: 大学の機関リポジトリ
-- `nihu_bridge`: 人文学系専門 DB の横断検索
-- `nijl_articles`: 国文学論文・日本文学研究論文の専門目録
-- `kokusho`: 国書・古典籍・写本・版本の書誌、著作、所在確認
-- `ninjal_bibliography`: 日本語研究・日本語教育文献・国語教育文献
-- `national_archives`: 国立公文書館DAの官庁資料・特定歴史公文書
-- `jacar`: JACAR の外交・軍事・旧外地・近現代アジア歴史資料
-- `kokkai_minutes` / `teikoku_minutes`: 国会・帝国議会会議録
-- `jdcat`: 人文学・社会科学系の研究データ
-- `japan_search`: 文化財・博物館・地域資料
+- NDL Search
+- CiNii
+- J-STAGE
+- 国書
+- 国会・帝国議会会議録
+- NDL デジタルコレクション、IRDB、JDCat、Japan Search、Web NDL Authorities など
 
-国書データベースについては、書誌・所在確認の `jp_lit_search(source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。
+## 注意して読むこと
 
-一覧と実装上の注意点は [技術リファレンス](docs/reference.md) にまとめています。
+`jp-lit-mcp` は、LLM が文献の内容把握や学術的位置づけを最終決定するためのものではありません。本文を読んでいない文献でも、タイトル、要旨、目次、書評、出版社紹介、Web 上の断片から仮整理することがあります。その場合は、本文読解ではないことと、何を根拠にした整理かを明示します。
+
+`online=true` や PDF / HTML / デジコレへのリンクは、オンライン上に入口があることを示すだけで、エージェントが本文を読んだことを意味しません。
+
+候補には、資料種別、出版社・媒体、著者属性、引用・書評状況、本文確認状況を手がかりに、調査上の確認優先度を仮に付けることがあります。ただし出版社や媒体だけで文献の価値を確定しません。確認優先度は、人間が次に何を見るべきかを決めるための作業上の目安です。
 
 ## ドキュメント
 
-- [使い方ガイド](docs/usage-guide.md): 実際の依頼例、調査フロー、出力の読み方
-- [地方公共図書館・地域資料調査メモ](docs/regional-public-library-research.md): カーリル Remote MCP を併用する地域資料・地方公共図書館ルート
-- [GitHub CLI で Skills を入れる](docs/install/github-skills.md): `gh skill install` を使う別ルート
-- [技術リファレンス](docs/reference.md): source、MCP ツール、環境変数、制約、開発・検証コマンド
-- [データ利用条件メモ](docs/source-usage-conditions.md): 外部 DB / API の表示要件や利用条件
-- [実装状況](docs/project-status.md): 現在の状態、最近の更新、公開後メモ
+- [docs/usage-guide.md](docs/usage-guide.md): 使い方ガイド。依頼例、調査フロー、結果の読み方。
+- [docs/reference.md](docs/reference.md): 技術リファレンス。source、MCP tool、環境変数、保存形式。
+- [docs/regional-public-library-research.md](docs/regional-public-library-research.md): 地域資料・地方人物調査とカーリル Remote MCP 併用。
+- [docs/source-usage-conditions.md](docs/source-usage-conditions.md): 外部 DB / API の利用条件メモ。
+- [docs/install/codex-app.md](docs/install/codex-app.md)、[docs/install/codex-cli.md](docs/install/codex-cli.md)、[docs/install/cursor.md](docs/install/cursor.md)、[docs/install/claude-code.md](docs/install/claude-code.md): アプリ別導入 guide。
+- [docs/install/github-skills.md](docs/install/github-skills.md): GitHub CLI で Skills を入れる secondary / public-preview route。
+
+## MCP 単体で使う場合
+
+Skill なしでも MCP server だけ使えます。ただし、source 選択、検索語展開、候補評価、本文確認ラベル、調査ログは利用者またはエージェント側に委ねられます。調査の再現性や引き継ぎを重視する場合は Skills の併用を推奨します。
+
+Skill を使わない場合は `文献DBで` / `文献検証で` などの Skill 起動語を避け、必要に応じて source 名や tool 名を直接指定してください。
+
+## 開発者向け
+
+clone が必要なのは、開発、source 追加、テスト、release 準備をする場合だけです。
+
+```bash
+npm install
+npm run build
+npm test
+npm run smoke:mcp
+npm run smoke:calil-mcp
+```
+
+カーリル Remote MCP の接続確認は、開発 checkout では `npm run smoke:calil-mcp` でも行えます。これは Codex の MCP 設定とは別の Node smoke script で、初回はブラウザで OAuth 認可が必要です。
 
 ## ライセンス
 
 このリポジトリのコードは `MIT License` です。詳細は [LICENSE](LICENSE) を参照してください。
 
-ただし、MCP がアクセスする外部 DB / API のデータ利用条件は別です。個人端末での調査利用と、検索結果を蓄積して複数利用者に提供する公開サービス・共有サーバ運用では注意点が変わります。再配布・表示・商用利用・ミラー的な保存の条件は [データ利用条件メモ](docs/source-usage-conditions.md) と各提供元規約を確認してください。
+MCP がアクセスする外部 DB / API のデータ利用条件は提供元ごとに異なります。再配布、表示、商用利用、ミラー的な保存を行う前に、[docs/source-usage-conditions.md](docs/source-usage-conditions.md) と各提供元規約を確認してください。
