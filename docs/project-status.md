@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-05-17 時点の状態:
+2026-06-17 時点の状態:
 
-- 公開ツール 25 種・対応 source 19 種・テスト 484 件すべて通過
+- 公開ツール 25 種・対応 source 19 種・テスト 498 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - カーリル Remote MCP 用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -26,6 +26,7 @@
 
 ## 最近の更新
 
+- `0.7.4`: `jp-lit-research` の確認ラベルを `候補確度` / `確認` / `本文` に分離。NDL Search 等のヒットのみを関連文献や本文確認済みとして扱わない契約、デジコレ OCR 複合語 0 件の扱い、長期調査の rolling checkpoint / 分担契約を明文化
 - `nijl_articles` / `kokusho` / `ninjal_bibliography`: 国文学論文、国書・古典籍、日本語研究・日本語教育文献の専門 DB を明示 source として追加。既定横断には含めず、manifest 本体・画像本体・本文一括取得をしない確認導線として運用
 - `jp_lit_search_kokusho_fulltext` / `jp_lit_search_kokusho_image_tags`: 国書DBの本文スニペット検索と画像タグ検索を、書誌 source とは分けた専用 tool として追加。本文全体・画像本体・manifest 本体は取得しない
 - 検索・取得系 cached tool の挙動を統一。`force_refresh=true` を明示しない限り cache を優先し、cache hit 時は保存日時と「上流APIへは再検索していません」という導線を返す
