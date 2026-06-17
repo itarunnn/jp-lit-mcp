@@ -310,7 +310,7 @@ describe("jp-lit-research skill guide", () => {
     expect(usageGuide).toContain("handoff report は判断用");
     expect(usageGuide).toContain("サブエージェント使用時は必須");
     expect(usageGuide).toContain("単独エージェント時は必要に応じて作成");
-    expect(readme).toContain("調査後に残るもの");
+    expect(readme).toContain("調査成果物");
     expect(readme).toContain("cache / session trace / handoff report");
   });
 
