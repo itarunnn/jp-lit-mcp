@@ -78,6 +78,20 @@ intent 別の扱い:
 - `image_illustration_search`: 美術・文化財・地域資料なら実行
 - `fulltext_page_lookup`: 省略
 
+## 長期調査の rolling checkpoint
+
+長期調査、独立した調査線が複数ある調査、または compaction 後に判断基準がずれやすい調査では、一定間隔で rolling checkpoint を作る。checkpoint は final answer ではなく、再開・分担・統合判断のための作業状態である。
+
+rolling checkpoint は、次の時点で作る:
+
+- source や時代区分を切り替える前
+- 採用候補・保留候補・検索ヒットのみ候補が増えた時
+- 本文確認済み / 目次確認 / 書誌確認 / 未確認の区別が変わった時
+- サブエージェントまたは sequential 担当単位へ分ける前
+- compaction や別スレッド再開が見込まれる時
+
+サブエージェント機能がない環境では、同じ単位で sequential に処理し、各単位ごとに handoff report を残す。環境固有の呼び出し API に依存しない。主エージェントが統合判断を持ち続ける。
+
 ## 会話運用
 
 - 生の検索結果や OCR payload を会話へ大量に貼り付けない

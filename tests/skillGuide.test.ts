@@ -220,6 +220,34 @@ describe("jp-lit-research skill guide", () => {
     );
   });
 
+  it("documents rolling checkpoints and environment-neutral delegation contracts", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const workflowCore = readFileSync(
+      "skills/jp-lit-research/reference/01-core-workflow.md",
+      "utf8"
+    );
+    const evidence = readFileSync(
+      "skills/jp-lit-research/reference/03-evidence-and-output.md",
+      "utf8"
+    );
+    const sourceSelection = readFileSync(
+      "skills/jp-lit-research/heuristics/source-selection.md",
+      "utf8"
+    );
+    const combined = `${skill}\n${workflowCore}\n${evidence}\n${sourceSelection}`;
+
+    expect(skill).toContain("rolling checkpoint");
+    expect(workflowCore).toContain("## 長期調査の rolling checkpoint");
+    expect(evidence).toContain("## rolling checkpoint");
+    expect(evidence).toContain("検索ヒットのみ候補");
+    expect(evidence).toContain("cache key / session id / 関連ファイル");
+    expect(evidence).toContain("## サブエージェント分担契約");
+    expect(evidence).toContain("環境固有の呼び出し API に依存しない");
+    expect(sourceSelection).toContain("戦前デジコレ OCR 担当");
+    expect(sourceSelection).toContain("J-STAGE / CiNii 現代研究担当");
+    expect(combined).toContain("主エージェントが統合判断を持ち続ける");
+  });
+
   it("requires subagent handoff reports instead of brief summaries", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     const workflowCore = readFileSync(

@@ -37,6 +37,7 @@ description: >-
 - 調査目的、source 選択理由、検索試行、採用/保留/除外理由、本文確認範囲、未確認事項、次アクションは `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に残す。
 - 過去調査の棚卸し・一覧・再開候補確認では `jp_lit_list_sessions` を使う。主題・タイトル・メモなど明確な検索語がある場合は `jp_lit_find_sessions` を使う。
 - 独立した調査線が複数ある場合は、サブエージェント分担をデフォルト寄りに検討する。各担当は担当範囲・検索ログ・採否理由・未確認事項を trace に残し、主エージェントへ調査トレース報告 / handoff report を返す。サブエージェント使用時は handoff report を受け取るまで完了扱いにしない。
+- 長期調査では、compaction や後日再開に備えて rolling checkpoint を作る。主エージェントが統合判断を持ち続け、サブエージェントや sequential 担当単位は検索・候補整理・ノイズ判定の report を返す。
 - 地方公共図書館ルートでカーリルAIを使う場合、Cursor / Claude Code / Codex では、ユーザーがカーリルAI Remote MCP を登録し初回 OAuth 認可済みなら同一エージェントから `search_libraries` / `search_books` を使える。Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。
 - 最終回答には `検索概要`、`今回の確認範囲`、`調査ログ` を置く。短い回答でも圧縮して残す。
 - `調査ログ` では各検索の `total`、`取得件数`、`抽出件数` を分ける。
