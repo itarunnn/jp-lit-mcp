@@ -151,6 +151,42 @@ describe("jp-lit-research skill guide", () => {
     expect(workflow).toContain("優先");
   });
 
+  it("separates candidate certainty from body confirmation labels", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const evidence = readFileSync(
+      "skills/jp-lit-research/reference/03-evidence-and-output.md",
+      "utf8"
+    );
+    const grading = readFileSync(
+      "skills/jp-lit-research/heuristics/evidence-grading.md",
+      "utf8"
+    );
+    const topicWorkflow = readFileSync(
+      "skills/jp-lit-research/workflows/topic-literature-review.md",
+      "utf8"
+    );
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const combinedResearchDocs = `${skill}\n${evidence}\n${grading}\n${topicWorkflow}\n${usageGuide}`;
+
+    expect(skill).toContain(
+      "単独の `確認済み` を文献リストの主要ラベルとして使わない"
+    );
+    expect(skill).toContain("検索ヒットのみ / 関連性未確定");
+    expect(evidence).toContain("候補確度: 書誌確認済み");
+    expect(evidence).toContain("候補確度: 関連性未確定");
+    expect(evidence).toContain("確認: 検索ヒットのみ");
+    expect(evidence).toContain("本文: オンライン入口あり未読");
+    expect(grading).toContain("## 候補確度（書誌・関連性）");
+    expect(grading).toContain("### 書誌確認済み（Bibliographically confirmed）");
+    expect(topicWorkflow).toContain("▍候補確度: 書誌確認済み");
+    expect(usageGuide).toContain("候補確度: 書誌確認済み");
+    expect(combinedResearchDocs).not.toContain("▍確認済み文献");
+    expect(combinedResearchDocs).not.toContain("### ✅ 確認済み");
+    expect(combinedResearchDocs).not.toContain(
+      "| **確認済み** | 書誌情報・本文・ページ画像などで内容を確認できたもの"
+    );
+  });
+
   it("requires subagent handoff reports instead of brief summaries", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     const workflowCore = readFileSync(
