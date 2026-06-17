@@ -20,7 +20,12 @@ describe("install docs", () => {
     expect(codexCli).toContain("codex mcp add");
     expect(codexCli).toContain("npx -y jp-lit-mcp");
     expect(cursor).toContain("npx -y jp-lit-mcp install-skills cursor");
+    expect.soft(cursor).toContain("~/.cursor/skills/");
+    expect.soft(cursor).toContain("user-level");
+    expect.soft(cursor).toContain("project-level");
     expect(claudeCode).toContain("npx -y jp-lit-mcp install-skills claude");
+    expect.soft(claudeCode).toContain("claude mcp add jp-lit");
+    expect.soft(claudeCode).toContain("--env");
   });
 
   it("documents the lightweight doctor command", () => {
@@ -49,6 +54,19 @@ describe("install docs", () => {
     ].join("\n");
 
     expect(docs).not.toContain("npm run skills:install");
+  });
+
+  it("documents GitHub CLI skills as an explicit secondary route", () => {
+    const githubSkills = readFileSync("docs/install/github-skills.md", "utf8");
+    const githubSkillsPlain = githubSkills.replace(/`/g, "");
+
+    expect.soft(githubSkills).toContain("public preview");
+    expect.soft(githubSkills).toContain("2.90.0");
+    expect.soft(githubSkills).toContain("--agent codex");
+    expect.soft(githubSkills).toContain("--agent cursor");
+    expect.soft(githubSkills).toContain("--agent claude-code");
+    expect.soft(githubSkills).toContain("--scope user");
+    expect.soft(githubSkillsPlain).toContain("MCP の登録までは行いません");
   });
 
   it("mentions verification-mode examples in install and usage docs", () => {
