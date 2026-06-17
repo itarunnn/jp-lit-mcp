@@ -1,12 +1,12 @@
 # jp-lit-mcp
 
-`jp-lit-mcp` は、日本語文献・資料調査を AI エージェントが進めるための MCP server + Skills set です。NDL Search、CiNii、J-STAGE、国書、国会・帝国議会会議録などを横断しながら、検索、候補整理、実在性確認、調査ログ化を支援します。
+`jp-lit-mcp` は、日本語文献・資料調査を AI エージェントが進めるための MCP server + Skills セットです。NDL Search、CiNii、J-STAGE、国書、国会・帝国議会会議録などを横断しながら、検索、候補整理、実在性確認、調査ログ化を支援します。
 
 ## Skill と MCP の役割
 
 MCP は検索・取得の道具です。データベースへ問い合わせ、書誌、所蔵、OCR、会議録、研究データなどを返します。
 
-Skills は調査の進め方です。どの source から入るか、検索語をどう広げるか、候補をどう評価するか、本文確認の有無をどうラベルづけするかを案内します。
+Skills によって実際の調査を進めます。どの source から入るか、検索語をどう広げるか、候補をどう評価するか、本文確認の有無をどうラベルづけするかを案内します。
 
 - `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料・地方人物、本文・図版探索などを扱います。
 - `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill。
@@ -30,7 +30,7 @@ MCP 登録やアプリ別の設定は、利用するアプリの guide を選ん
 - [Cursor](docs/install/cursor.md)
 - [Claude Code](docs/install/claude-code.md)
 
-導入後の切り分けには、次を実行します。
+導入確認には、次を実行します。
 
 ```bash
 npx -y jp-lit-mcp doctor
@@ -63,18 +63,18 @@ npx -y jp-lit-mcp doctor
 
 詳細な source 別の使い分けは [使い方ガイド](docs/usage-guide.md) と [技術リファレンス](docs/reference.md) に置いています。
 
-## 調査後に残るもの
+## 調査成果物
 
-調査後に残るものは、cache / session trace / handoff report / 最終回答で役割が違います。
+調査によって cache / session trace / handoff report / 最終回答が出力されます。
 
 - cache: 検索・取得 payload の再利用用。
 - session trace: 調査経過、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項を復元するための記録。
 - handoff report: 主エージェントや人間が判断するための整理済み report。
 - CSL JSON: 文献管理・引用処理向けの書誌 export。調査経過は混ぜず、採用文献の書誌情報だけを出します。
 
-## 主な対応先
+## 主な検索対象
 
-README では対応先を絞って示します。詳細な source / tool catalog は [docs/reference.md](docs/reference.md) を参照してください。
+ここに示したものは一部です。詳細な source / tool catalog は [docs/reference.md](docs/reference.md) を参照してください。
 
 - NDL Search
 - CiNii
@@ -83,7 +83,7 @@ README では対応先を絞って示します。詳細な source / tool catalog
 - 国会・帝国議会会議録
 - NDL デジタルコレクション、IRDB、JDCat、Japan Search、Web NDL Authorities など
 
-## 注意して読むこと
+## エージェントによる調査整理
 
 `jp-lit-mcp` は、LLM が文献の内容把握や学術的位置づけを最終決定するためのものではありません。本文を読んでいない文献でも、タイトル、要旨、目次、書評、出版社紹介、Web 上の断片から仮整理することがあります。その場合は、本文読解ではないことと、何を根拠にした整理かを明示します。
 
@@ -102,7 +102,7 @@ README では対応先を絞って示します。詳細な source / tool catalog
 
 ## MCP 単体で使う場合
 
-Skill なしでも MCP server だけ使えます。ただし、source 選択、検索語展開、候補評価、本文確認ラベル、調査ログは利用者またはエージェント側に委ねられます。調査の再現性や引き継ぎを重視する場合は Skills の併用を推奨します。
+Skill なしでも MCP server を登録するだけで検索できます。ただし、source 選択、検索語展開、候補評価、本文確認ラベル、調査ログは利用者またはエージェントに委ねられます。調査の再現性や引き継ぎを重視する場合は Skills の併用を推奨します。
 
 Skill を使わない場合は `文献DBで` / `文献検証で` などの Skill 起動語を避け、必要に応じて source 名や tool 名を直接指定してください。
 
