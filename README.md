@@ -1,6 +1,6 @@
 # jp-lit-mcp
 
-`jp-lit-mcp` は、日本語文献・資料調査を AI エージェントが進めるための MCP server + Skills set です。NDL Search、CiNii、J-STAGE、国書、国会・帝国議会会議録などを横断しながら、検索、候補整理、実在性確認、調査ログ化を支援します。
+`jp-lit-mcp` は、日本語文献・資料調査を AI エージェントが進めるための MCP server + Skills セットです。NDL Search、CiNii、J-STAGE、国書、国会・帝国議会会議録などを横断しながら、検索、候補整理、実在性確認、調査ログ化を支援します。
 
 ## Skill と MCP の役割
 
