@@ -785,11 +785,11 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 
 地方人物・地方紙・地方雑誌・郷土資料では、NDL / CiNii / J-STAGE だけでは資料の所在が薄いことがあります。Skill 併用時は、人物名だけでなく地名、旧地名、出身地、在住地、活動地、発行地、媒体名、団体名から地域候補を作り、地域候補を優先づけたうえで公共図書館の OPAC や所蔵一覧へ進むことがあります。
 
-カーリル Remote MCP が使える環境では、地域候補を整理し、`search_libraries` で地域名・館種・ネットワーク名・専門資料機関名を検索して候補館の `systemid` を得ます。人名はまず出身地・居住地・活動地・郷土人物としての地域を割り、地域から図書館へ進めます。県立図書館を基準点として外さないうえで、該当都道府県立図書館、該当市区町村中央館、県内/広域の図書館ネットワーク、発行地・活動地に対応する中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室を組み合わせます。Web 検索はパスファインダー、新聞・雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない文学館・記念館・資料館・資料室、閲覧条件の補助確認に使います。カーリル REST API は ISBN 既知の所蔵確認向きで、人物名・地名・地方紙名によるキーワード蔵書検索には使いません。
+カーリル図書館MCPが使える環境では、地域候補を整理し、`search_libraries` で地域名・館種・ネットワーク名・専門資料機関名を検索して候補館の `systemid` を得ます。人名はまず出身地・居住地・活動地・郷土人物としての地域を割り、地域から図書館へ進めます。県立図書館を基準点として外さないうえで、該当都道府県立図書館、該当市区町村中央館、県内/広域の図書館ネットワーク、発行地・活動地に対応する中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室を組み合わせます。Web 検索はパスファインダー、新聞・雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない文学館・記念館・資料館・資料室、閲覧条件の補助確認に使います。カーリル REST API は ISBN 既知の所蔵確認向きで、人物名・地名・地方紙名によるキーワード蔵書検索には使いません。
 
-地域候補と検索語を JSON で整理したい場合は、Skill 同梱の `scripts/plan-regional-library-search.mjs` を使えます。このスクリプトはカーリルを直接呼ばず、人名から地域を割る query、媒体名・団体名から所蔵館や資料室を探す query、カーリル Remote MCP に渡す前の検索計画を作る補助です。
+地域候補と検索語を JSON で整理したい場合は、Skill 同梱の `scripts/plan-regional-library-search.mjs` を使えます。このスクリプトはカーリルを直接呼ばず、人名から地域を割る query、媒体名・団体名から所蔵館や資料室を探す query、カーリル図書館MCPに渡す前の検索計画を作る補助です。
 
-開発 checkout でカーリル Remote MCP への live 接続を確認する場合は、この repo の Node smoke script として `npm run smoke:calil-mcp` を使えます。初回はブラウザで OAuth 認可が必要です。Codex CLI で実利用する場合は、`codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` で直結します。必要なら `oauth_resource = "https://mcp-beta.calil.jp"` や OAuth callback port / URL の固定を使います。カーリルは localhost callback を既定で許可しているため、手元 PC 上の Codex CLI ではこの経路を使えます。初回 OAuth 認可後は通常、新しい Codex セッションから `search_libraries` / `search_books` を呼べます。SSH 先やコンテナ上の Codex から手元ブラウザだけを開く構成では `localhost` の指す先がずれるため、ポートフォワードまたは callback URI の追加相談が必要になりえます。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残します。
+開発 checkout でカーリル図書館MCPへの live 接続を確認する場合は、この repo の Node smoke script として `npm run smoke:calil-mcp` を使えます。初回はブラウザで OAuth 認可が必要です。Codex CLI で実利用する場合は、`codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` で直結します。必要なら `oauth_resource = "https://mcp-beta.calil.jp"` や OAuth callback port / URL の固定を使います。カーリルは localhost callback を既定で許可しているため、手元 PC 上の Codex CLI ではこの経路を使えます。初回 OAuth 認可後は通常、新しい Codex セッションから `search_libraries` / `search_books` を呼べます。SSH 先やコンテナ上の Codex から手元ブラウザだけを開く構成では `localhost` の指す先がずれるため、ポートフォワードまたは callback URI の追加相談が必要になりえます。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残します。
 
 地方紙・地方雑誌は、記事名ではなく媒体名・巻号で所蔵確認するのが基本です。詳しい判断規則は [地方公共図書館・地域資料調査メモ](regional-public-library-research.md)（repo 内パス: `docs/regional-public-library-research.md`）を参照してください。
 

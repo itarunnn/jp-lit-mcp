@@ -75,9 +75,9 @@ codex
 文献検証で、この文章に出てくる文献の実在性を確認してください。
 ```
 
-## カーリルAIを併用する場合
+## カーリル図書館MCPを併用する場合
 
-地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別にカーリル Remote MCP を Codex CLI に登録します。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。認可後は通常、新しい Codex セッションで再利用されます。
+地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別に[カーリル図書館MCP](https://calil.jp/ai/)を Codex CLI に登録します。カーリル公式の対応表・設定ガイドには、現時点では Codex は載っていませんが、Codex CLI では Streamable HTTP MCP と OAuth を使って追加できます。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。認可後は通常、新しい Codex セッションで再利用されます。
 
 ```bash
 codex mcp add calil --url https://mcp-beta.calil.jp/mcp

@@ -4,7 +4,7 @@
 
 - 公開ツール 25 種・対応 source 19 種・テスト 498 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
-- カーリル Remote MCP 用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
+- カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
 - `npx -y jp-lit-mcp` による MCP 起動導線を整備済み

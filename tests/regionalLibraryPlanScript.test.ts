@@ -144,7 +144,7 @@ describe("regional library planning script", () => {
         clientEnvironment: "unspecified",
         directUse: "not_assumed",
         notes: [
-          "カーリルAI Remote MCP を同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
+          "カーリル図書館MCPを同一エージェントから使えるかは実行環境の MCP / OAuth 対応に依存する。",
           "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
         ]
       }
@@ -368,7 +368,7 @@ describe("regional library planning script", () => {
       clientEnvironment: "chatgpt",
       directUse: "not_assumed",
       notes: [
-        "ChatGPT はカーリルAI側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
+        "ChatGPT はカーリル図書館MCP側の対応先だが、この repo の jp-lit-mcp / Skill をそのまま動かす導入先ではない。",
         "接続できない場合は、地域パスファインダー、各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。"
       ]
     });

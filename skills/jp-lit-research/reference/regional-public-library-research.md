@@ -17,15 +17,15 @@
 
 ## カーリルの扱い
 
-カーリル for AI は Remote MCP であり、`search_books`、`search_libraries`、`get_ndc_info` を提供する。`search_libraries` はキーワードによる図書館検索、`search_books` は複数図書館システムを最大15館まで横断し、フリーワード、書名、著者、出版者、NDC分類、出版年で検索できる。
+カーリル図書館MCPは Remote MCP 形式の図書館蔵書検索サービスであり、`search_books`、`search_libraries`、`get_ndc_info` を提供する。`search_libraries` はキーワードによる図書館検索、`search_books` は複数図書館システムを最大15館まで横断し、フリーワード、書名、著者、出版者、NDC分類、出版年で検索できる。
 
 カーリル MCP は専門図書館も探索候補に入れられる。ただし専門図書館・資料室は、OPAC 非公開、閲覧制限、予約制、会員制、館内利用のみ、独自目録のみ、カーリル側で見つからない、といった場合がある。カーリル MCP の `search_libraries` で見つかれば `search_books` に入れ、見つからない場合は専門図書館自身の OPAC、目録、利用案内、レファレンスへ進む。
 
 一方、カーリル REST API についての原則は「REST API はキーワード蔵書検索に使わない」。REST API の蔵書検索は `ISBN + systemid` が前提であり、人物名、地方紙名、地方雑誌名、地名、団体名から資料を発見する用途には足りない。REST API は ISBN 既知の所蔵確認や図書館データベース確認に限る。
 
-この用途でカーリルを使う場合は、カーリル Remote MCP を外部 MCP として併用する。`jp-lit-mcp` 側は地域推定、検索語設計、見るべき館の優先順位づけ、結果評価を担当し、カーリル MCP は公共図書館 OPAC の実検索を担当する。
+この用途でカーリルを使う場合は、カーリル図書館MCPを外部 MCP として併用する。`jp-lit-mcp` 側は地域推定、検索語設計、見るべき館の優先順位づけ、結果評価を担当し、カーリル図書館MCPは公共図書館 OPAC の実検索を担当する。
 
-実行環境ごとの扱いは分ける。Cursor / Claude Code / Codex では、ユーザーが事前にカーリルAI Remote MCP を登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。カーリルは localhost callback を既定で許可しているため、ローカルで動く Codex CLI ではこの経路を使う。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。
+実行環境ごとの扱いは分ける。Cursor / Claude Code / Codex では、ユーザーが事前にカーリル図書館MCPを登録し OAuth 認可していれば、`jp-lit` Skill の調査中に同じエージェントが `search_libraries` / `search_books` を呼べる。Codex では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を通常ルートにする。カーリルは localhost callback を既定で許可しているため、ローカルで動く Codex CLI ではこの経路を使う。接続できない場合は MCP / OAuth 設定を直し、必要に応じて各館 OPAC、新聞・雑誌所蔵一覧、図書館レファレンス相談を次アクションに残す。
 
 ## 発動条件
 

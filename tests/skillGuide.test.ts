@@ -520,7 +520,7 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("reference/regional-public-library-research.md");
     expect(sourceSelection).toContain("地域資料サービス");
     expect(sourceSelection).toContain("地方公共図書館ルート");
-    expect(sourceSelection).toContain("カーリル Remote MCP");
+    expect(sourceSelection).toContain("カーリル図書館MCP");
     expect(sourceSelection).toContain("search_libraries");
     expect(sourceSelection).toContain("search_books");
     expect(sourceSelection).toContain("REST API は ISBN 既知の所蔵確認");
@@ -538,7 +538,7 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalDoc).toContain("地域資料サービス");
     expect(regionalDoc).toContain("郷土資料");
     expect(regionalDoc).toContain("公共図書館パスファインダーリンク集");
-    expect(regionalDoc).toContain("カーリル for AI");
+    expect(regionalDoc).toContain("カーリル図書館MCP");
     expect(regionalDoc).toContain("Remote MCP");
     expect(regionalDoc).toContain("最大15館");
     expect(regionalDoc).toContain("REST API はキーワード蔵書検索に使わない");
@@ -556,7 +556,7 @@ describe("jp-lit-research skill guide", () => {
     expect(regionalDoc).toContain("カーリル MCP 用の `search_libraries` / `search_books` 計画");
     expect(regionalDoc).toContain("地域パスファインダー、各館 OPAC");
     expect(regionalSkillReference).toContain("地域資料サービス");
-    expect(regionalSkillReference).toContain("カーリル for AI");
+    expect(regionalSkillReference).toContain("カーリル図書館MCP");
     expect(regionalSkillReference).toContain("Remote MCP");
     expect(regionalSkillReference).toContain("最大15館");
     expect(regionalSkillReference).toContain("REST API はキーワード蔵書検索に使わない");

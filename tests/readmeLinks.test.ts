@@ -104,7 +104,7 @@ describe("README public onboarding", () => {
 
     expect(usageGuide).toContain("地方人物・地方紙・地方雑誌・郷土資料");
     expect(usageGuide).toContain("docs/regional-public-library-research.md");
-    expect(usageGuide).toContain("カーリル Remote MCP");
+    expect(usageGuide).toContain("カーリル図書館MCP");
     expect(usageGuide).toContain("地域候補を優先づけたうえで");
     expect(usageGuide).toContain("`search_libraries` で地域名・館種・ネットワーク名");
     expect(usageGuide).toContain("Web 検索はパスファインダー");
@@ -118,7 +118,7 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("MCP / OAuth 設定を直し");
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("地域資料・地方人物");
-    expect(readme).toContain("カーリル Remote MCP");
+    expect(readme).toContain("カーリル図書館MCP");
     expect(readme).toContain("docs/regional-public-library-research.md");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
