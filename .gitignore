@@ -3,6 +3,7 @@ dist/
 .env
 coverage/
 .cache/
+.codex/
 exports/
 scripts/update-codex-after-exit.ps1
 .claude/
