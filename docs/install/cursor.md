@@ -15,6 +15,7 @@
 {
   "mcpServers": {
     "jp-lit": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "jp-lit-mcp"],
       "env": {
@@ -27,9 +28,11 @@
 
 `CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
+実値を JSON に直書きしたくない場合は、Cursor の config interpolation を使って `"CINII_RESEARCH_APP_ID": "${env:CINII_RESEARCH_APP_ID}"` と書き、OS / shell 側の環境変数から渡すこともできます。
+
 補足:
 
-- この設定は Cursor の project configuration です
+- `.cursor/mcp.json` は Cursor の project configuration です
 - グローバルに使いたい場合は `~/.cursor/mcp.json` に同様の形式で書けます
 - editor と `cursor-agent` CLI は同じ MCP 設定を使います
 
@@ -61,7 +64,7 @@ Cursor では project-level の Skill ディレクトリも使えます。ただ
 
 ## 設定反映の確認
 
-`.cursor/mcp.json` の保存内容を見直し、`command` が `npx`、`args` が `["-y", "jp-lit-mcp"]` になっていることを確認します。
+`.cursor/mcp.json` の保存内容を見直し、`type` が `stdio`、`command` が `npx`、`args` が `["-y", "jp-lit-mcp"]` になっていることを確認します。
 
 導入環境の基本チェックには `doctor` コマンドを使えます。
 
@@ -88,7 +91,7 @@ npx -y jp-lit-mcp doctor
 - 文献DBモードが起動しない
   - `~/.cursor/skills/` に `jp-lit-research` と `jp-lit-verification` が入っているか確認してください
 - MCP が使われない
-  - `.cursor/mcp.json` の `command` / `args` が正しいか確認してください
+  - `.cursor/mcp.json` の `type` / `command` / `args` が正しいか確認してください
 
 各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 

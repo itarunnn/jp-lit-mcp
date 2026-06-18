@@ -14,6 +14,8 @@
 
 - `GitHub CLI` (`gh`) **2.90.0 以降**が必要です
 - `gh skill` は public preview です
+- GitHub Docs では `gh` **2.90.0 以降**が案内されています
+- `gh skill --help` が `unknown command "skill"` になる場合は、GitHub CLI を 2.90.0 以降へ更新してください
 - 先に `gh auth login` を済ませておくと確実です
 
 参考:
@@ -30,7 +32,7 @@
 1. `npx -y jp-lit-mcp` での `MCP` 登録
 2. 必要なら環境変数 `CINII_RESEARCH_APP_ID` の設定
 
-Skills だけを GitHub CLI 経由に置き換えるイメージです。
+Skills だけを GitHub CLI 経由に置き換えるイメージです。`gh skill install` は target agent と install scope を指定できます。通常利用では、使うアプリに合わせて `--agent codex` / `--agent claude-code` / `--agent cursor` を明示し、個人用に入れるなら `--scope user` を付けるのが安全です。`--scope project` は現在の git repository 側へ入れる上級者向けの使い方です。
 
 ## 使い方
 
@@ -45,6 +47,14 @@ gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
 ```
 
 使う agent に合わせて 1 行だけ実行します。
+
+### 対話的に選ぶ
+
+```bash
+gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
+```
+
+この形だと、repo 内の Skills を対話的に選べます。
 
 ### 個別の Skill を入れる
 
