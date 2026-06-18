@@ -18,16 +18,19 @@ claude mcp add jp-lit -- npx -y jp-lit-mcp
 CiNii Research の API 利用登録で取得した `appid` を渡す場合は、環境変数 `CINII_RESEARCH_APP_ID` として設定します。Claude Code では `--env` を使います。
 
 ```bash
-claude mcp add jp-lit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
+claude mcp add --env CINII_RESEARCH_APP_ID=your-cinii-app-id --transport stdio jp-lit -- npx -y jp-lit-mcp
 ```
 
 `CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
 
+Claude Code の `--env` は複数の `KEY=value` を受け取れるため、上の例では server name の前に `--transport stdio` を明示しています。
+
 補足:
 
-- 既定の `local` scope では、ユーザー設定として `~/.claude.json` に保存されます
+- 既定の `local` scope は、現在の project だけで自分に有効な private 設定です。MCP server の local 設定は `~/.claude.json` に project ごとの情報として保存されます
+- どの project でも自分だけで使いたい場合は `--scope user` を付けます
 - チームで共有したい場合は `--scope project` を付けると、リポジトリ直下に `.mcp.json` が作られます
-- 現在の設定確認は `claude mcp list` でできます
+- 現在の設定確認は `claude mcp list`、個別確認は `claude mcp get jp-lit` でできます
 
 2. `Skills` をインストールします。
 
@@ -59,6 +62,7 @@ npx -y jp-lit-mcp install-skills claude
 
 ```bash
 claude mcp list
+claude mcp get jp-lit
 ```
 
 導入環境の基本チェックには `doctor` コマンドを使えます。

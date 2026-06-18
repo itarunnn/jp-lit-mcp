@@ -31,6 +31,8 @@ codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-l
 
 `CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます（[CiNii API 利用登録](https://support.nii.ac.jp/ja/cinii/api/developer)）。
 
+Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、Codex CLI / IDE extension / Codex App で共有されます。`--env` は `npx -y jp-lit-mcp` のような stdio server に渡す環境変数です。
+
 2. `Skills` をインストールします。
 
 この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.agents/skills/` に入ります。
@@ -62,9 +64,18 @@ npx -y jp-lit-mcp install-skills codex
 ```bash
 codex mcp add calil --url https://mcp-beta.calil.jp/mcp
 codex mcp login calil
+codex mcp get calil
 ```
 
-設定後は `Codex App` を開き直し、新しい対話で確認してください。環境によっては `~/.codex/config.toml` で `oauth_resource = "https://mcp-beta.calil.jp"` や localhost callback の固定が必要になる場合があります。
+設定後は `Codex App` を開き直し、新しい対話で確認してください。環境によっては `~/.codex/config.toml` で OAuth resource や callback を明示する必要があります。手で書く場合は、`oauth_resource` は `calil` server の設定に置き、callback 設定は top-level に置きます。
+
+```toml
+mcp_oauth_callback_port = 5555
+
+[mcp_servers.calil]
+url = "https://mcp-beta.calil.jp/mcp"
+oauth_resource = "https://mcp-beta.calil.jp"
+```
 
 ## 設定反映の確認
 
