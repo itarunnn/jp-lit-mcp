@@ -40,7 +40,7 @@ Skills だけを GitHub CLI 経由に置き換えるイメージです。`gh ski
 1. repository の最新タグ付き release
 2. default branch の HEAD
 
-そのため、この repo で `main` に変更を push しただけでは、`gh skill install itarunnn/jp-lit-mcp ...` がすぐ最新 `main` を読むとは限りません。通常利用では release 済みの安定版を入れる前提にし、公開直後の `main` を確認したい場合だけ `jp-lit-research@main` のように version を明示してください。再現性を固定したい場合は、`jp-lit-research@v0.7.4` のようにタグを付けるか、`--pin v0.7.4` を使います。
+そのため、この repo で `main` に変更を push しただけでは、`gh skill install itarunnn/jp-lit-mcp ...` がすぐ最新 `main` を読むとは限りません。通常利用では release 済みの安定版を入れる前提にし、公開直後の `main` を確認したい場合だけ `jp-lit-research@main` のように version を明示してください。再現性を固定したい場合は、`jp-lit-research@v0.7.5` のようにタグを付けるか、`--pin v0.7.5` を使います。
 
 ## 使い方
 
@@ -78,8 +78,8 @@ gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope u
 最新 release ではなく特定の version を入れたい場合は、Skill 名に `@VERSION` を付けます。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.7.4 --agent codex --scope user
-gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.7.4 --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.7.5 --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.7.5 --agent codex --scope user
 ```
 
 開発中の default branch を一時的に確認したい場合は `@main` も使えます。ただし、通常利用では release tag をおすすめします。
@@ -99,7 +99,7 @@ version を指定して表示することもできます。
 
 ```bash
 gh skill preview itarunnn/jp-lit-mcp jp-lit-research@main
-gh skill preview itarunnn/jp-lit-mcp jp-lit-research@v0.7.4
+gh skill preview itarunnn/jp-lit-mcp jp-lit-research@v0.7.5
 ```
 
 ### 更新確認
