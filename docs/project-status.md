@@ -78,4 +78,5 @@
 
 - npm package 公開済み。公開前は `npm publish --dry-run` と tarball smoke を確認する
 - GitHub About / topics / release note は整備済み
+- 検討中 source: `nihonbungaku_metadata`。日本文学研究メタデータ検索は有望な日本文学論文メタデータ source だが、個人運営サービスで外部連携 API は連絡前提と読めるため、未許諾の adapter 実装は行わない。将来実装する場合は、利用者ごとの `NIHONBUNGAKU_METADATA_API_KEY` とローカル個人調査用途のキャッシュ境界を前提にする。
 - 次の改善候補は Web NDL Authorities、検索品質 eval
