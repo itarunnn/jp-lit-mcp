@@ -21,6 +21,7 @@
 | `jdcat` | 利用者登録不要 | 配布者 / 提供者ごとに異なる | 配布者側条件確認 | 個別データ条件確認 | WEKO3 JSON API に依存するメタデータ横断検索 |
 | `nihu_bridge` | 明示的な登録要件は未確認 | 個別 DB / コンテンツ条件に依存 | 元 DB 側条件確認 | 個別確認が必要 | 利用者向け API 仕様書あり。ポータル的性格が強い |
 | `nijl_articles` | 明示的な登録要件は未確認 | 規程確認。営利目的は不可が原則 | 国文学研究資料館DB利用の明記が必要な場合あり | HTML best-effort。低頻度・キャッシュ前提 | 検索HTML、詳細HTMLで国文学論文目録を確認。本文・PDF・OPAC詳細は取得しない |
+| `nihonbungaku_metadata`（候補 / 未実装） | 提供元への連絡・API キー確認が必要 | 条件確認 | サービス名・元リンク・LLM生成メタデータである旨の表示を確認 | 未許諾での自動取得・ミラー化はしない | 個人運営の日本文学研究論文メタデータ検索。ローカルMCPでは利用者ごとの `NIHONBUNGAKU_METADATA_API_KEY` を想定 |
 | `kokusho` | 明示的な登録要件は未確認 | 規程確認。画像等は個別条件確認 | オープンデータは表示条件に従う | JSON endpoint shape 変更に注意。低頻度・キャッシュ前提 | 書誌・著作・所在・manifest URL、本文検索スニペット、画像タグメタデータまで。画像・manifest 本体・本文全体は取得しない |
 | `ninjal_bibliography` | 明示的な登録要件は未確認 | 営利目的は協議が必要 | 国立国語研究所の条件確認 | HTML best-effort。低頻度・キャッシュ前提 | 書誌メタデータと本文リンクURLまで。本文 PDF・外部本文は取得しない |
 | `national_archives` | 二次利用申請不要と案内あり | 自由利用可と案内あり | 出典明示推奨 | Crawl-delay と高頻度アクセスに注意 | 検索HTML、RDF/XML、CSVで目録確認。画像本体は取得しない |
@@ -291,6 +292,38 @@
 - 検索例: https://ronbun.nijl.ac.jp/search/books?q=%E6%BA%90%E6%B0%8F%E7%89%A9%E8%AA%9E
 - robots.txt: https://ronbun.nijl.ac.jp/robots.txt
 - 国文学研究資料館 データベース一覧: https://www.nijl.ac.jp/db/
+
+### 日本文学研究メタデータ検索（候補 / 未実装）
+
+対象:
+
+- `nihonbungaku_metadata`（候補 source 名。現時点では未実装）
+
+想定される利用:
+
+- 日本文学研究の学会誌由来の論文メタデータを、既存の `nijl_articles`、`jstage_articles`、`cinii_articles` などの調査入口と組み合わせる。
+- 被論者、作品、時代区分、キーワード、要旨を、検索語展開と文献候補の優先づけに使う。
+
+確認できたこと:
+
+- Web サイトは個人運営の研究支援プロジェクトとして公開されている。
+- Web フロントエンドは `data/corpus.json` と `data/facets.json` を読み込む。
+- メタデータには、タイトル、著者、雑誌、巻、年、カテゴリ、キーワード、被論者、作品、時代区分、要旨、ページ、J-STAGE URL などが含まれる。
+- 外部システムとの連携向け検索 API については、利用希望時に連絡する導線が示されている。
+
+運用メモ:
+
+- `jp-lit-mcp` はローカル MCP サーバとして配布されるため、将来実装する場合も共通 API キーは同梱しない。
+- 利用者が提供元から許諾または API キーを得て、環境変数 `NIHONBUNGAKU_METADATA_API_KEY` に設定する形を基本にする。
+- API キー未設定時は、この source を無効化し、提供元への連絡が必要であることを案内する。
+- 未許諾のまま公開 JSON を自動取得する adapter は実装しない。
+- メタデータの再配布、全件ミラー、公開検索サービス化、共有サーバ上の常設 bot 化は避ける。
+- 要旨・分類・キーワードは LLM 生成メタデータを含む可能性があるため、引用・同定・評価では元論文、J-STAGE、CiNii、国文研等の公式レコードを確認する。
+
+参考:
+
+- 日本文学研究メタデータ検索: https://nihonbungaku-metadata.lophorina.me/
+- API note: docs/api-notes/nihonbungaku-metadata.md
 
 ### 国書データベース
 
