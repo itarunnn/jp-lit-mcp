@@ -62,6 +62,11 @@ describe("install docs", () => {
 
     expect.soft(githubSkills).toContain("public preview");
     expect.soft(githubSkills).toContain("2.90.0");
+    expect.soft(githubSkills).toContain("gh 2.94.0");
+    expect.soft(githubSkills).toContain("gh skills");
+    expect.soft(githubSkills).toContain("最新タグ付き release");
+    expect.soft(githubSkills).toContain("jp-lit-research@main");
+    expect.soft(githubSkills).toContain("gh skill update --dry-run");
     expect.soft(githubSkills).toContain("--agent codex");
     expect.soft(githubSkills).toContain("--agent cursor");
     expect.soft(githubSkills).toContain("--agent claude-code");
