@@ -2,19 +2,25 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("README public onboarding", () => {
-  it("links to app-specific install guides", () => {
+  it("links to install guides", () => {
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("docs/install/codex-app.md");
     expect(readme).toContain("docs/install/codex-cli.md");
     expect(readme).toContain("docs/install/cursor.md");
     expect(readme).toContain("docs/install/claude-code.md");
+    expect(readme).toContain("docs/install/github-skills.md");
   });
 
-  it("explains what MCP and Skills change for users", () => {
+  it("presents Skill-first onboarding instead of a tool catalog", () => {
     const readme = readFileSync("README.md", "utf8");
-    expect(readme).toContain("## 何ができるか");
-    expect(readme).toContain("## Skills を使う理由");
-    expect(readme).toContain("## 主な対応先");
+
+    expect(readme).toContain("## Skill と MCP の役割");
+    expect(readme).toContain("## 最短導入");
+    expect(readme).toContain("## 最初の依頼例");
+    expect(readme).toContain("## MCP 単体で使う場合");
+    expect(readme).toContain("npx -y jp-lit-mcp install-skills codex");
+    expect(readme).toContain("MCP は検索・取得の道具");
+    expect(readme).toContain("Skills によって実際の調査を進めます");
   });
 
   it("links to the source usage conditions memo", () => {
@@ -71,14 +77,12 @@ describe("README public onboarding", () => {
     const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
     const projectStatus = readFileSync("docs/project-status.md", "utf8");
 
-    expect(readme).toContain("nijl_articles");
-    expect(readme).toContain("国文学論文");
-    expect(readme).toContain("kokusho");
-    expect(readme).toContain("国書・古典籍");
-    expect(readme).toContain("jp_lit_search_kokusho_fulltext");
-    expect(readme).toContain("jp_lit_search_kokusho_image_tags");
-    expect(readme).toContain("ninjal_bibliography");
-    expect(readme).toContain("日本語研究・日本語教育文献");
+    expect(readme).toContain("NDL Search");
+    expect(readme).toContain("CiNii");
+    expect(readme).toContain("J-STAGE");
+    expect(readme).toContain("国書");
+    expect(readme).toContain("国会・帝国議会会議録");
+    expect(readme).toContain("docs/reference.md");
 
     expect(usageGuide).toContain("日本文学論文");
     expect(usageGuide).toContain("jp_lit_search(source=nijl_articles");
@@ -113,9 +117,9 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("`search_libraries` で地域名・館種・ネットワーク名");
     expect(usageGuide).toContain("MCP / OAuth 設定を直し");
     const readme = readFileSync("README.md", "utf8");
-    expect(readme).toContain("カーリルAI（カーリル Remote MCP）にも対応");
-    expect(readme).toContain("カーリル Remote MCP の設定と初回 OAuth 認可が別途必要");
-    expect(readme).toContain("Codex CLI でも Streamable HTTP MCP / OAuth");
+    expect(readme).toContain("地域資料・地方人物");
+    expect(readme).toContain("カーリル Remote MCP");
+    expect(readme).toContain("docs/regional-public-library-research.md");
     expect(regionalDoc).toContain("https://calil.jp/ai/");
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");

@@ -1,8 +1,8 @@
 # GitHub CLI で Skills を入れる
 
-このページは、`gh skill install` を使って `jp-lit-mcp` の Skills を入れたい人向けの別手順です。
+`gh skill install` は public preview の二次導線です。利用には `GitHub CLI` (`gh`) **2.90.0 以降**が必要です。
 
-通常は、各アプリ向け install guide にある `npx -y jp-lit-mcp install-skills <app>` をおすすめします。こちらは
+通常は、各アプリ向け install guide にある `npx -y jp-lit-mcp install-skills <app>` をおすすめします。このページの `gh skill install` ルートは、
 
 - GitHub CLI で Skills をまとめて管理したい
 - `gh skill preview` や `gh skill update` も使いたい
@@ -12,7 +12,7 @@
 
 ## 前提
 
-- `GitHub CLI` (`gh`) が必要です
+- `GitHub CLI` (`gh`) **2.90.0 以降**が必要です
 - `gh skill` は public preview です
 - GitHub Docs では `gh` **2.90.0 以降**が案内されています
 - `gh skill --help` が `unknown command "skill"` になる場合は、GitHub CLI を 2.90.0 以降へ更新してください
@@ -38,7 +38,15 @@ Skills だけを GitHub CLI 経由に置き換えるイメージです。`gh ski
 
 この repo を GitHub に公開したら、基本形は `itarunnn/jp-lit-mcp` です。repo 名を変更して公開する場合だけ、その部分を読み替えてください。
 
-以下は Codex に user scope で入れる例です。Claude Code や Cursor に入れる場合は `--agent` の値を置き換えてください。
+### agent / scope を指定してまとめて入れる
+
+```bash
+gh skill install itarunnn/jp-lit-mcp --all --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp --all --agent cursor --scope user
+gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
+```
+
+使う agent に合わせて 1 行だけ実行します。
 
 ### 対話的に選ぶ
 
@@ -48,17 +56,14 @@ gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
 
 この形だと、repo 内の Skills を対話的に選べます。
 
-### `jp-lit-research` を直接入れる
+### 個別の Skill を入れる
 
 ```bash
 gh skill install itarunnn/jp-lit-mcp jp-lit-research --agent codex --scope user
-```
-
-### `jp-lit-verification` を直接入れる
-
-```bash
 gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope user
 ```
+
+ここでは Codex の user scope に入れる例を示しています。Cursor や Claude Code に入れる場合は `--agent` を読み替えてください。
 
 ### 中身を先に確認する
 
@@ -68,6 +73,8 @@ gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope u
 gh skill preview itarunnn/jp-lit-mcp jp-lit-research
 gh skill preview itarunnn/jp-lit-mcp jp-lit-verification
 ```
+
+`preview` は内容確認用のコマンドです。インストール先の agent / scope を指定するのは `install` 側です。
 
 ### 更新確認
 
@@ -95,7 +102,7 @@ gh skill update jp-lit-verification
 理由は次のとおりです。
 
 - `gh` の追加インストールが必要
-- preview 機能なので将来の仕様変更がありうる
+- `gh skill` 自体が public preview 段階なので将来の仕様変更がありうる
 - `MCP` の登録は別途必要
 
 そのため、一般的には既存の install guide の方が分かりやすく、再現もしやすいです。

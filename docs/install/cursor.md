@@ -38,11 +38,13 @@
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.cursor/skills/` に入ります。
+この手順で、同梱されている文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方を user-level の `~/.cursor/skills/` に配置します。
 
 ```bash
 npx -y jp-lit-mcp install-skills cursor
 ```
+
+Cursor では project-level の Skill ディレクトリも使えます。ただし、この package の主導線は `npx -y jp-lit-mcp install-skills cursor` による user-level install です。
 
 3. `Cursor` を再読込して、このリポジトリまたは調査したい作業フォルダで対話を始めます。
 
