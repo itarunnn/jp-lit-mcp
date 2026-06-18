@@ -16,6 +16,12 @@ describe("source usage conditions memo", () => {
     expect(memo).toContain("IRDB 詳細画面 HTML");
     expect(memo).toContain("WEKO3 JSON API");
     expect(memo).toContain("利用者向け API 仕様書");
+    expect(memo).toContain("nihonbungaku_metadata");
+    expect(memo).toContain("NIHONBUNGAKU_METADATA_API_KEY");
+    expect(memo).toContain("外部システムとの連携向け検索 API");
+    expect(memo).toContain("個人運営");
+    expect(memo).toContain("LLM 生成メタデータ");
+    expect(memo).toContain("未許諾のまま公開 JSON を自動取得する adapter は実装しない");
 
     expect(reference).toContain("J-STAGE 記事 HTML meta");
     expect(reference).toContain("J-STAGE 記事ページ HTML 詳細");
