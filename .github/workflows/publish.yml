@@ -1,15 +1,11 @@
 name: Publish Package
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       package-ref:
         description: "Git ref to publish, such as v0.7.7"
         required: true
-        default: "v0.7.7"
 
 permissions:
   contents: read
@@ -23,12 +19,7 @@ jobs:
       - name: Resolve publish ref
         id: publish-ref
         shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ref=${{ inputs.package-ref }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "ref=${{ inputs.package-ref }}" >> "$GITHUB_OUTPUT"
 
       - name: Check out package ref
         uses: actions/checkout@v6
