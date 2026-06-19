@@ -510,7 +510,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_refine_results",
     {
-      description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。cache_key が分かっている結果を再評価するときに使い、cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
+      description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。include_enrichment=true なら保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。cache_key が分かっている結果を再評価するときに使い、cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
       inputSchema: refineResultsInputSchema,
       outputSchema: refineResultsOutputSchema
     },

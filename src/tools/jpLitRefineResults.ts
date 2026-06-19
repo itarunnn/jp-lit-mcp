@@ -1,11 +1,45 @@
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { buildDuplicateClusters } from "../lib/duplicateClustering.js";
-import { refineResultsInputSchema, refineResultsOutputSchema } from "../lib/schemas.js";
-import type { RefineResultsOutput, SearchOutput } from "../lib/schemas.js";
+import type {
+  DuplicateCluster,
+  DuplicateClusterEnrichment,
+  ExternalBibliographicMatchConfidence
+} from "../lib/duplicateClustering.js";
+import {
+  enrichRecordOutputSchema,
+  refineResultsInputSchema,
+  refineResultsOutputSchema
+} from "../lib/schemas.js";
+import type { EnrichRecordOutput, RefineResultsOutput, SearchOutput } from "../lib/schemas.js";
+import { normalizeDoi, normalizeTitleForMatch } from "../sources/externalWork/matching.js";
 
 type RefineItem = SearchOutput["items"][number];
 type RefineInput = ReturnType<typeof refineResultsInputSchema.parse>;
+type SessionDocument = Awaited<ReturnType<SessionStore["readCurrent"]>>;
+type EnrichRecordMatch = EnrichRecordOutput["matches"][number];
+
+const CONFIDENCE_WEIGHT: Record<ExternalBibliographicMatchConfidence, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+  none: 0
+};
+
+const PROVIDER_WEIGHT: Record<EnrichRecordMatch["provider"], number> = {
+  crossref: 0,
+  openalex: 1
+};
+
+interface EnrichmentCacheEntry {
+  cacheKey: string;
+  output: EnrichRecordOutput;
+}
+
+function normalizeLikelyDoi(value: string | null | undefined) {
+  const doi = normalizeDoi(value);
+  return doi && /^10\.\d{4,9}\//.test(doi) ? doi : null;
+}
 
 function normalizeText(value: string) {
   return value
@@ -13,6 +47,208 @@ function normalizeText(value: string) {
     .toLocaleLowerCase("ja-JP")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeAuthor(value: string) {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase("ja-JP")
+    .replace(/[\s\p{P}\p{S}]+/gu, "")
+    .trim();
+}
+
+function yearFromValue(value: string | null | undefined) {
+  return value?.match(/\d{4}/)?.[0] ?? null;
+}
+
+function itemYear(item: RefineItem) {
+  return yearFromValue(item.issued_at) ?? yearFromValue(item.issued_at_label);
+}
+
+function clusterItems(cluster: DuplicateCluster) {
+  const bySignature = new Map<string, RefineItem>();
+  for (const item of [cluster.representative, ...cluster.all_members]) {
+    bySignature.set(`${item.source}::${item.source_id}`, item);
+  }
+  return Array.from(bySignature.values());
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readFirstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      const nested: string | null = readFirstString(...value);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+  return null;
+}
+
+function itemDoiCandidates(item: RefineItem) {
+  const metadata = asRecord(item.source_metadata);
+  const identifiers = asRecord(metadata?.identifiers);
+  return [
+    readFirstString(metadata?.doi, metadata?.DOI),
+    readFirstString(identifiers?.doi, identifiers?.DOI),
+    normalizeLikelyDoi(item.url)
+  ]
+    .map((value) => normalizeLikelyDoi(value))
+    .filter((value): value is string => Boolean(value));
+}
+
+function clusterDoiSet(cluster: DuplicateCluster) {
+  return new Set(clusterItems(cluster).flatMap(itemDoiCandidates));
+}
+
+function hasAuthorOverlap(left: string[], right: string[]) {
+  const rightAuthors = new Set(right.map(normalizeAuthor).filter(Boolean));
+  if (rightAuthors.size === 0) {
+    return false;
+  }
+  return left
+    .map(normalizeAuthor)
+    .filter(Boolean)
+    .some((author) => rightAuthors.has(author));
+}
+
+function queryMatchesCluster(query: EnrichRecordOutput["query"], cluster: DuplicateCluster) {
+  const queryDoi = normalizeLikelyDoi(query.doi);
+  if (queryDoi && clusterDoiSet(cluster).has(queryDoi)) {
+    return true;
+  }
+
+  const queryTitle = normalizeTitleForMatch(query.title);
+  if (!queryTitle) {
+    return false;
+  }
+
+  const items = clusterItems(cluster);
+  const clusterTitles = new Set(items.map((item) => normalizeTitleForMatch(item.title)));
+  if (!clusterTitles.has(queryTitle)) {
+    return false;
+  }
+
+  if (query.issued_year) {
+    const years = new Set(items.map(itemYear).filter(Boolean));
+    if (!years.has(query.issued_year)) {
+      return false;
+    }
+  }
+
+  if (query.authors.length > 0) {
+    const authors = items.flatMap((item) => item.authors.map((author) => author.name));
+    if (!hasAuthorOverlap(query.authors, authors)) {
+      return false;
+    }
+  }
+
+  // Title-only enrichment is too broad for common Japanese humanities titles.
+  return Boolean(query.issued_year || query.authors.length > 0);
+}
+
+function sortMatches(left: EnrichRecordMatch, right: EnrichRecordMatch) {
+  const confidenceDelta =
+    CONFIDENCE_WEIGHT[right.match_confidence] - CONFIDENCE_WEIGHT[left.match_confidence];
+  if (confidenceDelta !== 0) return confidenceDelta;
+  const providerDelta = PROVIDER_WEIGHT[left.provider] - PROVIDER_WEIGHT[right.provider];
+  if (providerDelta !== 0) return providerDelta;
+  return (right.cited_by_count ?? -1) - (left.cited_by_count ?? -1);
+}
+
+function bestConfidence(matches: EnrichRecordMatch[]): ExternalBibliographicMatchConfidence {
+  return matches
+    .map((match) => match.match_confidence)
+    .sort((left, right) => CONFIDENCE_WEIGHT[right] - CONFIDENCE_WEIGHT[left])[0] ?? "none";
+}
+
+function isAcceptedExternalMatch(match: EnrichRecordMatch) {
+  return match.match_confidence === "high" || match.match_confidence === "medium";
+}
+
+function bibliographicEvidenceLevel(
+  confidence: ExternalBibliographicMatchConfidence,
+  hasMatchedCache: boolean
+): DuplicateClusterEnrichment["evidence_level"]["bibliographic"] {
+  if (confidence === "high" || confidence === "medium") return "confirmed";
+  if (confidence === "low") return "partial";
+  return hasMatchedCache ? "not_found" : "not_checked";
+}
+
+function buildClusterEnrichment(
+  cluster: DuplicateCluster,
+  enrichmentEntries: EnrichmentCacheEntry[]
+): DuplicateClusterEnrichment | null {
+  const matchedEntries = enrichmentEntries.filter((entry) =>
+    queryMatchesCluster(entry.output.query, cluster)
+  );
+  if (matchedEntries.length === 0) {
+    return null;
+  }
+
+  const matches = matchedEntries
+    .flatMap((entry) => entry.output.matches)
+    .filter(isAcceptedExternalMatch)
+    .sort(sortMatches);
+  const confidence = bestConfidence(matches);
+  const doi =
+    matches.map((match) => normalizeLikelyDoi(match.doi)).find(Boolean) ?? null;
+  const providers: DuplicateClusterEnrichment["providers"] = {};
+  for (const entry of matchedEntries) {
+    for (const provider of ["crossref", "openalex"] as const) {
+      const summary = entry.output.providers[provider];
+      if (summary) {
+        providers[provider] = summary;
+      }
+    }
+  }
+
+  return {
+    matched_cache_keys: matchedEntries.map((entry) => entry.cacheKey),
+    matched_records: matches.map((match) => ({
+      provider: match.provider,
+      id: match.id,
+      doi: normalizeLikelyDoi(match.doi),
+      title: match.title,
+      match_confidence: match.match_confidence,
+      reasons: match.reasons,
+      missing: match.missing,
+      url: match.url,
+      cited_by_count: match.cited_by_count
+    })),
+    identifiers: { doi },
+    match_confidence: confidence,
+    evidence_level: {
+      bibliographic: bibliographicEvidenceLevel(confidence, true),
+      abstract: "not_checked",
+      fulltext: "not_checked"
+    },
+    providers,
+    caution: matchedEntries[0]?.output.caution ?? "外部書誌照合は本文到達性や重要度を保証しません。"
+  };
+}
+
+function enrichClusters(
+  clusters: DuplicateCluster[],
+  enrichmentEntries: EnrichmentCacheEntry[]
+) {
+  if (enrichmentEntries.length === 0) {
+    return clusters;
+  }
+
+  return clusters.map((cluster) => {
+    const enrichment = buildClusterEnrichment(cluster, enrichmentEntries);
+    return enrichment ? { ...cluster, enrichment } : cluster;
+  });
 }
 
 function resolveLatestCacheKey(
@@ -63,6 +299,62 @@ async function resolveBaseCacheKeys(input: RefineInput, sessions: SessionStore) 
 
   const current = await sessions.readCurrent();
   return [resolveLatestCacheKey(current.entries)];
+}
+
+function collectEnrichmentCacheKeys(session: SessionDocument) {
+  return Array.from(
+    new Set(
+      session.entries
+        .filter((entry) => entry.tool === "jp_lit_enrich_record")
+        .map((entry) => entry.cache_key)
+    )
+  );
+}
+
+async function resolveEnrichmentCacheKeys(input: RefineInput, sessions: SessionStore) {
+  if (input.enrichment_cache_keys && input.enrichment_cache_keys.length > 0) {
+    return {
+      explicit: true,
+      cacheKeys: Array.from(new Set(input.enrichment_cache_keys))
+    };
+  }
+
+  const session = input.session_id
+    ? await sessions.readById(input.session_id)
+    : await sessions.readCurrent();
+
+  return {
+    explicit: false,
+    cacheKeys: collectEnrichmentCacheKeys(session)
+  };
+}
+
+async function readEnrichmentEntries(
+  input: RefineInput,
+  cache: FileCache,
+  sessions: SessionStore
+) {
+  if (!input.include_enrichment) {
+    return [] as EnrichmentCacheEntry[];
+  }
+
+  const { explicit, cacheKeys } = await resolveEnrichmentCacheKeys(input, sessions);
+  const entries: EnrichmentCacheEntry[] = [];
+  for (const cacheKey of cacheKeys) {
+    const cached = await cache.read<EnrichRecordOutput>("jp_lit_enrich_record", cacheKey);
+    if (!cached) {
+      if (explicit) {
+        throw new Error(`enrichment_cache_key=${cacheKey} のキャッシュが見つかりません`);
+      }
+      continue;
+    }
+    entries.push({
+      cacheKey,
+      output: enrichRecordOutputSchema.parse(cached.structured_content)
+    });
+  }
+
+  return entries;
 }
 
 function buildItemKey(item: RefineItem, keyBy: RefineInput["key_by"]) {
@@ -228,6 +520,7 @@ export function createJpLitRefineResultsTool(
 ) {
   return async (input: unknown) => {
     const parsed = refineResultsInputSchema.parse(input);
+    const enrichmentEntries = await readEnrichmentEntries(parsed, cache, sessions);
     const cacheKeys = await resolveBaseCacheKeys(parsed, sessions);
     const cachedResults = await Promise.all(
       cacheKeys.map(async (cacheKey) => {
@@ -261,6 +554,9 @@ export function createJpLitRefineResultsTool(
           memberLimit: parsed.cluster_member_limit
         })
       : null;
+    const clusters = clusterOutput
+      ? enrichClusters(clusterOutput.clusters, enrichmentEntries)
+      : undefined;
 
     const structuredContent: RefineResultsOutput = refineResultsOutputSchema.parse({
       base_cache_key: cacheKeys[0],
@@ -279,7 +575,7 @@ export function createJpLitRefineResultsTool(
       ...(clusterOutput
         ? {
             cluster_summary: clusterOutput.summary,
-            clusters: clusterOutput.clusters
+            clusters
           }
         : {})
     });

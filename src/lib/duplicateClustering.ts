@@ -23,15 +23,51 @@ export interface SearchResultReadiness {
   missing: string[];
 }
 
+export type ExternalBibliographicProvider = "crossref" | "openalex";
+export type ExternalBibliographicProviderStatus = "ok" | "not_found" | "skipped" | "error";
+export type ExternalBibliographicMatchConfidence = "high" | "medium" | "low" | "none";
+
+export interface DuplicateClusterEnrichment {
+  matched_cache_keys: string[];
+  matched_records: Array<{
+    provider: ExternalBibliographicProvider;
+    id: string;
+    doi: string | null;
+    title: string;
+    match_confidence: ExternalBibliographicMatchConfidence;
+    reasons: string[];
+    missing: string[];
+    url: string | null;
+    cited_by_count: number | null;
+  }>;
+  identifiers: {
+    doi: string | null;
+  };
+  match_confidence: ExternalBibliographicMatchConfidence;
+  evidence_level: {
+    bibliographic: "confirmed" | "partial" | "not_found" | "not_checked";
+    abstract: "confirmed" | "not_checked";
+    fulltext: "not_checked";
+  };
+  providers: Partial<Record<ExternalBibliographicProvider, {
+    status: ExternalBibliographicProviderStatus;
+    item_count: number;
+    note: string | null;
+  }>>;
+  caution: string;
+}
+
 export interface DuplicateCluster {
   cluster_id: string;
   duplicate_confidence: "strong" | "medium" | "weak";
   member_count: number;
   representative: ClusterItem;
+  all_members: ClusterItem[];
   members_preview: ClusterItem[];
   omitted_member_count: number;
   reasons: DuplicateClusterReason[];
   search_result_readiness: SearchResultReadiness;
+  enrichment?: DuplicateClusterEnrichment;
   caution: string;
 }
 
@@ -193,6 +229,7 @@ export function buildDuplicateClusters(items: ClusterItem[], options: DuplicateC
       duplicate_confidence: confidence(reasons),
       member_count: group.length,
       representative,
+      all_members: group,
       members_preview: group.slice(0, options.memberLimit),
       omitted_member_count: Math.max(0, group.length - options.memberLimit),
       reasons,

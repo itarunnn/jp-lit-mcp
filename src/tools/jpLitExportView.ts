@@ -85,6 +85,20 @@ function renderSearchItem(item: SearchOutput["items"][number], index: number) {
   ];
 }
 
+type ClusterEnrichment = NonNullable<
+  NonNullable<RefineResultsOutput["clusters"]>[number]["enrichment"]
+>;
+
+function renderProviderStatuses(providers: ClusterEnrichment["providers"]) {
+  return (["crossref", "openalex"] as const)
+    .map((provider) => {
+      const status = providers?.[provider];
+      return status ? `${provider}=${status.status}(${status.item_count})` : null;
+    })
+    .filter((value): value is string => Boolean(value))
+    .join(", ");
+}
+
 function renderRefinedResultsMarkdown(output: RefineResultsOutput, exportedAt: string) {
   const lines = [
     "# Refined Results Export",
@@ -125,7 +139,21 @@ function renderRefinedResultsMarkdown(output: RefineResultsOutput, exportedAt: s
         `- Reasons: ${cluster.reasons.join(", ")}`,
         `- Search result readiness: ${cluster.search_result_readiness.level}`,
         `- Missing: ${cluster.search_result_readiness.missing.join(", ") || "-"}`,
-        "",
+        ""
+      );
+      if (cluster.enrichment) {
+        lines.push(
+          "External enrichment:",
+          "",
+          `- DOI: ${cluster.enrichment.identifiers.doi ?? "-"}`,
+          `- Enrichment confidence: ${cluster.enrichment.match_confidence}`,
+          `- Bibliographic evidence: ${cluster.enrichment.evidence_level.bibliographic}`,
+          `- Provider statuses: ${renderProviderStatuses(cluster.enrichment.providers) || "-"}`,
+          `- Enrichment cache keys: ${cluster.enrichment.matched_cache_keys.join(", ") || "-"}`,
+          ""
+        );
+      }
+      lines.push(
         "Representative:",
         "",
         ...renderSearchItem(cluster.representative, 1),

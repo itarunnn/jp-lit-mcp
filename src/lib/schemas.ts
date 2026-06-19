@@ -808,6 +808,37 @@ const searchResultReadinessSchema = z.object({
   missing: z.array(z.string())
 });
 
+const duplicateClusterEnrichmentSchema = z.object({
+  matched_cache_keys: z.array(z.string()),
+  matched_records: z.array(
+    z.object({
+      provider: externalProviderSchema,
+      id: z.string(),
+      doi: z.string().nullable(),
+      title: z.string(),
+      match_confidence: matchConfidenceSchema,
+      reasons: z.array(z.string()),
+      missing: z.array(z.string()),
+      url: z.string().nullable(),
+      cited_by_count: z.number().int().nonnegative().nullable()
+    })
+  ),
+  identifiers: z.object({
+    doi: z.string().nullable()
+  }),
+  match_confidence: matchConfidenceSchema,
+  evidence_level: z.object({
+    bibliographic: z.enum(["confirmed", "partial", "not_found", "not_checked"]),
+    abstract: z.enum(["confirmed", "not_checked"]),
+    fulltext: z.enum(["not_checked"])
+  }),
+  providers: z.object({
+    crossref: externalProviderSummarySchema.optional(),
+    openalex: externalProviderSummarySchema.optional()
+  }),
+  caution: z.string()
+});
+
 const duplicateClusterSchema = z.object({
   cluster_id: z.string(),
   duplicate_confidence: z.enum(["strong", "medium", "weak"]),
@@ -817,6 +848,7 @@ const duplicateClusterSchema = z.object({
   omitted_member_count: z.number().int().nonnegative(),
   reasons: z.array(duplicateClusterReasonSchema),
   search_result_readiness: searchResultReadinessSchema,
+  enrichment: duplicateClusterEnrichmentSchema.optional(),
   caution: z.string()
 });
 
@@ -846,6 +878,8 @@ export const refineResultsInputSchema = z.object({
   limit: z.number().int().positive().max(200).default(30).describe("返す item の最大件数。最大 200。"),
   offset: z.number().int().nonnegative().default(0).describe("返す item の offset。0 始まり。"),
   include_duplicate_clusters: z.boolean().default(false).describe("true の場合は重複候補クラスタを追加で返す。"),
+  include_enrichment: z.boolean().default(false).describe("true の場合は保存済み jp_lit_enrich_record cache を読み、重複クラスタに外部書誌照合 metadata を付与する。外部 API は呼ばない。"),
+  enrichment_cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("cluster enrichment に使う jp_lit_enrich_record cache_key。未指定なら対象 session の jp_lit_enrich_record 履歴を使う。"),
   cluster_limit: z.number().int().positive().default(20).describe("返す重複クラスタの最大件数。"),
   cluster_offset: z.number().int().nonnegative().default(0).describe("重複クラスタ一覧の offset。0 始まり。"),
   cluster_member_limit: z.number().int().positive().default(5).describe("各重複クラスタで preview する member の最大件数。"),

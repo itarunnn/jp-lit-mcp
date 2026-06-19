@@ -800,6 +800,8 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 | `limit` | number | 30 | 最大 200 |
 | `offset` | number | 0 | 先頭スキップ件数 |
 | `include_duplicate_clusters` | boolean | false | 重複候補クラスタを返す |
+| `include_enrichment` | boolean | false | 保存済み `jp_lit_enrich_record` cache があれば、重複クラスタに外部書誌照合 metadata を付与する。外部 API は呼ばない |
+| `enrichment_cache_keys` | string[] | なし | enrichment に使う `jp_lit_enrich_record` cache_key。未指定時は対象 session の照合履歴を使う |
 | `cluster_limit` | number | 20 | 返すクラスタ数 |
 | `cluster_offset` | number | 0 | クラスタの先頭スキップ件数 |
 | `cluster_member_limit` | number | 5 | 各クラスタで返す member preview 件数 |
@@ -809,6 +811,8 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 既定では、整理後の結果を会話で扱いやすくするため先頭 30 件だけ返します。全体件数は `total_after` で把握し、全件が必要な場合は `limit` を増やすか `jp_lit_export_view(view="refined_results", ...)` で書き出してください。
 
 重複クラスタは通常の再整理では返しません。必要なときだけ `include_duplicate_clusters=true` を指定します。クラスタは自動削除ではなく、`duplicate_key` と title/author/year の近似一致から候補を示すものです。`search_result_readiness` は検索結果レベルのメタデータ充足度であり、引用確定には `jp_lit_get_record` や現物確認が必要です。
+
+`include_enrichment=true` は、すでに実行済みの `jp_lit_enrich_record` cache を cluster に重ねるだけです。Crossref / OpenAlex へ新規照会せず、cluster の `enrichment.match_confidence`、`identifiers.doi`、`evidence_level.bibliographic`、provider status、`matched_cache_keys` を返します。外部候補の `matched_records` と DOI は `match_confidence=high` / `medium` のものだけを採用し、`low` / `none` の候補 DOI は cluster の識別子として出しません。DOI-only の `jp_lit_enrich_record` cache は、検索 item 側の `source_metadata.doi` などに同じ DOI がある場合だけ cluster に付与します。`evidence_level.abstract` と `evidence_level.fulltext` は `not_checked` のままで、照合ヒットは本文到達性・本文読了・研究上の重要度を意味しません。
 
 ### `jp_lit_search_cache_index`
 

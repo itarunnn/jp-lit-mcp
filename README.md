@@ -292,6 +292,8 @@ jp_lit_enrich_record(title="源氏物語研究", authors=["山田太郎"], issue
 
 照合結果の `match_confidence` は本文確認や重要度評価ではありません。日本語人文系では、Crossref / OpenAlex に未収録でも重要な文献があります。
 
+保存済み検索結果の重複クラスタを確認するときは、`jp_lit_refine_results(include_duplicate_clusters=true, include_enrichment=true)` や `jp_lit_export_view(..., duplicate_notes=true)` で、同じ session に残っている `jp_lit_enrich_record` cache を cluster に重ねられます。この場合も新規に Crossref / OpenAlex へ照会せず、既存の照合 metadata を並べるだけです。
+
 ### 典拠・別名義・件名を確認する
 
 Web NDL Authorities を使い、人名、団体名、件名、NDC などから検索語を広げられます。

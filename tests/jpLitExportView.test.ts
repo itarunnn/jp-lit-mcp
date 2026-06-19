@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
+import type { EnrichRecordOutput } from "../src/lib/schemas.js";
 import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitExportViewTool } from "../src/tools/jpLitExportView.js";
 import { createJpLitListCacheTool } from "../src/tools/jpLitListCache.js";
@@ -48,6 +49,40 @@ function createSearchItem(
   };
 }
 
+function createExportEnrichOutput(): EnrichRecordOutput {
+  return {
+    query: {
+      doi: null,
+      title: "吾輩は猫である",
+      authors: ["著者A"],
+      issued_year: "1900"
+    },
+    providers: {
+      crossref: { status: "ok", item_count: 1, note: null },
+      openalex: { status: "skipped", item_count: 0, note: "OPENALEX_API_KEY is not set." }
+    },
+    matches: [
+      {
+        provider: "crossref",
+        id: "10.1234/neko",
+        doi: "10.1234/neko",
+        title: "吾輩は猫である",
+        authors: ["著者A"],
+        issued_year: "1900",
+        url: "https://doi.org/10.1234/neko",
+        cited_by_count: 12,
+        source_title: "日本文学",
+        type: "journal-article",
+        match_confidence: "high",
+        reasons: ["title_match", "author_overlap", "year_match"],
+        missing: [],
+        caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+      }
+    ],
+    caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+  };
+}
+
 async function createExportViewFixture(items: SearchItem[]) {
   const baseDir = await createTempDir();
   const cache = createFileCache(baseDir);
@@ -86,7 +121,7 @@ async function createExportViewFixture(items: SearchItem[]) {
       items
     }
   });
-  return { baseDir, exportViewTool };
+  return { baseDir, cache, sessions, exportViewTool };
 }
 
 afterEach(async () => {
@@ -329,5 +364,57 @@ describe("jp_lit_export_view", () => {
     expect(written).toContain("重複クラスタは自動削除ではありません");
     expect(written).toContain("Search result readiness");
     expect(written).toContain("吾輩は猫である");
+  });
+
+  it("refined_results の duplicate_notes は任意の enrichment summary を markdown に含める", async () => {
+    const { baseDir, cache, sessions, exportViewTool } = await createExportViewFixture([
+      createSearchItem("ev-enrich-1", "吾輩は猫である", "ndl_catalog"),
+      createSearchItem("ev-enrich-2", "吾輩は猫である", "cinii_books")
+    ]);
+    const enrichCacheKey = "ev-enrich-record";
+    await sessions.appendEntry({
+      tool: "jp_lit_enrich_record",
+      input: {
+        title: "吾輩は猫である",
+        authors: ["著者A"],
+        issued_year: "1900",
+        providers: ["crossref", "openalex"]
+      },
+      cache_key: enrichCacheKey,
+      result_ref: { tool: "jp_lit_enrich_record", cache_key: enrichCacheKey },
+      selected_items: [],
+      notes: []
+    });
+    await cache.write("jp_lit_enrich_record", {
+      version: 1,
+      tool: "jp_lit_enrich_record",
+      cache_key: enrichCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: {
+        title: "吾輩は猫である",
+        authors: ["著者A"],
+        issued_year: "1900",
+        providers: ["crossref", "openalex"]
+      },
+      structured_content: createExportEnrichOutput()
+    });
+    const outputPath = path.join(baseDir, "exports", "refined-enrichment.md");
+
+    await exportViewTool({
+      view: "refined_results",
+      params: {
+        cache_key: "ev-fixture",
+        include_enrichment: true
+      },
+      duplicate_notes: true,
+      format: "markdown",
+      output_path: outputPath
+    });
+
+    const written = await readFile(outputPath, "utf8");
+    expect(written).toContain("External enrichment");
+    expect(written).toContain("DOI: 10.1234/neko");
+    expect(written).toContain("Enrichment confidence: high");
+    expect(written).toContain("Enrichment cache keys: ev-enrich-record");
   });
 });

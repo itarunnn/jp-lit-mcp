@@ -7,6 +7,7 @@ import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SessionEntry } from "../src/lib/persistence/types.js";
 import type { SearchItem } from "../src/lib/types.js";
+import type { EnrichRecordOutput } from "../src/lib/schemas.js";
 import { createJpLitRefineResultsTool } from "../src/tools/jpLitRefineResults.js";
 
 const tempDirs: string[] = [];
@@ -63,6 +64,142 @@ function createSearchEntry(cacheKey: string): SessionEntry {
     },
     selected_items: [],
     notes: []
+  };
+}
+
+function createEnrichEntry(cacheKey: string): SessionEntry {
+  return {
+    tool: "jp_lit_enrich_record",
+    input: {
+      title: "日本文学史",
+      authors: ["佐藤 一郎"],
+      issued_year: "1999",
+      providers: ["crossref", "openalex"]
+    },
+    cache_key: cacheKey,
+    result_ref: {
+      tool: "jp_lit_enrich_record",
+      cache_key: cacheKey
+    },
+    selected_items: [],
+    notes: []
+  };
+}
+
+function createEnrichOutput(): EnrichRecordOutput {
+  return {
+    query: {
+      doi: null,
+      title: "日本文学史",
+      authors: ["佐藤 一郎"],
+      issued_year: "1999"
+    },
+    providers: {
+      crossref: { status: "ok", item_count: 1, note: null },
+      openalex: { status: "skipped", item_count: 0, note: "OPENALEX_API_KEY is not set." }
+    },
+    matches: [
+      {
+        provider: "crossref",
+        id: "10.1234/bungakushi",
+        doi: "10.1234/bungakushi",
+        title: "日本文学史",
+        authors: ["佐藤 一郎"],
+        issued_year: "1999",
+        url: "https://doi.org/10.1234/bungakushi",
+        cited_by_count: 3,
+        source_title: "日本文学",
+        type: "journal-article",
+        match_confidence: "high",
+        reasons: ["title_match", "author_overlap", "year_match"],
+        missing: [],
+        caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+      }
+    ],
+    caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+  };
+}
+
+function createNoisyEnrichOutput(): EnrichRecordOutput {
+  return {
+    query: {
+      doi: null,
+      title: "日本文学史",
+      authors: ["佐藤 一郎"],
+      issued_year: "1999"
+    },
+    providers: {
+      crossref: { status: "ok", item_count: 1, note: null },
+      openalex: { status: "ok", item_count: 1, note: null }
+    },
+    matches: [
+      {
+        provider: "crossref",
+        id: "10.9999/wrong-title",
+        doi: "10.9999/wrong-title",
+        title: "別の文学史",
+        authors: ["別人"],
+        issued_year: "1999",
+        url: "https://doi.org/10.9999/wrong-title",
+        cited_by_count: 99,
+        source_title: "Noisy Journal",
+        type: "journal-article",
+        match_confidence: "low",
+        reasons: ["year_match"],
+        missing: ["title_match", "author_overlap"],
+        caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+      },
+      {
+        provider: "openalex",
+        id: "W0",
+        doi: null,
+        title: "関係しない候補",
+        authors: [],
+        issued_year: null,
+        url: null,
+        cited_by_count: null,
+        source_title: null,
+        type: null,
+        match_confidence: "none",
+        reasons: [],
+        missing: ["title_match", "year_match", "author_overlap"],
+        caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+      }
+    ],
+    caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+  };
+}
+
+function createDoiOnlyEnrichOutput(): EnrichRecordOutput {
+  return {
+    query: {
+      doi: "10.1234/doi-only",
+      title: null,
+      authors: [],
+      issued_year: null
+    },
+    providers: {
+      crossref: { status: "ok", item_count: 1, note: null }
+    },
+    matches: [
+      {
+        provider: "crossref",
+        id: "10.1234/doi-only",
+        doi: "10.1234/doi-only",
+        title: "DOI一致資料",
+        authors: ["田中 花子"],
+        issued_year: "2001",
+        url: "https://doi.org/10.1234/doi-only",
+        cited_by_count: 1,
+        source_title: "日本文学",
+        type: "journal-article",
+        match_confidence: "high",
+        reasons: ["doi_match"],
+        missing: [],
+        caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
+      }
+    ],
+    caution: "Crossref/OpenAlex の一致は書誌確認の補助で、本文到達性や重要度を保証しません。"
   };
 }
 
@@ -597,5 +734,248 @@ describe("jp_lit_refine_results", () => {
     expect(clustered.structuredContent.total_after).toBe(1);
     expect(clustered.structuredContent.cluster_summary?.total_items_considered).toBe(2);
     expect(clustered.structuredContent.clusters?.[0]?.member_count).toBe(2);
+  });
+
+  it("保存済み jp_lit_enrich_record cache を重複クラスタに任意で付与する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const searchCacheKey = "cluster-enrich-search";
+    const enrichCacheKey = "cluster-enrich-record";
+
+    await sessions.appendEntry(createSearchEntry(searchCacheKey));
+    await sessions.appendEntry(createEnrichEntry(enrichCacheKey));
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: searchCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "文学史" },
+      structured_content: {
+        query: "文学史",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 2,
+        items: [
+          createSearchItem("ndl_catalog", "enrich-1", "日本文学史", "1999", false, "佐藤 一郎"),
+          createSearchItem("cinii_books", "enrich-2", "日本文学史", "1999", false, "佐藤 一郎")
+        ]
+      }
+    });
+    await cache.write("jp_lit_enrich_record", {
+      version: 1,
+      tool: "jp_lit_enrich_record",
+      cache_key: enrichCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: {
+        title: "日本文学史",
+        authors: ["佐藤 一郎"],
+        issued_year: "1999",
+        providers: ["crossref", "openalex"]
+      },
+      structured_content: createEnrichOutput()
+    });
+
+    const clustered = await tool({
+      cache_key: searchCacheKey,
+      include_duplicate_clusters: true,
+      include_enrichment: true
+    });
+
+    const enrichment = clustered.structuredContent.clusters?.[0]?.enrichment;
+    expect(enrichment?.matched_cache_keys).toEqual([enrichCacheKey]);
+    expect(enrichment?.identifiers.doi).toBe("10.1234/bungakushi");
+    expect(enrichment?.match_confidence).toBe("high");
+    expect(enrichment?.evidence_level).toEqual({
+      bibliographic: "confirmed",
+      abstract: "not_checked",
+      fulltext: "not_checked"
+    });
+    expect(enrichment?.matched_records).toEqual([
+      expect.objectContaining({
+        provider: "crossref",
+        id: "10.1234/bungakushi",
+        doi: "10.1234/bungakushi",
+        match_confidence: "high"
+      })
+    ]);
+  });
+
+  it("低 confidence の外部候補 DOI を cluster enrichment の識別子として採用しない", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const searchCacheKey = "cluster-noisy-search";
+    const enrichCacheKey = "cluster-noisy-record";
+
+    await sessions.appendEntry(createSearchEntry(searchCacheKey));
+    await sessions.appendEntry(createEnrichEntry(enrichCacheKey));
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: searchCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "文学史" },
+      structured_content: {
+        query: "文学史",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 2,
+        items: [
+          createSearchItem("ndl_catalog", "noisy-1", "日本文学史", "1999", false, "佐藤 一郎"),
+          createSearchItem("cinii_books", "noisy-2", "日本文学史", "1999", false, "佐藤 一郎")
+        ]
+      }
+    });
+    await cache.write("jp_lit_enrich_record", {
+      version: 1,
+      tool: "jp_lit_enrich_record",
+      cache_key: enrichCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: {
+        title: "日本文学史",
+        authors: ["佐藤 一郎"],
+        issued_year: "1999",
+        providers: ["crossref", "openalex"]
+      },
+      structured_content: createNoisyEnrichOutput()
+    });
+
+    const clustered = await tool({
+      cache_key: searchCacheKey,
+      include_duplicate_clusters: true,
+      include_enrichment: true
+    });
+
+    const enrichment = clustered.structuredContent.clusters?.[0]?.enrichment;
+    expect(enrichment?.matched_cache_keys).toEqual([enrichCacheKey]);
+    expect(enrichment?.identifiers.doi).toBeNull();
+    expect(enrichment?.match_confidence).toBe("none");
+    expect(enrichment?.evidence_level.bibliographic).toBe("not_found");
+    expect(enrichment?.matched_records).toEqual([]);
+  });
+
+  it("DOI-only の照合 cache は検索 item の DOI metadata と厳密一致した場合だけ cluster に付与する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const searchCacheKey = "cluster-doi-search";
+    const enrichCacheKey = "cluster-doi-record";
+    const first = createSearchItem("ndl_catalog", "doi-1", "DOI一致資料", "2001", true, "田中 花子");
+    const second = createSearchItem("jstage_articles", "doi-2", "DOI一致資料", "2001", true, "田中 花子");
+
+    await sessions.appendEntry(createSearchEntry(searchCacheKey));
+    await sessions.appendEntry({
+      ...createEnrichEntry(enrichCacheKey),
+      input: {
+        doi: "10.1234/doi-only",
+        providers: ["crossref"]
+      }
+    });
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: searchCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "DOI一致資料" },
+      structured_content: {
+        query: "DOI一致資料",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 2,
+        items: [
+          { ...first, source_metadata: { doi: "https://doi.org/10.1234/DOI-ONLY" } },
+          { ...second, source_metadata: { doi: "10.1234/doi-only" } }
+        ]
+      }
+    });
+    await cache.write("jp_lit_enrich_record", {
+      version: 1,
+      tool: "jp_lit_enrich_record",
+      cache_key: enrichCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: {
+        doi: "10.1234/doi-only",
+        providers: ["crossref"]
+      },
+      structured_content: createDoiOnlyEnrichOutput()
+    });
+
+    const clustered = await tool({
+      cache_key: searchCacheKey,
+      include_duplicate_clusters: true,
+      include_enrichment: true
+    });
+
+    expect(clustered.structuredContent.clusters?.[0]?.enrichment?.identifiers.doi)
+      .toBe("10.1234/doi-only");
+  });
+
+  it("DOI-only の照合 cache は preview から漏れた cluster member の DOI metadata も参照する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitRefineResultsTool(cache, sessions);
+    const searchCacheKey = "cluster-doi-omitted-search";
+    const enrichCacheKey = "cluster-doi-omitted-record";
+
+    await sessions.appendEntry(createSearchEntry(searchCacheKey));
+    await sessions.appendEntry({
+      ...createEnrichEntry(enrichCacheKey),
+      input: {
+        doi: "10.1234/doi-only",
+        providers: ["crossref"]
+      }
+    });
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: searchCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "DOI一致資料" },
+      structured_content: {
+        query: "DOI一致資料",
+        source: null,
+        page: 1,
+        limit: 50,
+        total: 3,
+        items: [
+          createSearchItem("ndl_catalog", "omitted-1", "DOI一致資料", "2001", true, "田中 花子"),
+          createSearchItem("cinii_books", "omitted-2", "DOI一致資料", "2001", true, "田中 花子"),
+          {
+            ...createSearchItem("jstage_articles", "omitted-3", "DOI一致資料", "2001", true, "田中 花子"),
+            source_metadata: { doi: "10.1234/doi-only" }
+          }
+        ]
+      }
+    });
+    await cache.write("jp_lit_enrich_record", {
+      version: 1,
+      tool: "jp_lit_enrich_record",
+      cache_key: enrichCacheKey,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: {
+        doi: "10.1234/doi-only",
+        providers: ["crossref"]
+      },
+      structured_content: createDoiOnlyEnrichOutput()
+    });
+
+    const clustered = await tool({
+      cache_key: searchCacheKey,
+      include_duplicate_clusters: true,
+      include_enrichment: true,
+      cluster_member_limit: 1
+    });
+
+    expect(clustered.structuredContent.clusters?.[0]?.omitted_member_count).toBe(2);
+    expect(clustered.structuredContent.clusters?.[0]?.enrichment?.identifiers.doi)
+      .toBe("10.1234/doi-only");
   });
 });
