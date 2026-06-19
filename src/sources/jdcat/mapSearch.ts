@@ -61,18 +61,18 @@ function readStringList(value: unknown): string[] {
 
 function pickLangValue(
   value: unknown,
-  langKey = "subitem_1551255648112",
-  textKey = "subitem_1551255647225",
+  langField = "subitem_1551255648112",
+  textField = "subitem_1551255647225",
   preferred = "ja"
 ) {
   const entries = Array.isArray(value) ? value : value == null ? [] : [value];
   const preferredEntry = entries.find(
-    (entry) => asRecord(entry)?.[langKey] === preferred
+    (entry) => asRecord(entry)?.[langField] === preferred
   );
 
   return (
-    readString(asRecord(preferredEntry)?.[textKey]) ??
-    readString(asRecord(entries[0])?.[textKey]) ??
+    readString(asRecord(preferredEntry)?.[textField]) ??
+    readString(asRecord(entries[0])?.[textField]) ??
     null
   );
 }
