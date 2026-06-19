@@ -18,7 +18,7 @@ describe("README public onboarding", () => {
     expect(readme).toContain("## 最短導入");
     expect(readme).toContain("## 最初の依頼例");
     expect(readme).toContain("## MCP 単体で使う場合");
-    expect(readme).toContain("npx -y jp-lit-mcp install-skills codex");
+    expect(readme).not.toContain("npx -y jp-lit-mcp install-skills codex");
     expect(readme).toContain("MCP は検索・取得の道具");
     expect(readme).toContain("Skills によって実際の調査を進めます");
   });
