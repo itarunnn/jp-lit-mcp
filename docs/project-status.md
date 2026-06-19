@@ -29,6 +29,7 @@
 
 ## 最近の更新
 
+- `0.7.7`: Gitleaks / Timeahead の repository history scan で JDCat の public schema field ID が `generic-api-key` として検出される偽陽性を確認し、該当 fingerprint だけを `.gitleaksignore` に登録。現行コードでは mapper 内の引数名を `langField` / `textField` に変更し、credential 風の命名を避けた。実 credential の流出ではなく、MCP tool / source の追加・削除もない
 - `0.7.6`: `jp_lit_enrich_record` を追加。Crossref は無認証 REST + 任意 `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` 前提で、未設定時は `providers.openalex.status="skipped"` として扱う。`jp_lit_refine_results(include_enrichment=true)` では保存済み照合 cache を重複クラスタに付与できる。`cinii_dissertations` を明示 source として追加し、CiNii Research OpenSearch の `dissertations` search type を使う。既定横断・live smoke matrix には含めず、CSL JSON export では博士論文候補を `type="thesis"` として出力する。未収録・低引用を日本語人文系文献の低重要度とは扱わない
 - `0.7.5`: README / install docs / GitHub Skills 導線を整理。Skill-first の導入説明、カーリル図書館MCP、CiNii Research API の `appid` を `CINII_RESEARCH_APP_ID` として MCP server env に渡す説明を初見向けに明文化。MCP tool の追加・削除はなし
 - `0.7.4`: `jp-lit-research` の確認ラベルを `候補確度` / `確認` / `本文` に分離。NDL Search 等のヒットのみを関連文献や本文確認済みとして扱わない契約、デジコレ OCR 複合語 0 件の扱い、長期調査の rolling checkpoint / 分担契約を明文化
