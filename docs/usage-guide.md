@@ -271,7 +271,7 @@ Skill を使う場合は、ツール名や source を細かく指定する必要
 文献DBで、近代日本の労働文化について、論文と図書を探してください。
 ```
 
-Skill 併用時は、エージェントが依頼内容に応じて `cinii_articles` / `jstage_articles` / `ndl_articles` / `irdb` / `ndl_catalog` / `cinii_books` などを使い分けます。
+Skill 併用時は、エージェントが依頼内容に応じて `cinii_articles` / `jstage_articles` / `ndl_articles` / `irdb` / `ndl_catalog` / `cinii_books` などを使い分けます。博士論文・学位論文を明示的に探す場合は `cinii_dissertations` も候補にします。
 
 MCP 単体で明示的に使いたい場合は、`jp_lit_search` に `query` を渡してください。
 
@@ -388,7 +388,7 @@ Skill 併用時は、次のような語群を自動的に試みます。
 職業婦人 / 職業女性 / 婦人労働 / 婦人勞働 / 女子職業 / 女子教育 / 婦人問題
 ```
 
-この種の調査では `ndl_digital`・`jp_lit_search_fulltext`・`ndl_articles`・`ndl_catalog`・`cinii_articles`・`cinii_books`、必要に応じて `nihu_bridge` を組み合わせます。
+この種の調査では `ndl_digital`・`jp_lit_search_fulltext`・`ndl_articles`・`ndl_catalog`・`cinii_articles`・`cinii_books`、博士論文まで見る場合は `cinii_dissertations`、必要に応じて `nihu_bridge` を組み合わせます。
 
 ---
 
@@ -713,6 +713,7 @@ nihu_bridge
 
 ```text
 ndl_search
+cinii_dissertations
 irdb
 jdcat
 japan_search
@@ -727,19 +728,21 @@ ninjal_bibliography
 
 ### 専門 DB を明示指定する例
 
-日本文学論文、古典籍、日本語研究・日本語教育文献を狙う場合は、既定横断ではなく専門 source を明示します。
+博士論文、日本文学論文、古典籍、日本語研究・日本語教育文献を狙う場合は、既定横断ではなく専門 source を明示します。
 
 ```text
+jp_lit_search(source=cinii_dissertations, query="源氏物語 受容")
 jp_lit_search(source=nijl_articles, query="源氏物語 受容")
 jp_lit_search(source=kokusho, query="伊勢物語")
 jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 ```
 
+- 博士論文・学位論文: `cinii_dissertations`
 - 日本文学論文・国文学論文・国文研論文: `nijl_articles`
 - 古典籍・国書・写本・版本: `kokusho`
 - 日本語研究・日本語教育文献・国語教育文献: `ninjal_bibliography`
 
-これらは専門 DB のメタデータ確認用です。`kokusho` の manifest URL や `ninjal_bibliography` の本文リンク URL は保持しますが、manifest 本体、画像本体、OCR、PDF 本文、外部本文は取得しません。
+これらは専門 DB のメタデータ確認用です。`cinii_dissertations` は CiNii Research に統合された博士論文情報を検索します。`kokusho` の manifest URL や `ninjal_bibliography` の本文リンク URL は保持しますが、manifest 本体、画像本体、OCR、PDF 本文、外部本文は取得しません。
 
 有料 DB、文化資源 DB や地域アーカイブ DB は固定 source 化しません。契約 DB は人間が次に確認する場所として案内し、文化資源・地域アーカイブは `japan_search`、`nihu_bridge`、リサーチ・ナビ、レファ協を入口候補として計画します。
 
@@ -755,6 +758,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 | `ndl_articles_online` | NDL 雑誌記事索引オンライン版                                              | オンライン採録記事の検索                                               | 検索のみ。`jp_lit_get_record` は常に null になります                                                             |
 | `ndl_search`          | NDL Search 参加機関 100 以上を一括横断する広域 source                     | 存在確認・初動調査。「この資料は本当に存在するか」を広く当たりたいとき | CiNii・J-STAGE はハーベスト済みで書誌が薄く、nihu_bridge は対象外。詳細調査は個別 source で                      |
 | `cinii_articles`      | CiNii Research の論文・記事検索                                           | 学術論文、紀要、研究論文の探索                                         | 本文公開の有無はレコードごとに異なります                                                                         |
+| `cinii_dissertations` | CiNii Research の博士論文・学位論文検索                                   | 博士論文、学位論文、研究テーマ周辺の未刊行に近い成果確認               | 既定横断検索には含まれません。本文公開の有無はレコードごとに異なります                                           |
 | `cinii_books`         | CiNii Books。大学図書館等の図書・雑誌所蔵検索                             | 大学図書館の所蔵館確認                                                 | holdings が取得できない場合もあります                                                                            |
 | `jstage_articles`     | J-STAGE の論文検索                                                        | 国内学協会誌、理工・医学・人文社会系の論文                             | sort は未対応。PDF URL が取れる場合があります                                                                    |
 | `irdb`                | IRDB。国内機関リポジトリの横断検索                                        | 紀要、学位論文、研究報告書、機関公開論文                               | 既定横断検索には含まれません                                                                                     |
@@ -770,7 +774,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 | `teikoku_minutes`     | 帝国議会会議録検索 API                                                    | 1890〜1947年の帝国議会の議論                                           | 発言単位で検索します                                                                                             |
 
 > **CiNii 系の認証について**  
-> `cinii_articles` / `cinii_books` は、環境変数 `CINII_RESEARCH_APP_ID` の設定を推奨します。値には CiNii Research の API 利用登録で取得する `appid` を入れます。`jp_lit_search_kaken_projects` は同じ `appid` を KAKEN API に使うため設定が必要です。実値は Git 管理外のシークレットとして扱います。
+> `cinii_articles` / `cinii_dissertations` / `cinii_books` は、環境変数 `CINII_RESEARCH_APP_ID` の設定を推奨します。値には CiNii Research の API 利用登録で取得する `appid` を入れます。`jp_lit_search_kaken_projects` は同じ `appid` を KAKEN API に使うため設定が必要です。実値は Git 管理外のシークレットとして扱います。
 
 > **Crossref / OpenAlex について**
 > Crossref / OpenAlex は source 一覧には入りません。`jp_lit_enrich_record` で既存候補を照合する補助 provider です。Crossref は任意で `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` を使います。
@@ -917,6 +921,12 @@ Skills の調査方法に「まず別の DB を見たほうが良い」「この
 
 ```text
 cinii_articles → jstage_articles → ndl_articles → irdb
+```
+
+### 博士論文・学位論文を探す
+
+```text
+cinii_dissertations → irdb → ndl_digital
 ```
 
 ### 図書・雑誌を探す

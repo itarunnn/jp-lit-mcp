@@ -68,10 +68,14 @@ describe("createRecordService", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("record 入力スキーマで cinii_articles / cinii_books source を受け付ける", () => {
+  it("record 入力スキーマで cinii_articles / cinii_dissertations / cinii_books source を受け付ける", () => {
     const articles = recordInputSchema.parse({
       source: "cinii_articles",
       source_id: "1573387450265380480"
+    });
+    const dissertations = recordInputSchema.parse({
+      source: "cinii_dissertations",
+      source_id: "1910848250911873152"
     });
     const books = recordInputSchema.parse({
       source: "cinii_books",
@@ -79,6 +83,7 @@ describe("createRecordService", () => {
     });
 
     expect(articles.source).toBe("cinii_articles");
+    expect(dissertations.source).toBe("cinii_dissertations");
     expect(books.source).toBe("cinii_books");
   });
 

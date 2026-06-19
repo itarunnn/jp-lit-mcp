@@ -2,7 +2,7 @@
 
 2026-06-19 時点の状態:
 
-- 公開ツール 26 種・対応 source 19 種・テスト 519 件すべて通過
+- 公開ツール 26 種・対応 source 20 種・テスト 522 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -24,10 +24,12 @@
 - KAKEN から研究課題・研究成果報告書 PDF・成果リストの手がかりを返す補助 tool（`jp_lit_search_kaken_projects`）を追加済み。KAKEN は `jp_lit_search` の source ではなく、文献確定前の検索語展開・報告書確認の入口として扱う
 - Crossref / OpenAlex で単一文献候補を DOI・タイトル・著者・刊行年から照合する補助 tool（`jp_lit_enrich_record`）を追加済み。外部 provider は `jp_lit_search` の source ではなく、既存候補の書誌確認を補強する用途に限定する
 - `jp_lit_refine_results` は、保存済み `jp_lit_enrich_record` cache を任意で重複クラスタへ重ね、DOI・provider status・match confidence を表示できる。これは外部 API の再照会ではなく、本文確認や重要度評価でもない
+- `cinii_dissertations` を CiNii Research 統合後の博士論文・学位論文 source として追加済み。既定横断には含めず、学位論文を探す意図があるときに明示指定する
 - Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
 
 ## 最近の更新
 
+- 未リリース: `cinii_dissertations` を明示 source として追加。CiNii Research OpenSearch の `dissertations` search type を使い、旧 CiNii Dissertations ではなく統合後の CiNii Research 経由で CRID detail を取得する。既定横断・live smoke matrix には含めない。CSL JSON export では博士論文候補を `type="thesis"` として出力する
 - `0.7.5`: `jp_lit_enrich_record` を追加。Crossref は無認証 REST + 任意 `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` 前提で、未設定時は `providers.openalex.status="skipped"` として扱う。`jp_lit_refine_results(include_enrichment=true)` では保存済み照合 cache を重複クラスタに付与できる。未収録・低引用を日本語人文系文献の低重要度とは扱わない
 - `0.7.4`: `jp-lit-research` の確認ラベルを `候補確度` / `確認` / `本文` に分離。NDL Search 等のヒットのみを関連文献や本文確認済みとして扱わない契約、デジコレ OCR 複合語 0 件の扱い、長期調査の rolling checkpoint / 分担契約を明文化
 - `nijl_articles` / `kokusho` / `ninjal_bibliography`: 国文学論文、国書・古典籍、日本語研究・日本語教育文献の専門 DB を明示 source として追加。既定横断には含めず、manifest 本体・画像本体・本文一括取得をしない確認導線として運用

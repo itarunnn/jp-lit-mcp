@@ -60,6 +60,6 @@ describe("CLI doctor", () => {
 
     expect(result.ok).toBe(false);
     expect(lines.join("\n")).toContain("Node.js >= 18");
-    expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID set (optional; used by CiNii Research and KAKEN API)");
+    expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID set (optional; used by CiNii Research/Dissertations/Books and KAKEN API)");
   });
 });

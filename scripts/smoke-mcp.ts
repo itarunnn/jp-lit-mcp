@@ -61,6 +61,7 @@ export const SUPPORTED_LIVE_EXTRA_TOOLS = [
 const LIVE_DEFAULT_QUERY_BY_SOURCE: Record<string, string> = {
   ndl_catalog: "菊池寛",
   ndl_digital: "菊池寛",
+  cinii_dissertations: "源氏物語",
   cinii_books: "夏目漱石",
   kokkai_minutes: "賭博",
   teikoku_minutes: "賭博",

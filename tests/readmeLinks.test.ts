@@ -92,7 +92,7 @@ describe("README public onboarding", () => {
     expect(usageGuide).toContain("jp_lit_search(source=ninjal_bibliography");
     expect(usageGuide).toContain("文化資源 DB や地域アーカイブ DB は固定 source 化しません");
 
-    expect(projectStatus).toContain("対応 source 19 種");
+    expect(projectStatus).toContain("対応 source 20 種");
     expect(projectStatus).toContain("nijl_articles");
     expect(projectStatus).toContain("kokusho");
     expect(projectStatus).toContain("ninjal_bibliography");

@@ -13,7 +13,7 @@
 | `ndl_search` / `ndl_catalog` / `ndl_articles` / `ndl_articles_online` | 利用目的により必要 | 条件付き | provider ごとの条件確認 | 継続アクセスは連絡協力のお願いあり | NDL Search 全体の条件に従う |
 | `ndl_digital` 検索部 | NDL Search と同様 | NDL Search と同様 | provider ごとの条件確認 | 同上 | 検索は NDL Search SRU を使用 |
 | 次世代デジタルライブラリー API | 原則不要 | 営利かつ継続的利用は問い合わせ | 加工時の明示など配慮事項あり | 営利かつ継続的利用は問い合わせ | OCR / 図版 / 全文はここを使用 |
-| `cinii_articles` / `cinii_books` | App ID 要 | 商用は事前連絡推奨 | 著作権法等に従い適切取扱い | 短時間大量アクセスは遮断あり | API利用登録が必要 |
+| `cinii_articles` / `cinii_dissertations` / `cinii_books` | App ID 要 | 商用は事前連絡推奨 | 著作権法等に従い適切取扱い | 短時間大量アクセスは遮断あり | API利用登録が必要 |
 | `jp_lit_search_kaken_projects`（KAKEN） | App ID 要 | 条件確認 | 出典記載が必要 | 短時間大量アクセスは避ける | 研究課題・報告書 PDF の入口。成果リストは文献候補扱い |
 | `jp_lit_enrich_record`（Crossref） | 不要 | 条件確認 | polite pool 用 `mailto` 推奨 | 高頻度利用は避ける | DOI / title / author / year の外部書誌照合。本文取得ではない |
 | `jp_lit_enrich_record`（OpenAlex） | API key 要 | 利用量・課金条件確認 | 条件確認 | `api_key` と利用量管理が必要 | works metadata の外部書誌照合。本文取得ではない |
@@ -78,7 +78,7 @@
 - サービス説明: https://lab.ndl.go.jp/service/tsugidigi/
 - API案内: https://lab.ndl.go.jp/service/tsugidigi/apiinfo/
 
-### CiNii Research / CiNii Books
+### CiNii Research / CiNii Dissertations / CiNii Books
 
 確認できたこと:
 
@@ -103,7 +103,7 @@
 
 確認できたこと:
 
-- KAKEN OpenSearch API は NII / CiNii 系の API 利用登録で取得した `appid` を使います。実装では `CINII_RESEARCH_APP_ID` を流用します。
+- KAKEN OpenSearch API は NII / CiNii 系の API 利用登録で取得した `appid` を使います。実装では `CINII_RESEARCH_APP_ID` を流用します。CiNii Research の論文・博士論文・図書 source も同じ `appid` を使います。
 - KAKEN で公開されるコンテンツの多くは文部科学省ウェブサイト利用規約に準拠し、出典記載が求められます。
 - 一部報告書等では作成者自身が著作権を主張できる場合があります。
 - 検索結果には誤りが含まれる可能性があるため、成果リスト中の論文・図書は CiNii / J-STAGE / IRDB / NDL などで確認します。

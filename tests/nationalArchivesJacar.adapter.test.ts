@@ -95,6 +95,7 @@ describe("national_archives / jacar source schema", () => {
   it("source_id の形式を source ごとに検証する", () => {
     expect(validateSourceId("national_archives", " 3148544 ")).toBe("3148544");
     expect(validateSourceId("jacar", " A01000012800 ")).toBe("A01000012800");
+    expect(validateSourceId("cinii_dissertations", " 1910848250911873152 ")).toBe("1910848250911873152");
     expect(validateSourceId("nijl_articles", " 12345678 ")).toBe("12345678");
     expect(validateSourceId("kokusho", " 100001234 ")).toBe("100001234");
     expect(validateSourceId("ninjal_bibliography", " BUN12345 ")).toBe("BUN12345");
@@ -102,6 +103,8 @@ describe("national_archives / jacar source schema", () => {
       .toThrow("national_archives の source_id 形式が不正です");
     expect(() => validateSourceId("jacar", "3148544"))
       .toThrow("jacar の source_id 形式が不正です");
+    expect(() => validateSourceId("cinii_dissertations", "https://cir.nii.ac.jp/crid/1910848250911873152"))
+      .toThrow("cinii_dissertations の source_id 形式が不正です");
     expect(() => validateSourceId("nijl_articles", "https://example.test/1"))
       .toThrow("nijl_articles の source_id 形式が不正です");
     expect(() => validateSourceId("nijl_articles", "BUN12345"))

@@ -43,6 +43,7 @@ export function validateSourceId(source: SourceName, sourceId: string): string {
       );
       break;
     case "cinii_articles":
+    case "cinii_dissertations":
     case "cinii_books":
       assertSourceId(source, trimmed, CINII_SOURCE_ID_PATTERN, "1573387450265380480");
       break;

@@ -106,7 +106,7 @@ export function runDoctor(options: DoctorOptions = {}): DoctorResult {
   checks.push({
     status: "info",
     message: env.CINII_RESEARCH_APP_ID
-      ? "CINII_RESEARCH_APP_ID set (optional; used by CiNii Research and KAKEN API)"
+      ? "CINII_RESEARCH_APP_ID set (optional; used by CiNii Research/Dissertations/Books and KAKEN API)"
       : "CINII_RESEARCH_APP_ID not set (optional; required for KAKEN API tool)"
   });
 

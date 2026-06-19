@@ -467,6 +467,107 @@ describe("createCiniiResearchAdapter", () => {
     expect(new URL(fetch.mock.calls[0][0] as string).searchParams.get("sortorder")).toBe("2");
   });
 
+  it("cinii_dissertations source を dissertations 検索として公開できる", async () => {
+    const dissertationFixture = {
+      "@id": "https://cir.nii.ac.jp/opensearch/dissertations?q=%E6%BA%90%E6%B0%8F%E7%89%A9%E8%AA%9E&count=1&format=json",
+      "@type": "channel",
+      "opensearch:totalResults": 1,
+      items: [
+        {
+          "@id": "https://cir.nii.ac.jp/crid/1910848250911873152",
+          title: "源氏物語受容史の研究",
+          link: {
+            "@id": "https://cir.nii.ac.jp/crid/1910848250911873152"
+          },
+          "dc:creator": ["山田太郎"],
+          "dc:publisher": "京都大学",
+          "dc:type": "Doctoral Dissertation",
+          "prism:publicationDate": "2022"
+        }
+      ]
+    };
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(dissertationFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiDissertationsAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiDissertationsAdapter();
+
+    const result = await adapter.search({
+      query: "源氏物語",
+      limit: 1,
+      page: 1,
+      sort_by: "issued_date",
+      sort_order: "asc"
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+
+    expect(adapter.source).toBe("cinii_dissertations");
+    expect(result.items[0]).toMatchObject({
+      source: "cinii_dissertations",
+      source_id: "1910848250911873152",
+      title: "源氏物語受容史の研究",
+      publisher: "京都大学",
+      material_type: "Doctoral Dissertation"
+    });
+    expect(searchUrl.origin + searchUrl.pathname).toBe(
+      "https://cir.nii.ac.jp/opensearch/dissertations"
+    );
+    expect(searchUrl.searchParams.get("sortorder")).toBe("1");
+  });
+
+  it("cinii_dissertations の詳細取得では holdings を呼ばず source を保つ", async () => {
+    const recordFixture = {
+      "@id": "https://cir.nii.ac.jp/crid/1910848250911873152",
+      "dc:title": "源氏物語受容史の研究",
+      creator: ["山田太郎"],
+      "dc:publisher": "京都大学",
+      "prism:publicationDate": "2022",
+      resourceType: "doctoral thesis"
+    };
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(recordFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiDissertationsAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiDissertationsAdapter();
+
+    const record = await adapter.getRecord("1910848250911873152");
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(record).toMatchObject({
+      source: "cinii_dissertations",
+      source_id: "1910848250911873152",
+      title: "源氏物語受容史の研究",
+      publisher: "京都大学",
+      issued_at: "2022",
+      material_type: "doctoral thesis"
+    });
+  });
+
   it("cinii_books の詳細取得では holdings を source_metadata に載せる", async () => {
     const recordFixture = readFixture("book-record-response.json");
     const holdingsFixture = readFixture("holdings-response.json");

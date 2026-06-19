@@ -139,6 +139,7 @@ function toIssuedFields(value: string | null) {
 function toCiniiSource(source: SourceName): SearchItem["source"] {
   if (
     source === "cinii_articles" ||
+    source === "cinii_dissertations" ||
     source === "cinii_books"
   ) {
     return source;

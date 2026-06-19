@@ -73,10 +73,14 @@ describe("createSearchService", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("search 入力スキーマで cinii_articles / cinii_books source を受け付ける", () => {
+  it("search 入力スキーマで cinii_articles / cinii_dissertations / cinii_books source を受け付ける", () => {
     const articles = searchInputSchema.parse({
       query: "夏目漱石",
       source: "cinii_articles"
+    });
+    const dissertations = searchInputSchema.parse({
+      query: "源氏物語",
+      source: "cinii_dissertations"
     });
     const books = searchInputSchema.parse({
       query: "夏目漱石",
@@ -84,6 +88,7 @@ describe("createSearchService", () => {
     });
 
     expect(articles.source).toBe("cinii_articles");
+    expect(dissertations.source).toBe("cinii_dissertations");
     expect(books.source).toBe("cinii_books");
   });
 

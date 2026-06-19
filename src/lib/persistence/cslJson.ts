@@ -51,6 +51,13 @@ function inferCslType(item: Record<string, unknown>) {
   const journalTitle = readString(item.journal_title);
 
   if (
+    source === "cinii_dissertations" ||
+    materialType.includes("thesis") ||
+    materialType.includes("dissertation")
+  ) {
+    return "thesis";
+  }
+  if (
     source === "jstage_articles" ||
     source === "cinii_articles" ||
     source === "ndl_articles" ||

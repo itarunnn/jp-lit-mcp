@@ -14,8 +14,8 @@ const DEFAULT_RECORD_BASE_URL = "https://cir.nii.ac.jp/crid";
 const DEFAULT_HOLDINGS_BASE_URL = "https://ci.nii.ac.jp/books/opensearch/holder";
 
 interface CiniiResearchAdapterOptions {
-  source?: "cinii_articles" | "cinii_books";
-  searchType?: "articles" | "books";
+  source?: "cinii_articles" | "cinii_dissertations" | "cinii_books";
+  searchType?: "articles" | "dissertations" | "books";
   searchBaseUrl?: string;
   recordBaseUrl?: string;
   holdingsBaseUrl?: string;
@@ -26,29 +26,32 @@ type JsonRecord = Record<string, unknown>;
 
 function normalizeSearchBaseUrl(
   searchBaseUrl: string | undefined,
-  searchType: "articles" | "books"
+  searchType: "articles" | "dissertations" | "books"
 ) {
   const base = searchBaseUrl ?? DEFAULT_SEARCH_BASE_URL;
   const url = new URL(base);
 
-  url.pathname = url.pathname.replace(/\/(articles|books)\/?$/, `/${searchType}`);
+  url.pathname = url.pathname.replace(
+    /\/(articles|dissertations|books)\/?$/,
+    `/${searchType}`
+  );
 
   return url.toString();
 }
 
 function resolveCiniiSortOrder(
-  searchType: "articles" | "books",
+  searchType: "articles" | "dissertations" | "books",
   params: Pick<SearchParams, "sort_by" | "sort_order">
 ): string | null {
   if (params.sort_by !== "issued_date") {
     return null;
   }
 
-  if (searchType === "articles") {
-    return params.sort_order === "asc" ? "1" : "0";
+  if (searchType === "books") {
+    return params.sort_order === "asc" ? "2" : "3";
   }
 
-  return params.sort_order === "asc" ? "2" : "3";
+  return params.sort_order === "asc" ? "1" : "0";
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -330,6 +333,16 @@ export function createCiniiArticlesAdapter(
     ...options,
     source: "cinii_articles",
     searchType: "articles"
+  });
+}
+
+export function createCiniiDissertationsAdapter(
+  options: Omit<CiniiResearchAdapterOptions, "source" | "searchType"> = {}
+): SourceAdapter {
+  return createCiniiResearchAdapter({
+    ...options,
+    source: "cinii_dissertations",
+    searchType: "dissertations"
   });
 }
 

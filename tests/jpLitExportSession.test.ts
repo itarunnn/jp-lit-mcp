@@ -547,6 +547,82 @@ describe("jp_lit_export_session", () => {
     expect(JSON.stringify(written)).not.toContain("Search Attempt");
   });
 
+  it("writes cinii_dissertations records as CSL thesis items", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+
+    await cache.write("jp_lit_get_record", {
+      version: 1,
+      tool: "jp_lit_get_record",
+      cache_key: "sha256-csl-dissertation-record",
+      saved_at: new Date().toISOString(),
+      input: {
+        source: "cinii_dissertations",
+        source_id: "1910848250911873152"
+      },
+      structured_content: {
+        source: "cinii_dissertations",
+        source_id: "1910848250911873152",
+        title: "源氏物語受容史の研究",
+        authors: [{ name: "山田太郎", role: "author" }],
+        publisher: "京都大学",
+        journal_title: null,
+        issued_at: "2022",
+        issued_at_label: "2022",
+        material_type: "doctoral thesis",
+        identifiers: {},
+        source_metadata: {},
+        content_access: {},
+        url: "https://cir.nii.ac.jp/crid/1910848250911873152"
+      }
+    });
+
+    await sessions.appendEntry({
+      tool: "jp_lit_get_record",
+      input: {
+        source: "cinii_dissertations",
+        source_id: "1910848250911873152"
+      },
+      cache_key: "sha256-csl-dissertation-record",
+      result_ref: {
+        tool: "jp_lit_get_record",
+        cache_key: "sha256-csl-dissertation-record"
+      },
+      selected_items: [
+        {
+          source: "cinii_dissertations",
+          source_id: "1910848250911873152",
+          title: "源氏物語受容史の研究",
+          label: "confirmed",
+          note: null
+        }
+      ],
+      notes: []
+    });
+
+    const exportPath = path.join(baseDir, "exports", "dissertation.csl.json");
+    await tool({
+      format: "csl-json",
+      profile: "selected",
+      output_path: exportPath
+    });
+
+    const written = JSON.parse(await readFile(exportPath, "utf8")) as Array<{
+      type: string;
+      publisher?: string;
+      note?: string;
+    }>;
+
+    expect(written[0]).toMatchObject({
+      type: "thesis",
+      publisher: "京都大学"
+    });
+    expect(written[0]?.note).toContain("source: cinii_dissertations");
+  });
+
   it("reports CSL JSON item_count from the written items", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);

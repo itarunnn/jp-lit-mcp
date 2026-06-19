@@ -9,6 +9,7 @@ export type SourceName =
   | "jstage_articles"
   | "japan_search"
   | "cinii_articles"
+  | "cinii_dissertations"
   | "cinii_books"
   | "kokkai_minutes"
   | "teikoku_minutes"

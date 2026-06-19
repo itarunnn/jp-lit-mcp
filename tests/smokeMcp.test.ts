@@ -346,10 +346,20 @@ describe("smoke-mcp tool manifest", () => {
         ?.enum;
 
       expect(searchSourceEnum).toEqual(
-        expect.arrayContaining(["nijl_articles", "kokusho", "ninjal_bibliography"])
+        expect.arrayContaining([
+          "cinii_dissertations",
+          "nijl_articles",
+          "kokusho",
+          "ninjal_bibliography"
+        ])
       );
       expect(recordSourceEnum).toEqual(
-        expect.arrayContaining(["nijl_articles", "kokusho", "ninjal_bibliography"])
+        expect.arrayContaining([
+          "cinii_dissertations",
+          "nijl_articles",
+          "kokusho",
+          "ninjal_bibliography"
+        ])
       );
     } finally {
       await client.close();
@@ -364,6 +374,7 @@ describe("smoke-mcp tool manifest", () => {
     expect(resolveLiveSmokeQuery("teikoku_minutes", undefined)).toBe("賭博");
     expect(resolveLiveSmokeQuery("national_archives", undefined)).toBe("太政官");
     expect(resolveLiveSmokeQuery("jacar", undefined)).toBe("台湾総督府");
+    expect(resolveLiveSmokeQuery("cinii_dissertations", undefined)).toBe("源氏物語");
     expect(resolveLiveSmokeQuery("nijl_articles", undefined)).toBe("源氏物語");
     expect(resolveLiveSmokeQuery("kokusho", undefined)).toBe("伊勢物語");
     expect(resolveLiveSmokeQuery("ninjal_bibliography", undefined)).toBe("日本語教育");
@@ -458,6 +469,7 @@ describe("smoke-mcp tool manifest", () => {
     expect(LIVE_MATRIX_SOURCES).not.toContain("nijl_articles");
     expect(LIVE_MATRIX_SOURCES).not.toContain("kokusho");
     expect(LIVE_MATRIX_SOURCES).not.toContain("ninjal_bibliography");
+    expect(LIVE_MATRIX_SOURCES).not.toContain("cinii_dissertations");
   });
 
   it("resolves live smoke sources from override or default matrix", () => {
