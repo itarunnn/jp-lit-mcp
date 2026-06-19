@@ -659,7 +659,7 @@ jp_lit_search_illustrations(keyword="富士山")
 
 ## MCP 登録例
 
-通常は、必要に応じて環境変数 `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。KAKEN tool を使わない場合や CiNii 系 source を試用するだけの場合は、`env` ごと省略できます。
+通常は、必要に応じて環境変数 `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。KAKEN tool を使わない場合や CiNii 系 source を試用するだけの場合は、`env` ごと省略できます。`jp_lit_enrich_record` で OpenAlex / Crossref の外部照合を使う場合は、同じ `env` に `OPENALEX_API_KEY` と `CROSSREF_MAILTO` を追加できます。
 
 ```json
 {
@@ -675,7 +675,7 @@ jp_lit_search_illustrations(keyword="富士山")
 }
 ```
 
-サンプルは [mcp-config.example.json](../mcp-config.example.json) にあります。アプリ別の登録手順は `docs/install/` 以下を参照してください。
+この例は最小構成です。`OPENALEX_API_KEY` と `CROSSREF_MAILTO` は任意のため、サンプル JSON には入れていません。設定する場合も、仮の値を Git 管理せず、利用する AI アプリの MCP server `env` から渡してください。サンプルは [mcp-config.example.json](../mcp-config.example.json) にあります。アプリ別の登録手順は `docs/install/` 以下を参照してください。
 
 ## CLI 診断
 
