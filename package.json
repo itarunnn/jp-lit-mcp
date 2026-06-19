@@ -5,6 +5,10 @@
   "license": "MIT",
   "type": "module",
   "description": "MCP server and Skills for Japanese literature and humanities research across NDL, CiNii, J-STAGE, IRDB, and related sources",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itarunnn/jp-lit-mcp.git"
+  },
   "bin": {
     "jp-lit-mcp": "dist/src/index.js",
     "jp-lit-mcp-install-skills": "scripts/install-skills.mjs"
