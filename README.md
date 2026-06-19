@@ -400,6 +400,11 @@ Skill を使わない場合は `文献DBで` / `文献検証で` などの Skill
 - `jdcat`: 人文学・社会科学系の研究データ
 - `japan_search`: 文化財・博物館・地域資料
 
+調査の初動では、source ではありませんが次の補助 tool / Web 導線もよく使います。
+
+- `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`: レファレンス協同データベースから調べ方マニュアル・レファレンス事例を探し、テーマの入口、参考資料、検索語候補を得る
+- NDL リサーチ・ナビ: API / MCP source には接続していません。Web 上の調べ方案内として確認し、見るべき DB、索引、参考書誌、検索語候補を決める材料にします
+
 Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存候補を照合する補助 provider として使います。
 
 国書データベースについては、書誌・所在確認の `jp_lit_search(source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。

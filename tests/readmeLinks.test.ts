@@ -82,6 +82,12 @@ describe("README public onboarding", () => {
     expect(readme).toContain("J-STAGE");
     expect(readme).toContain("国書");
     expect(readme).toContain("国会・帝国議会会議録");
+    expect(readme).toContain("レファレンス協同データベース");
+    expect(readme).toContain("jp_lit_search_guides_manuals");
+    expect(readme).toContain("jp_lit_search_guides_cases");
+    expect(readme).toContain("NDL リサーチ・ナビ");
+    expect(readme).toContain("API / MCP source には接続していません");
+    expect(readme).toContain("Web 上の調べ方案内");
     expect(readme).toContain("docs/reference.md");
 
     expect(usageGuide).toContain("日本文学論文");
