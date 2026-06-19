@@ -246,6 +246,30 @@ export const recordInputSchema = z.object({
   force_refresh: forceRefreshFieldSchema
 });
 
+const externalProviderSchema = z.enum(["crossref", "openalex"]);
+const externalProviderStatusSchema = z.enum(["ok", "not_found", "skipped", "error"]);
+const matchConfidenceSchema = z.enum(["high", "medium", "low", "none"]);
+
+export const enrichRecordInputToolSchema = z.object({
+  doi: z.string().trim().min(1).optional().describe("照合したい DOI。URL 形式や doi: 接頭辞でもよい。指定すると title より DOI 照合を優先する。"),
+  title: z.string().trim().min(1).optional().describe("照合したい候補タイトル。DOI が無い人文系文献では title / authors / issued_year の組み合わせで補助照合する。"),
+  authors: z.array(z.string().trim().min(1)).default([]).describe("候補の著者名配列。未指定なら空配列として扱う。title-only 照合の confidence 判定に使う。"),
+  issued_year: z.string().trim().min(1).optional().describe("候補の刊行年。title-only 照合の confidence 判定に使う。"),
+  providers: z.array(externalProviderSchema).min(1).default(["crossref", "openalex"]).describe("照合に使う外部 provider。Crossref は無認証、OpenAlex は OPENALEX_API_KEY が無い場合 skipped になる。"),
+  force_refresh: forceRefreshFieldSchema
+});
+
+export const enrichRecordInputSchema = enrichRecordInputToolSchema
+  .superRefine((data, ctx) => {
+    if (!data.doi && !data.title) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "doi または title のどちらかを指定してください",
+        path: ["doi"]
+      });
+    }
+  });
+
 export const searchOutputSchema = z.object({
   query: z.string(),
   source: sourceSchema.nullable(),
@@ -263,6 +287,47 @@ export const searchOutputSchema = z.object({
 });
 
 export const recordOutputSchema = recordItemSchema.extend({
+  cache: toolCacheSchema.optional()
+});
+
+const externalProviderSummarySchema = z.object({
+  status: externalProviderStatusSchema,
+  item_count: z.number().int().nonnegative(),
+  note: z.string().nullable()
+});
+
+const enrichRecordQueryOutputSchema = z.object({
+  doi: z.string().nullable(),
+  title: z.string().nullable(),
+  authors: z.array(z.string()),
+  issued_year: z.string().nullable()
+});
+
+const enrichRecordMatchSchema = z.object({
+  provider: externalProviderSchema,
+  id: z.string(),
+  doi: z.string().nullable(),
+  title: z.string(),
+  authors: z.array(z.string()),
+  issued_year: z.string().nullable(),
+  url: z.string().nullable(),
+  cited_by_count: z.number().int().nonnegative().nullable(),
+  source_title: z.string().nullable(),
+  type: z.string().nullable(),
+  match_confidence: matchConfidenceSchema,
+  reasons: z.array(z.string()),
+  missing: z.array(z.string()),
+  caution: z.string()
+});
+
+export const enrichRecordOutputSchema = z.object({
+  query: enrichRecordQueryOutputSchema,
+  providers: z.object({
+    crossref: externalProviderSummarySchema.optional(),
+    openalex: externalProviderSummarySchema.optional()
+  }),
+  matches: z.array(enrichRecordMatchSchema),
+  caution: z.string(),
   cache: toolCacheSchema.optional()
 });
 
@@ -325,8 +390,10 @@ export type JdcatFilters = z.infer<typeof jdcatFiltersSchema>;
 export type NihuBridgeBbox = z.infer<typeof nihuBridgeBboxSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
+export type EnrichRecordInput = z.infer<typeof enrichRecordInputSchema>;
 export type SearchOutput = z.infer<typeof searchOutputSchema>;
 export type RecordOutput = z.infer<typeof recordOutputSchema>;
+export type EnrichRecordOutput = z.infer<typeof enrichRecordOutputSchema>;
 export type TextCoordinatesInput = z.infer<typeof textCoordinatesInputSchema>;
 export type TextCoordinatesOutput = z.infer<typeof textCoordinatesOutputSchema>;
 export type FulltextInput = z.infer<typeof fulltextInputSchema>;

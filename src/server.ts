@@ -18,6 +18,8 @@ import {
   deleteCacheOutputSchema,
   pruneCacheInputSchema,
   pruneCacheOutputSchema,
+  enrichRecordInputToolSchema,
+  enrichRecordOutputSchema,
   listCacheInputSchema,
   listCacheOutputSchema,
   recordInputSchema,
@@ -86,6 +88,9 @@ import { createJacarAdapter } from "./sources/jacar/adapter.js";
 import { createCrdClient } from "./sources/crd/client.js";
 import { createNdlAuthoritiesClient } from "./sources/ndlAuthorities/client.js";
 import { createKakenClient } from "./sources/kaken/client.js";
+import { createCrossrefClient } from "./sources/externalWork/crossrefClient.js";
+import { createExternalWorkEnricher } from "./sources/externalWork/enrichRecord.js";
+import { createOpenAlexClient } from "./sources/externalWork/openalexClient.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitUpdateSessionTraceTool } from "./tools/jpLitUpdateSessionTrace.js";
@@ -111,6 +116,7 @@ import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases
 import { createJpLitResolveAuthorityTool } from "./tools/jpLitResolveAuthority.js";
 import { createJpLitFindAuthorityTermsByClassificationTool } from "./tools/jpLitFindAuthorityTermsByClassification.js";
 import { createJpLitSearchKakenProjectsTool } from "./tools/jpLitSearchKakenProjects.js";
+import { createJpLitEnrichRecordTool } from "./tools/jpLitEnrichRecord.js";
 import { createNextDigitalLibraryClient } from "./sources/nextDigitalLibrary/adapter.js";
 
 interface ServerEnv {
@@ -141,6 +147,10 @@ interface ServerEnv {
   NINJAL_BIBLIOGRAPHY_BASE_URL?: string;
   CRD_API_BASE_URL?: string;
   NDL_AUTHORITIES_SPARQL_URL?: string;
+  CROSSREF_BASE_URL?: string;
+  CROSSREF_MAILTO?: string;
+  OPENALEX_BASE_URL?: string;
+  OPENALEX_API_KEY?: string;
 }
 
 const SEARCH_ENDPOINT_PATH = "/api/sru";
@@ -338,6 +348,16 @@ export function createServer(env: ServerEnv = process.env) {
   const kakenClient = createKakenClient({
     appId: env.CINII_RESEARCH_APP_ID ?? ""
   });
+  const externalWorkEnricher = createExternalWorkEnricher({
+    crossrefClient: createCrossrefClient({
+      ...(env.CROSSREF_BASE_URL ? { baseUrl: env.CROSSREF_BASE_URL } : {}),
+      ...(env.CROSSREF_MAILTO ? { mailto: env.CROSSREF_MAILTO } : {})
+    }),
+    openalexClient: createOpenAlexClient({
+      ...(env.OPENALEX_BASE_URL ? { baseUrl: env.OPENALEX_BASE_URL } : {}),
+      ...(env.OPENALEX_API_KEY ? { apiKey: env.OPENALEX_API_KEY } : {})
+    })
+  });
   const kokushoClient = createKokushoClient(adapterOptions.kokusho);
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
@@ -391,6 +411,9 @@ export function createServer(env: ServerEnv = process.env) {
   const findAuthorityTermsByClassificationTool =
     createJpLitFindAuthorityTermsByClassificationTool(ndlAuthoritiesClient, cache, sessions);
   const searchKakenProjectsTool = createJpLitSearchKakenProjectsTool(kakenClient, cache, sessions);
+  const enrichRecordTool = createJpLitEnrichRecordTool(externalWorkEnricher, cache, sessions, {
+    openalexKeyPresent: Boolean(env.OPENALEX_API_KEY?.trim())
+  });
 
   const server = new McpServer(
     {
@@ -452,6 +475,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: authorityTermsByClassificationOutputSchema
     },
     findAuthorityTermsByClassificationTool
+  );
+
+  server.registerTool(
+    "jp_lit_enrich_record",
+    {
+      description: "read-only。既に見つけた単一文献候補を Crossref / OpenAlex で DOI・タイトル・著者・刊行年から照合し、候補の書誌確認 confidence と根拠を返す。文献検索 source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の外部検証に使う。OpenAlex は OPENALEX_API_KEY が無い場合 skipped になり、未収録・低引用は日本語人文系での低重要度を意味しない",
+      inputSchema: enrichRecordInputToolSchema,
+      outputSchema: enrichRecordOutputSchema
+    },
+    enrichRecordTool
   );
 
   server.registerTool(

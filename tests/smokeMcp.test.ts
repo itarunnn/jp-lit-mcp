@@ -53,6 +53,7 @@ describe("smoke-mcp tool manifest", () => {
     expect(EXPECTED_TOOL_NAMES).toEqual([
       "jp_lit_annotate_session",
       "jp_lit_delete_cache",
+      "jp_lit_enrich_record",
       "jp_lit_export_session",
       "jp_lit_export_view",
       "jp_lit_find_authority_terms_by_classification",
@@ -77,6 +78,37 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_pages",
       "jp_lit_update_session_trace"
     ]);
+  });
+
+  it("publishes enrichment tool as a cached record verifier, not a search source", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-enrich-record-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      const { tools } = await client.listTools();
+      const enrichTool = tools.find((tool) => tool.name === "jp_lit_enrich_record");
+      const properties = enrichTool?.inputSchema.properties ?? {};
+
+      expect(enrichTool?.description).toMatch(/read-only|Crossref|OpenAlex|文献検索 source ではなく/);
+      expect(properties).toMatchObject({
+        doi: { type: "string" },
+        title: { type: "string" },
+        authors: { type: "array" },
+        issued_year: { type: "string" },
+        providers: { type: "array" },
+        force_refresh: { type: "boolean" }
+      });
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("publishes kokusho extended search tools", async () => {
@@ -130,6 +162,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_illustrations",
       "jp_lit_search_guides_manuals",
       "jp_lit_search_guides_cases",
+      "jp_lit_enrich_record",
       "jp_lit_resolve_authority",
       "jp_lit_find_authority_terms_by_classification",
       "jp_lit_search_kaken_projects"

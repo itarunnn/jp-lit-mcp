@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-06-17 時点の状態:
+2026-06-19 時点の状態:
 
-- 公開ツール 25 種・対応 source 19 種・テスト 498 件すべて通過
+- 公開ツール 26 種・対応 source 19 種・テスト 514 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -22,10 +22,12 @@
 - 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
 - Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools（`jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`）を追加済み
 - KAKEN から研究課題・研究成果報告書 PDF・成果リストの手がかりを返す補助 tool（`jp_lit_search_kaken_projects`）を追加済み。KAKEN は `jp_lit_search` の source ではなく、文献確定前の検索語展開・報告書確認の入口として扱う
+- Crossref / OpenAlex で単一文献候補を DOI・タイトル・著者・刊行年から照合する補助 tool（`jp_lit_enrich_record`）を追加済み。外部 provider は `jp_lit_search` の source ではなく、既存候補の書誌確認を補強する用途に限定する
 - Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
 
 ## 最近の更新
 
+- `0.7.5`: `jp_lit_enrich_record` を追加。Crossref は無認証 REST + 任意 `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` 前提で、未設定時は `providers.openalex.status="skipped"` として扱う。未収録・低引用を日本語人文系文献の低重要度とは扱わない
 - `0.7.4`: `jp-lit-research` の確認ラベルを `候補確度` / `確認` / `本文` に分離。NDL Search 等のヒットのみを関連文献や本文確認済みとして扱わない契約、デジコレ OCR 複合語 0 件の扱い、長期調査の rolling checkpoint / 分担契約を明文化
 - `nijl_articles` / `kokusho` / `ninjal_bibliography`: 国文学論文、国書・古典籍、日本語研究・日本語教育文献の専門 DB を明示 source として追加。既定横断には含めず、manifest 本体・画像本体・本文一括取得をしない確認導線として運用
 - `jp_lit_search_kokusho_fulltext` / `jp_lit_search_kokusho_image_tags`: 国書DBの本文スニペット検索と画像タグ検索を、書誌 source とは分けた専用 tool として追加。本文全体・画像本体・manifest 本体は取得しない
@@ -79,4 +81,4 @@
 - npm package 公開済み。公開前は `npm publish --dry-run` と tarball smoke を確認する
 - GitHub About / topics / release note は整備済み
 - 検討中 source: `nihonbungaku_metadata`。日本文学研究メタデータ検索は有望な日本文学論文メタデータ source だが、個人運営サービスで外部連携 API は連絡前提と読めるため、未許諾の adapter 実装は行わない。将来実装する場合は、利用者ごとの `NIHONBUNGAKU_METADATA_API_KEY` とローカル個人調査用途のキャッシュ境界を前提にする。
-- 次の改善候補は Web NDL Authorities、検索品質 eval
+- 次の改善候補は `jp_lit_enrich_results` による複数候補の重複統合・証拠 ranking、検索品質 eval

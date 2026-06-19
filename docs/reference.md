@@ -159,6 +159,7 @@ nihu_bridge
 
 - `jp_lit_search`
 - `jp_lit_get_record`
+- `jp_lit_enrich_record`
 - `jp_lit_search_fulltext`
 - `jp_lit_search_pages`
 - `jp_lit_get_text_coordinates`
@@ -245,6 +246,32 @@ nihu_bridge
 `source=kokusho` の場合、国書データベースの書誌 JSON から古典籍の書誌・著作・所在メタデータを返します。`source_id` は `bid` です。画像がある資料では `source_metadata.manifest_url` や `license_url` を保持しますが、IIIF manifest 本体、画像本体、OCR、翻刻本文は取得しません。
 
 `source=ninjal_bibliography` の場合、日本語研究・日本語教育文献データベースの HTML から論文・図書の書誌メタデータを best-effort で抽出します。`source_id` は文献IDです。本文リンクがある場合は `source_metadata.fulltext_links` と `content_access.viewer_url` に URL を保持しますが、本文ファイル自体は取得しません。
+
+### 外部書誌照合
+
+#### `jp_lit_enrich_record`
+
+既に見つけた単一文献候補を Crossref / OpenAlex で照合し、DOI・タイトル・著者・刊行年の一致根拠と `match_confidence` を返します。`jp_lit_search` の source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の書誌確認を補強する read-only tool です。
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `doi` | string | なし | DOI。URL 形式や `doi:` 接頭辞でも可。指定時は DOI 照合を優先 |
+| `title` | string | なし | DOI がない候補のタイトル照合に使う |
+| `authors` | string[] | `[]` | title-only 照合の補助。姓名の空白差は吸収する |
+| `issued_year` | string | なし | title-only 照合の補助 |
+| `providers` | string[] | `["crossref", "openalex"]` | `crossref` / `openalex` |
+| `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再照合 |
+
+返り値には `providers.crossref` / `providers.openalex` の `status`、`matches[]`、全体の `caution` が含まれます。`match_confidence=high` は書誌要素の一致が強いという意味で、本文到達性・本文読了・研究上の重要度を保証しません。OpenAlex は `OPENALEX_API_KEY` が未設定なら `status="skipped"` になり、Crossref だけで処理を続けます。
+
+```json
+{
+  "doi": "https://doi.org/10.xxxx/example",
+  "title": "源氏物語研究",
+  "authors": ["山田太郎"],
+  "issued_year": "2020"
+}
+```
 
 ### 国書DB 本文・画像タグ
 
@@ -622,6 +649,10 @@ jp_lit_search_illustrations(keyword="富士山")
 | `JACAR_BASE_URL` | `https://www.jacar.archives.go.jp` | JACAR |
 | `CRD_API_BASE_URL` | `https://crd.ndl.go.jp/api/refsearch` | レファレンス協同データベース API |
 | `NDL_AUTHORITIES_SPARQL_URL` | `https://id.ndl.go.jp/auth/ndla/sparql` | Web NDL Authorities SPARQL endpoint |
+| `CROSSREF_BASE_URL` | `https://api.crossref.org/works` | `jp_lit_enrich_record` の Crossref REST API endpoint。通常は変更不要 |
+| `CROSSREF_MAILTO` | なし | Crossref REST API の polite pool 用連絡先。任意だが継続利用では設定推奨 |
+| `OPENALEX_BASE_URL` | `https://api.openalex.org/works` | `jp_lit_enrich_record` の OpenAlex works endpoint。通常は変更不要 |
+| `OPENALEX_API_KEY` | なし | OpenAlex API key。未設定時は `jp_lit_enrich_record` の OpenAlex 照合だけ `skipped` になる |
 
 `NDL_SEARCH_BASE_URL` / `NDL_DIGITAL_BASE_URL` は `/api/sru` / `/api/opensearch` / `/api/bib/external/search` のどれを渡しても内部で正規化します。
 
@@ -715,6 +746,7 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 
 - `ndl_digital` は独立 API ではなく `NDL Search SRU + dpid=ndl-dl` を使います。
 - KAKEN は `jp_lit_search` の source ではありません。`jp_lit_search_kaken_projects` は研究課題・報告書 PDF・成果リストの入口であり、成果リスト中の文献確定には使いません。
+- Crossref / OpenAlex は `jp_lit_search` の source ではありません。`jp_lit_enrich_record` は既存候補の外部書誌照合用で、未収録・低引用は日本語人文系での低重要度を意味しません。
 - 次世代デジタルライブラリー API と OCR 系ツールはインターネット公開資料のみ対象です。
 - `ndl_search` は広域・初動向きです。CiNii / J-STAGE はハーベスト済みメタデータのため情報が薄く、NIHU Bridge は対象外です。
 - `ndl_articles_online` は検索のみ対応です。`jp_lit_get_record` は常に `null` になります。

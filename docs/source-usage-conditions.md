@@ -15,6 +15,8 @@
 | 次世代デジタルライブラリー API | 原則不要 | 営利かつ継続的利用は問い合わせ | 加工時の明示など配慮事項あり | 営利かつ継続的利用は問い合わせ | OCR / 図版 / 全文はここを使用 |
 | `cinii_articles` / `cinii_books` | App ID 要 | 商用は事前連絡推奨 | 著作権法等に従い適切取扱い | 短時間大量アクセスは遮断あり | API利用登録が必要 |
 | `jp_lit_search_kaken_projects`（KAKEN） | App ID 要 | 条件確認 | 出典記載が必要 | 短時間大量アクセスは避ける | 研究課題・報告書 PDF の入口。成果リストは文献候補扱い |
+| `jp_lit_enrich_record`（Crossref） | 不要 | 条件確認 | polite pool 用 `mailto` 推奨 | 高頻度利用は避ける | DOI / title / author / year の外部書誌照合。本文取得ではない |
+| `jp_lit_enrich_record`（OpenAlex） | API key 要 | 利用量・課金条件確認 | 条件確認 | `api_key` と利用量管理が必要 | works metadata の外部書誌照合。本文取得ではない |
 | `jstage_articles` | 非営利は不要 | 営利は申請必要 | JST 提供である旨表示、J-STAGE へのリンク | 利用者運営サービスでの 24 時間超保存・大量取得に注意 | 検索は WebAPI、詳細は記事ページ HTML meta の best-effort |
 | `irdb` | 明示的な登録要件は未確認 | 規程ベース | 規程と個別条件に従う | 個人情報・詳細HTML取得に留意 | 検索は OpenSearch、詳細は IRDB 詳細画面 HTML の best-effort |
 | `japan_search` | 公開 API に登録不要と読める | データごとに異なる | source 表記推奨、参加機関条件確認 | 個別コンテンツ条件確認 | metadata / thumbnail / content で条件が異なる |
@@ -110,6 +112,39 @@
 
 - KAKEN API 概要: https://support.nii.ac.jp/ja/kaken/api/api_outline
 - KAKEN 利用規程: https://support.nii.ac.jp/ja/kaken/about/terms
+
+### Crossref / OpenAlex
+
+対象:
+
+- `jp_lit_enrich_record`
+
+実装での利用:
+
+- Crossref は `https://api.crossref.org/works` を使い、DOI または title/author/year から登録メタデータを照合します。
+- OpenAlex は `https://api.openalex.org/works` を使い、DOI または title/year から works metadata を照合します。
+- どちらも `jp_lit_search` の source ではありません。NDL / CiNii / J-STAGE / IRDB などで見つけた候補の書誌照合を補助する provider です。
+- 本文、PDF、抄録本文の一括取得、引用ネットワークの網羅的収集は行いません。
+
+確認できたこと:
+
+- Crossref REST API は、公開 REST API として Crossref 登録メタデータを JSON で返します。access and authentication の公式説明では、Public access は認証不要、Polite access は `mailto` parameter または agent header で連絡先を渡す方式とされています。
+- OpenAlex API は works / authors / sources / institutions / topics などの scholarly graph を返します。公式 docs では API key を `api_key` query parameter で渡す方式が示され、parameter は `per_page` など snake_case です。
+
+運用メモ:
+
+- `CROSSREF_MAILTO` は任意ですが、継続利用では設定を推奨します。
+- `OPENALEX_API_KEY` が未設定の場合、実装は OpenAlex を `skipped` として扱い、Crossref だけで照合します。
+- Crossref / OpenAlex の未収録、引用数の少なさ、OpenAlex skipped は、日本語人文系文献の低重要度を意味しません。本文確認、専門書評、紀要・地域資料・学会誌の文脈は別途確認します。
+- 公開サービスや共有サーバで常設利用する場合は、API key 管理、利用量、キャッシュ期間、メタデータ再配布条件を提供元 docs で再確認します。
+
+参考:
+
+- Crossref REST API: https://www.crossref.org/documentation/retrieve-metadata/rest-api/
+- Crossref REST API access and authentication: https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/
+- OpenAlex API overview: https://developers.openalex.org/api-reference/introduction
+- OpenAlex authentication: https://developers.openalex.org/api-reference/authentication
+- OpenAlex LLM quick reference: https://developers.openalex.org/guides/llm-quick-reference
 
 ### J-STAGE WebAPI
 
