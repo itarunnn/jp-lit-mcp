@@ -329,7 +329,7 @@ jp_lit_enrich_record(
 )
 ```
 
-この tool は検索 source ではありません。新しい候補を広く探すときは `jp_lit_search` を使い、そこで得た候補の外部照合に `jp_lit_enrich_record` を使います。OpenAlex は `OPENALEX_API_KEY` が未設定なら `skipped` になり、Crossref のみで照合します。`match_confidence=high` は書誌一致が強いという意味で、本文を読んだことや、その文献が研究上重要であることを意味しません。
+この tool は検索 source ではありません。新しい候補を広く探すときは `jp_lit_search` を使い、そこで得た候補の外部照合に `jp_lit_enrich_record` を使います。OpenAlex は `OPENALEX_API_KEY` が未設定なら `skipped` になり、Crossref のみで照合します。OpenAlex 側には OA full-text link、PDF、TEI XML content download の機能がありますが、`jp_lit_enrich_record` はそれらを使って本文・PDF・TEI XML を取得せず、書誌照合 metadata のみを返します。`match_confidence=high` は書誌一致が強いという意味で、本文を読んだことや、その文献が研究上重要であることを意味しません。
 
 ---
 
