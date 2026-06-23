@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-06-19 時点の状態:
+2026-06-24 時点の状態:
 
-- 公開ツール 26 種・対応 source 20 種・テスト 522 件すべて通過
+- 公開ツール 26 種・対応 source 20 種・テスト 524 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -29,6 +29,7 @@
 
 ## 最近の更新
 
+- `0.7.8`: NDL デジタルコレクション detail に `content_access.manual_viewing` を追加。`source_metadata.next_digital_library` は MCP が自動 OCR / 全文 API を使えるかの判定として維持し、個人送信対象・図書館送信対象・国立国会図書館内限定のような手動閲覧導線を分けて返す。MCP から全文を自動取得できなくても、NDL の登録利用者ログインや参加館・館内端末で読める可能性をエージェントが説明できるようにした
 - `0.7.7`: Gitleaks / Timeahead の repository history scan で JDCat の public schema field ID が `generic-api-key` として検出される偽陽性を確認し、該当 fingerprint だけを `.gitleaksignore` に登録。現行コードでは mapper 内の引数名を `langField` / `textField` に変更し、credential 風の命名を避けた。実 credential の流出ではなく、MCP tool / source の追加・削除もない
 - `0.7.6`: `jp_lit_enrich_record` を追加。Crossref は無認証 REST + 任意 `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` 前提で、未設定時は `providers.openalex.status="skipped"` として扱う。`jp_lit_refine_results(include_enrichment=true)` では保存済み照合 cache を重複クラスタに付与できる。`cinii_dissertations` を明示 source として追加し、CiNii Research OpenSearch の `dissertations` search type を使う。既定横断・live smoke matrix には含めず、CSL JSON export では博士論文候補を `type="thesis"` として出力する。未収録・低引用を日本語人文系文献の低重要度とは扱わない
 - `0.7.5`: README / install docs / GitHub Skills 導線を整理。Skill-first の導入説明、カーリル図書館MCP、CiNii Research API の `appid` を `CINII_RESEARCH_APP_ID` として MCP server env に渡す説明を初見向けに明文化。MCP tool の追加・削除はなし
