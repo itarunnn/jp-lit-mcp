@@ -34,11 +34,24 @@ const availabilitySchema = z.object({
   digital_collection: z.boolean()
 });
 
+const manualViewingSchema = z.object({
+  available: z.boolean(),
+  access_type: z.enum([
+    "individual_transmission",
+    "library_transmission",
+    "ndl_onsite_only"
+  ]),
+  label: z.string(),
+  note: z.string(),
+  viewer_url: z.string().nullable()
+});
+
 const contentAccessSchema = z.object({
   has_page_images: z.boolean(),
   has_text_coordinates: z.boolean(),
   viewer_url: z.string().nullable(),
-  access_note: z.string().nullable()
+  access_note: z.string().nullable(),
+  manual_viewing: manualViewingSchema.nullable().optional()
 });
 
 const relatedSearchRecordSchema = z.object({

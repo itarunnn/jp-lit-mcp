@@ -1,4 +1,4 @@
-import type { RecordItem } from "../../lib/types.js";
+import type { ManualViewingInfo, RecordItem } from "../../lib/types.js";
 import {
   mapNdlSearchSearchEntry,
   readNdlSearchBoolean,
@@ -127,6 +127,50 @@ function aggregateSummary(itemMetas: (JsonRecord | null)[]): string | null {
   return null;
 }
 
+function buildManualViewingInfo(
+  accessNote: string | null,
+  transmissionLabels: string[],
+  viewerUrl: string | null
+): ManualViewingInfo | null {
+  const individualTransmission = transmissionLabels.find((label) =>
+    label.includes("個人送信")
+  );
+  if (individualTransmission) {
+    return {
+      available: true,
+      access_type: "individual_transmission",
+      label: individualTransmission,
+      note: "MCPから全文は自動取得できませんが、NDLの登録利用者としてログインすれば手動で閲覧できます。",
+      viewer_url: viewerUrl
+    };
+  }
+
+  const libraryTransmission = transmissionLabels.find((label) =>
+    label.includes("図書館送信")
+  );
+  if (libraryTransmission) {
+    return {
+      available: true,
+      access_type: "library_transmission",
+      label: libraryTransmission,
+      note: "MCPから全文は自動取得できませんが、図書館向けデジタル化資料送信サービスの参加館で手動閲覧できる可能性があります。",
+      viewer_url: viewerUrl
+    };
+  }
+
+  if (accessNote?.includes("国立国会図書館内限定")) {
+    return {
+      available: true,
+      access_type: "ndl_onsite_only",
+      label: accessNote,
+      note: "MCPから全文は自動取得できません。手動閲覧には国立国会図書館内の端末利用が必要です。",
+      viewer_url: viewerUrl
+    };
+  }
+
+  return null;
+}
+
 function normalizeViewerUrl(value: string | null): string | null {
   if (!value) {
     return null;
@@ -238,6 +282,8 @@ function normalizeRecordPayload(record: JsonRecord): {
 
   const sourceId = readNdlSearchString(listRecord.id ?? itemRecord?.id);
   const viewerUrl = readMetaViewerUrl(itemMeta);
+  const accessNote = readMetaValue(itemMeta, "k39020");
+  const transmissionLabels = readMetaList(itemMeta, "k39021");
   const providerName = readMetaValue(itemMeta, "k80404");
   const digitalCollection =
     readMetaValue(itemMeta, "k39022") !== null ||
@@ -285,7 +331,12 @@ function normalizeRecordPayload(record: JsonRecord): {
       hasPageImages: viewerUrl !== null,
       hasTextCoordinates: false,
       viewerUrl,
-      accessNote: readMetaValue(itemMeta, "k39020"),
+      accessNote,
+      manualViewing: buildManualViewingInfo(
+        accessNote,
+        transmissionLabels,
+        viewerUrl
+      ),
       providerId: null,
       providerName
     },
@@ -301,6 +352,9 @@ export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null 
   const { normalized, raw } = result;
   const base = mapNdlSearchSearchEntry(normalized);
   const classification = readClassification(normalized);
+  const manualViewing = asRecord(
+    normalized.manualViewing ?? normalized.manual_viewing
+  ) as ManualViewingInfo | null;
 
   return {
     ...base,
@@ -334,7 +388,8 @@ export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null 
       ),
       access_note: readNdlSearchString(
         normalized.accessNote ?? normalized.access_note
-      )
+      ),
+      ...(manualViewing ? { manual_viewing: manualViewing } : {})
     },
     source_metadata: {
       provider_id: readNdlSearchString(

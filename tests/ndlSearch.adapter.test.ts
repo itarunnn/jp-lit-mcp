@@ -340,6 +340,64 @@ describe("NDL Search mappers", () => {
     });
   });
 
+  it("個人送信対象のデジコレ detail では手動ログイン閲覧導線を返す", async () => {
+    const sourceId = "R100000002-I000001061332";
+    const payload = {
+      list: [
+        {
+          id: sourceId,
+          meta: {
+            t02451: [{ v: "ああ八月十五日 : 終戦の思い出. 第2集" }],
+            t0245c: [{ v: "八幡師友会" }],
+            t02600: [{ v: "八幡師友会", l: "北九州" }],
+            k00410: [{ v: "jpn" }],
+            k09022: [{ v: "図書" }],
+            t02604: [{ v: "1964" }]
+          },
+          items: [
+            {
+              id: sourceId,
+              type: ["ndl"],
+              meta: {
+                k80404: [{ v: "国立国会図書館サーチ" }]
+              }
+            },
+            {
+              id: "R100000039-I2989237",
+              type: ["ndl", "digital", "accessible"],
+              meta: {
+                k39020: [{ v: "国立国会図書館内限定公開" }],
+                k39021: [{ v: "図書館・個人送信対象" }],
+                k39022: [{ v: "デジタル" }],
+                k30012: [{ v: "https://dl.ndl.go.jp/pid/2989237" }],
+                k80404: [{ v: "国立国会図書館デジタルコレクション" }],
+                k31000: [
+                  {
+                    v: "info:ndljp/pid/2989237",
+                    i: "https://dl.ndl.go.jp/pid/2989237"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    };
+    const { mapNdlSearchRecordResponse } = await import(
+      "../src/sources/ndlSearch/mapRecord.js"
+    );
+
+    const record = mapNdlSearchRecordResponse(payload);
+
+    expect(record.content_access.manual_viewing).toEqual({
+      available: true,
+      access_type: "individual_transmission",
+      label: "図書館・個人送信対象",
+      note: "MCPから全文は自動取得できませんが、NDLの登録利用者としてログインすれば手動で閲覧できます。",
+      viewer_url: "https://dl.ndl.go.jp/pid/2989237"
+    });
+  });
+
   it("record XML を mapper が読める shape に投影できる", async () => {
     const xml = readTextFixture("record-response.xml");
     const { projectNdlSearchDetailXml } = await import(

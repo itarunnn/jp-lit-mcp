@@ -502,7 +502,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_record",
     {
-      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない",
+      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない。個人送信対象など、MCP から自動全文取得できなくても NDL ログインや参加館・館内端末で手動閲覧できる導線は content_access.manual_viewing を確認する",
       inputSchema: recordInputSchema,
       outputSchema: recordOutputSchema
     },

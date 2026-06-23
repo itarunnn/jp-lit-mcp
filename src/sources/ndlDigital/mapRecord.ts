@@ -115,7 +115,10 @@ export function mapNdlDigitalRecordResponse(payload: unknown): RecordItem | null
         readNdlSearchBoolean(raw.hasTextCoordinates) ||
         readNdlSearchBoolean(raw.has_text_coordinates),
       viewer_url: viewerUrl,
-      access_note: accessNote
+      access_note: accessNote,
+      ...(base.content_access.manual_viewing
+        ? { manual_viewing: base.content_access.manual_viewing }
+        : {})
     },
     source_metadata: {
       ...base.source_metadata,

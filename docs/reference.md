@@ -101,6 +101,18 @@ nihu_bridge
 
 `RecordItem` ではさらに `alternative_titles` / `publication_place` / `language` / `extent` / `identifiers` / `content_access` / `source_metadata` / `raw` を返します。
 
+`content_access`:
+
+| フィールド | 型 | 説明 |
+| ---------- | -- | ---- |
+| `has_page_images` | boolean | ページ画像ビューアへの導線があるか |
+| `has_text_coordinates` | boolean | ページ単位の文字座標を返せるか |
+| `viewer_url` | string \| null | 公式ビューア・本文入口 URL |
+| `access_note` | string \| null | 上流が返す公開範囲・アクセス注記 |
+| `manual_viewing` | object \| null | 自動取得ではなく人間が公式画面で読むための導線。主に `ndl_digital` detail で返る |
+
+`content_access.manual_viewing` がある場合、主なフィールドは `available` / `access_type` / `label` / `note` / `viewer_url` です。`access_type=individual_transmission` は、MCP から OCR 全文を自動取得できなくても、NDL の登録利用者としてログインすれば手動閲覧できる資料を表します。`access_type=library_transmission` は参加館での閲覧導線、`access_type=ndl_onsite_only` は国立国会図書館内端末での閲覧導線です。
+
 ### `source_metadata` の代表例
 
 | source | 主なフィールド |
@@ -238,7 +250,7 @@ nihu_bridge
 | `source_id` | string | 必須 | 検索結果の `source_id` |
 | `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再取得 |
 
-`source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。
+`source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。個人送信対象・図書館送信対象・館内限定など、MCP では自動全文取得できないが公式画面で手動閲覧できる可能性がある場合は、`content_access.manual_viewing` に手動閲覧導線が入ります。
 
 `source=national_archives` / `source=jacar` の場合、目録メタデータ、公式レコード URL、画像数や利用制限などを返します。`source_id` は `national_archives` が数値 ID、`jacar` がレファレンスコードです。画像ファイル本体、IIIF manifest、OCR 本文、ページ単位検索は初期スコープ外です。403 が返る場合は VPN やネットワーク制限の可能性があります。
 
@@ -615,7 +627,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | `public_domain` | boolean \| null | パブリックドメイン判定 |
 | `online_pdf` | boolean \| null | PDF 一括ダウンロード可否 |
 
-`available=false` は、実務上は次世代側未収録であることが多いですが、アクセス制限や上流都合との厳密な区別はしていません。PID を解決できない場合は `next_digital_library` 自体が `null` になります。
+`available=false` は、実務上は次世代側未収録であることが多いですが、アクセス制限や上流都合との厳密な区別はしていません。PID を解決できない場合は `next_digital_library` 自体が `null` になります。個人送信対象などで手動閲覧できる資料は `content_access.manual_viewing` を確認してください。`next_digital_library.available=false` と `manual_viewing.available=true` は両立します。
 
 ## 環境変数
 

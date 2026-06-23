@@ -62,6 +62,19 @@ export interface RelatedSearchRecord {
   url: string | null;
 }
 
+export type ManualViewingAccessType =
+  | "individual_transmission"
+  | "library_transmission"
+  | "ndl_onsite_only";
+
+export interface ManualViewingInfo {
+  available: boolean;
+  access_type: ManualViewingAccessType;
+  label: string;
+  note: string;
+  viewer_url: string | null;
+}
+
 export interface SearchFacets {
   providers: Record<string, number>;
   ndc: Record<string, number>;
@@ -122,6 +135,7 @@ export interface RecordItemBase {
     has_text_coordinates: boolean;
     viewer_url: string | null;
     access_note: string | null;
+    manual_viewing?: ManualViewingInfo | null;
   };
   source_metadata: Record<string, unknown>;
   raw: Record<string, unknown>;
