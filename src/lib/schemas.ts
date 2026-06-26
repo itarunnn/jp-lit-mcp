@@ -973,7 +973,7 @@ export const searchFulltextInputSchema = z.object({
   searchfield: z.enum(["contentonly", "metaonly", "all"]).default("contentonly").describe("検索対象。contentonly は本文 OCR、metaonly はメタデータ、all は両方。"),
   size: z.number().int().positive().max(100).default(20).describe("返す資料候補の最大件数。最大 100。"),
   from: z.number().int().nonnegative().default(0).describe("検索結果の offset。0 始まり。"),
-  f_ndc: z.string().optional().describe("NDL デジタルコレクションの NDC filter。分かっている場合だけ指定する。"),
+  f_ndc: z.string().optional().describe("次世代デジタルライブラリー Book API の f-ndc filter。上位分類は 9* のような前方一致で指定する。9 のような1-2桁の数字だけを渡した場合は 9* に正規化する。"),
   fc_is_classic: z.boolean().optional().describe("古典籍フラグで絞る場合に指定する。"),
   force_refresh: forceRefreshFieldSchema
 });

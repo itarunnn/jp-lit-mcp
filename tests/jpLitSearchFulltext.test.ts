@@ -110,6 +110,77 @@ describe("jp_lit_search_fulltext", () => {
     );
   });
 
+  it("短い NDC 分類は前方一致 filter として searchBooks に渡る", async () => {
+    const baseDir = await createTempDir();
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({ keyword: "夏目漱石", f_ndc: "9" });
+
+    expect(nextDlClient.searchBooks).toHaveBeenCalledWith(
+      "夏目漱石",
+      expect.objectContaining({ fNdc: "9*" })
+    );
+  });
+
+  it("具体的な NDC 分類と明示的な wildcard はそのまま searchBooks に渡る", async () => {
+    const baseDir = await createTempDir();
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({ keyword: "図書館", f_ndc: "017", force_refresh: true });
+    await tool({ keyword: "文学", f_ndc: "9*", force_refresh: true });
+
+    expect(nextDlClient.searchBooks).toHaveBeenNthCalledWith(
+      1,
+      "図書館",
+      expect.objectContaining({ fNdc: "017" })
+    );
+    expect(nextDlClient.searchBooks).toHaveBeenNthCalledWith(
+      2,
+      "文学",
+      expect.objectContaining({ fNdc: "9*" })
+    );
+  });
+
+  it("短い NDC 分類と正規化後の wildcard は同じ cache entry を使う", async () => {
+    const baseDir = await createTempDir();
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({ keyword: "夏目漱石", f_ndc: "9" });
+    await tool({ keyword: "夏目漱石", f_ndc: "9*" });
+
+    expect(nextDlClient.searchBooks).toHaveBeenCalledTimes(1);
+  });
+
+  it("空白だけの NDC 分類は未指定と同じ cache entry を使う", async () => {
+    const baseDir = await createTempDir();
+    const nextDlClient = makeNextDlClient(SEARCH_PAYLOAD);
+    const tool = createJpLitSearchFulltextTool(
+      nextDlClient,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({ keyword: "夏目漱石" });
+    await tool({ keyword: "夏目漱石", f_ndc: "   " });
+
+    expect(nextDlClient.searchBooks).toHaveBeenCalledTimes(1);
+  });
+
   it("API が null を返したら NotFoundError を投げる", async () => {
     const baseDir = await createTempDir();
     const tool = createJpLitSearchFulltextTool(

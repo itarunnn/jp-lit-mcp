@@ -24,6 +24,14 @@ function bool(v: unknown): boolean | null {
   return typeof v === "boolean" ? v : null;
 }
 
+function normalizeNdcFilter(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^\d{1,2}$/.test(trimmed)) return `${trimmed}*`;
+  return trimmed;
+}
+
 export function createJpLitSearchFulltextTool(
   nextDlClient: NextDigitalLibraryClient,
   cache: FileCache = createFileCache(),
@@ -31,7 +39,11 @@ export function createJpLitSearchFulltextTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchFulltextInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const normalizedInput = {
+      ...parsed,
+      f_ndc: normalizeNdcFilter(parsed.f_ndc)
+    };
+    const { force_refresh, ...cacheableInput } = normalizedInput;
 
     const result = await runCachedTool<SearchFulltextOutput>({
       tool: "jp_lit_search_fulltext",
@@ -44,7 +56,7 @@ export function createJpLitSearchFulltextTool(
           searchfield: parsed.searchfield,
           size: parsed.size,
           from: parsed.from,
-          fNdc: parsed.f_ndc,
+          fNdc: normalizedInput.f_ndc,
           fcIsClassic: parsed.fc_is_classic
         });
 

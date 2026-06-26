@@ -177,12 +177,20 @@ describe("createNextDigitalLibraryClient", () => {
     );
     const client = createNextDigitalLibraryClient();
 
-    const result = await client.searchBooks("大政奉還", { searchfield: "contentonly", size: 2 });
+    const result = await client.searchBooks("大政奉還", {
+      searchfield: "contentonly",
+      size: 2,
+      fNdc: "9*",
+      fcIsClassic: true
+    });
     expect(result).toEqual(payload);
     const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    const params = new URL(url).searchParams;
     expect(url).toContain("/book/search");
-    expect(url).toContain("keyword=");
-    expect(url).toContain("searchfield=contentonly");
+    expect(params.get("keyword")).toBe("大政奉還");
+    expect(params.get("searchfield")).toBe("contentonly");
+    expect(params.get("f-ndc")).toBe("9*");
+    expect(params.get("fc-isClassic")).toBe("true");
   });
 
   it("illustration/searchbytext API を叩ける", async () => {

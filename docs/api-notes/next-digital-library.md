@@ -26,10 +26,23 @@
 - `Illustration API`
   - 図版メタデータ取得: `/dl/api/illustration/{pid}_{page}_{index}`
 
+## 検索パラメータの実地確認
+
+2026-06-27 に `knagata/ndl-mcp` の実装と比較し、公式仕様と live API を確認した。
+
+- `Book API` の検索対象指定は `searchfield=contentonly|metaonly|all` を使う。`field=fulltext` / `field=title` は 200 を返すが、確認した範囲ではデフォルト検索と同じ結果になり、公式パラメータとしては扱わない。
+- `Book API` の NDC filter は `f-ndc` を使う。文学全体のような上位分類は `9*` のように前方一致で指定する。`ndc=9` は 200 を返すが、確認した範囲では filter として効かない。
+- `Book API` の古典籍 filter は `fc-isClassic` を使う。`isClassic=true` は 200 を返すが、確認した範囲では filter として効かない。
+- highlight を消す場合は `withouthighlight=true` を使う。`snippet=false` は確認した範囲では highlight 抑制として効かない。
+- `Page API` の資料内検索は `f-book` と `q-contents` を使う。
+- `Illustration API` の検索語は `keyword2vec` を使う。`q-contents` や `keyword` は公式仕様の検索語パラメータとして扱わない。
+- `graphictag` は上流検索パラメータとしては採用しない。図版種別で絞り込む場合は、取得後の `graphictags[].tagname` をローカルに確認する。
+
 ## デジコレ本体検索との違い
 
 - この MCP の OCR 系ツールは `https://lab.ndl.go.jp/dl/api` の次世代デジタルライブラリー API を使う。
-- デジコレ本体（`https://dl.ndl.go.jp/`）の検索画面は、館内限定・送信サービス限定資料を含む全文検索ヒットを表示することがある。
+- デジコレ本体（`https://dl.ndl.go.jp/`）の検索画面は、次世代デジタルライブラリー API の収録範囲外にあるログインなし公開資料、館内限定資料、送信サービス限定資料を含む全文検索ヒットを表示することがある。
+- 次世代デジタルライブラリーで扱える資料と、デジコレ本体でログインなし閲覧できる資料は近い範囲だが同一ではない。`jp_lit_search_fulltext` は後者全体の検索ではない。
 - ただし、デジコレ本体の全文検索結果を取得する公開・文書化 API は NDL API 一覧では確認していない。
 - `dl.ndl.go.jp` の `robots.txt` は、2026-06-26 確認時点で検索結果画面（`/search` 系）をクロール対象外にし、`/api/` も `/api/iiif/` を除いてクロール対象外としている。
 - そのため、`dl.ndl.go.jp/api/item/search` や `dl.ndl.go.jp/api/fulltext/search` のような画面内部 endpoint は MCP の通常機能として使わない。限定資料の全文検索ヒットは、公式画面で人間が確認する対象として扱う。
@@ -47,7 +60,7 @@
 
 - 仕様ページでは、`Book API` などの `{pid}` は「永続的識別子」の数値部分と説明されている。
 - これは国立国会図書館デジタルコレクションの `info:ndljp/pid/...` や `https://dl.ndl.go.jp/pid/...` の数値部分と整合する想定。
-- ただし、次世代デジタルライブラリーの収録対象は「インターネット公開」かつ主として「著作権保護期間満了」の図書・古典籍に限られる。
+- ただし、次世代デジタルライブラリーの収録対象は「インターネット公開」かつ主として「著作権保護期間満了」の図書・古典籍に限られる。デジコレ本体の「ログインなしで閲覧可能」資料全体を意味しない。
 
 ## 実地確認
 
