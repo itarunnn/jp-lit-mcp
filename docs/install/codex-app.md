@@ -1,14 +1,13 @@
 # Codex App で使う
 
-このページは、`Codex App` で `jp-lit-mcp` を導入するための手順です。MCP の追加は `Codex CLI` から行うと再現しやすいため、このガイドでも CLI を使います。通常利用では、このリポジトリを clone する必要はありません。
+このページは、`Codex App` で `jp-lit-mcp` を導入するための手順です。MCP の追加は `Codex App` の設定画面だけでもできます。CLI から追加する方法も、再現性が高く、設定確認やトラブルシュートがしやすい代替ルートとして併記します。通常利用では、このリポジトリを clone する必要はありません。
 
 ## 前提
 
 - `Node.js 18` 以上と `npm` が使えること
 - `Codex App` が起動できること
-- `Codex CLI` にログイン済みであること
 
-`Codex CLI` が未導入なら、先に入れてログインします。
+CLI ルートを使う場合だけ、`Codex CLI` にログイン済みであることも必要です。`Codex CLI` が未導入なら、先に入れてログインします。
 
 ```bash
 npm install -g @openai/codex
@@ -17,13 +16,25 @@ codex login
 
 ## 手順
 
-1. `MCP` を `Codex CLI` から追加します。
+1. `MCP` を追加します。
+
+`Codex App` 単体で追加する場合は、`Settings` から `Integrations & MCP` を開き、custom MCP server として次の stdio server を追加します。
+
+| 項目 | 値 |
+| --- | --- |
+| 名前 | `jpLit` |
+| command | `npx` |
+| args | `-y jp-lit-mcp` |
+
+CiNii Research の API 利用登録で取得した `appid` を渡す場合は、同じ MCP server の環境変数として `CINII_RESEARCH_APP_ID` を設定します。`jp_lit_enrich_record` で OpenAlex / Crossref の照合を使う場合は、`OPENALEX_API_KEY` と `CROSSREF_MAILTO` も同じ場所に追加できます。どれも実値は Git 管理しないでください。
+
+CLI から追加する場合は次のコマンドを使います。
 
 ```bash
 codex mcp add jpLit -- npx -y jp-lit-mcp
 ```
 
-CiNii Research の API 利用登録で取得した `appid` を渡す場合は、環境変数 `CINII_RESEARCH_APP_ID` として設定します。Codex CLI から追加する場合は `--env` フラグを使います。
+CLI から `CINII_RESEARCH_APP_ID` を渡す場合は `--env` フラグを使います。
 
 ```bash
 codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp
@@ -33,11 +44,13 @@ codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-l
 
 `jp_lit_enrich_record` で OpenAlex / Crossref の照合を使う場合は、同じ MCP server の環境変数として `OPENALEX_API_KEY` と `CROSSREF_MAILTO` も渡せます。どちらも任意で、OpenAlex は未設定なら `skipped`、Crossref の `mailto` は polite pool 用の連絡先として扱います。
 
-Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、Codex CLI / IDE extension / Codex App で共有されます。`--env` は `npx -y jp-lit-mcp` のような stdio server に渡す環境変数です。
+Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、Codex CLI / IDE extension / Codex App で共有されます。App 設定画面から追加しても CLI から追加しても、最終的には同じ Codex 設定として扱われます。`--env` は `npx -y jp-lit-mcp` のような stdio server に渡す環境変数です。
 
 2. `Skills` をインストールします。
 
 この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.agents/skills/` に入ります。
+
+現行の `jp-lit-mcp` は npm package として Skills インストーラーを配布しているため、Skills についてはこのコマンドを使います。MCP 追加まで含めて Codex App の UI だけで完結させたい場合は、将来的に Skills と MCP 設定を Codex plugin として package するのが自然な導線です。
 
 ```bash
 npx -y jp-lit-mcp install-skills codex
@@ -61,7 +74,9 @@ npx -y jp-lit-mcp install-skills codex
 
 ## カーリル図書館MCPを併用する場合
 
-地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別に[カーリル図書館MCP](https://calil.jp/ai/)を Codex CLI に登録します。カーリル公式の対応表・設定ガイドには、現時点では Codex は載っていませんが、Codex CLI では Streamable HTTP MCP と OAuth を使って追加できます。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。認可後は通常、新しい Codex App の対話で再利用されます。
+地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別に[カーリル図書館MCP](https://calil.jp/ai/)を追加します。`Codex App` の `Integrations & MCP` から custom Streamable HTTP server として追加する場合は、URL に `https://mcp-beta.calil.jp/mcp` を指定します。OAuth が必要な場合は App 側で認可フローが始まります。認可後は通常、新しい Codex App の対話で再利用されます。
+
+CLI から追加する場合は次のコマンドを使います。カーリル公式の対応表・設定ガイドには、現時点では Codex は載っていませんが、Codex CLI では Streamable HTTP MCP と OAuth を使って追加できます。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。
 
 ```bash
 codex mcp add calil --url https://mcp-beta.calil.jp/mcp
@@ -81,7 +96,7 @@ oauth_resource = "https://mcp-beta.calil.jp"
 
 ## 設定反映の確認
 
-まず CLI 側で MCP 登録を確認します。
+CLI ルートを使った場合は、CLI 側で MCP 登録を確認します。
 
 ```bash
 codex mcp list
@@ -101,7 +116,8 @@ npx -y jp-lit-mcp doctor
 ## つまずきやすい点と対処
 
 - `codex mcp list` に `jpLit` が出ない
-  - CLI 側の登録ができていません。`codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
+  - CLI 側で追加した場合は登録ができていません。`codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
+  - App 設定画面から追加した場合は、`Settings` の `Integrations & MCP` で `jpLit` が有効になっているか確認してください
 - `jpLit` は出るが App で使えない
   - `Codex App` を開き直して新しい対話を作ってください
 - KAKEN で `KAKEN API requires CINII_RESEARCH_APP_ID.` が出る
