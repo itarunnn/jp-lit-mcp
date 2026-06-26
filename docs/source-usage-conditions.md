@@ -72,11 +72,14 @@
 - `営利目的かつ継続的な利用を除き、申請不要で自由に利用` できます。
 - 収録資料は著作権保護期間満了資料で、資料データは PDM ですが、加工したことの明示や自由利用可能表記の保持など、配慮事項があります。
 - 著作権以外の権利・利益にも留意が必要です。
+- デジコレ本体（`dl.ndl.go.jp`）の全文検索画面に出る館内限定・送信サービス限定資料の OCR ヒットは、次世代デジタルライブラリー API の検索対象とは別です。
+- `dl.ndl.go.jp` の画面内部 API は公式 API として扱わず、MCP の通常機能では利用しません。本文・スニペット取得ではなく、公式画面での手動確認導線として扱います。
 
 参考:
 
 - サービス説明: https://lab.ndl.go.jp/service/tsugidigi/
 - API案内: https://lab.ndl.go.jp/service/tsugidigi/apiinfo/
+- デジコレ robots.txt: https://dl.ndl.go.jp/robots.txt
 
 ### CiNii Research / CiNii Dissertations / CiNii Books
 

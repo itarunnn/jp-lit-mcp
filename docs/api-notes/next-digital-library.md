@@ -1,6 +1,6 @@
 # 次世代デジタルライブラリー API メモ
 
-確認日: 2026-04-27
+確認日: 2026-04-27 / 2026-06-26 追加確認
 
 ## 公式仕様の入口
 
@@ -25,6 +25,14 @@
   - 構造化テキストページ単位: `/dl/api/page/layout/{pid}_{page}`
 - `Illustration API`
   - 図版メタデータ取得: `/dl/api/illustration/{pid}_{page}_{index}`
+
+## デジコレ本体検索との違い
+
+- この MCP の OCR 系ツールは `https://lab.ndl.go.jp/dl/api` の次世代デジタルライブラリー API を使う。
+- デジコレ本体（`https://dl.ndl.go.jp/`）の検索画面は、館内限定・送信サービス限定資料を含む全文検索ヒットを表示することがある。
+- ただし、デジコレ本体の全文検索結果を取得する公開・文書化 API は NDL API 一覧では確認していない。
+- `dl.ndl.go.jp` の `robots.txt` は、2026-06-26 確認時点で検索結果画面（`/search` 系）をクロール対象外にし、`/api/` も `/api/iiif/` を除いてクロール対象外としている。
+- そのため、`dl.ndl.go.jp/api/item/search` や `dl.ndl.go.jp/api/fulltext/search` のような画面内部 endpoint は MCP の通常機能として使わない。限定資料の全文検索ヒットは、公式画面で人間が確認する対象として扱う。
 
 ## 取得できる情報
 

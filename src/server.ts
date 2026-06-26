@@ -652,7 +652,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_fulltext",
     {
-      description: "read-only。NDL デジタルコレクション全資料を対象に OCR 全文テキストからキーワード検索する（公開範囲のみ）。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う",
+      description: "read-only。次世代デジタルライブラリー収録資料を対象に OCR 全文テキストからキーワード検索する（インターネット公開資料中心）。デジコレ本体の全文検索画面/APIではなく、館内限定・送信サービス限定資料の全文ヒットは網羅しない。網羅性が必要な調査では、この結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う",
       inputSchema: searchFulltextInputSchema,
       outputSchema: searchFulltextOutputSchema
     },
