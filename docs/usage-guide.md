@@ -841,7 +841,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 | `jp_lit_get_fulltext`         | 特定資料の全ページ OCR を取得します                          | 資料全体をまとめて読みたい場合             | 大きな資料では返却が重くなることがあります                                       |
 | `jp_lit_search_illustrations` | 次世代デジタルライブラリーの図版・挿絵をテキスト検索します   | 図版・写真・挿絵を探す                     | `illustration_image_url` は図版部分の IIIF 切り出し URL です                     |
 
-NDC で上位分類を絞る場合は、`jp_lit_search_fulltext` に `f_ndc: "9*"` のような前方一致 filter を渡します。`f_ndc: "9"` のような1-2桁の数字だけを渡した場合は、MCP 側で `9*` に正規化します。図版種別は上流 `graphictag` filter ではなく、返却後の `graphictags[].tagname` で確認します。
+NDC で上位分類を絞る場合は、`jp_lit_search_fulltext` に `f_ndc: "9*"` のような前方一致 filter を渡します。`f_ndc: "9"` のような1-2桁の数字だけを渡した場合は、MCP 側で `9*` に正規化します。空文字・空白だけの `f_ndc` は未指定と同じ扱いです。図版種別は上流 `graphictag` filter ではなく、返却後の `graphictags[].tagname` で確認します。
 
 ### 国書データベース拡張ツール
 

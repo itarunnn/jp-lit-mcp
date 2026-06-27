@@ -191,6 +191,9 @@ describe("createNextDigitalLibraryClient", () => {
     expect(params.get("searchfield")).toBe("contentonly");
     expect(params.get("f-ndc")).toBe("9*");
     expect(params.get("fc-isClassic")).toBe("true");
+    expect(params.get("field")).toBeNull();
+    expect(params.get("ndc")).toBeNull();
+    expect(params.get("isClassic")).toBeNull();
   });
 
   it("illustration/searchbytext API を叩ける", async () => {
@@ -205,8 +208,11 @@ describe("createNextDigitalLibraryClient", () => {
     const result = await client.searchIllustrations("富士山", { size: 2 });
     expect(result).toEqual(payload);
     const url = vi.mocked(fetch).mock.calls[0]?.[0] as string;
+    const params = new URL(url).searchParams;
     expect(url).toContain("/illustration/searchbytext");
-    expect(url).toContain("keyword2vec=");
+    expect(params.get("keyword2vec")).toBe("富士山");
+    expect(params.get("q-contents")).toBeNull();
+    expect(params.get("graphictag")).toBeNull();
   });
 
   it("searchIllustrations は 404 で null を返す", async () => {

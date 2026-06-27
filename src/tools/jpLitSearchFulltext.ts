@@ -25,7 +25,7 @@ function bool(v: unknown): boolean | null {
 }
 
 function normalizeNdcFilter(value: string | undefined): string | undefined {
-  if (!value) return value;
+  if (value === undefined) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   if (/^\d{1,2}$/.test(trimmed)) return `${trimmed}*`;
