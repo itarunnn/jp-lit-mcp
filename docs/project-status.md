@@ -29,6 +29,7 @@
 
 ## 最近の更新
 
+- `0.7.10`: 次世代デジタルライブラリー Book API の `f-ndc` filter について、`f_ndc: "9"` のような短い上位分類指定を `9*` に正規化し、`f_ndc: ""` や空白だけの値は未指定と同じ cache entry に畳むようにした。adapter test では公式パラメータ `f-ndc` / `fc-isClassic` と、非採用 alias（`field` / `ndc` / `isClassic`、Illustration API の `q-contents` / `graphictag`）が URL に混入しないことを固定した
 - `0.7.9`: デジコレ OCR 系ツールの検索範囲を明確化。`jp_lit_search_fulltext` は次世代デジタルライブラリー API の OCR 検索であり、デジコレ本体の全文検索画面/API ではなく、「ログインなしで閲覧可能」資料全体の検索でもないことを README / usage guide / reference / tool description に明記した。デジコレ本体の公式検索画面では、ログインなし公開資料、館内限定資料、送信サービス限定資料を含む MCP 範囲外の全文ヒットが見える場合がある。網羅性が必要な調査では、MCP の結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する運用にした。次世代デジタルライブラリー Book API の NDC 上位分類 filter は `9*` のような前方一致で扱い、`f_ndc: "9"` のような短い数字は MCP 側で `9*` に正規化する
 - `0.7.8`: NDL デジタルコレクション detail に `content_access.manual_viewing` を追加。`source_metadata.next_digital_library` は MCP が自動 OCR / 全文 API を使えるかの判定として維持し、個人送信対象・図書館送信対象・国立国会図書館内限定のような手動閲覧導線を分けて返す。MCP から全文を自動取得できなくても、NDL の登録利用者ログインや参加館・館内端末で読める可能性をエージェントが説明できるようにした
 - `0.7.7`: Gitleaks / Timeahead の repository history scan で JDCat の public schema field ID が `generic-api-key` として検出される偽陽性を確認し、該当 fingerprint だけを `.gitleaksignore` に登録。現行コードでは mapper 内の引数名を `langField` / `textField` に変更し、credential 風の命名を避けた。実 credential の流出ではなく、MCP tool / source の追加・削除もない
