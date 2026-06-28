@@ -20,6 +20,37 @@ export type SourceName =
   | "kokusho"
   | "ninjal_bibliography";
 
+export interface CiniiSearchFilters {
+  category?: string;
+}
+
+export type SearchDiagnosticLevel = "info" | "warning" | "error";
+
+export type SearchDiagnosticCode =
+  | "ZERO_METADATA_CONJUNCTION"
+  | "SCRIPT_LATIN_QUERY"
+  | "BROAD_RESULT_SET"
+  | "VERY_BROAD_RESULT_SET";
+
+export interface SearchDiagnostic {
+  level: SearchDiagnosticLevel;
+  code: SearchDiagnosticCode;
+  message: string;
+  hint: string | null;
+}
+
+export type SearchBreadth = "none" | "narrow" | "broad" | "very_broad";
+
+export type SearchMatchingMode =
+  | "metadata_conjunction"
+  | "aggregated_cross_source"
+  | "unknown";
+
+export interface SearchInterpretation {
+  matching_mode: SearchMatchingMode;
+  breadth: SearchBreadth;
+}
+
 export type IssuedAtPrecision = "day" | "month" | "year" | "unknown";
 
 export interface KnownDateInfo {

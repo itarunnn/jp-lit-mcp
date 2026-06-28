@@ -92,6 +92,36 @@ describe("createSearchService", () => {
     expect(books.source).toBe("cinii_books");
   });
 
+  it("search 入力スキーマで source=cinii_books + filters.cinii.category を受け付ける", () => {
+    const parsed = searchInputSchema.parse({
+      query: "日本文学",
+      source: "cinii_books",
+      filters: {
+        cinii: {
+          category: "910.26 910.268 KG311"
+        }
+      }
+    });
+
+    expect(parsed.filters?.cinii).toEqual({
+      category: "910.26 910.268 KG311"
+    });
+  });
+
+  it("search 入力スキーマで cinii_books 以外の source + filters.cinii を reject する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "日本文学",
+      source: "cinii_articles",
+      filters: {
+        cinii: {
+          category: "910.26"
+        }
+      }
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it("search 入力スキーマで irdb source を受け付ける", () => {
     const parsed = searchInputSchema.parse({
       query: "夏目漱石",
@@ -264,6 +294,10 @@ describe("createSearchService", () => {
         ndc: { "9": 1 },
         issued_years: { "1905": 1 }
       },
+      interpretation: {
+        matching_mode: "unknown",
+        breadth: "narrow"
+      },
       cache: {
         hit: false,
         cache_key: expect.any(String),
@@ -341,6 +375,42 @@ describe("createSearchService", () => {
           ndl: {
             subject: "書籍商",
             ndc: "024.1"
+          }
+        }
+      })
+    );
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("tool handler は filters.cinii を searchService に渡す", async () => {
+    const baseDir = await createTempDir();
+    const search = vi.fn().mockResolvedValue({
+      total: 0,
+      items: []
+    });
+    const service = { search } as unknown as SearchService;
+    const tool = createJpLitSearchTool(
+      service,
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    await tool({
+      query: "日本文学",
+      source: "cinii_books",
+      filters: {
+        cinii: {
+          category: "910.26"
+        }
+      }
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: {
+          cinii: {
+            category: "910.26"
           }
         }
       })
@@ -461,6 +531,104 @@ describe("createSearchService", () => {
       total: 0,
       items: []
     });
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("cinii_articles の 0 件検索に ZERO_METADATA_CONJUNCTION diagnostic を付ける", async () => {
+    const baseDir = await createTempDir();
+    const ciniiArticlesAdapter: SourceAdapter = {
+      source: "cinii_articles",
+      search: async () => ({
+        total: 0,
+        items: []
+      }),
+      getRecord: async () => null
+    };
+    const tool = createJpLitSearchTool(
+      createSearchService([ciniiArticlesAdapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const result = await tool({
+      query: "日本文学 明治 受容",
+      source: "cinii_articles"
+    });
+
+    expect(result.structuredContent.interpretation).toEqual({
+      matching_mode: "metadata_conjunction",
+      breadth: "none"
+    });
+    expect(result.structuredContent.diagnostics).toEqual([
+      {
+        level: "warning",
+        code: "ZERO_METADATA_CONJUNCTION",
+        message: expect.stringContaining("CiNii"),
+        hint: expect.stringContaining("検索語")
+      }
+    ]);
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("CiNii への latin query に SCRIPT_LATIN_QUERY diagnostic を付ける", async () => {
+    const baseDir = await createTempDir();
+    const ciniiArticlesAdapter: SourceAdapter = {
+      source: "cinii_articles",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("cinii_articles", "1", "近代文学")]
+      }),
+      getRecord: async () => null
+    };
+    const tool = createJpLitSearchTool(
+      createSearchService([ciniiArticlesAdapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const result = await tool({
+      query: "kindai bungaku",
+      source: "cinii_articles"
+    });
+
+    expect(result.structuredContent.diagnostics).toContainEqual({
+      level: "warning",
+      code: "SCRIPT_LATIN_QUERY",
+      message: expect.stringContaining("ローマ字"),
+      hint: expect.stringContaining("漢字")
+    });
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("CiNii への数字と記号だけの query には SCRIPT_LATIN_QUERY diagnostic を付けない", async () => {
+    const baseDir = await createTempDir();
+    const ciniiBooksAdapter: SourceAdapter = {
+      source: "cinii_books",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("cinii_books", "1", "ISBN result")]
+      }),
+      getRecord: async () => null
+    };
+    const tool = createJpLitSearchTool(
+      createSearchService([ciniiBooksAdapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir)
+    );
+
+    const result = await tool({
+      query: "978-4-00-000000-0",
+      source: "cinii_books"
+    });
+
+    expect(result.structuredContent.diagnostics ?? []).not.toContainEqual(
+      expect.objectContaining({
+        code: "SCRIPT_LATIN_QUERY"
+      })
+    );
 
     await rm(baseDir, { recursive: true, force: true });
   });

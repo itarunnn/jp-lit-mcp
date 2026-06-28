@@ -1,4 +1,5 @@
 import type {
+  CiniiSearchFilters,
   RecordItem,
   SearchFacets,
   SearchItem,
@@ -63,6 +64,7 @@ export interface SearchParams {
     nihu_bridge?: NihuBridgeSearchFilters;
     jdcat?: JdcatSearchFilters;
     ndl?: NdlSearchFilters;
+    cinii?: CiniiSearchFilters;
   };
 }
 

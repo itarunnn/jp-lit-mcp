@@ -253,7 +253,7 @@ export function createCiniiResearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to }) {
+    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
       const url = new URL(searchBaseUrl);
       url.searchParams.set("q", query);
       url.searchParams.set("count", String(limit));
@@ -264,6 +264,9 @@ export function createCiniiResearchAdapter(
       }
       if (issued_to) {
         url.searchParams.set("until", issued_to);
+      }
+      if (searchType === "books" && filters?.cinii?.category) {
+        url.searchParams.set("category", filters.cinii.category);
       }
       const sortOrder = resolveCiniiSortOrder(searchType, {
         sort_by,

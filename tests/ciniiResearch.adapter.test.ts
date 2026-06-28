@@ -467,6 +467,54 @@ describe("createCiniiResearchAdapter", () => {
     expect(new URL(fetch.mock.calls[0][0] as string).searchParams.get("sortorder")).toBe("2");
   });
 
+  it("cinii_books では filters.cinii.category を category パラメータに渡す", async () => {
+    const bookFixture = {
+      "@id": "https://cir.nii.ac.jp/opensearch/books?category=910.26&count=1&format=json",
+      "@type": "channel",
+      "opensearch:totalResults": 1,
+      items: [
+        {
+          "@id": "https://cir.nii.ac.jp/crid/1970023484833093788",
+          title: "日本近代文学史",
+          link: { "@id": "https://cir.nii.ac.jp/crid/1970023484833093788" },
+          "dc:type": "Book",
+          "prism:publicationDate": "1999"
+        }
+      ]
+    };
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get(name: string) {
+          return name.toLowerCase() === "content-type"
+            ? "application/json; charset=utf-8"
+            : null;
+        }
+      },
+      text: async () => JSON.stringify(bookFixture)
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createCiniiBooksAdapter } = await import(
+      "../src/sources/ciniiResearch/adapter.js"
+    );
+    const adapter = createCiniiBooksAdapter();
+
+    await adapter.search({
+      query: "日本文学",
+      limit: 1,
+      page: 1,
+      filters: {
+        cinii: {
+          category: "910.26 910.268 KG311"
+        }
+      }
+    });
+
+    const searchUrl = new URL(fetch.mock.calls[0][0] as string);
+    expect(searchUrl.searchParams.get("category")).toBe("910.26 910.268 KG311");
+  });
+
   it("cinii_dissertations source を dissertations 検索として公開できる", async () => {
     const dissertationFixture = {
       "@id": "https://cir.nii.ac.jp/opensearch/dissertations?q=%E6%BA%90%E6%B0%8F%E7%89%A9%E8%AA%9E&count=1&format=json",

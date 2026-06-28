@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-06-27 時点の状態:
+2026-06-28 時点の状態:
 
-- 公開ツール 26 種・対応 source 20 種・テスト 528 件すべて通過
+- 公開ツール 27 種・対応 source 20 種・テスト 539 件すべて通過
 - `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -21,6 +21,7 @@
 - 過去セッション一覧（`jp_lit_list_sessions`）、過去セッション検索（`jp_lit_find_sessions`）、`session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
 - Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools（`jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`）を追加済み
+- Web NDL Authorities の件名語から NDC / NDLC 分類記号を提案し、CiNii Books `category` filter に渡せる `jp_lit_suggest_classification_codes` を追加済み。`jp_lit_search` は CiNii 系検索の 0 件・ローマ字 query と、source を問わない広い結果集合に `diagnostics` を返す
 - KAKEN から研究課題・研究成果報告書 PDF・成果リストの手がかりを返す補助 tool（`jp_lit_search_kaken_projects`）を追加済み。KAKEN は `jp_lit_search` の source ではなく、文献確定前の検索語展開・報告書確認の入口として扱う
 - Crossref / OpenAlex で単一文献候補を DOI・タイトル・著者・刊行年から照合する補助 tool（`jp_lit_enrich_record`）を追加済み。外部 provider は `jp_lit_search` の source ではなく、既存候補の書誌確認を補強する用途に限定する
 - `jp_lit_refine_results` は、保存済み `jp_lit_enrich_record` cache を任意で重複クラスタへ重ね、DOI・provider status・match confidence を表示できる。これは外部 API の再照会ではなく、本文確認や重要度評価でもない
@@ -29,6 +30,7 @@
 
 ## 最近の更新
 
+- `0.8.0`: `jp_lit_suggest_classification_codes` を追加。Web NDL Authorities の件名語から NDC / NDLC 分類記号を抽出し、CiNii Books `category` filter に渡せる `suggested_category_param` と `jp_lit_search` 呼び出し例を返す。`jp_lit_search` は `filters.cinii.category` を `source=cinii_books` のときだけ受け付け、CiNii 系検索の 0 件・ローマ字 query と、source を問わない広い結果集合に `interpretation` / `diagnostics` を返す
 - `0.7.10`: 次世代デジタルライブラリー Book API の `f-ndc` filter について、`f_ndc: "9"` のような短い上位分類指定を `9*` に正規化し、`f_ndc: ""` や空白だけの値は未指定と同じ cache entry に畳むようにした。adapter test では公式パラメータ `f-ndc` / `fc-isClassic` と、非採用 alias（`field` / `ndc` / `isClassic`、Illustration API の `q-contents` / `graphictag`）が URL に混入しないことを固定した
 - `0.7.9`: デジコレ OCR 系ツールの検索範囲を明確化。`jp_lit_search_fulltext` は次世代デジタルライブラリー API の OCR 検索であり、デジコレ本体の全文検索画面/API ではなく、「ログインなしで閲覧可能」資料全体の検索でもないことを README / usage guide / reference / tool description に明記した。デジコレ本体の公式検索画面では、ログインなし公開資料、館内限定資料、送信サービス限定資料を含む MCP 範囲外の全文ヒットが見える場合がある。網羅性が必要な調査では、MCP の結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する運用にした。次世代デジタルライブラリー Book API の NDC 上位分類 filter は `9*` のような前方一致で扱い、`f_ndc: "9"` のような短い数字は MCP 側で `9*` に正規化する
 - `0.7.8`: NDL デジタルコレクション detail に `content_access.manual_viewing` を追加。`source_metadata.next_digital_library` は MCP が自動 OCR / 全文 API を使えるかの判定として維持し、個人送信対象・図書館送信対象・国立国会図書館内限定のような手動閲覧導線を分けて返す。MCP から全文を自動取得できなくても、NDL の登録利用者ログインや参加館・館内端末で読める可能性をエージェントが説明できるようにした

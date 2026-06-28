@@ -89,7 +89,8 @@ describe("tool definition quality", () => {
       "jp_lit_list_sessions",
       "jp_lit_refine_results",
       "jp_lit_resolve_authority",
-      "jp_lit_find_authority_terms_by_classification"
+      "jp_lit_find_authority_terms_by_classification",
+      "jp_lit_suggest_classification_codes"
     ];
 
     for (const toolName of readOnlyTools) {
@@ -111,7 +112,8 @@ describe("tool definition quality", () => {
       ["jp_lit_search_pages", /jp_lit_search_fulltext|jp_lit_get_text_coordinates/],
       ["jp_lit_get_text_coordinates", /jp_lit_search_pages|jp_lit_get_fulltext/],
       ["jp_lit_resolve_authority", /jp_lit_search|jp_lit_find_authority_terms_by_classification/],
-      ["jp_lit_find_authority_terms_by_classification", /jp_lit_resolve_authority|jp_lit_search/]
+      ["jp_lit_find_authority_terms_by_classification", /jp_lit_resolve_authority|jp_lit_search/],
+      ["jp_lit_suggest_classification_codes", /jp_lit_search|jp_lit_find_authority_terms_by_classification/]
     ] as const;
 
     for (const [toolName, pattern] of expectations) {

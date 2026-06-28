@@ -194,6 +194,36 @@ export const ndlFiltersSchema = z.object({
   ndlc: z.string().optional().describe("NDL 系 source の NDLC 分類記号による絞り込み。")
 });
 
+export const ciniiFiltersSchema = z.object({
+  category: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("CiNii Books の category パラメータ。NDC/NDLC コードを半角スペース区切りで渡す。source=cinii_books のときだけ有効。")
+});
+
+const searchDiagnosticSchema = z.object({
+  level: z.enum(["info", "warning", "error"]),
+  code: z.enum([
+    "ZERO_METADATA_CONJUNCTION",
+    "SCRIPT_LATIN_QUERY",
+    "BROAD_RESULT_SET",
+    "VERY_BROAD_RESULT_SET"
+  ]),
+  message: z.string(),
+  hint: z.string().nullable()
+});
+
+const searchInterpretationSchema = z.object({
+  matching_mode: z.enum([
+    "metadata_conjunction",
+    "aggregated_cross_source",
+    "unknown"
+  ]),
+  breadth: z.enum(["none", "narrow", "broad", "very_broad"])
+});
+
 export const searchInputToolSchema = z.object({
   query: z.string().trim().min(1).describe("検索語。資料名、著者名、主題語、機関名などを指定する。"),
   source: optionalSourceInputFieldSchema.describe("検索対象 source。未指定なら既定の 8 source 横断検索になるが、新規テーマの初手では通常 ndl_search と japan_search などを明示指定する。"),
@@ -211,7 +241,8 @@ export const searchInputToolSchema = z.object({
     irdb: irdbFiltersSchema.optional().describe("source=irdb のときだけ有効な追加 filter。"),
     nihu_bridge: nihuBridgeFiltersSchema.optional().describe("source=nihu_bridge のときだけ有効な追加 filter。"),
     jdcat: jdcatFiltersSchema.optional().describe("source=jdcat のときだけ有効な追加 filter。"),
-    ndl: ndlFiltersSchema.optional().describe("NDL 系 source のときだけ有効な追加 filter。")
+    ndl: ndlFiltersSchema.optional().describe("NDL 系 source のときだけ有効な追加 filter。"),
+    cinii: ciniiFiltersSchema.optional().describe("source=cinii_books のときだけ有効な CiNii Books category filter。")
   }).optional().describe("source 固有の追加 filter。対象 source と一致しない filter は validation error になる。")
 });
 
@@ -250,6 +281,13 @@ export const searchInputSchema = searchInputToolSchema
         code: z.ZodIssueCode.custom,
         message: "filters.ndl は NDL 系 source のときのみ有効です",
         path: ["filters", "ndl"]
+      });
+    }
+    if (data.filters?.cinii !== undefined && data.source !== "cinii_books") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.cinii は source=cinii_books のときのみ有効です",
+        path: ["filters", "cinii"]
       });
     }
   });
@@ -292,6 +330,8 @@ export const searchOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   items: z.array(searchItemSchema),
   facets: facetsSchema.optional(),
+  diagnostics: z.array(searchDiagnosticSchema).optional(),
+  interpretation: searchInterpretationSchema.optional(),
   cache: z.object({
     hit: z.boolean(),
     cache_key: z.string(),
@@ -1254,6 +1294,65 @@ export const authorityTermsByClassificationOutputSchema = z.object({
   cache: toolCacheSchema.optional()
 });
 
+export const classificationCodeSchemeSchema = z.enum([
+  "NDC10",
+  "NDC9",
+  "NDC8",
+  "NDLC"
+]);
+
+export const suggestClassificationCodesInputSchema = z.object({
+  term: z.string().trim().min(1).describe("分類記号を探す元になる件名・主題語。例: 近代日本文学。"),
+  schemes: z
+    .array(classificationCodeSchemeSchema)
+    .min(1)
+    .default(["NDC10", "NDC9", "NDLC"])
+    .describe("返す分類体系。CiNii Books category には NDC/NDLC の notation を半角スペース区切りで渡す。"),
+  concept_limit: z.number().int().positive().max(20).default(5).describe("NDLSH 件名概念候補の最大件数。"),
+  max_codes: z.number().int().positive().max(50).default(10).describe("suggested_category_param に含める分類記号の最大件数。"),
+  force_refresh: forceRefreshFieldSchema
+});
+
+const suggestedClassificationCodeSchema = z.object({
+  scheme: classificationCodeSchemeSchema,
+  notation: z.string(),
+  uri: z.string()
+});
+
+const suggestedClassificationConceptSchema = z.object({
+  authority_uri: z.string(),
+  id: z.string().nullable(),
+  label: z.string(),
+  variant_labels: z.array(z.string()),
+  classification_codes: z.array(suggestedClassificationCodeSchema)
+});
+
+export const suggestClassificationCodesOutputSchema = z.object({
+  term: z.string(),
+  schemes: z.array(classificationCodeSchemeSchema),
+  concept_limit: z.number().int().positive(),
+  max_codes: z.number().int().positive(),
+  total_concepts: z.number().int().nonnegative(),
+  total_codes: z.number().int().nonnegative(),
+  used_codes: z.array(suggestedClassificationCodeSchema),
+  items: z.array(suggestedClassificationConceptSchema),
+  suggested_category_param: z.string(),
+  suggested_search: z
+    .object({
+      tool: z.literal("jp_lit_search"),
+      args: z.object({
+        query: z.string(),
+        source: z.literal("cinii_books"),
+        filters: z.object({
+          cinii: ciniiFiltersSchema
+        })
+      })
+    })
+    .nullable(),
+  caution: z.string(),
+  cache: toolCacheSchema.optional()
+});
+
 export const searchKakenProjectsInputSchema = z.object({
   query: z.string().trim().min(1).describe("KAKEN から探す研究課題名・キーワード・研究テーマ。"),
   limit: z.number().int().positive().max(20).default(10).describe("返す研究課題候補の最大件数。最大 20。"),
@@ -1341,6 +1440,8 @@ export type ResolveAuthorityInput = z.infer<typeof resolveAuthorityInputSchema>;
 export type ResolveAuthorityOutput = z.infer<typeof resolveAuthorityOutputSchema>;
 export type AuthorityTermsByClassificationInput = z.infer<typeof authorityTermsByClassificationInputSchema>;
 export type AuthorityTermsByClassificationOutput = z.infer<typeof authorityTermsByClassificationOutputSchema>;
+export type SuggestClassificationCodesInput = z.infer<typeof suggestClassificationCodesInputSchema>;
+export type SuggestClassificationCodesOutput = z.infer<typeof suggestClassificationCodesOutputSchema>;
 export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
 export type UpdateSessionTraceInput = z.infer<typeof updateSessionTraceInputSchema>;

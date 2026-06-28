@@ -35,6 +35,7 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_search_kokusho_fulltext",
   "jp_lit_search_kokusho_image_tags",
   "jp_lit_search_pages",
+  "jp_lit_suggest_classification_codes",
   "jp_lit_update_session_trace"
 ];
 
@@ -51,6 +52,9 @@ export const LIVE_MATRIX_SOURCES = [
 ];
 
 export const DEFAULT_LIVE_RETRY_COUNT = 2;
+
+export const LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE = "cinii_books";
+export const LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY = "夏目漱石";
 
 export const SUPPORTED_LIVE_EXTRA_TOOLS = [
   "jp_lit_search_kaken_projects",
@@ -93,6 +97,16 @@ const ILLUSTRATION_FALLBACK_KEYWORD_BY_SOURCE: Record<string, string> = {
 
 export function resolveLiveSmokeQuery(source: string, override?: string) {
   return override ?? LIVE_DEFAULT_QUERY_BY_SOURCE[source] ?? "菊池寛";
+}
+
+export function resolveLocalPersistenceSmokeSearch(env: {
+  SMOKE_LOCAL_SOURCE?: string;
+  SMOKE_LOCAL_QUERY?: string;
+} = process.env) {
+  return {
+    source: env.SMOKE_LOCAL_SOURCE ?? LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE,
+    query: env.SMOKE_LOCAL_QUERY ?? LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY
+  };
 }
 
 export function resolveLiveSmokeSources(override?: string) {
@@ -206,9 +220,10 @@ async function resetSmokePersistence(baseDir: string) {
 }
 
 async function runLocalPersistenceSmoke(client: Client) {
+  const localSearch = resolveLocalPersistenceSmokeSearch();
   const searchArgs = {
-    query: "菊池寛",
-    source: "ndl_catalog",
+    query: localSearch.query,
+    source: localSearch.source,
     limit: 1,
     page: 1
   };
@@ -266,7 +281,7 @@ async function runLocalPersistenceSmoke(client: Client) {
       research_goal: "smoke trace",
       source_plans: [
         {
-          source: "ndl_catalog",
+          source: localSearch.source,
           status: "used",
           reason: "local smoke search"
         }
@@ -276,7 +291,7 @@ async function runLocalPersistenceSmoke(client: Client) {
           action: "export smoke session",
           reason: "verify trace persists",
           priority: "low",
-          source: "ndl_catalog"
+          source: localSearch.source
         }
       ]
     }
@@ -294,7 +309,7 @@ async function runLocalPersistenceSmoke(client: Client) {
       limit: 5,
       has_trace: true,
       has_selected: true,
-      source: "ndl_catalog"
+      source: localSearch.source
     }
   });
   const listSessionsData = listSessionsResult.structuredContent as
@@ -314,7 +329,7 @@ async function runLocalPersistenceSmoke(client: Client) {
       item.has_trace === true &&
       item.has_selected === true &&
       (item.selected_count ?? 0) > 0 &&
-      item.sources?.includes("ndl_catalog") &&
+      item.sources?.includes(localSearch.source) &&
       item.research_goal === "smoke trace"
   );
   if (!smokeSession || (listSessionsData?.total ?? 0) < 1) {

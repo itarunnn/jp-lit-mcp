@@ -6,6 +6,8 @@ import { readFileSync } from "node:fs";
 import {
   DEFAULT_LIVE_RETRY_COUNT,
   EXPECTED_TOOL_NAMES,
+  LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY,
+  LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE,
   LIVE_MATRIX_SOURCES,
   getLiveErrorMessage,
   isSkippableLiveError,
@@ -14,6 +16,7 @@ import {
   resolveLiveSmokeExtraTools,
   resolveLiveReportPath,
   resolveLiveRetryCount,
+  resolveLocalPersistenceSmokeSearch,
   resolveOcrFallbackKeyword,
   resolveSmokeRunMode,
   resolveLiveSmokeSources,
@@ -76,6 +79,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_kokusho_fulltext",
       "jp_lit_search_kokusho_image_tags",
       "jp_lit_search_pages",
+      "jp_lit_suggest_classification_codes",
       "jp_lit_update_session_trace"
     ]);
   });
@@ -165,6 +169,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_enrich_record",
       "jp_lit_resolve_authority",
       "jp_lit_find_authority_terms_by_classification",
+      "jp_lit_suggest_classification_codes",
       "jp_lit_search_kaken_projects"
     ];
 
@@ -379,6 +384,24 @@ describe("smoke-mcp tool manifest", () => {
     expect(resolveLiveSmokeQuery("kokusho", undefined)).toBe("伊勢物語");
     expect(resolveLiveSmokeQuery("ninjal_bibliography", undefined)).toBe("日本語教育");
     expect(resolveLiveSmokeQuery("jstage_articles", "材料")).toBe("材料");
+  });
+
+  it("uses a lightweight default source for local persistence smoke", () => {
+    expect(LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE).toBe("cinii_books");
+    expect(LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY).toBe("夏目漱石");
+    expect(resolveLocalPersistenceSmokeSearch({})).toEqual({
+      source: "cinii_books",
+      query: "夏目漱石"
+    });
+    expect(
+      resolveLocalPersistenceSmokeSearch({
+        SMOKE_LOCAL_SOURCE: "japan_search",
+        SMOKE_LOCAL_QUERY: "菊池寛"
+      })
+    ).toEqual({
+      source: "japan_search",
+      query: "菊池寛"
+    });
   });
 
   it("prefers ndl_digital records with next_digital_library.available=true", () => {

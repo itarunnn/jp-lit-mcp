@@ -1,4 +1,4 @@
-import type { SearchFacets, SourceName } from "../lib/types.js";
+import type { CiniiSearchFilters, SearchFacets, SourceName } from "../lib/types.js";
 import { InvalidRequestError } from "../lib/errors.js";
 import type {
   IrdbSearchFilters,
@@ -27,6 +27,7 @@ interface SearchInput {
     nihu_bridge?: NihuBridgeSearchFilters;
     jdcat?: JdcatSearchFilters;
     ndl?: NdlSearchFilters;
+    cinii?: CiniiSearchFilters;
   };
 }
 

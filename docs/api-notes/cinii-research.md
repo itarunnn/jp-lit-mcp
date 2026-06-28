@@ -73,6 +73,14 @@
 - degree name、award institution、fulltext link などの博士論文固有 filter は、今回の初期実装では schema に足さない。まず source 意図の明示と CRID detail 取得を優先する。
 - CSL JSON export では `source=cinii_dissertations` または `material_type` に `thesis` / `dissertation` を含む場合、CSL type を `thesis` にする。
 
+## 2026-06-28 category filter / diagnostics メモ
+
+- `cinii_books` では `filters.cinii.category` を OpenSearch `category` に渡す。
+- `category` は NDC / NDLC の notation を半角スペース区切りで渡し、CiNii Books 側では分類記号の OR 検索として扱われる。
+- 初期実装では `jp_lit_search.query` 必須 contract を維持し、category-only 検索は導入しない。
+- `jp_lit_suggest_classification_codes` は Web NDL Authorities の `skos:relatedMatch` から NDC / NDLC を抽出して `suggested_category_param` を返す。
+- `jp_lit_search.diagnostics` は、CiNii 系の 0 件・ローマ字 query と、source を問わない広い結果集合を machine-readable に返すための補助情報で、検索結果の正誤や文献価値を判定するものではない。
+
 ## 2026-04-25 精度改善メモ
 
 - detail で `dc:title` を優先するよう更新

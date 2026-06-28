@@ -95,6 +95,8 @@ describe("jp-lit-research skill guide", () => {
     expect(workflowCore).toContain("ユーザーが Web 調査を明示");
     expect(sourceAndQuery).toContain("jp_lit_search_guides_manuals");
     expect(sourceAndQuery).toContain("jp_lit_search_guides_cases");
+    expect(sourceAndQuery).toContain("jp_lit_suggest_classification_codes");
+    expect(sourceAndQuery).toContain("filters.cinii.category");
     expect(sourceAndQuery).toContain("全N件中M件取得");
     expect(sourceAndQuery).toContain("source 未指定の横断検索は `page=1` のみ対応");
     expect(advisory).toContain("リサーチ・ナビが参考書誌");
@@ -213,6 +215,8 @@ describe("jp-lit-research skill guide", () => {
     expect(queryExpansion).toContain(
       "デジコレ OCR では、複合検索語より単語単位の検索語展開を優先する"
     );
+    expect(queryExpansion).toContain("jp_lit_suggest_classification_codes");
+    expect(queryExpansion).toContain("jp_lit_find_authority_terms_by_classification");
     expect(failureModes).toContain("複合語 0 件を不在証明にしない");
     expect(failureModes).toContain("単独語検索と複合語検索を分けて調査ログに残す");
     expect(fulltextWorkflow).toContain(
@@ -493,6 +497,7 @@ describe("jp-lit-research skill guide", () => {
     expect(sourceAndQuery).toContain("jp_lit_search_kokusho_fulltext");
     expect(sourceAndQuery).toContain("jp_lit_search_kokusho_image_tags");
     expect(sourceAndQuery).toContain("日本語研究・日本語教育文献・国語教育文献: `ninjal_bibliography`");
+    expect(sourceAndQuery).toContain("jp_lit_find_authority_terms_by_classification");
     expect(dbCharacteristics).toContain("本文スニペットは `jp_lit_search_kokusho_fulltext`");
     expect(dbCharacteristics).toContain("画像タグは `jp_lit_search_kokusho_image_tags`");
     expect(sourceSelection).toContain("有料 DB、文化資源 DB、地域アーカイブ DB は固定 source 化しない");

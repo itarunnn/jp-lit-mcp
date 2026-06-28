@@ -94,6 +94,8 @@ Web NDL Authorities 由来の語は、出どころごとに強さを分ける。
 - `same_identity_terms`: 同一人物・同一団体の別名義。まとめて探すか、名義別に探すかを分ける
 - `reference_terms`: 上位語・下位語・関連語。検索範囲を広げるので慎重に使う
 - 分類由来語: 未知文献探索の入口。分類範囲が広い場合は年代・資料種別・source を絞る
+- 件名語 -> NDC/NDLC -> CiNii Books category: `jp_lit_suggest_classification_codes`
+- 分類記号 -> 件名語: `jp_lit_find_authority_terms_by_classification`
 
 ---
 
@@ -113,7 +115,7 @@ Web NDL Authorities 由来の語は、出どころごとに強さを分ける。
 
 ```
 1. 元の検索語でベースラインの検索
-2. 展開候補を列挙（カテゴリ A〜G から選択。必要なら `jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification` を使う）
+2. 展開候補を列挙（カテゴリ A〜G から選択。必要なら `jp_lit_resolve_authority` / `jp_lit_suggest_classification_codes` / `jp_lit_find_authority_terms_by_classification` を使う）
 3. 展開語を1〜2語ずつ検索
 4. ヒットがあった語を「採用語」とする
 5. ヒットなしの語を「試行済み・不採用」として記録

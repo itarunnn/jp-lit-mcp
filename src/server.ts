@@ -49,6 +49,8 @@ import {
   resolveAuthorityOutputSchema,
   authorityTermsByClassificationInputSchema,
   authorityTermsByClassificationOutputSchema,
+  suggestClassificationCodesInputSchema,
+  suggestClassificationCodesOutputSchema,
   searchKakenProjectsInputSchema,
   searchKakenProjectsOutputSchema,
   listSessionsInputSchema,
@@ -116,6 +118,7 @@ import { createJpLitSearchGuidesManualsTool } from "./tools/jpLitSearchGuidesMan
 import { createJpLitSearchGuidesCasesTool } from "./tools/jpLitSearchGuidesCases.js";
 import { createJpLitResolveAuthorityTool } from "./tools/jpLitResolveAuthority.js";
 import { createJpLitFindAuthorityTermsByClassificationTool } from "./tools/jpLitFindAuthorityTermsByClassification.js";
+import { createJpLitSuggestClassificationCodesTool } from "./tools/jpLitSuggestClassificationCodes.js";
 import { createJpLitSearchKakenProjectsTool } from "./tools/jpLitSearchKakenProjects.js";
 import { createJpLitEnrichRecordTool } from "./tools/jpLitEnrichRecord.js";
 import { createNextDigitalLibraryClient } from "./sources/nextDigitalLibrary/adapter.js";
@@ -412,6 +415,8 @@ export function createServer(env: ServerEnv = process.env) {
   const resolveAuthorityTool = createJpLitResolveAuthorityTool(ndlAuthoritiesClient, cache, sessions);
   const findAuthorityTermsByClassificationTool =
     createJpLitFindAuthorityTermsByClassificationTool(ndlAuthoritiesClient, cache, sessions);
+  const suggestClassificationCodesTool =
+    createJpLitSuggestClassificationCodesTool(ndlAuthoritiesClient, cache, sessions);
   const searchKakenProjectsTool = createJpLitSearchKakenProjectsTool(kakenClient, cache, sessions);
   const enrichRecordTool = createJpLitEnrichRecordTool(externalWorkEnricher, cache, sessions, {
     openalexKeyPresent: Boolean(env.OPENALEX_API_KEY?.trim())
@@ -432,7 +437,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search",
     {
-      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。cinii_dissertations / national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、博士論文・学位論文、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「博士論文/学位論文/CiNii Dissertations」→cinii_dissertations、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
+      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。cinii_dissertations / national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、博士論文・学位論文、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「博士論文/学位論文/CiNii Dissertations」→cinii_dissertations、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=cinii_books では filters.cinii.category に NDC/NDLC notation を半角スペース区切りで渡せる。CiNii 系の 0 件・ローマ字 query・広すぎる結果では interpretation / diagnostics を読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
       inputSchema: searchInputToolSchema,
       outputSchema: searchOutputSchema
     },
@@ -477,6 +482,16 @@ export function createServer(env: ServerEnv = process.env) {
       outputSchema: authorityTermsByClassificationOutputSchema
     },
     findAuthorityTermsByClassificationTool
+  );
+
+  server.registerTool(
+    "jp_lit_suggest_classification_codes",
+    {
+      description: "read-only。Web NDL Authorities で件名語から NDC/NDLC 分類記号を探し、CiNii Books の category filter に渡せる suggested_category_param と jp_lit_search 呼び出し例を返す。分類記号から件名語を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
+      inputSchema: suggestClassificationCodesInputSchema,
+      outputSchema: suggestClassificationCodesOutputSchema
+    },
+    suggestClassificationCodesTool
   );
 
   server.registerTool(

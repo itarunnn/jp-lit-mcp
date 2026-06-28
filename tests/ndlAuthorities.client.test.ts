@@ -97,6 +97,27 @@ const NDC_596_7_SPARQL_JSON = {
   }
 };
 
+const SUBJECT_WITH_CLASS_CODES_SPARQL_JSON = {
+  head: { vars: ["authority", "label", "type", "altLabel", "classification"] },
+  results: {
+    bindings: [
+      {
+        authority: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlsh/00563962" },
+        label: { type: "literal", value: "日本文学--歴史--明治以後" },
+        type: { type: "uri", value: "http://id.ndl.go.jp/auth#topicalTerms" },
+        altLabel: { type: "literal", value: "近代日本文学" },
+        classification: { type: "uri", value: "http://id.ndl.go.jp/class/ndc10/910.26" }
+      },
+      {
+        authority: { type: "uri", value: "https://id.ndl.go.jp/auth/ndlsh/00563962" },
+        label: { type: "literal", value: "日本文学--歴史--明治以後" },
+        type: { type: "uri", value: "http://id.ndl.go.jp/auth#topicalTerms" },
+        classification: { type: "uri", value: "http://id.ndl.go.jp/class/ndlc/KG311" }
+      }
+    ]
+  }
+};
+
 function jsonResponse(payload: unknown) {
   return {
     ok: true,
@@ -215,6 +236,50 @@ describe("ndl authorities client", () => {
     });
     expect(result.search_hints.preferred_terms).toEqual(["コーヒー", "茶"]);
     expect(result.search_hints.reference_terms).toEqual(["珈琲"]);
+  });
+
+  it("件名語から NDC/NDLC 分類記号を CiNii Books category 候補として返す", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse(SUBJECT_WITH_CLASS_CODES_SPARQL_JSON));
+    const client = createNdlAuthoritiesClient({ fetcher });
+
+    const result = await client.suggestClassificationCodes({
+      term: "近代日本文学",
+      schemes: ["NDC10", "NDLC"],
+      concept_limit: 5,
+      max_codes: 10
+    });
+
+    const query = (fetcher.mock.calls[0][0] as URL).searchParams.get("query") ?? "";
+    expect(query).toContain("skos:relatedMatch");
+    expect(result.suggested_category_param).toBe("910.26 KG311");
+    expect(result.used_codes).toEqual([
+      {
+        scheme: "NDC10",
+        notation: "910.26",
+        uri: "http://id.ndl.go.jp/class/ndc10/910.26"
+      },
+      {
+        scheme: "NDLC",
+        notation: "KG311",
+        uri: "http://id.ndl.go.jp/class/ndlc/KG311"
+      }
+    ]);
+    expect(result.total_codes).toBe(2);
+    expect(result.items[0]).toMatchObject({
+      label: "日本文学--歴史--明治以後",
+      classification_codes: [
+        {
+          scheme: "NDC10",
+          notation: "910.26",
+          uri: "http://id.ndl.go.jp/class/ndc10/910.26"
+        },
+        {
+          scheme: "NDLC",
+          notation: "KG311",
+          uri: "http://id.ndl.go.jp/class/ndlc/KG311"
+        }
+      ]
+    });
   });
 
   it("SPARQL JSON 以外の payload を UnsupportedPayloadError にする", async () => {

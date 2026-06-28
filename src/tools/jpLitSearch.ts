@@ -4,6 +4,10 @@ import { runCachedTool } from "../lib/persistence/runCachedTool.js";
 import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { buildToolCacheInfo } from "../lib/toolCache.js";
+import {
+  buildSearchDiagnostics,
+  buildSearchInterpretation
+} from "../lib/searchDiagnostics.js";
 import { searchInputSchema } from "../lib/schemas.js";
 import type { SearchOutput } from "../lib/schemas.js";
 import type { createSearchService } from "../services/searchService.js";
@@ -49,8 +53,20 @@ export function createJpLitSearchTool(
       }
     });
 
+    const interpretation = buildSearchInterpretation({
+      source: structuredContent.source,
+      total: structuredContent.total
+    });
+    const diagnostics = buildSearchDiagnostics({
+      query: structuredContent.query,
+      source: structuredContent.source,
+      total: structuredContent.total
+    });
+
     const response: SearchOutput = {
       ...structuredContent,
+      interpretation,
+      ...(diagnostics.length > 0 ? { diagnostics } : {}),
       cache: buildToolCacheInfo({ cacheHit, cacheKey, savedAt })
     };
 

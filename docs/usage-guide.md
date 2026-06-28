@@ -301,6 +301,15 @@ NDC 596.7 から飲料関係の件名標目を出してください。
 
 この場合、`jp_lit_find_authority_terms_by_classification(classification="596.7", scheme="NDC10")` で件名標目候補を確認し、未知の本を探すための検索語として使います。戦前・古い図書では `NDC6` も検討します。
 
+件名語から図書分類で CiNii Books を広げたい場合は、まず `jp_lit_suggest_classification_codes` で NDC / NDLC を取り出し、`suggested_search` の `filters.cinii.category` を使って `cinii_books` を検索します。
+
+```text
+jp_lit_suggest_classification_codes(term="近代日本文学")
+jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{category:"910.26 KG311"}})
+```
+
+これは書誌分類から未知の図書候補を広げるための補助であり、分類だけで主題適合を確定しません。
+
 ---
 
 ### 研究課題・報告書 PDF を探したい
@@ -981,6 +990,18 @@ jp_lit_search(
   filters={ ndl: { subject: "書籍商", ndc: "024.1" } }
 )
 ```
+
+CiNii Books で件名語から得た NDC / NDLC によって図書候補を広げる場合は、`filters.cinii.category` を使えます。
+
+```text
+jp_lit_search(
+  source=cinii_books,
+  query="近代日本文学",
+  filters={ cinii: { category: "910.26 KG311" } }
+)
+```
+
+`jp_lit_search` の `diagnostics` は、検索結果の読み方に関する警告です。たとえば CiNii で複数語 query が 0 件の場合は、文献が存在しないという意味ではなく、メタデータ AND 検索で落ちた可能性があります。`hint` に沿って表記や source を変えて再検索します。
 
 ```text
 ndl_catalog で「近代日本 労働文化」を検索して

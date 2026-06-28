@@ -7,7 +7,9 @@ import type {
   AuthorityTermsByClassificationInput,
   AuthorityTermsByClassificationOutput,
   ResolveAuthorityInput,
-  ResolveAuthorityOutput
+  ResolveAuthorityOutput,
+  SuggestClassificationCodesInput,
+  SuggestClassificationCodesOutput
 } from "../../lib/schemas.js";
 
 const DEFAULT_SPARQL_URL = "https://id.ndl.go.jp/auth/ndla/sparql";
@@ -35,6 +37,13 @@ type AuthorityTermsByClassificationQueryInput = Omit<
   AuthorityTermsByClassificationInput,
   "force_refresh"
 >;
+type SuggestClassificationCodesQueryInput = Omit<
+  SuggestClassificationCodesInput,
+  "force_refresh"
+>;
+
+const CLASS_CODE_URI_PATTERN =
+  /^https?:\/\/id\.ndl\.go\.jp\/class\/(ndc10|ndc9|ndc8|ndlc)\/(.+)$/i;
 
 function bindingValue(binding: Record<string, SparqlBindingValue>, key: string) {
   return binding[key]?.value ?? null;
@@ -86,6 +95,30 @@ function buildLabelCandidates(query: string) {
   }
 
   return unique(candidates).map(escapeSparqlLiteral);
+}
+
+function normalizeClassificationScheme(value: string | null) {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  if (normalized === "ndc10") return "NDC10" as const;
+  if (normalized === "ndc9") return "NDC9" as const;
+  if (normalized === "ndc8") return "NDC8" as const;
+  if (normalized === "ndlc") return "NDLC" as const;
+  return null;
+}
+
+function parseClassificationCodeUri(uri: string | null) {
+  if (!uri) return null;
+  const match = uri.match(CLASS_CODE_URI_PATTERN);
+  if (!match) return null;
+  const scheme = normalizeClassificationScheme(match[1]);
+  if (!scheme) return null;
+
+  return {
+    scheme,
+    notation: decodeURIComponent(match[2]),
+    uri
+  };
 }
 
 async function readSparqlJson(response: Response): Promise<SparqlResponse> {
@@ -181,6 +214,50 @@ WHERE {
   OPTIONAL { ?authority xl:altLabel ?alt . ?alt xl:literalForm ?altLabel . }
 }
 LIMIT ${input.limit * 10}
+`;
+}
+
+function buildClassificationCodesByTermQuery(input: SuggestClassificationCodesQueryInput) {
+  const termFilters = buildLabelCandidates(input.term)
+    .map(
+      (candidate) =>
+        `CONTAINS(STR(?label), "${candidate}") || EXISTS {
+    ?authority xl:altLabel ?altNode .
+    ?altNode xl:literalForm ?altMatch .
+    FILTER(CONTAINS(STR(?altMatch), "${candidate}"))
+  }`
+    )
+    .join(" ||\n    ");
+  const schemeFilters = input.schemes
+    .map((scheme) => {
+      const path =
+        scheme === "NDC10"
+          ? "ndc10"
+          : scheme === "NDC9"
+            ? "ndc9"
+            : scheme === "NDC8"
+              ? "ndc8"
+              : "ndlc";
+
+      return `CONTAINS(STR(?classification), "http://id.ndl.go.jp/class/${path}/")`;
+    })
+    .join(" || ");
+
+  return `
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xl: <http://www.w3.org/2008/05/skos-xl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?authority ?label ?type ?altLabel ?classification
+WHERE {
+  ?authority rdfs:label ?label ;
+             skos:inScheme ?type ;
+             skos:relatedMatch ?classification .
+  FILTER(CONTAINS(STR(?type), "topicalTerms"))
+  FILTER(${termFilters})
+  FILTER(${schemeFilters})
+  OPTIONAL { ?authority xl:altLabel ?alt . ?alt xl:literalForm ?altLabel . }
+}
+LIMIT ${input.concept_limit * 20}
 `;
 }
 
@@ -404,6 +481,114 @@ export function createNdlAuthoritiesClient(options: NdlAuthoritiesClientOptions 
           caution:
             "分類から得た件名標目は未知文献探索の入口です。分類範囲が広い場合や NDC の版が異なる場合は、年代・資料種別・分類前方一致などと組み合わせて絞り込んでください。"
         }
+      };
+    },
+
+    async suggestClassificationCodes(
+      input: SuggestClassificationCodesQueryInput
+    ): Promise<SuggestClassificationCodesOutput> {
+      const url = new URL(sparqlUrl);
+      url.searchParams.set("query", buildClassificationCodesByTermQuery(input));
+      url.searchParams.set("format", "application/sparql-results+json");
+
+      const response = await fetcher(url, {
+        headers: { accept: "application/sparql-results+json, application/json" }
+      });
+      if (!response.ok) {
+        throw new UpstreamHttpError(response.status, response.statusText);
+      }
+
+      const payload = await readSparqlJson(response);
+      const bindings = payload.results?.bindings;
+      if (!Array.isArray(bindings)) {
+        throw new UnsupportedPayloadError("SPARQL JSON results are required");
+      }
+
+      const byUri = new Map<string, SuggestClassificationCodesOutput["items"][number]>();
+      for (const binding of bindings) {
+        const authorityUri = bindingValue(binding, "authority");
+        const label = bindingValue(binding, "label");
+        const code = parseClassificationCodeUri(bindingValue(binding, "classification"));
+        if (!authorityUri || !label || !code || !input.schemes.includes(code.scheme)) {
+          continue;
+        }
+
+        const item =
+          byUri.get(authorityUri) ??
+          {
+            authority_uri: authorityUri,
+            id: authorityUri.split("/").pop() ?? null,
+            label,
+            variant_labels: [],
+            classification_codes: []
+          };
+
+        const altLabel = bindingValue(binding, "altLabel");
+        if (altLabel && !item.variant_labels.includes(altLabel)) {
+          item.variant_labels.push(altLabel);
+        }
+        if (!item.classification_codes.some((entry) => entry.uri === code.uri)) {
+          item.classification_codes.push(code);
+        }
+        byUri.set(authorityUri, item);
+      }
+
+      const items = Array.from(byUri.values()).slice(0, input.concept_limit);
+      for (const item of items) {
+        item.classification_codes.sort((a, b) => {
+          const schemeOrder =
+            input.schemes.indexOf(a.scheme) - input.schemes.indexOf(b.scheme);
+          if (schemeOrder !== 0) {
+            return schemeOrder;
+          }
+
+          return a.notation.localeCompare(b.notation, "ja");
+        });
+      }
+
+      const allCodes = items.flatMap((item) => item.classification_codes);
+      const orderedCodes = input.schemes.flatMap((scheme) =>
+        allCodes
+          .filter((code) => code.scheme === scheme)
+          .sort((a, b) => a.notation.localeCompare(b.notation, "ja"))
+      );
+      const seenNotations = new Set<string>();
+      const distinctCodes = orderedCodes.filter((code) => {
+        if (seenNotations.has(code.notation)) {
+          return false;
+        }
+        seenNotations.add(code.notation);
+        return true;
+      });
+      const usedCodes = distinctCodes.slice(0, input.max_codes);
+      const suggestedCategoryParam = usedCodes.map((code) => code.notation).join(" ");
+
+      return {
+        term: input.term,
+        schemes: input.schemes,
+        concept_limit: input.concept_limit,
+        max_codes: input.max_codes,
+        total_concepts: byUri.size,
+        total_codes: distinctCodes.length,
+        used_codes: usedCodes,
+        items,
+        suggested_category_param: suggestedCategoryParam,
+        suggested_search: suggestedCategoryParam
+          ? {
+              tool: "jp_lit_search",
+              args: {
+                query: input.term,
+                source: "cinii_books",
+                filters: {
+                  cinii: {
+                    category: suggestedCategoryParam
+                  }
+                }
+              }
+            }
+          : null,
+        caution:
+          "分類記号は未知の図書探索を広げる補助線です。CiNii Books category は分類記号に基づく絞り込みなので、候補は NDL / CiNii detail / 所蔵情報で再確認してください。"
       };
     }
   };
