@@ -177,6 +177,7 @@ describe("tool definition quality", () => {
       expect(tool?.description, toolName).toMatch(/external read/i);
       expect(tool?.description, toolName).toMatch(/local (?:cache|bookkeeping) write/i);
       expect(tool?.description, toolName).toMatch(/外部sourceは変更しない/);
+      expect(tool?.description, toolName).toMatch(/非破壊/);
       expect(tool?.description, toolName).not.toMatch(/read-only/i);
     }
   });

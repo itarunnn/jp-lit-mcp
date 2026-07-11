@@ -333,19 +333,33 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     appendEntry(entry) {
       return serializeMutation(async () => {
         const session = await readCurrentUnlocked();
+        const existingIndex = session.entries.findIndex(
+          (candidate) =>
+            candidate.tool === entry.tool &&
+            candidate.cache_key === entry.cache_key
+        );
+        const entries =
+          existingIndex === -1
+            ? [...session.entries, entry]
+            : session.entries.map((candidate, index) =>
+                index === existingIndex
+                  ? {
+                      ...candidate,
+                      ...entry,
+                      selected_items: candidate.selected_items,
+                      notes: candidate.notes,
+                      ...(candidate.trace
+                        ? { trace: candidate.trace }
+                        : entry.trace
+                          ? { trace: entry.trace }
+                          : {})
+                    }
+                  : candidate
+              );
         const next: SessionDocument = {
           ...session,
           updated_at: nowIso(),
-          entries: [
-            ...session.entries.filter(
-              (candidate) =>
-                !(
-                  candidate.tool === entry.tool &&
-                  candidate.cache_key === entry.cache_key
-                )
-            ),
-            entry
-          ]
+          entries
         };
 
         await persist(next);

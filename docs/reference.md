@@ -181,7 +181,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 `runCachedTool` を使う検索・取得系ツールは、原則として同じ cache 仕様です。`force_refresh` を明示しない限り保存済み cache を優先し、cache hit 時は上流 API へ再接続しません。`force_refresh` は cache key から除外されるため、同じ検索条件の保存済み cache を無視して取り直すスイッチとして働きます。最新データで取り直したい場合だけ `force_refresh=true` を指定してください。
 
-これらの cached tool は外部 source を変更しない非破壊の読み取りですが、cache hit でもローカル session 履歴を更新し、cache miss または `force_refresh=true` ではローカル cache を作成・置換します。そのため ToolAnnotations は環境を変更しない `readOnly` / `idempotent` とせず、`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true` として公開します。
+これらの cached tool は外部 source を変更しない非破壊の読み取りですが、cache hit でもローカル session 履歴を更新し、cache miss または `force_refresh=true` ではローカル cache を作成・置換します。そのため ToolAnnotations は環境を変更しない `readOnly` / `idempotent` とせず、`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true` として公開します。同じ `tool` / `cache_key` を再実行した場合、検索・取得由来の entry metadata は最新値へ更新しますが、`jp_lit_annotate_session` で保存した `selected_items`、`notes`、entry trace は保持します。これらを空にする場合は、同 tool の `selected_items=[]` または `notes=[]` を明示して注釈を更新してください。
 
 一部 source が失敗した横断検索も正常結果として cache されます。現在の cache に自動 TTL はなく、同一入力の cache hit で失敗 source だけを自動再試行しません。`source_errors[].source` を明示して個別検索するか、横断検索全体を `force_refresh=true` で取り直してください。
 

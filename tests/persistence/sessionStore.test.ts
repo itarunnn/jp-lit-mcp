@@ -171,6 +171,66 @@ describe("session store", () => {
     expect(session.entries[0]?.notes).toEqual(["kept for review"]);
   });
 
+  it("同一entryの最新metadataを反映しつつ利用者注釈を保持し、明示clearはannotateだけで行う", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+    const selectedItem = {
+      source: "ndl_catalog",
+      source_id: "123",
+      title: "foo",
+      label: "strong_candidate" as const,
+      note: "keep"
+    };
+
+    await store.appendEntry(entryA);
+    await store.annotateEntry({
+      tool: entryA.tool,
+      cache_key: entryA.cache_key,
+      selected_items: [selectedItem],
+      notes: ["利用者メモ"],
+      trace: {
+        intent: "topic_literature_review",
+        decisions: [
+          {
+            kind: "hold",
+            target: { source_id: "123", title: "foo" },
+            reason: "本文未確認",
+            evidence_refs: []
+          }
+        ]
+      }
+    });
+
+    const rerun = await store.appendEntry({
+      ...entryA,
+      input: { query: "alpha", normalized: true },
+      selected_items: [],
+      notes: []
+    });
+
+    expect(rerun.entries).toHaveLength(1);
+    expect(rerun.entries[0]).toMatchObject({
+      input: { query: "alpha", normalized: true },
+      selected_items: [selectedItem],
+      notes: ["利用者メモ"],
+      trace: {
+        intent: "topic_literature_review",
+        decisions: [expect.objectContaining({ reason: "本文未確認" })]
+      }
+    });
+
+    const cleared = await store.annotateEntry({
+      tool: entryA.tool,
+      cache_key: entryA.cache_key,
+      selected_items: [],
+      notes: []
+    });
+    expect(cleared.entries).toHaveLength(1);
+    expect(cleared.entries[0]?.selected_items).toEqual([]);
+    expect(cleared.entries[0]?.notes).toEqual([]);
+    expect(cleared.entries[0]?.trace?.intent).toBe("topic_literature_review");
+  });
+
   it("appends session trace without changing existing entries", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);

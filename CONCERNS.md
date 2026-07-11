@@ -77,9 +77,9 @@
 ### C-011 Cached external tool annotations
 - classification: assisted-fix
 - status: resolved
-- evidence: 16 cached external toolを`readOnlyHint=true` / `idempotentHint=true`としていたが、cache hitでもsessionを更新し、miss/refreshではcacheを作成・置換する
-- action: 外部sourceを変更しない非破壊操作であることと、local cache/sessionを書き換えることを分離し、16 toolを`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true`へ統一。descriptionと公開referenceもexternal read / local bookkeeping writeへ更新
-- verification: `CACHED_TOOL_NAMES`をsource of truthにしたregistry contractで16 toolの4 annotation値とdescriptionを固定。local純read 5 toolはread-onlyを維持
+- evidence: 16 cached external toolを`readOnlyHint=true` / `idempotentHint=true`としていたことに加え、annotation修正後もcache hit/refresh時のsession entry丸ごと置換で`selected_items`、`notes`、entry traceが消え、`destructiveHint=false`・「非破壊」という公開契約と実挙動が不一致だった
+- action: 外部sourceを変更しない非破壊操作であることと、local cache/sessionを書き換えることを分離し、16 toolを`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true`へ統一。同一`tool` / `cache_key`のappendは最新metadataをmergeしつつ利用者注釈を保持し、明示clearはannotate contractだけが担うよう変更
+- verification: `CACHED_TOOL_NAMES`をsource of truthにしたregistry contractで16 toolの4 annotation値・非破壊descriptionを固定。SessionStore unitと実MCP経路でsearch→annotate→cache hit→force refresh→JSON exportの注釈保持、entry非重複、annotateによる明示clearを確認。local純read 5 toolはread-onlyを維持
 - next step: cached tool追加時はcache/session副作用と`CACHED_TOOL_NAMES`、annotations、descriptionを同時更新する
 
 ## Report-only backlog

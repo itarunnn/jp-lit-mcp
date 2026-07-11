@@ -116,7 +116,7 @@ session の read-modify-write は同一プロセス内で直列化する。cache
 
 今回触れる tool から ToolAnnotations を導入し、最終的に全公開 tool の read-only、destructive、idempotent、open-world を registry-level test で固定する。tool description は annotations の代替にはしない。
 
-cached external tool は外部 source 自体を変更しないが、cache hit でもローカル session を更新し、cache miss / refresh ではローカル cache を作成・置換する。SDK の「環境を変更しない」という read-only 契約には該当しないため、16 tool は `readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true` とする。ローカル cache / session を読むだけの tool は read-only を維持する。
+cached external tool は外部 source 自体を変更しないが、cache hit でもローカル session を更新し、cache miss / refresh ではローカル cache を作成・置換する。SDK の「環境を変更しない」という read-only 契約には該当しないため、16 tool は `readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true` とする。同一 `tool` / `cache_key` の session entry 更新は検索・取得由来metadataだけを置換し、利用者が annotate した `selected_items`、`notes`、entry traceを保持する。注釈の明示clearは annotate contractだけが担う。ローカル cache / session を読むだけの tool は read-only を維持する。
 
 ## Concern Loop
 
