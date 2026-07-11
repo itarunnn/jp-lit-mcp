@@ -1,6 +1,11 @@
 import { readdir, readFile, rm, stat } from "node:fs/promises";
-import path from "node:path";
 
+import { InvalidRequestError } from "../errors.js";
+import {
+  cachedToolSchema,
+  cacheKeySchema,
+  resolveContainedCachePath
+} from "./cacheIdentity.js";
 import { getCacheRoot, getLegacyCacheRoot } from "./paths.js";
 import type { CacheEnvelope } from "./types.js";
 
@@ -50,6 +55,22 @@ function parseEnvelope(text: string): CacheEnvelope<unknown> | null {
   }
 }
 
+function parseCacheTool(tool: string) {
+  try {
+    return cachedToolSchema.parse(tool);
+  } catch {
+    throw new InvalidRequestError("invalid cache tool");
+  }
+}
+
+function parseCacheKey(key: string) {
+  try {
+    return cacheKeySchema.parse(key);
+  } catch {
+    throw new InvalidRequestError("invalid cache key");
+  }
+}
+
 async function collectRoot(
   rootPath: string,
   root: CacheRootKind,
@@ -57,12 +78,26 @@ async function collectRoot(
 ) {
   const items: CacheInventoryItem[] = [];
   const skipped: SkippedCacheFile[] = [];
-  const tools = toolFilter ? [toolFilter] : await listDirs(rootPath);
+  const containedRoot = resolveContainedCachePath(rootPath);
+  const tools = toolFilter
+    ? [parseCacheTool(toolFilter)]
+    : (await listDirs(containedRoot)).flatMap((tool) => {
+        const parsed = cachedToolSchema.safeParse(tool);
+        return parsed.success ? [parsed.data] : [];
+      });
 
   for (const tool of tools) {
-    const toolDir = path.join(rootPath, tool);
+    const toolDir = resolveContainedCachePath(containedRoot, tool);
     for (const filename of await listJsonFiles(toolDir)) {
-      const filePath = path.join(toolDir, filename);
+      const filePath = resolveContainedCachePath(containedRoot, tool, filename);
+      const filenameKey = filename.endsWith(".json")
+        ? filename.slice(0, -".json".length)
+        : filename;
+      const parsedFilenameKey = cacheKeySchema.safeParse(filenameKey);
+      if (!parsedFilenameKey.success) {
+        skipped.push({ path: filePath, reason: "invalid cache key filename" });
+        continue;
+      }
       const text = await readFile(filePath, "utf8");
       const envelope = parseEnvelope(text);
       if (!envelope) {
@@ -70,8 +105,8 @@ async function collectRoot(
         continue;
       }
       if (
-        typeof envelope.tool !== "string" ||
-        typeof envelope.cache_key !== "string" ||
+        !cachedToolSchema.safeParse(envelope.tool).success ||
+        !cacheKeySchema.safeParse(envelope.cache_key).success ||
         typeof envelope.saved_at !== "string"
       ) {
         skipped.push({ path: filePath, reason: "missing cache metadata" });
@@ -85,6 +120,13 @@ async function collectRoot(
         skipped.push({
           path: filePath,
           reason: "tool directory does not match cache metadata"
+        });
+        continue;
+      }
+      if (envelope.cache_key !== parsedFilenameKey.data) {
+        skipped.push({
+          path: filePath,
+          reason: "cache filename does not match cache metadata"
         });
         continue;
       }
@@ -112,19 +154,18 @@ export async function listCacheInventory(baseDir = process.cwd(), tool?: string)
   };
 }
 
-function isPathInside(parent: string, target: string) {
-  const relative = path.relative(path.resolve(parent), path.resolve(target));
-  return relative.length > 0 && !relative.startsWith("..") && !path.isAbsolute(relative);
-}
-
 export async function removeInventoryItem(
   item: CacheInventoryItem,
   baseDir = process.cwd()
 ) {
   const rootPath =
     item.root === "current" ? getCacheRoot(baseDir) : getLegacyCacheRoot(baseDir);
-  if (!isPathInside(rootPath, item.path)) {
-    throw new Error(`Refusing to remove cache file outside cache root: ${item.path}`);
-  }
-  await rm(item.path, { force: false });
+  const tool = parseCacheTool(item.tool);
+  const cacheKey = parseCacheKey(item.cache_key);
+  const target = resolveContainedCachePath(
+    rootPath,
+    tool,
+    `${cacheKey}.json`
+  );
+  await rm(target, { force: false });
 }

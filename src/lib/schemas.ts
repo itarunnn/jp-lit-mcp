@@ -764,7 +764,7 @@ export const deleteCacheOutputSchema = z.object({
 
 export const pruneCacheInputSchema = z.object({
   older_than_days: z.number().int().positive().default(30).describe("この日数より古い cache を prune 候補にする。"),
-  tool: z.string().trim().min(1).optional().describe("対象 tool cache 名。未指定なら全 tool cache を対象にする。"),
+  tool: cachedToolSchema.optional().describe("対象 tool cache 名。未指定なら全 tool cache を対象にする。"),
   dry_run: z.boolean().default(true).describe("true なら削除せず候補だけ返す。false のときだけ実際に古い cache を削除する。"),
   limit: z.number().int().positive().max(1000).default(100).describe("列挙または削除する候補の最大件数。最大 1000。")
 });

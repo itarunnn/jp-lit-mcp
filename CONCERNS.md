@@ -12,8 +12,8 @@
 - classification: assisted-fix
 - status: resolved
 - evidence: `tool` / `cache_key` がcache root外のJSONへ到達できる再現あり
-- action: Task 1でidentity validationとfilesystem containmentを追加
-- verification: traversal・junction回帰test、全test suite、buildがpass
+- action: Task 1でFileCacheとcache inventory/pruneにidentity validationとfilesystem containmentを追加
+- verification: current/legacyのtraversal・junction・prune回帰test、全test suite、buildがpass
 - next step: cache境界を変更する場合に回帰testと実経路containmentを再確認
 
 ## Report-only backlog

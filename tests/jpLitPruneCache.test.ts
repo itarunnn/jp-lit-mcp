@@ -1,10 +1,25 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
+import {
+  listCacheInventory,
+  removeInventoryItem
+} from "../src/lib/persistence/cacheInventory.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import {
+  getCacheRoot,
+  getLegacyCacheRoot
+} from "../src/lib/persistence/paths.js";
 import { createJpLitPruneCacheTool } from "../src/tools/jpLitPruneCache.js";
 
 const tempDirs: string[] = [];
@@ -201,16 +216,22 @@ describe("jp_lit_prune_cache", () => {
 
   it("skips malformed files and tool directory mismatches", async () => {
     const baseDir = await createTempDir();
-    await writeRawCacheFile(baseDir, "current", "jp_lit_search", "bad-json.json", "{");
     await writeRawCacheFile(
       baseDir,
       "current",
       "jp_lit_search",
-      "bad-date.json",
+      `${fixtureCacheKey("bad-json")}.json`,
+      "{"
+    );
+    await writeRawCacheFile(
+      baseDir,
+      "current",
+      "jp_lit_search",
+      `${fixtureCacheKey("bad-date")}.json`,
       JSON.stringify({
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "bad-date",
+        cache_key: fixtureCacheKey("bad-date"),
         saved_at: "not-a-date",
         input: {},
         structured_content: {}
@@ -220,11 +241,11 @@ describe("jp_lit_prune_cache", () => {
       baseDir,
       "current",
       "jp_lit_search",
-      "wrong-tool.json",
+      `${fixtureCacheKey("wrong-tool")}.json`,
       JSON.stringify({
         version: 1,
         tool: "jp_lit_get_record",
-        cache_key: "wrong-tool",
+        cache_key: fixtureCacheKey("wrong-tool"),
         saved_at: "2026-03-01T00:00:00.000Z",
         input: {},
         structured_content: {}
@@ -244,5 +265,204 @@ describe("jp_lit_prune_cache", () => {
       "invalid saved_at",
       "tool directory does not match cache metadata"
     ]);
+  });
+
+  it("rejects tool traversal at the public prune schema", async () => {
+    const baseDir = await createTempDir();
+    const tool = createJpLitPruneCacheTool(baseDir);
+
+    await expect(
+      tool({ tool: "../../../../victim", dry_run: false })
+    ).rejects.toThrow();
+  });
+
+  it("skips non-SHA cache filenames and metadata", async () => {
+    const baseDir = await createTempDir();
+    await writeRawCacheFile(
+      baseDir,
+      "current",
+      "jp_lit_search",
+      "not-sha.json",
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: "not-sha",
+        saved_at: "2026-03-01T00:00:00.000Z",
+        input: {},
+        structured_content: {}
+      })
+    );
+
+    const result = await createJpLitPruneCacheTool(
+      baseDir,
+      () => new Date("2026-05-05T00:00:00.000Z")
+    )({ older_than_days: 30, dry_run: false });
+
+    expect(result.structuredContent.matched_count).toBe(0);
+    expect(result.structuredContent.pruned_count).toBe(0);
+    expect(result.structuredContent.skipped.map((item) => item.reason)).toContain(
+      "invalid cache key filename"
+    );
+  });
+
+  it("skips cache metadata whose key differs from the filename", async () => {
+    const baseDir = await createTempDir();
+    const filenameKey = fixtureCacheKey("filename-key");
+    const metadataKey = fixtureCacheKey("metadata-key");
+    const proof = path.join(
+      getCacheRoot(baseDir),
+      "jp_lit_search",
+      `${filenameKey}.json`
+    );
+    await writeRawCacheFile(
+      baseDir,
+      "current",
+      "jp_lit_search",
+      `${filenameKey}.json`,
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: metadataKey,
+        saved_at: "2026-03-01T00:00:00.000Z",
+        input: {},
+        structured_content: { proof: true }
+      })
+    );
+
+    const result = await createJpLitPruneCacheTool(
+      baseDir,
+      () => new Date("2026-05-05T00:00:00.000Z")
+    )({ older_than_days: 30, dry_run: false });
+
+    expect(result.structuredContent.matched_count).toBe(0);
+    expect(result.structuredContent.skipped.map((item) => item.reason)).toContain(
+      "cache filename does not match cache metadata"
+    );
+    await expect(readFile(proof, "utf8")).resolves.toContain("proof");
+  });
+
+  it("ignores unknown tool directories when pruning every tool", async () => {
+    const baseDir = await createTempDir();
+    const unknownDir = path.join(getCacheRoot(baseDir), "unexpected");
+    const proof = path.join(unknownDir, `${fixtureCacheKey("unknown")}.json`);
+    await mkdir(unknownDir, { recursive: true });
+    await writeFile(
+      proof,
+      JSON.stringify({
+        version: 1,
+        tool: "unexpected",
+        cache_key: fixtureCacheKey("unknown"),
+        saved_at: "2026-03-01T00:00:00.000Z",
+        input: {},
+        structured_content: {}
+      }),
+      "utf8"
+    );
+
+    const result = await createJpLitPruneCacheTool(
+      baseDir,
+      () => new Date("2026-05-05T00:00:00.000Z")
+    )({ older_than_days: 30, dry_run: false });
+
+    expect(result.structuredContent.matched_count).toBe(0);
+    await expect(readFile(proof, "utf8")).resolves.toContain("unexpected");
+  });
+
+  it.each(["current", "legacy"] as const)(
+    "rejects prune through an outside %s junction without deleting the proof",
+    async (rootKind) => {
+      const baseDir = await createTempDir();
+      const cacheRoot =
+        rootKind === "current"
+          ? getCacheRoot(baseDir)
+          : getLegacyCacheRoot(baseDir);
+      const victim = path.join(baseDir, `${rootKind}-victim`);
+      const key = fixtureCacheKey(`${rootKind}-junction`);
+      const proof = path.join(victim, `${key}.json`);
+      await mkdir(victim, { recursive: true });
+      await writeFile(
+        proof,
+        JSON.stringify({
+          version: 1,
+          tool: "jp_lit_search",
+          cache_key: key,
+          saved_at: "2026-03-01T00:00:00.000Z",
+          input: {},
+          structured_content: { proof: true }
+        }),
+        "utf8"
+      );
+      await mkdir(cacheRoot, { recursive: true });
+      await symlink(
+        victim,
+        path.join(cacheRoot, "jp_lit_search"),
+        process.platform === "win32" ? "junction" : "dir"
+      );
+
+      const prune = createJpLitPruneCacheTool(
+        baseDir,
+        () => new Date("2026-05-05T00:00:00.000Z")
+      );
+      await expect(
+        prune({
+          older_than_days: 30,
+          tool: "jp_lit_search",
+          dry_run: false
+        })
+      ).rejects.toThrow(/cache/i);
+      await expect(readFile(proof, "utf8")).resolves.toContain("proof");
+    }
+  );
+
+  it("rejects prune through a dangling junction", async () => {
+    const baseDir = await createTempDir();
+    const cacheRoot = getCacheRoot(baseDir);
+    await mkdir(cacheRoot, { recursive: true });
+    await symlink(
+      path.join(baseDir, "missing-victim"),
+      path.join(cacheRoot, "jp_lit_search"),
+      process.platform === "win32" ? "junction" : "dir"
+    );
+
+    await expect(
+      createJpLitPruneCacheTool(baseDir)({
+        tool: "jp_lit_search",
+        dry_run: false
+      })
+    ).rejects.toThrow(/cache/i);
+  });
+
+  it("reconstructs the removal target instead of trusting item.path", async () => {
+    const baseDir = await createTempDir();
+    const firstKey = fixtureCacheKey("inventory-first");
+    const secondKey = fixtureCacheKey("inventory-second");
+    await writeCache(
+      baseDir,
+      "jp_lit_search",
+      firstKey,
+      "2026-03-01T00:00:00.000Z"
+    );
+    await writeCache(
+      baseDir,
+      "jp_lit_search",
+      secondKey,
+      "2026-03-02T00:00:00.000Z"
+    );
+    const inventory = await listCacheInventory(baseDir, "jp_lit_search");
+    const first = inventory.items.find((item) => item.cache_key === firstKey)!;
+    const secondPath = path.join(
+      getCacheRoot(baseDir),
+      "jp_lit_search",
+      `${secondKey}.json`
+    );
+
+    await removeInventoryItem({ ...first, path: secondPath }, baseDir);
+
+    await expect(
+      readCacheFile(baseDir, "current", "jp_lit_search", firstKey)
+    ).rejects.toThrow();
+    await expect(
+      readCacheFile(baseDir, "current", "jp_lit_search", secondKey)
+    ).resolves.toContain(secondKey);
   });
 });

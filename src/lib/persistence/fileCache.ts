@@ -74,7 +74,6 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
   return {
     async read<T>(tool: string, key: string) {
       const target = getCacheFilePath(cacheRoot, tool, key);
-      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
 
       try {
         const text = await readFile(target, "utf8");
@@ -85,6 +84,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
           return null;
         }
 
+        const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
         try {
           const legacyText = await readFile(legacyTarget, "utf8");
           return JSON.parse(legacyText) as CacheEnvelope<T>;
@@ -118,7 +118,6 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
     async delete(tool: string, key: string) {
       const target = getCacheFilePath(cacheRoot, tool, key);
-      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
       try {
         await rm(target, { force: false });
         return true;
@@ -128,6 +127,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
         }
       }
 
+      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
       try {
         await rm(legacyTarget, { force: false });
         return true;

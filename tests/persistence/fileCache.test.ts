@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createCacheKey } from "../../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../../src/lib/persistence/fileCache.js";
-import { getCacheRoot } from "../../src/lib/persistence/paths.js";
+import {
+  getCacheRoot,
+  getLegacyCacheRoot
+} from "../../src/lib/persistence/paths.js";
 
 const tempDirs: string[] = [];
 
@@ -152,14 +155,37 @@ describe("file cache", () => {
     ).rejects.toThrow(/cache/i);
   });
 
-  it("rejects cache access through a junction outside the cache root", async () => {
+  it.each([
+    ["current", "read"],
+    ["current", "write"],
+    ["current", "delete"],
+    ["current", "clear"],
+    ["legacy", "read"],
+    ["legacy", "delete"],
+    ["legacy", "clear"]
+  ] as const)("rejects %s cache %s through an outside junction", async (rootKind, operation) => {
     const baseDir = await createTempDir();
     const victim = path.join(baseDir, "victim");
-    const proof = path.join(victim, "proof.json");
-    const cacheRoot = getCacheRoot(baseDir);
+    const key = createCacheKey("jp_lit_search", { rootKind, operation });
+    const proof = path.join(victim, `${key}.json`);
+    const cacheRoot =
+      rootKind === "current"
+        ? getCacheRoot(baseDir)
+        : getLegacyCacheRoot(baseDir);
     const linkedToolDir = path.join(cacheRoot, "jp_lit_search");
     await mkdir(victim, { recursive: true });
-    await writeFile(proof, "{}", "utf8");
+    await writeFile(
+      proof,
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: key,
+        saved_at: "2026-05-01T00:00:00.000Z",
+        input: {},
+        structured_content: { proof: true }
+      }),
+      "utf8"
+    );
     await mkdir(cacheRoot, { recursive: true });
     await symlink(
       victim,
@@ -168,9 +194,75 @@ describe("file cache", () => {
     );
     const cache = createFileCache(baseDir);
 
-    await expect(cache.clear("jp_lit_search")).rejects.toThrow(/cache/i);
-    await expect(readFile(proof, "utf8")).resolves.toBe("{}");
+    const action =
+      operation === "read"
+        ? () => cache.read("jp_lit_search", key)
+        : operation === "write"
+          ? () => cache.write("jp_lit_search", {
+              version: 1,
+              tool: "jp_lit_search",
+              cache_key: key,
+              saved_at: "2026-05-01T00:00:00.000Z",
+              input: {},
+              structured_content: { changed: true }
+            })
+          : operation === "delete"
+            ? () => cache.delete("jp_lit_search", key)
+            : () => cache.clear("jp_lit_search");
+
+    await expect(action()).rejects.toThrow(/cache/i);
+    await expect(readFile(proof, "utf8")).resolves.toContain("proof");
   });
+
+  it("uses a current entry before resolving an unsafe legacy path", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const key = createCacheKey("jp_lit_search", { query: "current-first" });
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: key,
+      saved_at: "2026-05-01T00:00:00.000Z",
+      input: { query: "current-first" },
+      structured_content: { current: true }
+    });
+
+    const victim = path.join(baseDir, "legacy-victim");
+    const legacyRoot = getLegacyCacheRoot(baseDir);
+    await mkdir(victim, { recursive: true });
+    await mkdir(legacyRoot, { recursive: true });
+    await symlink(
+      victim,
+      path.join(legacyRoot, "jp_lit_search"),
+      process.platform === "win32" ? "junction" : "dir"
+    );
+
+    await expect(cache.read("jp_lit_search", key)).resolves.toMatchObject({
+      structured_content: { current: true }
+    });
+    await expect(cache.delete("jp_lit_search", key)).resolves.toBe(true);
+  });
+
+  it.each(["current", "legacy"] as const)(
+    "rejects a dangling %s cache junction",
+    async (rootKind) => {
+      const baseDir = await createTempDir();
+      const cacheRoot =
+        rootKind === "current"
+          ? getCacheRoot(baseDir)
+          : getLegacyCacheRoot(baseDir);
+      await mkdir(cacheRoot, { recursive: true });
+      await symlink(
+        path.join(baseDir, "missing-target"),
+        path.join(cacheRoot, "jp_lit_search"),
+        process.platform === "win32" ? "junction" : "dir"
+      );
+
+      await expect(
+        createFileCache(baseDir).clear("jp_lit_search")
+      ).rejects.toThrow(/cache/i);
+    }
+  );
 
   it("ignores unknown directories when clearing every cached tool", async () => {
     const baseDir = await createTempDir();
