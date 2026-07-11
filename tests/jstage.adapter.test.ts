@@ -141,7 +141,8 @@ describe("createJstageArticlesAdapter", () => {
     expect(searchUrl.searchParams.get("service")).toBe("3");
     expect(searchUrl.searchParams.get("article")).toBe("夏目漱石");
     expect(searchUrl.searchParams.get("count")).toBe("5");
-    expect(searchUrl.searchParams.get("page")).toBe("2");
+    expect(searchUrl.searchParams.get("start")).toBe("6");
+    expect(searchUrl.searchParams.get("page")).toBeNull();
     expect(fetch.mock.calls[1][0]).toBe(
       "https://www.jstage.jst.go.jp/article/jeigakushi1969/1973/5/1973_5_81/_article/-char/ja/"
     );

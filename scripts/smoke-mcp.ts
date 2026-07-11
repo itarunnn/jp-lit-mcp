@@ -99,6 +99,47 @@ export function resolveLiveSmokeQuery(source: string, override?: string) {
   return override ?? LIVE_DEFAULT_QUERY_BY_SOURCE[source] ?? "菊池寛";
 }
 
+export async function assertJstagePagination(
+  client: Pick<Client, "callTool">,
+  query: string
+) {
+  const sourceIds: string[] = [];
+
+  for (const page of [1, 2]) {
+    const result = await client.callTool({
+      name: "jp_lit_search",
+      arguments: {
+        query,
+        source: "jstage_articles",
+        limit: 1,
+        page
+      }
+    });
+    const data = result.structuredContent as
+      | { items?: Array<{ source_id?: string }> }
+      | undefined;
+    const sourceId = data?.items?.[0]?.source_id;
+
+    if (!sourceId) {
+      throw new Error(
+        `J-STAGE pagination page ${page} returned no source_id.`
+      );
+    }
+
+    sourceIds.push(sourceId);
+  }
+
+  if (sourceIds[0] === sourceIds[1]) {
+    throw new Error(
+      `J-STAGE pagination returned the same source_id for page 1/2: ${sourceIds[0]}`
+    );
+  }
+
+  console.log(
+    `J-STAGE pagination passed: page1=${sourceIds[0]} page2=${sourceIds[1]}`
+  );
+}
+
 export function resolveLocalPersistenceSmokeSearch(env: {
   SMOKE_LOCAL_SOURCE?: string;
   SMOKE_LOCAL_QUERY?: string;
@@ -886,6 +927,17 @@ async function mainSinglePass(): Promise<LiveSmokeStatus> {
     console.log("Local persistence smoke passed.");
 
     if (process.env.SMOKE_LIVE === "1") {
+      const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_catalog";
+      if (
+        resolveSmokeRunMode(process.env) === "matrix" &&
+        liveSource === "jstage_articles"
+      ) {
+        await assertJstagePagination(
+          client,
+          resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY)
+        );
+      }
+
       const liveOutcome = await runLiveSmoke(client);
       if (liveOutcome.status === "skipped") {
         return liveOutcome;

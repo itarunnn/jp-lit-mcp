@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { readFileSync } from "node:fs";
 
 import {
+  assertJstagePagination,
   DEFAULT_LIVE_RETRY_COUNT,
   EXPECTED_TOOL_NAMES,
   LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY,
@@ -28,6 +29,67 @@ import { createServer } from "../src/server.js";
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   version: string;
 };
+
+describe("J-STAGE live pagination smoke", () => {
+  it("page 1/2 を limit=1 で呼び、異なる先頭 source_id を確認する", async () => {
+    const callTool = vi
+      .fn()
+      .mockResolvedValueOnce({
+        structuredContent: { items: [{ source_id: "page-1-id" }] }
+      })
+      .mockResolvedValueOnce({
+        structuredContent: { items: [{ source_id: "page-2-id" }] }
+      });
+
+    await expect(
+      assertJstagePagination({ callTool }, "癌")
+    ).resolves.toBeUndefined();
+
+    expect(callTool).toHaveBeenNthCalledWith(1, {
+      name: "jp_lit_search",
+      arguments: {
+        query: "癌",
+        source: "jstage_articles",
+        limit: 1,
+        page: 1
+      }
+    });
+    expect(callTool).toHaveBeenNthCalledWith(2, {
+      name: "jp_lit_search",
+      arguments: {
+        query: "癌",
+        source: "jstage_articles",
+        limit: 1,
+        page: 2
+      }
+    });
+  });
+
+  it("同一 source_id が page 1/2 に返ったら失敗する", async () => {
+    const callTool = vi
+      .fn()
+      .mockResolvedValue({
+        structuredContent: { items: [{ source_id: "same-id" }] }
+      });
+
+    await expect(assertJstagePagination({ callTool }, "癌")).rejects.toThrow(
+      /same-id/
+    );
+  });
+
+  it("先頭 source_id が欠けていたら失敗する", async () => {
+    const callTool = vi
+      .fn()
+      .mockResolvedValueOnce({ structuredContent: { items: [] } })
+      .mockResolvedValueOnce({
+        structuredContent: { items: [{ source_id: "page-2-id" }] }
+      });
+
+    await expect(assertJstagePagination({ callTool }, "癌")).rejects.toThrow(
+      /page 1.*source_id/i
+    );
+  });
+});
 
 describe("smoke-mcp tool manifest", () => {
   it("publishes the package version in MCP serverInfo", async () => {

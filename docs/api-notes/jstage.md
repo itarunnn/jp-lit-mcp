@@ -12,9 +12,9 @@
 - `service=3` の記事検索は live 応答で `Atom/OpenSearch` 形を返す。
 - 記事ページ HTML には `citation_*` 系 meta があり、DOI、誌名、著者、掲載年、ページ、PDF URL などを取得できる。
 
-## 2026-04-26 時点の実装メモ
+## 2026-07-11 時点の実装メモ
 
-- 検索パラメータは `service=3`, `article=<query>`, `page=<n>` を利用。
+- 検索パラメータは `service=3`, `article=<query>`, `count=<limit>`, `start=(page-1)*limit+1` を利用し、`page` は送らない。
 - `source_id` は記事 URL の pathname を保持し、detail では `https://www.jstage.jst.go.jp` に解決して再取得する。
 - detail は現状 `summary` を `null`、`table_of_contents` を `[]` で返す。`subjects` は meta から抽出できる範囲だけ返す。
 - `content_access.viewer_url` には `citation_pdf_url` を優先し、なければ記事 URL を返す。

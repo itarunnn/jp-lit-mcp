@@ -24,6 +24,14 @@
 - verification: focused export test、tool description quality test、全test suite、buildで確認
 - next step: export境界を変更する場合に実経路containmentと明示flagのpositive/negative controlを再確認
 
+### C-005 J-STAGE pagination contract
+- classification: assisted-fix
+- status: resolved
+- evidence: J-STAGE WebAPIのページ送りに対し、`page=<n>`を送り`start`を送っていなかった
+- action: `start=(page-1)*limit+1`、`count=limit`に変換し、`page`をリクエストから除外。J-STAGE matrixでpage 1/2の先頭`source_id`非一致を検証
+- verification: adapter/smoke/package distributionのfocused test 39件、全test suite 585件、buildがpass。J-STAGE 1 sourceの低頻度live checkでpage 1/2の実`source_id`非一致、`failed=0`を確認
+- next step: J-STAGE API contract変更時にURL regression testと低頻度live pagination checkを再確認
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止
@@ -31,7 +39,7 @@
 - status: monitored
 - evidence: local-only `docs/research/dl-ndl-internal-api-local.md`
 - action: 公開MCP・package・CIへ組み込まない
-- verification: package distribution contractで確認
+- verification: package allowlistが`docs/research/`を含まず、`src/**/*.ts`と`.github/workflows/*.yml`に内部endpointが無いことをpackage distribution testで確認。方針を記載した設計文書はlocal-only memoと同様に検査対象外
 - next step: 境界変更時に人間レビュー
 
 ### C-102 Cross-process session locking

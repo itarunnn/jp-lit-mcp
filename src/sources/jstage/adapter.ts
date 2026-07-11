@@ -33,7 +33,7 @@ export function createJstageArticlesAdapter(
       url.searchParams.set("service", "3");
       url.searchParams.set("article", query);
       url.searchParams.set("count", String(limit));
-      url.searchParams.set("page", String(page));
+      url.searchParams.set("start", String((page - 1) * limit + 1));
       if (issued_from) {
         url.searchParams.set("pubyearfrom", issued_from);
       }
