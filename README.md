@@ -60,7 +60,7 @@ npm -v
 
 `v18` 以上の Node.js が表示されれば大丈夫です。表示されない場合は、先に Node.js を導入してください。
 
-CiNii Research の `appid`、OpenAlex / Crossref の照合設定、カーリル図書館MCPは必須ではありません。ただし、CiNii / KAKEN、外部書誌照合、地域資料・公共図書館調査をよく使うなら、最初に設定しておくと便利です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
+CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 検索を続行し、結果に警告を付けます。一方、KAKEN API tool は未設定では実行できません。OpenAlex / Crossref の照合設定とカーリル図書館MCPは任意です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
 
 ## 最短導入
 
@@ -84,7 +84,7 @@ CiNii Research の API 利用登録で取得する `appid` は、`jp-lit-mcp` �
 
 `your-cinii-app-id` は実際の値に置き換えてください。実値は Git 管理しないでください。
 
-入れておくと、CiNii 系 source（論文・博士論文・図書）の利用が安定し、KAKEN API tool も使えるようになります。未設定でも、NDL、J-STAGE、IRDB、JDCat、国会会議録など多くの source は追加設定なしで使えます。
+CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 系 source（論文・博士論文・図書）の検索を続行し、結果に `CINII_APP_ID_REQUIRED` 警告を付けます。KAKEN API tool は同じ `appid` が必須で、未設定では実行できません。NDL、J-STAGE、IRDB、JDCat、国会会議録など多くの source は追加設定なしで使えます。
 
 設定の書き方はアプリごとに違います。
 

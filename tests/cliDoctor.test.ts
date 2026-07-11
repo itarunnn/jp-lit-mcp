@@ -42,7 +42,8 @@ describe("CLI doctor", () => {
     expect(lines.join("\n")).toContain("Skills directory bundled");
     expect(lines.join("\n")).toContain("cache directory writable");
     expect(lines.join("\n")).toContain("exports directory writable");
-    expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID not set (optional; required for KAKEN API tool)");
+    expect(lines.join("\n")).toContain("CiNii公式APIではappid必須");
+    expect(lines.join("\n")).toContain("KAKEN API tool は実行不可");
     expect(lines.join("\n")).toContain("No live API checks were run.");
   });
 
@@ -60,6 +61,6 @@ describe("CLI doctor", () => {
 
     expect(result.ok).toBe(false);
     expect(lines.join("\n")).toContain("Node.js >= 18");
-    expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID set (optional; used by CiNii Research/Dissertations/Books and KAKEN API)");
+    expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID set (CiNii公式APIのappidを設定済み; KAKEN API tool で使用)");
   });
 });

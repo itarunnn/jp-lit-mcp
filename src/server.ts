@@ -386,7 +386,12 @@ export function createServer(env: ServerEnv = process.env) {
     createJacarAdapter(adapterOptions.jacar)
   ];
   const recordService = createRecordService(adapters);
-  const searchTool = createJpLitSearchTool(createSearchService(adapters), cache, sessions);
+  const searchTool = createJpLitSearchTool(
+    createSearchService(adapters),
+    cache,
+    sessions,
+    { ciniiAppIdPresent: Boolean(env.CINII_RESEARCH_APP_ID?.trim()) }
+  );
   const recordTool = createJpLitGetRecordTool(recordService, cache, sessions);
   const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
   const updateSessionTraceTool = createJpLitUpdateSessionTraceTool(sessions);

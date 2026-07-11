@@ -16,7 +16,7 @@
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。検索品質や外部 DB の応答を測る live API チェックではありません。
+`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。未設定時は、CiNii 検索が警告付きで続行されることと、KAKEN API tool が実行できないことを分けて表示します。検索品質や外部 DB の応答を測る live API チェックではありません。
 
 ## 目次
 
@@ -791,7 +791,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 | `teikoku_minutes`     | 帝国議会会議録検索 API                                                    | 1890〜1947年の帝国議会の議論                                           | 発言単位で検索します                                                                                             |
 
 > **CiNii 系の認証について**  
-> `cinii_articles` / `cinii_dissertations` / `cinii_books` は、環境変数 `CINII_RESEARCH_APP_ID` の設定を推奨します。値には CiNii Research の API 利用登録で取得する `appid` を入れます。`jp_lit_search_kaken_projects` は同じ `appid` を KAKEN API に使うため設定が必要です。実値は Git 管理外のシークレットとして扱います。
+> CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため `cinii_articles` / `cinii_dissertations` / `cinii_books` の検索を続行し、結果に `CINII_APP_ID_REQUIRED` 警告を付けます。`jp_lit_search_kaken_projects` は同じ `appid` が必須で、未設定では実行できません。実値は Git 管理外のシークレットとして扱います。
 
 > **Crossref / OpenAlex について**
 > Crossref / OpenAlex は source 一覧には入りません。`jp_lit_enrich_record` で既存候補を照合する補助 provider です。Crossref は任意で `CROSSREF_MAILTO`、OpenAlex は `OPENALEX_API_KEY` を使います。

@@ -208,6 +208,7 @@ export const ciniiFiltersSchema = z.object({
 const searchDiagnosticSchema = z.object({
   level: z.enum(["info", "warning", "error"]),
   code: z.enum([
+    "CINII_APP_ID_REQUIRED",
     "ZERO_METADATA_CONJUNCTION",
     "SCRIPT_LATIN_QUERY",
     "BROAD_RESULT_SET",

@@ -84,12 +84,23 @@ export function buildSearchDiagnostics(input: {
   query: string;
   source: SourceName | null;
   total: number;
+  ciniiAppIdPresent: boolean;
 }): SearchDiagnostic[] {
   const diagnostics: SearchDiagnostic[] = [];
   const isCinii =
     input.source === "cinii_articles" ||
     input.source === "cinii_books" ||
     input.source === "cinii_dissertations";
+
+  if ((isCinii || input.source === null) && !input.ciniiAppIdPresent) {
+    diagnostics.push({
+      level: "warning",
+      code: "CINII_APP_ID_REQUIRED",
+      message: "CiNii Research の公式 API 仕様では appid が必須です。",
+      hint:
+        "現在は未設定でも応答する場合がありますが、正式な利用では CINII_RESEARCH_APP_ID を設定してください。互換性のため検索は続行しました。"
+    });
+  }
 
   if (isCinii && input.total === 0 && /\s/.test(input.query.trim())) {
     diagnostics.push({

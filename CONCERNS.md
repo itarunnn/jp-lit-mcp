@@ -32,6 +32,14 @@
 - verification: adapter/smoke/package distributionのfocused test 39件、全test suite 585件、buildがpass。J-STAGE 1 sourceの低頻度live checkでpage 1/2の実`source_id`非一致、`failed=0`を確認
 - next step: J-STAGE API contract変更時にURL regression testと低頻度live pagination checkを再確認
 
+### C-006 CiNii appid contract
+- classification: assisted-fix
+- status: resolved
+- evidence: CiNii Research公式APIでは`appid`必須だが、現行endpointは未設定でも応答する場合があり、docsとruntimeの扱いが曖昧だった
+- action: CiNii 3 source明示またはsource未指定の検索は未設定でもadapterを呼んで結果を返し、`CINII_APP_ID_REQUIRED` warningを付与。明示的な非CiNii sourceと設定済み環境では付与しない。KAKENは未設定時に実行不可のまま維持
+- verification: focused docs含むtests 72件、全test suite 591件、buildがpass。secret-flowの`rg`確認でserverからsearch toolへ渡るのはtrim済みの設定有無booleanだけで、persistence/cache/session/snapshot側にappid実値の参照が無いことを確認
+- next step: CiNii公式APIの認証要件または未設定応答が変わった場合にadapter動作とwarning契約を再確認
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止

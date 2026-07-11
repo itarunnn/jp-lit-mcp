@@ -105,9 +105,9 @@ export function runDoctor(options: DoctorOptions = {}): DoctorResult {
 
   checks.push({
     status: "info",
-    message: env.CINII_RESEARCH_APP_ID
-      ? "CINII_RESEARCH_APP_ID set (optional; used by CiNii Research/Dissertations/Books and KAKEN API)"
-      : "CINII_RESEARCH_APP_ID not set (optional; required for KAKEN API tool)"
+    message: env.CINII_RESEARCH_APP_ID?.trim()
+      ? "CINII_RESEARCH_APP_ID set (CiNii公式APIのappidを設定済み; KAKEN API tool で使用)"
+      : "CINII_RESEARCH_APP_ID not set (CiNii公式APIではappid必須。CiNii検索は互換性のため続行して警告を返す; KAKEN API tool は実行不可)"
   });
 
   writeLine("jp-lit-mcp doctor");

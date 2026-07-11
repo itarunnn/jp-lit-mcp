@@ -535,6 +535,133 @@ describe("createSearchService", () => {
     await rm(baseDir, { recursive: true, force: true });
   });
 
+  it.each([
+    "cinii_articles",
+    "cinii_dissertations",
+    "cinii_books"
+  ] as const)(
+    "%s を明示した検索は appid 未設定でも続行し CINII_APP_ID_REQUIRED warning を返す",
+    async (source) => {
+      const baseDir = await createTempDir();
+      const search = vi.fn().mockResolvedValue({
+        total: 1,
+        items: [createSearchItem(source, "1", "CiNii result")]
+      });
+      const adapter = {
+        source,
+        search,
+        getRecord: async () => null
+      } as SourceAdapter;
+      const tool = createJpLitSearchTool(
+        createSearchService([adapter]),
+        createFileCache(baseDir),
+        createSessionStore(baseDir),
+        { ciniiAppIdPresent: false }
+      );
+
+      const result = await tool({ query: "日本文学", source });
+
+      expect(search).toHaveBeenCalledOnce();
+      expect(result.structuredContent.items).toEqual([
+        createSearchItem(source, "1", "CiNii result")
+      ]);
+      expect(result.structuredContent.diagnostics).toContainEqual({
+        level: "warning",
+        code: "CINII_APP_ID_REQUIRED",
+        message: expect.stringMatching(/公式.*appid.*必須/),
+        hint: expect.stringMatching(/CINII_RESEARCH_APP_ID/)
+      });
+
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  );
+
+  it("source 未指定の横断検索は appid 未設定でも続行し CINII_APP_ID_REQUIRED warning を返す", async () => {
+    const baseDir = await createTempDir();
+    const search = vi.fn().mockResolvedValue({
+      total: 1,
+      items: [createSearchItem("cinii_articles", "1", "CiNii result")]
+    });
+    const adapter = {
+      source: "cinii_articles",
+      search,
+      getRecord: async () => null
+    } as SourceAdapter;
+    const tool = createJpLitSearchTool(
+      createSearchService([adapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir),
+      { ciniiAppIdPresent: false }
+    );
+
+    const result = await tool({ query: "日本文学" });
+
+    expect(search).toHaveBeenCalledOnce();
+    expect(result.structuredContent.items).toEqual([
+      createSearchItem("cinii_articles", "1", "CiNii result")
+    ]);
+    expect(result.structuredContent.diagnostics).toContainEqual({
+      level: "warning",
+      code: "CINII_APP_ID_REQUIRED",
+      message: expect.stringMatching(/公式.*appid.*必須/),
+      hint: expect.stringMatching(/CINII_RESEARCH_APP_ID/)
+    });
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("明示的な非 CiNii source は appid 未設定でも CINII_APP_ID_REQUIRED warning を返さない", async () => {
+    const baseDir = await createTempDir();
+    const ndlCatalogAdapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("ndl_catalog", "1", "NDL result")]
+      }),
+      getRecord: async () => null
+    };
+    const tool = createJpLitSearchTool(
+      createSearchService([ndlCatalogAdapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir),
+      { ciniiAppIdPresent: false }
+    );
+
+    const result = await tool({ query: "日本文学", source: "ndl_catalog" });
+
+    expect(result.structuredContent.diagnostics ?? []).not.toContainEqual(
+      expect.objectContaining({ code: "CINII_APP_ID_REQUIRED" })
+    );
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
+  it("CiNii source でも appid 設定済みなら CINII_APP_ID_REQUIRED warning を返さない", async () => {
+    const baseDir = await createTempDir();
+    const ciniiBooksAdapter: SourceAdapter = {
+      source: "cinii_books",
+      search: async () => ({
+        total: 1,
+        items: [createSearchItem("cinii_books", "1", "CiNii result")]
+      }),
+      getRecord: async () => null
+    };
+    const tool = createJpLitSearchTool(
+      createSearchService([ciniiBooksAdapter]),
+      createFileCache(baseDir),
+      createSessionStore(baseDir),
+      { ciniiAppIdPresent: true }
+    );
+
+    const result = await tool({ query: "日本文学", source: "cinii_books" });
+
+    expect(result.structuredContent.diagnostics ?? []).not.toContainEqual(
+      expect.objectContaining({ code: "CINII_APP_ID_REQUIRED" })
+    );
+
+    await rm(baseDir, { recursive: true, force: true });
+  });
+
   it("cinii_articles の 0 件検索に ZERO_METADATA_CONJUNCTION diagnostic を付ける", async () => {
     const baseDir = await createTempDir();
     const ciniiArticlesAdapter: SourceAdapter = {

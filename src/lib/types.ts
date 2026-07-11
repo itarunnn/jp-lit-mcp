@@ -27,6 +27,7 @@ export interface CiniiSearchFilters {
 export type SearchDiagnosticLevel = "info" | "warning" | "error";
 
 export type SearchDiagnosticCode =
+  | "CINII_APP_ID_REQUIRED"
   | "ZERO_METADATA_CONJUNCTION"
   | "SCRIPT_LATIN_QUERY"
   | "BROAD_RESULT_SET"

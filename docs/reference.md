@@ -351,7 +351,7 @@ KAKEN の研究課題を検索し、研究テーマ、キーワード、研究�
 
 返り値では `detail_fetched` / `detail_omitted_reason` / `report_pdf_status` を必ず確認してください。`report_pdf_status="not_checked"` は PDF が無いという意味ではなく、詳細取得を省略した状態です。
 
-このツールは KAKEN OpenSearch API を使うため、環境変数 `CINII_RESEARCH_APP_ID` が必要です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii Research / CiNii Dissertations / CiNii Books と同じ NII / CiNii 系の `appid` を利用します。
+このツールは KAKEN OpenSearch API を使うため、環境変数 `CINII_RESEARCH_APP_ID` が必須です。未設定では実行できません。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii Research / CiNii Dissertations / CiNii Books と同じ NII / CiNii 系の `appid` を利用します。
 
 #### `jp_lit_search_guides_manuals`
 
@@ -670,7 +670,7 @@ jp_lit_search_illustrations(keyword="富士山")
 
 ## 環境変数
 
-通常利用では、各 source の base URL を設定する必要はありません。次の環境変数は、上流 API の URL を明示・上書きしたい場合や、テスト環境・プロキシを使う場合のためのものです。`CINII_RESEARCH_APP_ID` は、CiNii Research の API 利用登録で取得する `appid` を MCP サーバーへ渡すための環境変数です。CiNii 系 source（論文・博士論文・図書）の安定利用に推奨し、KAKEN API tool では必須です。
+通常利用では、各 source の base URL を設定する必要はありません。次の環境変数は、上流 API の URL を明示・上書きしたい場合や、テスト環境・プロキシを使う場合のためのものです。`CINII_RESEARCH_APP_ID` は、CiNii Research の API 利用登録で取得する `appid` を MCP サーバーへ渡すための環境変数です。CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では設定してください。未設定時も互換性のため CiNii 系 source（論文・博士論文・図書）の検索を続行し、結果に警告を付けます。KAKEN API tool は未設定では実行できません。
 
 | 変数 | 既定値 | 説明 |
 | ---- | ------ | ---- |
@@ -680,7 +680,7 @@ jp_lit_search_illustrations(keyword="富士山")
 | `CINII_RESEARCH_BASE_URL` | `https://cir.nii.ac.jp/opensearch/articles` | CiNii 系検索。adapter が source ごとに `/articles` / `/dissertations` / `/books` へ切り替える |
 | `CINII_RESEARCH_RECORD_BASE_URL` | `https://cir.nii.ac.jp/crid` | CiNii 系詳細 |
 | `CINII_BOOKS_HOLDINGS_BASE_URL` | `https://ci.nii.ac.jp/books/opensearch/holder` | CiNii Books 所蔵 |
-| `CINII_RESEARCH_APP_ID` | なし | CiNii Research の API 利用登録で取得する `appid`。CiNii 系 source（論文・博士論文・図書）の安定利用に推奨。KAKEN API tool では必須。実値はシークレット経由で渡す |
+| `CINII_RESEARCH_APP_ID` | なし | CiNii Research の API 利用登録で取得する `appid`。公式 API 仕様では必須。未設定時も CiNii 検索は互換性のため続行して警告を返すが、KAKEN API tool は実行不可。実値はシークレット経由で渡す |
 | `JSTAGE_BASE_URL` | `https://api.jstage.jst.go.jp/searchapi/do` | J-STAGE 検索 |
 | `JSTAGE_ARTICLE_BASE_URL` | `https://www.jstage.jst.go.jp` | J-STAGE 記事ページ HTML 詳細 |
 | `JAPAN_SEARCH_BASE_URL` | `https://jpsearch.go.jp/api/item/search/jps-cross` | Japan Search 検索 |
@@ -710,7 +710,7 @@ jp_lit_search_illustrations(keyword="富士山")
 
 ## MCP 登録例
 
-通常は、必要に応じて環境変数 `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。KAKEN tool を使わない場合や CiNii 系 source を試用するだけの場合は、`env` ごと省略できます。`jp_lit_enrich_record` で OpenAlex / Crossref の外部照合を使う場合は、同じ `env` に `OPENALEX_API_KEY` と `CROSSREF_MAILTO` を追加できます。
+通常は、環境変数 `CINII_RESEARCH_APP_ID` だけ設定すれば十分です。技術的には `env` を省略しても CiNii 系 source の検索を互換性のため続行しますが、結果に警告が付きます。公式 API 仕様に沿った正式な利用では設定してください。KAKEN tool は未設定では実行できません。`jp_lit_enrich_record` で OpenAlex / Crossref の外部照合を使う場合は、同じ `env` に `OPENALEX_API_KEY` と `CROSSREF_MAILTO` を追加できます。
 
 ```json
 {
@@ -736,7 +736,7 @@ jp_lit_search_illustrations(keyword="富士山")
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は Node.js、パッケージバージョン、MCP entrypoint、同梱 Skills、cache / exports への書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。外部 DB への live API アクセスは行いません。
+`doctor` は Node.js、パッケージバージョン、MCP entrypoint、同梱 Skills、cache / exports への書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。未設定時は、CiNii 検索が互換性のため警告付きで続行されることと、KAKEN API tool が実行できないことを分けて表示します。外部 DB への live API アクセスは行いません。
 
 ## ローカル保存
 

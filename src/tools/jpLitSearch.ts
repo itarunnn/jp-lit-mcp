@@ -14,10 +14,15 @@ import type { createSearchService } from "../services/searchService.js";
 
 type SearchService = ReturnType<typeof createSearchService>;
 
+interface JpLitSearchToolOptions {
+  ciniiAppIdPresent: boolean;
+}
+
 export function createJpLitSearchTool(
   searchService: SearchService,
   cache: FileCache = createFileCache(),
-  sessions: SessionStore = createSessionStore()
+  sessions: SessionStore = createSessionStore(),
+  options: JpLitSearchToolOptions = { ciniiAppIdPresent: true }
 ) {
   return async (input: unknown) => {
     const parsed = searchInputSchema.parse(input);
@@ -60,7 +65,8 @@ export function createJpLitSearchTool(
     const diagnostics = buildSearchDiagnostics({
       query: structuredContent.query,
       source: structuredContent.source,
-      total: structuredContent.total
+      total: structuredContent.total,
+      ciniiAppIdPresent: options.ciniiAppIdPresent
     });
 
     const response: SearchOutput = {

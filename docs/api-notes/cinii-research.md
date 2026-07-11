@@ -9,7 +9,7 @@
 - `cinii_books` は `https://cir.nii.ac.jp/opensearch/books` の `format=json` を使う。
 - detail は `https://cir.nii.ac.jp/crid/{crid}.json` を使う。
 - `cinii_books` の detail 時には `https://ci.nii.ac.jp/books/opensearch/holder?ncid=...&format=json` も使い、所蔵館情報を補完する。
-- `appid` は `CINII_RESEARCH_APP_ID` が設定されているときだけ付ける。
+- `appid` は `CINII_RESEARCH_APP_ID` が設定されているときだけ付ける。公式 API 仕様では必須であり、正式な利用では設定する。
 - sort は当面 `issued_date` のみ対応する。
   - `cinii_articles`: `desc -> sortorder=0`, `asc -> sortorder=1`
   - `cinii_dissertations`: `desc -> sortorder=0`, `asc -> sortorder=1`
@@ -19,7 +19,7 @@
 ## 実レスポンス確認メモ
 
 - 2026-04-25 時点では OpenSearch `format=json` は `appid` なしでも 200 を返した。
-- ただし公式文書では `appid` を要求しているため、実装では optional env として残す。
+- ただし公式文書では `appid` を要求している。互換性のため未設定でも検索 adapter は呼び出し、結果に `CINII_APP_ID_REQUIRED` 警告を付けるが、正式な利用では設定する。
 - search response は `opensearch:totalResults` と `items[]` を持つ。
 - `items[]` では `@id` が CRID URL、`dc:creator` が著者、`prism:publicationDate` が発行年、`prism:publicationName` がタイトル相当 fallback として使える。
 - detail JSON-LD は metadata 中心で、source/type によって持つ項目がかなり違う。
@@ -80,6 +80,14 @@
 - 初期実装では `jp_lit_search.query` 必須 contract を維持し、category-only 検索は導入しない。
 - `jp_lit_suggest_classification_codes` は Web NDL Authorities の `skos:relatedMatch` から NDC / NDLC を抽出して `suggested_category_param` を返す。
 - `jp_lit_search.diagnostics` は、CiNii 系の 0 件・ローマ字 query と、source を問わない広い結果集合を machine-readable に返すための補助情報で、検索結果の正誤や文献価値を判定するものではない。
+
+## 2026-07-11 appid warning contract
+
+- CiNii Research の公式 API 仕様では `appid` が必須。現在は未設定でも応答する場合があるが、正式な利用では `CINII_RESEARCH_APP_ID` を設定する。
+- `cinii_articles` / `cinii_dissertations` / `cinii_books` の明示検索と source 未指定の横断検索は、未設定でも互換性のため続行し、`CINII_APP_ID_REQUIRED` warning を返す。
+- 明示的な非 CiNii source にはこの warning を付けない。
+- diagnostic 生成へ渡すのは trim 済みの設定有無 boolean だけで、`appid` の実値を content、cache、session、diagnostic、log へ渡さない。
+- `jp_lit_search_kaken_projects` は別契約であり、同じ `appid` が未設定なら実行できない。
 
 ## 2026-04-25 精度改善メモ
 
