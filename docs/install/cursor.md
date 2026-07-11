@@ -26,7 +26,7 @@
 }
 ```
 
-`CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。値には CiNii Research の API 利用登録で取得する `appid` を入れます。CiNii 系 source の安定利用に推奨し、KAKEN API tool では必要です。未設定でも、NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
+`CINII_RESEARCH_APP_ID` は、MCP サーバーへ渡す環境変数です。CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では設定してください。未設定時も互換性のため CiNii 系 source の検索を続行し、結果に `CINII_APP_ID_REQUIRED` 警告を付けます。KAKEN API tool は未設定では実行できません。NDL、J-STAGE、IRDB など他の source は追加設定なしで使えます。
 
 `jp_lit_enrich_record` で OpenAlex / Crossref の照合を使う場合は、同じ `mcpServers.<server>.env` に `OPENALEX_API_KEY` と `CROSSREF_MAILTO` も追加できます。どちらも任意で、OpenAlex は未設定なら `skipped`、Crossref の `mailto` は polite pool 用の連絡先として扱います。
 

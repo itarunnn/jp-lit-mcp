@@ -51,6 +51,71 @@ function createSearchItem(
   };
 }
 
+const CINII_SERVER_SEARCH_RESPONSE = {
+  "@id": "https://cir.nii.ac.jp/opensearch/articles?q=server+wiring",
+  "@type": "channel",
+  "opensearch:totalResults": 1,
+  items: [
+    {
+      "@id": "https://cir.nii.ac.jp/crid/1573387450265380480",
+      title: "server wiring result",
+      link: { "@id": "https://cir.nii.ac.jp/crid/1573387450265380480" },
+      "dc:creator": ["テスト著者"],
+      "dc:type": "Article",
+      "prism:publicationDate": "2026"
+    }
+  ]
+};
+
+async function callCiniiSearchThroughServer(env: {
+  CINII_RESEARCH_APP_ID?: string;
+}) {
+  const baseDir = await createTempDir();
+  const originalCwd = process.cwd();
+  process.chdir(baseDir);
+
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(CINII_SERVER_SEARCH_RESPONSE), {
+      status: 200,
+      headers: { "content-type": "application/json; charset=utf-8" }
+    })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  const server = createServer({
+    CINII_RESEARCH_BASE_URL:
+      "https://cinii.example.test/opensearch/articles",
+    ...env
+  });
+  const client = new Client({
+    name: "jp-lit-cinii-appid-test-client",
+    version: "1.0.0"
+  });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+  try {
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.callTool({
+      name: "jp_lit_search",
+      arguments: {
+        query: "server wiring",
+        source: "cinii_articles",
+        force_refresh: true
+      }
+    });
+
+    return { result, fetchMock };
+  } finally {
+    await client.close();
+    await server.close();
+    vi.unstubAllGlobals();
+    process.chdir(originalCwd);
+    await rm(baseDir, { recursive: true, force: true });
+  }
+}
+
 describe("createSearchService", () => {
   it("search 入力スキーマで source 省略時に既定値を補完する", () => {
     const parsed = searchInputSchema.parse({ query: "夏目漱石" });
@@ -961,6 +1026,47 @@ describe("createSearchService", () => {
       await server.close();
     }
   });
+
+  it.each([
+    {
+      label: "未設定",
+      env: {},
+      warningExpected: true
+    },
+    {
+      label: "空白",
+      env: { CINII_RESEARCH_APP_ID: "   " },
+      warningExpected: true
+    },
+    {
+      label: "設定済み",
+      env: { CINII_RESEARCH_APP_ID: "configured-for-test" },
+      warningExpected: false
+    }
+  ])(
+    "createServer は appid $label env を trim 判定し CiNii 検索を継続する",
+    async ({ env, warningExpected }) => {
+      const { result, fetchMock } = await callCiniiSearchThroughServer(env);
+      const data = result.structuredContent as
+        | {
+            items?: Array<{ title?: string }>;
+            diagnostics?: Array<{ code?: string }>;
+          }
+        | undefined;
+
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(data?.items?.[0]?.title).toBe("server wiring result");
+      if (warningExpected) {
+        expect(data?.diagnostics).toContainEqual(
+          expect.objectContaining({ code: "CINII_APP_ID_REQUIRED" })
+        );
+      } else {
+        expect(data?.diagnostics ?? []).not.toContainEqual(
+          expect.objectContaining({ code: "CINII_APP_ID_REQUIRED" })
+        );
+      }
+    }
+  );
 
   it("source 未指定では全 source を横断検索して件数を合算する", async () => {
     const ndlCatalogAdapter: SourceAdapter = {

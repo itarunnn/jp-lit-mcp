@@ -43,6 +43,23 @@ describe("install docs", () => {
     expect(docs).toContain("live API");
   });
 
+  it("documents the CiNii appid compatibility contract in every app guide", () => {
+    const docs = [
+      "docs/install/codex-app.md",
+      "docs/install/codex-cli.md",
+      "docs/install/cursor.md",
+      "docs/install/claude-code.md"
+    ].map((path) => ({ path, text: readFileSync(path, "utf8") }));
+
+    for (const doc of docs) {
+      expect.soft(doc.text, doc.path).toMatch(/公式 API 仕様では `appid` が必須/);
+      expect.soft(doc.text, doc.path).toContain("互換性のため");
+      expect.soft(doc.text, doc.path).toContain("警告");
+      expect.soft(doc.text, doc.path).toMatch(/KAKEN API tool.*未設定では実行できません/);
+      expect.soft(doc.text, doc.path).not.toContain("CiNii 系 source の安定利用に推奨");
+    }
+  });
+
   it("does not document the old clone-based Skills installer as the main path", () => {
     const docs = [
       readFileSync("README.md", "utf8"),

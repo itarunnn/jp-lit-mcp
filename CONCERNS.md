@@ -37,7 +37,7 @@
 - status: resolved
 - evidence: CiNii Research公式APIでは`appid`必須だが、現行endpointは未設定でも応答する場合があり、docsとruntimeの扱いが曖昧だった
 - action: CiNii 3 source明示またはsource未指定の検索は未設定でもadapterを呼んで結果を返し、`CINII_APP_ID_REQUIRED` warningを付与。明示的な非CiNii sourceと設定済み環境では付与しない。KAKENは未設定時に実行不可のまま維持
-- verification: focused docs含むtests 72件、全test suite 591件、buildがpass。secret-flowの`rg`確認でserverからsearch toolへ渡るのはtrim済みの設定有無booleanだけで、persistence/cache/session/snapshot側にappid実値の参照が無いことを確認
+- verification: direct tool contractに加え、in-memory MCP経路の`createServer(env)`で未設定・空白・設定済みの3ケースを検証し、CiNii adapterの結果継続とwarning有無を固定。4本のapp別install docsは公式必須・互換検索のwarning付き続行・KAKEN実行不可・旧推奨表現不在をcontract testで確認。focused tests、全suite、build、secret-flowの`rg`確認でserverからsearch toolへ渡るのはtrim済みの設定有無booleanだけで、persistence/cache/session/snapshot側にappid実値の参照が無いことを確認
 - next step: CiNii公式APIの認証要件または未設定応答が変わった場合にadapter動作とwarning契約を再確認
 
 ## Report-only backlog
