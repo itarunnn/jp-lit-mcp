@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { resolveExportTarget, writeExportFile } from "../lib/persistence/exportPath.js";
 import { getExportsRoot } from "../lib/persistence/paths.js";
 import {
   exportViewInputSchema,
@@ -246,17 +246,26 @@ export function createJpLitExportViewTool(
       output = await resolveRefinedResultsOutput(tools, parsed);
     }
 
-    const target =
-      parsed.output_path ??
-      defaultExportPath(baseDir, parsed.view, parsed.format);
+    const target = await resolveExportTarget({
+      baseDir,
+      outputPath: parsed.output_path ?? defaultExportPath(baseDir, parsed.view, parsed.format),
+      allowExternalPath: parsed.allow_external_path
+    });
     const exportedAt = new Date().toISOString();
     const itemCount = resolveItemCount(parsed.view, output);
 
-    await mkdir(path.dirname(target), { recursive: true });
     if (parsed.format === "json") {
-      await writeFile(target, JSON.stringify(output, null, 2), "utf8");
+      await writeExportFile(target, JSON.stringify(output, null, 2), parsed.overwrite, {
+        baseDir,
+        allowExternalPath: parsed.allow_external_path
+      });
     } else {
-      await writeFile(target, renderMarkdown(parsed.view, output, exportedAt), "utf8");
+      await writeExportFile(
+        target,
+        renderMarkdown(parsed.view, output, exportedAt),
+        parsed.overwrite,
+        { baseDir, allowExternalPath: parsed.allow_external_path }
+      );
     }
 
     const structuredContent: ExportViewOutput = exportViewOutputSchema.parse({

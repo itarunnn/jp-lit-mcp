@@ -20,6 +20,8 @@ export function createJpLitExportSessionTool(
       format: parsed.format,
       profile: parsed.profile,
       outputPath: parsed.output_path,
+      allowExternalPath: parsed.allow_external_path,
+      overwrite: parsed.overwrite,
       includeUnselected: parsed.include_unselected
     });
 

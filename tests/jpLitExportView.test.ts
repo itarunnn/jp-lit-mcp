@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -421,5 +421,56 @@ describe("jp_lit_export_view", () => {
     expect(written).toContain("DOI: 10.1234/neko");
     expect(written).toContain("Enrichment confidence: high");
     expect(written).toContain(`Enrichment cache keys: ${enrichCacheKey}`);
+  });
+
+  it("requires explicit flags for external paths and existing files", async () => {
+    const { baseDir, exportViewTool } = await createExportViewFixture([
+      createSearchItem("ev-boundary", "境界テスト")
+    ]);
+    const externalDir = await createTempDir();
+    const externalPath = path.join(externalDir, "external.json");
+    const existingInternalPath = path.join(baseDir, "exports", "existing.json");
+    const existingExternalPath = path.join(externalDir, "existing-external.json");
+    const validInput = {
+      view: "cache_list" as const,
+      params: { tool: "jp_lit_search" as const },
+      format: "json" as const
+    };
+
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: path.join(baseDir, "exports", "..", "outside.json")
+    })).rejects.toThrow(/allow_external_path/);
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: externalPath
+    })).rejects.toThrow(/allow_external_path/);
+
+    await mkdir(path.dirname(existingInternalPath), { recursive: true });
+    await writeFile(existingInternalPath, "sentinel", "utf8");
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: existingInternalPath
+    })).rejects.toThrow(/overwrite/);
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: existingInternalPath,
+      overwrite: true
+    })).resolves.toBeDefined();
+    expect(await readFile(existingInternalPath, "utf8")).not.toBe("sentinel");
+
+    await writeFile(existingExternalPath, "external sentinel", "utf8");
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: existingExternalPath,
+      allow_external_path: true
+    })).rejects.toThrow(/overwrite/);
+    await expect(exportViewTool({
+      ...validInput,
+      output_path: existingExternalPath,
+      allow_external_path: true,
+      overwrite: true
+    })).resolves.toBeDefined();
+    expect(await readFile(existingExternalPath, "utf8")).not.toBe("external sentinel");
   });
 });

@@ -16,6 +16,14 @@
 - verification: current/legacyのtraversal・junction・prune/list/search-index回帰test、全test suite、buildがpass
 - next step: cache境界を変更する場合に回帰testと実経路containmentを再確認
 
+### C-004 Export path and overwrite boundary
+- classification: assisted-fix
+- status: resolved
+- evidence: session/view exportが任意の`output_path`へ既定で書き込み、既存ファイルも無条件に上書きしていた
+- action: 既定の出力先をrepo内`exports/`に限定し、外部pathは`allow_external_path=true`、既存上書きは`overwrite=true`を必須化。relative/absolute/`..`とsymlink/junctionの実経路も共有helperで検証
+- verification: focused export test、tool description quality test、全test suite、buildで確認
+- next step: export境界を変更する場合に実経路containmentと明示flagのpositive/negative controlを再確認
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止

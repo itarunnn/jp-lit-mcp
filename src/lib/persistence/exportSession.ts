@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { resolveExportTarget, writeExportFile } from "./exportPath.js";
 import { getExportsRoot } from "./paths.js";
 import type { FileCache } from "./fileCache.js";
 import type { CacheEnvelope, SessionDocument } from "./types.js";
@@ -17,6 +17,8 @@ export interface SessionExporter {
     format: "markdown" | "json" | "csl-json";
     profile: "full_log" | "selected" | "unselected";
     outputPath?: string;
+    allowExternalPath: boolean;
+    overwrite: boolean;
     includeUnselected: boolean;
   }): Promise<{ path: string; itemCount: number }>;
 }
@@ -380,13 +382,21 @@ export function createSessionExporter(
   baseDir = process.cwd()
 ): SessionExporter {
   return {
-    async exportSession({ session, format, profile, outputPath, includeUnselected }) {
-      const target =
-        outputPath ??
-        defaultExportPath(baseDir, session.session_id, profile, format);
+    async exportSession({
+      session,
+      format,
+      profile,
+      outputPath,
+      allowExternalPath,
+      overwrite,
+      includeUnselected
+    }) {
+      const target = await resolveExportTarget({
+        baseDir,
+        outputPath: outputPath ?? defaultExportPath(baseDir, session.session_id, profile, format),
+        allowExternalPath
+      });
       const unresolvedItems = new Map<string, Array<Record<string, unknown>>>();
-
-      await mkdir(path.dirname(target), { recursive: true });
 
       if ((profile === "full_log" && includeUnselected) || profile === "unselected") {
         for (const entry of session.entries) {
@@ -427,7 +437,10 @@ export function createSessionExporter(
         }
 
         itemCount = cslItems.length;
-        await writeFile(target, JSON.stringify(cslItems, null, 2), "utf8");
+        await writeExportFile(target, JSON.stringify(cslItems, null, 2), overwrite, {
+          baseDir,
+          allowExternalPath
+        });
       } else if (format === "json") {
         const payload = {
           ...session,
@@ -451,12 +464,16 @@ export function createSessionExporter(
           })
         };
 
-        await writeFile(target, JSON.stringify(payload, null, 2), "utf8");
+        await writeExportFile(target, JSON.stringify(payload, null, 2), overwrite, {
+          baseDir,
+          allowExternalPath
+        });
       } else {
-        await writeFile(
+        await writeExportFile(
           target,
           renderMarkdown(session, profile, includeUnselected, unresolvedItems),
-          "utf8"
+          overwrite,
+          { baseDir, allowExternalPath }
         );
       }
 

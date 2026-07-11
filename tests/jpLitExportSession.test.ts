@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -19,6 +19,26 @@ async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-export-"));
   tempDirs.push(dir);
   return dir;
+}
+
+async function createExportSessionFixture() {
+  const baseDir = await createTempDir();
+  const cache = createFileCache(baseDir);
+  const sessions = createSessionStore(baseDir);
+  const exporter = createSessionExporter(cache, baseDir);
+  const tool = createJpLitExportSessionTool(sessions, exporter);
+  await sessions.appendEntry({
+    tool: "jp_lit_search",
+    input: { query: "boundary" },
+    cache_key: fixtureCacheKey("boundary"),
+    result_ref: {
+      tool: "jp_lit_search",
+      cache_key: fixtureCacheKey("boundary")
+    },
+    selected_items: [],
+    notes: []
+  });
+  return { baseDir, tool };
 }
 
 afterEach(async () => {
@@ -1149,4 +1169,100 @@ describe("jp_lit_export_session", () => {
       unselectedResult.structuredContent.path
     );
   });
+
+  it("requires explicit flags for external paths and existing files", async () => {
+    const { baseDir, tool } = await createExportSessionFixture();
+    const externalDir = await createTempDir();
+    const relativeSandbox = await mkdtemp(path.join(process.cwd(), ".jp-lit-export-test-"));
+    tempDirs.push(relativeSandbox);
+    const escapedRelativePath = [
+      path.relative(process.cwd(), relativeSandbox),
+      "exports",
+      "..",
+      "outside.md"
+    ].join(path.sep);
+    const externalPath = path.join(externalDir, "external.md");
+    const existingInternalPath = path.join(baseDir, "exports", "existing.md");
+    const existingExternalPath = path.join(externalDir, "existing-external.md");
+
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: escapedRelativePath
+    })).rejects.toThrow(/allow_external_path/);
+
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: externalPath
+    })).rejects.toThrow(/allow_external_path/);
+
+    const relativeResult = await tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: path.join("exports", "relative.md")
+    });
+    expect(relativeResult.structuredContent.path).toBe(
+      path.join(baseDir, "exports", "relative.md")
+    );
+
+    await writeFile(existingInternalPath, "sentinel", "utf8");
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: existingInternalPath
+    })).rejects.toThrow(/overwrite/);
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: existingInternalPath,
+      overwrite: true
+    })).resolves.toBeDefined();
+    expect(await readFile(existingInternalPath, "utf8")).not.toBe("sentinel");
+
+    await writeFile(existingExternalPath, "external sentinel", "utf8");
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: existingExternalPath,
+      allow_external_path: true
+    })).rejects.toThrow(/overwrite/);
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: existingExternalPath,
+      allow_external_path: true,
+      overwrite: true
+    })).resolves.toBeDefined();
+    expect(await readFile(existingExternalPath, "utf8")).not.toBe("external sentinel");
+  });
+
+  it("rejects an exports junction that resolves outside the exports root", async () => {
+    const { baseDir, tool } = await createExportSessionFixture();
+    const externalDir = await createTempDir();
+    const exportsDir = path.join(baseDir, "exports");
+    const linkedDir = path.join(exportsDir, "linked");
+    await mkdir(exportsDir, { recursive: true });
+    await symlink(externalDir, linkedDir, process.platform === "win32" ? "junction" : "dir");
+
+    await expect(tool({
+      format: "markdown",
+      include_unselected: false,
+      output_path: path.join(linkedDir, "escaped.md")
+    })).rejects.toThrow(/allow_external_path/);
+  });
+
+  it.runIf(process.platform === "win32")(
+    "accepts the exports root when only Windows path casing differs",
+    async () => {
+      const { baseDir, tool } = await createExportSessionFixture();
+      await mkdir(path.join(baseDir, "Exports"), { recursive: true });
+
+      await expect(tool({
+        format: "markdown",
+        include_unselected: false,
+        output_path: path.join(baseDir, "exports", "case-insensitive.md")
+      })).resolves.toBeDefined();
+    }
+  );
 });

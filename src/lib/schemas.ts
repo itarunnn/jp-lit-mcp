@@ -599,6 +599,8 @@ export const exportSessionInputSchema = z.object({
     .default("full_log")
     .describe("書き出す範囲。full_log は全履歴、selected は選別済み候補、unselected は未選別候補。"),
   output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
+  allow_external_path: z.boolean().default(false).describe("true の場合のみ repo 内 exports/ 外への書き出しを許可する。"),
+  overwrite: z.boolean().default(false).describe("true の場合のみ既存ファイルの上書きを許可する。"),
   include_unselected: z.boolean().default(true).describe("markdown/json の full_log で未選別候補を含めるかどうか。")
 });
 
@@ -967,13 +969,17 @@ export const exportViewInputSchema = z.discriminatedUnion("view", [
     view: z.literal("cache_list").describe("書き出すビュー種別。cache_list は jp_lit_list_cache 相当の一覧。"),
     params: listCacheInputSchema.default({}).describe("cache_list に渡す filter と pagination。"),
     format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
-    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
+    allow_external_path: z.boolean().default(false).describe("true の場合のみ repo 内 exports/ 外への書き出しを許可する。"),
+    overwrite: z.boolean().default(false).describe("true の場合のみ既存ファイルの上書きを許可する。")
   }),
   z.object({
     view: z.literal("cache_query").describe("書き出すビュー種別。cache_query は jp_lit_search_cache_index 相当の横断検索結果。"),
     params: searchCacheIndexInputSchema.describe("cache_query に渡す検索条件。"),
     format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
-    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
+    allow_external_path: z.boolean().default(false).describe("true の場合のみ repo 内 exports/ 外への書き出しを許可する。"),
+    overwrite: z.boolean().default(false).describe("true の場合のみ既存ファイルの上書きを許可する。")
   }),
   z.object({
     view: z.literal("refined_results").describe("書き出すビュー種別。refined_results は jp_lit_refine_results 相当の再抽出結果。"),
@@ -981,7 +987,9 @@ export const exportViewInputSchema = z.discriminatedUnion("view", [
     format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
     export_all: z.boolean().default(false).describe("true の場合は limit/offset を超えて対象結果を全件 export する。"),
     duplicate_notes: z.boolean().default(false).describe("true の場合は重複候補クラスタの確認ノートを出力に含める。"),
-    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。")
+    output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
+    allow_external_path: z.boolean().default(false).describe("true の場合のみ repo 内 exports/ 外への書き出しを許可する。"),
+    overwrite: z.boolean().default(false).describe("true の場合のみ既存ファイルの上書きを許可する。")
   })
 ]);
 
