@@ -1,9 +1,9 @@
 # 実装状況
 
-2026-06-28 時点の状態:
+2026-07-11 時点の状態:
 
-- 公開ツール 27 種・対応 source 20 種・テスト 539 件すべて通過
-- `npm test` / `npm run build` / `npm run smoke:mcp` は通過済み
+- 公開ツール 28 種・対応 source 20 種・テスト 661 件すべて通過
+- `npm test` / `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
@@ -30,6 +30,7 @@
 
 ## 最近の更新
 
+- `0.9.0`: 全体レビューを反映し、cache / export の path containment と上書き境界、junction / symlink と書込失敗時の復旧、明示的な `jp_lit_start_session`、session 更新の直列化、28 tool の実副作用に沿った annotations を整備した。J-STAGE pagination を現行 `start` contractへ修正し、CiNii appid 未設定時は検索を継続しつつ公式必須の警告を返す。横断検索は一部 source 障害時も成功結果と `source_errors` を返し、全 source 失敗時だけ全体 error とする。Node.js 22以上、Windows / Ubuntu × Node 22 / 24 CI、deterministic offline smoke、audit 0件、publish tag identity検証を追加し、デジコレ本体の画面内部 endpointは公開MCP・公開文書・npm packageへ含めない境界を維持した
 - `0.8.0`: `jp_lit_suggest_classification_codes` を追加。Web NDL Authorities の件名語から NDC / NDLC 分類記号を抽出し、CiNii Books `category` filter に渡せる `suggested_category_param` と `jp_lit_search` 呼び出し例を返す。`jp_lit_search` は `filters.cinii.category` を `source=cinii_books` のときだけ受け付け、CiNii 系検索の 0 件・ローマ字 query と、source を問わない広い結果集合に `interpretation` / `diagnostics` を返す
 - `0.7.10`: 次世代デジタルライブラリー Book API の `f-ndc` filter について、`f_ndc: "9"` のような短い上位分類指定を `9*` に正規化し、`f_ndc: ""` や空白だけの値は未指定と同じ cache entry に畳むようにした。adapter test では公式パラメータ `f-ndc` / `fc-isClassic` と、非採用 alias（`field` / `ndc` / `isClassic`、Illustration API の `q-contents` / `graphictag`）が URL に混入しないことを固定した
 - `0.7.9`: デジコレ OCR 系ツールの検索範囲を明確化。`jp_lit_search_fulltext` は次世代デジタルライブラリー API の OCR 検索であり、デジコレ本体の全文検索画面/API ではなく、「ログインなしで閲覧可能」資料全体の検索でもないことを README / usage guide / reference / tool description に明記した。デジコレ本体の公式検索画面では、ログインなし公開資料、館内限定資料、送信サービス限定資料を含む MCP 範囲外の全文ヒットが見える場合がある。網羅性が必要な調査では、MCP の結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する運用にした。次世代デジタルライブラリー Book API の NDC 上位分類 filter は `9*` のような前方一致で扱い、`f_ndc: "9"` のような短い数字は MCP 側で `9*` に正規化する
