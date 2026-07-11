@@ -60,8 +60,8 @@
 - classification: assisted-fix
 - status: resolved
 - evidence: 明示的にcurrent sessionを切り替えるtoolがなく、同一process内でappend/annotate/trace updateが並行するとread-modify-write間でentryやtraceを失う再現があった。同一cache keyの並行writeも共有`.tmp`を奪い合い、rename失敗やtemp残留が起きた
-- action: `jp_lit_start_session`を追加し、旧currentをarchiveへ保持してからrandom suffix付きIDの新currentを開始する。SessionStoreのcurrent初期化・start・append・annotate・trace updateを単一in-process queueへ通し、失敗後もqueueを継続する。session persistはarchiveを先に、current pointerを最後にatomic temp renameし、cache writeはPID+UUIDのtempと同一target単位queue、finally cleanupを使う
-- verification: start後の旧session read、concurrent append、start→append順序、mutation失敗後のqueue継続、legacy/new ID、same-key concurrent cache write、失敗時temp cleanup、deterministic offline smokeでstart後の旧session exportを確認
+- action: `jp_lit_start_session`を追加し、実在する旧currentだけをarchiveへ保持してからrandom suffix付きIDの新currentを開始する。SessionStoreのcurrent初期化・start・append・annotate・trace updateを単一in-process queueへ通し、失敗後もqueueを継続する。session persistはarchiveを先に、current pointerを最後に書き、session/cache共通のatomic replacement helperで置換失敗時に旧targetを復旧する。復旧も失敗した場合はbackupを削除せず、そのpathをerrorへ含める。cache writeはPID+UUIDのtempと同一target単位queue、finally cleanupを使う
+- verification: fresh storeの初回startが1 sessionだけ作ること、start後の旧session read、concurrent append、start→append順序、mutation失敗後のqueue継続、legacy/new ID、same-key concurrent cache write、失敗時temp cleanup、atomic replace失敗時のrestoreとrestore失敗時のbackup保持、deterministic offline smokeでstart後の旧session exportを確認
 - next step: session file構造またはmutation method追加時は、同じqueueとarchive-first/current-last順序を維持し、並行testを追加する
 
 ## Report-only backlog
@@ -77,7 +77,7 @@
 ### C-102 Cross-process session locking
 - classification: report-only
 - status: open
-- evidence: 複数MCP processが同じcwdを共有する場合のlock未実装。current/archive/cacheは各file内ではunique temp+renameで置換するが、複数fileをまとめたtransactionではなく、Windows fallbackではtarget→backup→tempの間に短いgapもあり得る
+- evidence: 複数MCP processが同じcwdを共有する場合のlock未実装。current/archive/cacheは各file内ではunique temp+renameで置換し、fallback失敗時は旧target復旧またはbackup保持を行うが、複数fileをまとめたtransactionではなく、Windows fallbackではtarget→backup→tempの間に短いgapもあり得る
 - action: 今回は同一SessionStore instance内のmutation serialization、archive-first/current-last、失敗後も継続するqueueまで。process間lockとjournal/recovery protocolは導入しない
 - verification: 同一processのconcurrent appendとstart→append順序、queue failure recovery、旧archive保持、same-key cache concurrent writeはtestで確認。別process間の競合は未検証で、保証しない
 - next step: 同じcwdを複数MCP processで同時利用する運用が必要になった場合、lock fileまたはOS lockと、current/archiveのjournal/recovery方式を別specで設計する

@@ -58,12 +58,13 @@ describe("file cache", () => {
     });
   });
 
-  it("removes its unique temp file when replacement fails", async () => {
+  it("does not leave a unique temp file when serialization fails", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const key = createCacheKey("jp_lit_search", { query: "cleanup" });
     const directory = path.join(getCacheRoot(baseDir), "jp_lit_search");
-    await mkdir(path.join(directory, `${key}.json`), { recursive: true });
+    const circular: Record<string, unknown> = { cleanup: true };
+    circular.self = circular;
 
     await expect(
       cache.write("jp_lit_search", {
@@ -72,7 +73,7 @@ describe("file cache", () => {
         cache_key: key,
         saved_at: "2026-05-01T00:00:00.000Z",
         input: { query: "cleanup" },
-        structured_content: { cleanup: true }
+        structured_content: circular
       })
     ).rejects.toThrow();
 

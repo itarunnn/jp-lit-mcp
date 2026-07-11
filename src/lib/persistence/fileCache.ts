@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 
@@ -10,6 +10,7 @@ import {
 } from "./cacheIdentity.js";
 import { getCacheRoot, getLegacyCacheRoot } from "./paths.js";
 import type { CacheEnvelope } from "./types.js";
+import { replaceFileAtomically } from "./atomicFile.js";
 
 export interface FileCache {
   read<T>(tool: string, key: string): Promise<CacheEnvelope<T> | null>;
@@ -132,8 +133,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
         resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, temp));
         try {
           await writeFile(temp, JSON.stringify(envelope, null, 2), "utf8");
-          await rm(target, { force: true });
-          await rename(temp, target);
+          await replaceFileAtomically(temp, target);
         } finally {
           await rm(temp, { force: true });
         }

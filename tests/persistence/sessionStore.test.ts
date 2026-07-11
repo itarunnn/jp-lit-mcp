@@ -66,6 +66,16 @@ describe("session store", () => {
     });
   });
 
+  it("starts the first session without creating a synthetic previous archive", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+
+    const first = await store.startSession({ research_goal: "first research" });
+
+    expect(await store.readCurrent()).toEqual(first);
+    expect(await store.listAll()).toEqual([first]);
+  });
+
   it("serializes concurrent append operations", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);

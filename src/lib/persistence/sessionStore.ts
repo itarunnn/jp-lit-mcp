@@ -6,10 +6,11 @@ import {
   rm,
   writeFile
 } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import path from "node:path";
 
 import { getLegacySessionsRoot, getSessionsRoot } from "./paths.js";
+import { replaceFileAtomically } from "./atomicFile.js";
 import type {
   SessionAnnotationInput,
   SessionDocument,
@@ -132,41 +133,12 @@ function assertValidSessionId(sessionId: string) {
 }
 
 async function writeSessionFile(target: string, value: SessionDocument) {
-  const temp = `${target}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
-  const backup = `${target}.${process.pid}.${Date.now()}.bak`;
+  const temp = `${target}.${process.pid}.${randomUUID()}.tmp`;
 
   try {
     await writeFile(temp, JSON.stringify(value, null, 2), "utf8");
-
-    try {
-      await rename(temp, target);
-      return;
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code !== "EEXIST" && code !== "EPERM") {
-        throw error;
-      }
-    }
-
-    await rename(target, backup);
-
-    try {
-      await rename(temp, target);
-    } catch (error) {
-      try {
-        await rename(backup, target);
-      } catch {
-        // ignore restore failure and rethrow original write failure
-      }
-
-      throw error;
-    }
+    await replaceFileAtomically(temp, target);
   } finally {
-    try {
-      await rm(backup, { force: true, recursive: true });
-    } catch {
-      // ignore cleanup failure when backup is already gone or never created
-    }
     try {
       await rm(temp, { force: true });
     } catch {
@@ -254,6 +226,37 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     }
   }
 
+  async function readCurrentForStartUnlocked() {
+    await ensureDirectory();
+    const currentPath = currentSessionPath(baseDir);
+
+    try {
+      return await readSessionFile(currentPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        try {
+          return await readSessionFile(legacyCurrentSessionPath(baseDir));
+        } catch (legacyError) {
+          if ((legacyError as NodeJS.ErrnoException).code === "ENOENT") {
+            return null;
+          }
+          throw legacyError;
+        }
+      }
+
+      if (error instanceof SyntaxError) {
+        try {
+          await rename(currentPath, `${currentPath}.invalid`);
+        } catch {
+          // ignore follow-up failure; the new session write still reports its own result
+        }
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
   async function readById(sessionId: string) {
     await ensureDirectory();
     assertValidSessionId(sessionId);
@@ -314,11 +317,13 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
 
     startSession(input) {
       return serializeMutation(async () => {
-        const previous = await readCurrentUnlocked();
-        await writeSessionFile(
-          archiveSessionPath(baseDir, previous.session_id),
-          previous
-        );
+        const previous = await readCurrentForStartUnlocked();
+        if (previous) {
+          await writeSessionFile(
+            archiveSessionPath(baseDir, previous.session_id),
+            previous
+          );
+        }
         const session = createEmptySession(input);
         await persist(session);
         return session;
