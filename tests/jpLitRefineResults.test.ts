@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SessionEntry } from "../src/lib/persistence/types.js";
@@ -11,6 +12,10 @@ import type { EnrichRecordOutput } from "../src/lib/schemas.js";
 import { createJpLitRefineResultsTool } from "../src/tools/jpLitRefineResults.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-refine-results-"));
@@ -215,7 +220,7 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const cacheKey = "latest-key";
+    const cacheKey = fixtureCacheKey("latest-key");
 
     await sessions.appendEntry(createSearchEntry(cacheKey));
     await cache.write("jp_lit_search", {
@@ -265,8 +270,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const firstKey = "first-key";
-    const secondKey = "second-key";
+    const firstKey = fixtureCacheKey("first-key");
+    const secondKey = fixtureCacheKey("second-key");
 
     await sessions.appendEntry(createSearchEntry(firstKey));
     await sessions.appendEntry(createSearchEntry(secondKey));
@@ -330,7 +335,7 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const cacheKey = "past-key";
+    const cacheKey = fixtureCacheKey("past-key");
 
     await cache.write("jp_lit_search", {
       version: 1,
@@ -359,8 +364,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const keyA = "union-a";
-    const keyB = "union-b";
+    const keyA = fixtureCacheKey("union-a");
+    const keyB = fixtureCacheKey("union-b");
 
     await sessions.appendEntry(createSearchEntry(keyA));
     await sessions.appendEntry(createSearchEntry(keyB));
@@ -425,8 +430,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const keyA = "intersect-a";
-    const keyB = "intersect-b";
+    const keyA = fixtureCacheKey("intersect-a");
+    const keyB = fixtureCacheKey("intersect-b");
 
     await sessions.appendEntry(createSearchEntry(keyA));
     await sessions.appendEntry(createSearchEntry(keyB));
@@ -482,8 +487,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const keyA = "minus-a";
-    const keyB = "minus-b";
+    const keyA = fixtureCacheKey("minus-a");
+    const keyB = fixtureCacheKey("minus-b");
 
     await sessions.appendEntry(createSearchEntry(keyA));
     await sessions.appendEntry(createSearchEntry(keyB));
@@ -537,14 +542,14 @@ describe("jp_lit_refine_results", () => {
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
 
-    const sessionA = await sessions.appendEntry(createSearchEntry("s1-a"));
-    await sessions.appendEntry(createSearchEntry("s1-b"));
-    await sessions.appendEntry(createSearchEntry("s2-a"));
+    const sessionA = await sessions.appendEntry(createSearchEntry(fixtureCacheKey("s1-a")));
+    await sessions.appendEntry(createSearchEntry(fixtureCacheKey("s1-b")));
+    await sessions.appendEntry(createSearchEntry(fixtureCacheKey("s2-a")));
 
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "s1-a",
+      cache_key: fixtureCacheKey("s1-a"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "Q1" },
       structured_content: {
@@ -559,7 +564,7 @@ describe("jp_lit_refine_results", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "s1-b",
+      cache_key: fixtureCacheKey("s1-b"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "Q2" },
       structured_content: {
@@ -574,7 +579,7 @@ describe("jp_lit_refine_results", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "s2-a",
+      cache_key: fixtureCacheKey("s2-a"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "Q3" },
       structured_content: {
@@ -592,7 +597,7 @@ describe("jp_lit_refine_results", () => {
       combine: "union"
     });
 
-    expect(result.structuredContent.base_cache_keys).toEqual(["s1-a", "s1-b", "s2-a"]);
+    expect(result.structuredContent.base_cache_keys).toEqual([fixtureCacheKey("s1-a"), fixtureCacheKey("s1-b"), fixtureCacheKey("s2-a")]);
     expect(result.structuredContent.items.map((item) => item.source_id)).toEqual([
       "S1A",
       "S1B",
@@ -616,7 +621,7 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const cacheKey = "limit-key";
+    const cacheKey = fixtureCacheKey("limit-key");
 
     await sessions.appendEntry(createSearchEntry(cacheKey));
     await cache.write("jp_lit_search", {
@@ -659,7 +664,7 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const cacheKey = "cluster-key";
+    const cacheKey = fixtureCacheKey("cluster-key");
 
     await sessions.appendEntry(createSearchEntry(cacheKey));
     await cache.write("jp_lit_search", {
@@ -703,7 +708,7 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const cacheKey = "cluster-raw-key";
+    const cacheKey = fixtureCacheKey("cluster-raw-key");
 
     await sessions.appendEntry(createSearchEntry(cacheKey));
     await cache.write("jp_lit_search", {
@@ -741,8 +746,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const searchCacheKey = "cluster-enrich-search";
-    const enrichCacheKey = "cluster-enrich-record";
+    const searchCacheKey = fixtureCacheKey("cluster-enrich-search");
+    const enrichCacheKey = fixtureCacheKey("cluster-enrich-record");
 
     await sessions.appendEntry(createSearchEntry(searchCacheKey));
     await sessions.appendEntry(createEnrichEntry(enrichCacheKey));
@@ -808,8 +813,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const searchCacheKey = "cluster-noisy-search";
-    const enrichCacheKey = "cluster-noisy-record";
+    const searchCacheKey = fixtureCacheKey("cluster-noisy-search");
+    const enrichCacheKey = fixtureCacheKey("cluster-noisy-record");
 
     await sessions.appendEntry(createSearchEntry(searchCacheKey));
     await sessions.appendEntry(createEnrichEntry(enrichCacheKey));
@@ -864,8 +869,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const searchCacheKey = "cluster-doi-search";
-    const enrichCacheKey = "cluster-doi-record";
+    const searchCacheKey = fixtureCacheKey("cluster-doi-search");
+    const enrichCacheKey = fixtureCacheKey("cluster-doi-record");
     const first = createSearchItem("ndl_catalog", "doi-1", "DOI一致資料", "2001", true, "田中 花子");
     const second = createSearchItem("jstage_articles", "doi-2", "DOI一致資料", "2001", true, "田中 花子");
 
@@ -922,8 +927,8 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
-    const searchCacheKey = "cluster-doi-omitted-search";
-    const enrichCacheKey = "cluster-doi-omitted-record";
+    const searchCacheKey = fixtureCacheKey("cluster-doi-omitted-search");
+    const enrichCacheKey = fixtureCacheKey("cluster-doi-omitted-record");
 
     await sessions.appendEntry(createSearchEntry(searchCacheKey));
     await sessions.appendEntry({

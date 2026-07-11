@@ -3,12 +3,17 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionExporter } from "../src/lib/persistence/exportSession.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-export-"));
@@ -33,7 +38,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       saved_at: new Date().toISOString(),
       input: { query: "foo" },
       structured_content: {
@@ -100,10 +105,10 @@ describe("jp_lit_export_session", () => {
     const session = await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "foo" },
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-a"
+        cache_key: fixtureCacheKey("sha256-a")
       },
       selected_items: [
         {
@@ -147,7 +152,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-trace",
+      cache_key: fixtureCacheKey("sha256-trace"),
       saved_at: new Date().toISOString(),
       input: { query: "trace" },
       structured_content: {
@@ -189,10 +194,10 @@ describe("jp_lit_export_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "trace" },
-      cache_key: "sha256-trace",
+      cache_key: fixtureCacheKey("sha256-trace"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-trace"
+        cache_key: fixtureCacheKey("sha256-trace")
       },
       selected_items: [
         {
@@ -224,7 +229,7 @@ describe("jp_lit_export_session", () => {
           evidence_refs: [
             {
               tool: "jp_lit_search",
-              cache_key: "sha256-trace",
+              cache_key: fixtureCacheKey("sha256-trace"),
               source: "ndl_catalog",
               source_id: "T1"
             }
@@ -249,7 +254,7 @@ describe("jp_lit_export_session", () => {
 
     await sessions.annotateEntry({
       tool: "jp_lit_search",
-      cache_key: "sha256-trace",
+      cache_key: fixtureCacheKey("sha256-trace"),
       selected_items: [
         {
           source: "ndl_catalog",
@@ -283,7 +288,7 @@ describe("jp_lit_export_session", () => {
             evidence_refs: [
               {
                 tool: "jp_lit_search",
-                cache_key: "sha256-trace",
+                cache_key: fixtureCacheKey("sha256-trace"),
                 source: "ndl_catalog",
                 source_id: "T1"
               }
@@ -347,7 +352,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-b",
+      cache_key: fixtureCacheKey("sha256-b"),
       saved_at: new Date().toISOString(),
       input: { query: "bar" },
       structured_content: {
@@ -389,10 +394,10 @@ describe("jp_lit_export_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "bar" },
-      cache_key: "sha256-b",
+      cache_key: fixtureCacheKey("sha256-b"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-b"
+        cache_key: fixtureCacheKey("sha256-b")
       },
       selected_items: [],
       notes: []
@@ -423,7 +428,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_get_record", {
       version: 1,
       tool: "jp_lit_get_record",
-      cache_key: "sha256-csl-record",
+      cache_key: fixtureCacheKey("sha256-csl-record"),
       saved_at: new Date().toISOString(),
       input: {
         source: "jstage_articles",
@@ -485,10 +490,10 @@ describe("jp_lit_export_session", () => {
         source: "jstage_articles",
         source_id: "/article/example/1/2/1/_article/-char/ja"
       },
-      cache_key: "sha256-csl-record",
+      cache_key: fixtureCacheKey("sha256-csl-record"),
       result_ref: {
         tool: "jp_lit_get_record",
-        cache_key: "sha256-csl-record"
+        cache_key: fixtureCacheKey("sha256-csl-record")
       },
       selected_items: [
         {
@@ -557,7 +562,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_get_record", {
       version: 1,
       tool: "jp_lit_get_record",
-      cache_key: "sha256-csl-dissertation-record",
+      cache_key: fixtureCacheKey("sha256-csl-dissertation-record"),
       saved_at: new Date().toISOString(),
       input: {
         source: "cinii_dissertations",
@@ -586,10 +591,10 @@ describe("jp_lit_export_session", () => {
         source: "cinii_dissertations",
         source_id: "1910848250911873152"
       },
-      cache_key: "sha256-csl-dissertation-record",
+      cache_key: fixtureCacheKey("sha256-csl-dissertation-record"),
       result_ref: {
         tool: "jp_lit_get_record",
-        cache_key: "sha256-csl-dissertation-record"
+        cache_key: fixtureCacheKey("sha256-csl-dissertation-record")
       },
       selected_items: [
         {
@@ -633,7 +638,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_get_record", {
       version: 1,
       tool: "jp_lit_get_record",
-      cache_key: "sha256-csl-unselected-record",
+      cache_key: fixtureCacheKey("sha256-csl-unselected-record"),
       saved_at: new Date().toISOString(),
       input: {
         source: "ndl_catalog",
@@ -662,10 +667,10 @@ describe("jp_lit_export_session", () => {
         source: "ndl_catalog",
         source_id: "R100"
       },
-      cache_key: "sha256-csl-unselected-record",
+      cache_key: fixtureCacheKey("sha256-csl-unselected-record"),
       result_ref: {
         tool: "jp_lit_get_record",
-        cache_key: "sha256-csl-unselected-record"
+        cache_key: fixtureCacheKey("sha256-csl-unselected-record")
       },
       selected_items: [],
       notes: []
@@ -697,7 +702,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-csl-full-log",
+      cache_key: fixtureCacheKey("sha256-csl-full-log"),
       saved_at: new Date().toISOString(),
       input: { query: "foo" },
       structured_content: {
@@ -744,10 +749,10 @@ describe("jp_lit_export_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "foo" },
-      cache_key: "sha256-csl-full-log",
+      cache_key: fixtureCacheKey("sha256-csl-full-log"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-csl-full-log"
+        cache_key: fixtureCacheKey("sha256-csl-full-log")
       },
       selected_items: [
         {
@@ -788,7 +793,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-c",
+      cache_key: fixtureCacheKey("sha256-c"),
       saved_at: new Date().toISOString(),
       input: { query: "baz" },
       structured_content: {
@@ -855,10 +860,10 @@ describe("jp_lit_export_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "baz" },
-      cache_key: "sha256-c",
+      cache_key: fixtureCacheKey("sha256-c"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-c"
+        cache_key: fixtureCacheKey("sha256-c")
       },
       selected_items: [
         {
@@ -898,7 +903,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-d",
+      cache_key: fixtureCacheKey("sha256-d"),
       saved_at: new Date().toISOString(),
       input: { query: "qux" },
       structured_content: {
@@ -990,10 +995,10 @@ describe("jp_lit_export_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "qux" },
-      cache_key: "sha256-d",
+      cache_key: fixtureCacheKey("sha256-d"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-d"
+        cache_key: fixtureCacheKey("sha256-d")
       },
       selected_items: [
         {
@@ -1041,7 +1046,7 @@ describe("jp_lit_export_session", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-e",
+      cache_key: fixtureCacheKey("sha256-e"),
       saved_at: new Date().toISOString(),
       input: { query: "paths" },
       structured_content: {
@@ -1108,10 +1113,10 @@ describe("jp_lit_export_session", () => {
     const session = await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "paths" },
-      cache_key: "sha256-e",
+      cache_key: fixtureCacheKey("sha256-e"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-e"
+        cache_key: fixtureCacheKey("sha256-e")
       },
       selected_items: [
         {

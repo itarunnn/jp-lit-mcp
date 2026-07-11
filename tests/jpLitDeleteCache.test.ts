@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
 import { createJpLitDeleteCacheTool } from "../src/tools/jpLitDeleteCache.js";
@@ -26,29 +27,32 @@ describe("jp_lit_delete_cache", () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const tool = createJpLitDeleteCacheTool(cache);
+    const key = createCacheKey("jp_lit_search", { query: "foo" });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k1",
+      cache_key: key,
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "foo" },
       structured_content: { query: "foo", total: 1 }
     });
 
-    const result = await tool({ tool: "jp_lit_search", cache_key: "k1" });
+    const result = await tool({ tool: "jp_lit_search", cache_key: key });
     expect(result.structuredContent.deleted).toBe(true);
     expect(result.structuredContent.deleted_count).toBe(1);
-    expect(await cache.read("jp_lit_search", "k1")).toBeNull();
+    expect(await cache.read("jp_lit_search", key)).toBeNull();
   });
 
   it("clear_all=true で tool 配下を一括削除できる", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const tool = createJpLitDeleteCacheTool(cache);
+    const firstKey = createCacheKey("jp_lit_search", { query: "foo" });
+    const secondKey = createCacheKey("jp_lit_search", { query: "bar" });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k1",
+      cache_key: firstKey,
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "foo" },
       structured_content: { query: "foo", total: 1 }
@@ -56,7 +60,7 @@ describe("jp_lit_delete_cache", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k2",
+      cache_key: secondKey,
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "bar" },
       structured_content: { query: "bar", total: 1 }
@@ -71,14 +75,15 @@ describe("jp_lit_delete_cache", () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const tool = createJpLitDeleteCacheTool(cache);
+    const key = createCacheKey("jp_lit_search", { query: "legacy" });
     const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
     await mkdir(legacyDir, { recursive: true });
     await writeFile(
-      path.join(legacyDir, "legacy-k1.json"),
+      path.join(legacyDir, `${key}.json`),
       JSON.stringify({
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "legacy-k1",
+        cache_key: key,
         saved_at: "2026-05-01T00:00:00.000Z",
         input: { query: "foo" },
         structured_content: { query: "foo", total: 1 }
@@ -86,9 +91,27 @@ describe("jp_lit_delete_cache", () => {
       "utf8"
     );
 
-    const result = await tool({ tool: "jp_lit_search", cache_key: "legacy-k1" });
+    const result = await tool({ tool: "jp_lit_search", cache_key: key });
     expect(result.structuredContent.deleted).toBe(true);
     expect(result.structuredContent.deleted_count).toBe(1);
-    expect(await cache.read("jp_lit_search", "legacy-k1")).toBeNull();
+    expect(await cache.read("jp_lit_search", key)).toBeNull();
+  });
+
+  it("tool path traversal を schema error にする", async () => {
+    const baseDir = await createTempDir();
+    const tool = createJpLitDeleteCacheTool(createFileCache(baseDir));
+
+    await expect(
+      tool({ tool: "../../../../victim", clear_all: true })
+    ).rejects.toThrow();
+  });
+
+  it("SHA-256 形式でない cache key を schema error にする", async () => {
+    const baseDir = await createTempDir();
+    const tool = createJpLitDeleteCacheTool(createFileCache(baseDir));
+
+    await expect(
+      tool({ tool: "jp_lit_search", cache_key: "not-a-cache-key" })
+    ).rejects.toThrow();
   });
 });

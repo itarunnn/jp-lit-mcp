@@ -3,10 +3,15 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createJpLitPruneCacheTool } from "../src/tools/jpLitPruneCache.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-prune-"));
@@ -65,8 +70,8 @@ async function writeRawCacheFile(
 describe("jp_lit_prune_cache", () => {
   it("dry-runs old cache deletion without removing files", async () => {
     const baseDir = await createTempDir();
-    await writeCache(baseDir, "jp_lit_search", "old", "2026-04-01T00:00:00.000Z");
-    await writeCache(baseDir, "jp_lit_search", "new", "2026-05-04T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("old"), "2026-04-01T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("new"), "2026-05-04T00:00:00.000Z");
     const tool = createJpLitPruneCacheTool(
       baseDir,
       () => new Date("2026-05-05T00:00:00.000Z")
@@ -77,19 +82,21 @@ describe("jp_lit_prune_cache", () => {
     expect(result.structuredContent.dry_run).toBe(true);
     expect(result.structuredContent.matched_count).toBe(1);
     expect(result.structuredContent.pruned_count).toBe(0);
-    expect(result.structuredContent.candidates.map((item) => item.cache_key)).toEqual(["old"]);
+    expect(result.structuredContent.candidates.map((item) => item.cache_key)).toEqual([
+      fixtureCacheKey("old")
+    ]);
     await expect(
       readFile(
-        path.join(baseDir, ".cache/jp-lit-mcp/cache/v1/jp_lit_search/old.json"),
+        path.join(baseDir, ".cache/jp-lit-mcp/cache/v1/jp_lit_search", `${fixtureCacheKey("old")}.json`),
         "utf8"
       )
-    ).resolves.toContain("old");
+    ).resolves.toContain(fixtureCacheKey("old"));
   });
 
   it("deletes old cache only when dry_run is false", async () => {
     const baseDir = await createTempDir();
-    await writeCache(baseDir, "jp_lit_search", "old", "2026-04-01T00:00:00.000Z");
-    await writeCache(baseDir, "jp_lit_search", "new", "2026-05-04T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("old"), "2026-04-01T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("new"), "2026-05-04T00:00:00.000Z");
     const tool = createJpLitPruneCacheTool(
       baseDir,
       () => new Date("2026-05-05T00:00:00.000Z")
@@ -99,15 +106,19 @@ describe("jp_lit_prune_cache", () => {
 
     expect(result.structuredContent.matched_count).toBe(1);
     expect(result.structuredContent.pruned_count).toBe(1);
-    await expect(readCacheFile(baseDir, "current", "jp_lit_search", "old")).rejects.toThrow();
-    await expect(readCacheFile(baseDir, "current", "jp_lit_search", "new")).resolves.toContain("new");
+    await expect(
+      readCacheFile(baseDir, "current", "jp_lit_search", fixtureCacheKey("old"))
+    ).rejects.toThrow();
+    await expect(
+      readCacheFile(baseDir, "current", "jp_lit_search", fixtureCacheKey("new"))
+    ).resolves.toContain(fixtureCacheKey("new"));
   });
 
   it("filters candidates by tool and respects limit", async () => {
     const baseDir = await createTempDir();
-    await writeCache(baseDir, "jp_lit_search", "search-old", "2026-04-01T00:00:00.000Z");
-    await writeCache(baseDir, "jp_lit_get_record", "record-old-1", "2026-03-01T00:00:00.000Z");
-    await writeCache(baseDir, "jp_lit_get_record", "record-old-2", "2026-03-02T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("search-old"), "2026-04-01T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_get_record", fixtureCacheKey("record-old-1"), "2026-03-01T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_get_record", fixtureCacheKey("record-old-2"), "2026-03-02T00:00:00.000Z");
     const tool = createJpLitPruneCacheTool(
       baseDir,
       () => new Date("2026-05-05T00:00:00.000Z")
@@ -122,7 +133,7 @@ describe("jp_lit_prune_cache", () => {
     expect(result.structuredContent.tool).toBe("jp_lit_get_record");
     expect(result.structuredContent.matched_count).toBe(1);
     expect(result.structuredContent.candidates.map((item) => item.cache_key)).toEqual([
-      "record-old-1"
+      fixtureCacheKey("record-old-1")
     ]);
   });
 
@@ -132,11 +143,11 @@ describe("jp_lit_prune_cache", () => {
       baseDir,
       "legacy",
       "jp_lit_search",
-      "legacy-old.json",
+      `${fixtureCacheKey("legacy-old")}.json`,
       JSON.stringify({
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "legacy-old",
+        cache_key: fixtureCacheKey("legacy-old"),
         saved_at: "2026-03-01T00:00:00.000Z",
         input: {},
         structured_content: { ok: true }
@@ -151,7 +162,7 @@ describe("jp_lit_prune_cache", () => {
 
     expect(result.structuredContent.candidates).toEqual([
       expect.objectContaining({
-        cache_key: "legacy-old",
+        cache_key: fixtureCacheKey("legacy-old"),
         root: "legacy"
       })
     ]);
@@ -159,16 +170,16 @@ describe("jp_lit_prune_cache", () => {
 
   it("removes the exact legacy path without deleting same-key current cache", async () => {
     const baseDir = await createTempDir();
-    await writeCache(baseDir, "jp_lit_search", "same-key", "2026-05-04T00:00:00.000Z");
+    await writeCache(baseDir, "jp_lit_search", fixtureCacheKey("same-key"), "2026-05-04T00:00:00.000Z");
     await writeRawCacheFile(
       baseDir,
       "legacy",
       "jp_lit_search",
-      "same-key.json",
+      `${fixtureCacheKey("same-key")}.json`,
       JSON.stringify({
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "same-key",
+        cache_key: fixtureCacheKey("same-key"),
         saved_at: "2026-03-01T00:00:00.000Z",
         input: {},
         structured_content: { legacy: true }
@@ -182,9 +193,9 @@ describe("jp_lit_prune_cache", () => {
     const result = await tool({ older_than_days: 30, dry_run: false });
 
     expect(result.structuredContent.pruned_count).toBe(1);
-    await expect(readCacheFile(baseDir, "legacy", "jp_lit_search", "same-key")).rejects.toThrow();
-    await expect(readCacheFile(baseDir, "current", "jp_lit_search", "same-key")).resolves.toContain(
-      "same-key"
+    await expect(readCacheFile(baseDir, "legacy", "jp_lit_search", fixtureCacheKey("same-key"))).rejects.toThrow();
+    await expect(readCacheFile(baseDir, "current", "jp_lit_search", fixtureCacheKey("same-key"))).resolves.toContain(
+      fixtureCacheKey("same-key")
     );
   });
 

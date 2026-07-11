@@ -1,6 +1,12 @@
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { InvalidRequestError } from "../errors.js";
+import {
+  cachedToolSchema,
+  cacheKeySchema,
+  resolveContainedCachePath
+} from "./cacheIdentity.js";
 import { getCacheRoot, getLegacyCacheRoot } from "./paths.js";
 import type { CacheEnvelope } from "./types.js";
 
@@ -11,16 +17,32 @@ export interface FileCache {
   clear(tool?: string): Promise<number>;
 }
 
-function getToolDir(baseDir: string, tool: string) {
-  return path.join(getCacheRoot(baseDir), tool);
+function parseCacheTool(tool: string) {
+  try {
+    return cachedToolSchema.parse(tool);
+  } catch {
+    throw new InvalidRequestError("invalid cache tool");
+  }
 }
 
-function getCacheFilePath(baseDir: string, tool: string, key: string) {
-  return path.join(getToolDir(baseDir, tool), `${key}.json`);
+function parseCacheKey(key: string) {
+  try {
+    return cacheKeySchema.parse(key);
+  } catch {
+    throw new InvalidRequestError("invalid cache key");
+  }
 }
 
-function getLegacyCacheFilePath(baseDir: string, tool: string, key: string) {
-  return path.join(getLegacyCacheRoot(baseDir), tool, `${key}.json`);
+function getToolDir(root: string, tool: string) {
+  return resolveContainedCachePath(root, parseCacheTool(tool));
+}
+
+function getCacheFilePath(root: string, tool: string, key: string) {
+  return resolveContainedCachePath(
+    root,
+    parseCacheTool(tool),
+    `${parseCacheKey(key)}.json`
+  );
 }
 
 async function listJsonFilenames(directory: string) {
@@ -46,10 +68,13 @@ async function listChildDirs(directory: string) {
 }
 
 export function createFileCache(baseDir = process.cwd()): FileCache {
+  const cacheRoot = getCacheRoot(baseDir);
+  const legacyCacheRoot = getLegacyCacheRoot(baseDir);
+
   return {
     async read<T>(tool: string, key: string) {
-      const target = getCacheFilePath(baseDir, tool, key);
-      const legacyTarget = getLegacyCacheFilePath(baseDir, tool, key);
+      const target = getCacheFilePath(cacheRoot, tool, key);
+      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
 
       try {
         const text = await readFile(target, "utf8");
@@ -75,19 +100,25 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
     },
 
     async write<T>(tool: string, envelope: CacheEnvelope<T>) {
-      const directory = getToolDir(baseDir, tool);
-      const target = getCacheFilePath(baseDir, tool, envelope.cache_key);
-      const temp = `${target}.tmp`;
+      const directory = getToolDir(cacheRoot, tool);
+      const target = getCacheFilePath(cacheRoot, tool, envelope.cache_key);
+      const temp = resolveContainedCachePath(
+        cacheRoot,
+        `${path.relative(cacheRoot, target)}.tmp`
+      );
 
       await mkdir(directory, { recursive: true });
+      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, directory));
+      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, target));
+      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, temp));
       await writeFile(temp, JSON.stringify(envelope, null, 2), "utf8");
       await rm(target, { force: true });
       await rename(temp, target);
     },
 
     async delete(tool: string, key: string) {
-      const target = getCacheFilePath(baseDir, tool, key);
-      const legacyTarget = getLegacyCacheFilePath(baseDir, tool, key);
+      const target = getCacheFilePath(cacheRoot, tool, key);
+      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
       try {
         await rm(target, { force: false });
         return true;
@@ -110,14 +141,21 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
     async clear(tool) {
       if (tool) {
+        const parsedTool = parseCacheTool(tool);
         const directories = [
-          getToolDir(baseDir, tool),
-          path.join(getLegacyCacheRoot(baseDir), tool)
+          getToolDir(cacheRoot, parsedTool),
+          getToolDir(legacyCacheRoot, parsedTool)
         ];
         const targets = (
           await Promise.all(directories.map((directory) => listJsonFilenames(directory)))
         ).flatMap((filenames, index) =>
-          filenames.map((filename) => path.join(directories[index]!, filename))
+          filenames.map((filename) =>
+            resolveContainedCachePath(
+              index === 0 ? cacheRoot : legacyCacheRoot,
+              parsedTool,
+              filename
+            )
+          )
         );
         await Promise.all(
           targets.map((target) => rm(target, { force: true }))
@@ -127,14 +165,17 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
       const toolDirs = Array.from(
         new Set([
-          ...(await listChildDirs(getCacheRoot(baseDir))),
-          ...(await listChildDirs(getLegacyCacheRoot(baseDir)))
+          ...(await listChildDirs(resolveContainedCachePath(cacheRoot))),
+          ...(await listChildDirs(resolveContainedCachePath(legacyCacheRoot)))
         ])
       );
 
       let removed = 0;
       for (const toolName of toolDirs) {
-        removed += await this.clear(toolName);
+        const parsedTool = cachedToolSchema.safeParse(toolName);
+        if (parsedTool.success) {
+          removed += await this.clear(parsedTool.data);
+        }
       }
       return removed;
     }

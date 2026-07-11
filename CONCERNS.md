@@ -1,0 +1,43 @@
+# CONCERNS
+
+## 運用
+
+- 既定は report-only。`assisted-fix` はこのスレッドで明示許可された範囲だけに使う。
+- push、release、publish、外部サービスwriteは自動実行しない。
+- 各項目に status、evidence、action、verification、next step を残す。
+
+## Active
+
+### C-001 Cache path traversal
+- classification: assisted-fix
+- status: resolved
+- evidence: `tool` / `cache_key` がcache root外のJSONへ到達できる再現あり
+- action: Task 1でidentity validationとfilesystem containmentを追加
+- verification: traversal・junction回帰test、全test suite、buildがpass
+- next step: cache境界を変更する場合に回帰testと実経路containmentを再確認
+
+## Report-only backlog
+
+### C-101 デジコレ本体内部APIの公開面への混入防止
+- classification: report-only
+- status: monitored
+- evidence: local-only `docs/research/dl-ndl-internal-api-local.md`
+- action: 公開MCP・package・CIへ組み込まない
+- verification: package distribution contractで確認
+- next step: 境界変更時に人間レビュー
+
+### C-102 Cross-process session locking
+- classification: report-only
+- status: open
+- evidence: 複数MCP processが同じcwdを共有する場合のlock未実装
+- action: 今回はin-process serializationのみ
+- verification: pending
+- next step: 実運用で競合が確認された場合にlock方式を設計
+
+### C-103 OCR payload duplication
+- classification: report-only
+- status: open
+- evidence: normalized pages、raw、text contentで大容量payloadが重複
+- action: 今回の互換修正範囲外
+- verification: pending
+- next step: resource linkまたはpagination設計を別spec化

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
@@ -10,6 +11,10 @@ import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitSearchCacheIndexTool } from "../src/tools/jpLitSearchCacheIndex.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-cache-index-"));
@@ -64,16 +69,16 @@ describe("jp_lit_search_cache_index", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "夏目漱石" },
-      cache_key: "k1",
-      result_ref: { tool: "jp_lit_search", cache_key: "k1" },
+      cache_key: fixtureCacheKey("k1"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("k1") },
       selected_items: [],
       notes: []
     });
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "森鴎外" },
-      cache_key: "k2",
-      result_ref: { tool: "jp_lit_search", cache_key: "k2" },
+      cache_key: fixtureCacheKey("k2"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("k2") },
       selected_items: [],
       notes: []
     });
@@ -81,7 +86,7 @@ describe("jp_lit_search_cache_index", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k1",
+      cache_key: fixtureCacheKey("k1"),
       saved_at: "2026-05-01T00:00:01.000Z",
       input: { query: "夏目漱石" },
       structured_content: {
@@ -96,7 +101,7 @@ describe("jp_lit_search_cache_index", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k2",
+      cache_key: fixtureCacheKey("k2"),
       saved_at: "2026-05-01T00:00:02.000Z",
       input: { query: "森鴎外" },
       structured_content: {
@@ -112,7 +117,7 @@ describe("jp_lit_search_cache_index", () => {
     const result = await tool({ query: "漱石" });
 
     expect(result.structuredContent.total).toBe(1);
-    expect(result.structuredContent.cache_keys).toEqual(["k1"]);
+    expect(result.structuredContent.cache_keys).toEqual([fixtureCacheKey("k1")]);
     expect(result.structuredContent.items[0]?.matched_fields).toContain("author");
   });
 
@@ -125,15 +130,15 @@ describe("jp_lit_search_cache_index", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "文学" },
-      cache_key: "k3",
-      result_ref: { tool: "jp_lit_search", cache_key: "k3" },
+      cache_key: fixtureCacheKey("k3"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("k3") },
       selected_items: [],
       notes: []
     });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k3",
+      cache_key: fixtureCacheKey("k3"),
       saved_at: "2026-05-01T00:00:03.000Z",
       input: { query: "文学" },
       structured_content: {
@@ -161,7 +166,7 @@ describe("jp_lit_search_cache_index", () => {
       issued_to: "1960"
     });
     expect(hit.structuredContent.total).toBe(1);
-    expect(hit.structuredContent.cache_keys).toEqual(["k3"]);
+    expect(hit.structuredContent.cache_keys).toEqual([fixtureCacheKey("k3")]);
   });
 
   it("saved_on / saved_from / saved_to でキャッシュ作成日を絞り込める", async () => {
@@ -173,23 +178,23 @@ describe("jp_lit_search_cache_index", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "猫" },
-      cache_key: "d1",
-      result_ref: { tool: "jp_lit_search", cache_key: "d1" },
+      cache_key: fixtureCacheKey("d1"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("d1") },
       selected_items: [],
       notes: []
     });
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "猫" },
-      cache_key: "d2",
-      result_ref: { tool: "jp_lit_search", cache_key: "d2" },
+      cache_key: fixtureCacheKey("d2"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("d2") },
       selected_items: [],
       notes: []
     });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "d1",
+      cache_key: fixtureCacheKey("d1"),
       saved_at: "2026-05-01T10:00:00.000Z",
       input: { query: "猫" },
       structured_content: {
@@ -204,7 +209,7 @@ describe("jp_lit_search_cache_index", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "d2",
+      cache_key: fixtureCacheKey("d2"),
       saved_at: "2026-05-02T10:00:00.000Z",
       input: { query: "猫" },
       structured_content: {
@@ -218,14 +223,14 @@ describe("jp_lit_search_cache_index", () => {
     });
 
     const byDay = await tool({ query: "猫", saved_on: "2026-05-01" });
-    expect(byDay.structuredContent.cache_keys).toEqual(["d1"]);
+    expect(byDay.structuredContent.cache_keys).toEqual([fixtureCacheKey("d1")]);
 
     const byRange = await tool({
       query: "猫",
       saved_from: "2026-05-02T00:00:00.000Z",
       saved_to: "2026-05-02T23:59:59.999Z"
     });
-    expect(byRange.structuredContent.cache_keys).toEqual(["d2"]);
+    expect(byRange.structuredContent.cache_keys).toEqual([fixtureCacheKey("d2")]);
   });
 
   it("session_id 指定時は該当セッションの cache_key だけ返す", async () => {
@@ -237,16 +242,16 @@ describe("jp_lit_search_cache_index", () => {
     const s1 = await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "夏目漱石" },
-      cache_key: "k4",
-      result_ref: { tool: "jp_lit_search", cache_key: "k4" },
+      cache_key: fixtureCacheKey("k4"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("k4") },
       selected_items: [],
       notes: []
     });
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "太宰治" },
-      cache_key: "k5",
-      result_ref: { tool: "jp_lit_search", cache_key: "k5" },
+      cache_key: fixtureCacheKey("k5"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("k5") },
       selected_items: [],
       notes: []
     });
@@ -254,7 +259,7 @@ describe("jp_lit_search_cache_index", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k4",
+      cache_key: fixtureCacheKey("k4"),
       saved_at: "2026-05-01T00:00:04.000Z",
       input: { query: "夏目漱石" },
       structured_content: {
@@ -269,7 +274,7 @@ describe("jp_lit_search_cache_index", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "k5",
+      cache_key: fixtureCacheKey("k5"),
       saved_at: "2026-05-01T00:00:05.000Z",
       input: { query: "太宰治" },
       structured_content: {
@@ -287,7 +292,7 @@ describe("jp_lit_search_cache_index", () => {
       session_id: s1.session_id
     });
     expect(result.structuredContent.total).toBe(1);
-    expect(result.structuredContent.cache_keys).toEqual(["k5"]);
+    expect(result.structuredContent.cache_keys).toEqual([fixtureCacheKey("k5")]);
   });
 
   it("saved_on=last_7_days を JST 基準で解決する", async () => {
@@ -302,16 +307,16 @@ describe("jp_lit_search_cache_index", () => {
       await sessions.appendEntry({
         tool: "jp_lit_search",
         input: { query: "猫" },
-        cache_key: "w1",
-        result_ref: { tool: "jp_lit_search", cache_key: "w1" },
+        cache_key: fixtureCacheKey("w1"),
+        result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("w1") },
         selected_items: [],
         notes: []
       });
       await sessions.appendEntry({
         tool: "jp_lit_search",
         input: { query: "猫" },
-        cache_key: "w2",
-        result_ref: { tool: "jp_lit_search", cache_key: "w2" },
+        cache_key: fixtureCacheKey("w2"),
+        result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("w2") },
         selected_items: [],
         notes: []
       });
@@ -319,7 +324,7 @@ describe("jp_lit_search_cache_index", () => {
       await cache.write("jp_lit_search", {
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "w1",
+        cache_key: fixtureCacheKey("w1"),
         saved_at: "2026-05-01T15:00:00.000Z",
         input: { query: "猫" },
         structured_content: {
@@ -334,7 +339,7 @@ describe("jp_lit_search_cache_index", () => {
       await cache.write("jp_lit_search", {
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "w2",
+        cache_key: fixtureCacheKey("w2"),
         saved_at: "2026-05-01T14:59:59.999Z",
         input: { query: "猫" },
         structured_content: {
@@ -348,7 +353,7 @@ describe("jp_lit_search_cache_index", () => {
       });
 
       const result = await tool({ query: "猫", saved_on: "last_7_days" });
-      expect(result.structuredContent.cache_keys).toEqual(["w1"]);
+      expect(result.structuredContent.cache_keys).toEqual([fixtureCacheKey("w1")]);
       expect(result.structuredContent.saved_on).toBe("last_7_days");
       expect(result.structuredContent.saved_on_resolved).toBe("2026-05-08");
     } finally {
@@ -366,18 +371,18 @@ describe("jp_lit_search_cache_index", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "legacy game" },
-      cache_key: "legacy-game",
-      result_ref: { tool: "jp_lit_search", cache_key: "legacy-game" },
+      cache_key: fixtureCacheKey("legacy-game"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("legacy-game") },
       selected_items: [],
       notes: ["legacy note"]
     });
     await mkdir(legacyDir, { recursive: true });
     await writeFile(
-      path.join(legacyDir, "legacy-game.json"),
+      path.join(legacyDir, `${fixtureCacheKey("legacy-game")}.json`),
       JSON.stringify({
         version: 1,
         tool: "jp_lit_search",
-        cache_key: "legacy-game",
+        cache_key: fixtureCacheKey("legacy-game"),
         saved_at: "2026-05-01T09:00:00.000Z",
         input: { query: "legacy game" },
         structured_content: {
@@ -393,6 +398,6 @@ describe("jp_lit_search_cache_index", () => {
     );
 
     const result = await tool({ query: "ゲーム理論" });
-    expect(result.structuredContent.cache_keys).toContain("legacy-game");
+    expect(result.structuredContent.cache_keys).toContain(fixtureCacheKey("legacy-game"));
   });
 });

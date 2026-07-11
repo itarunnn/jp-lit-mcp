@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { EnrichRecordOutput } from "../src/lib/schemas.js";
@@ -13,6 +14,10 @@ import { createJpLitRefineResultsTool } from "../src/tools/jpLitRefineResults.js
 import { createJpLitSearchCacheIndexTool } from "../src/tools/jpLitSearchCacheIndex.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-export-view-"));
@@ -101,15 +106,15 @@ async function createExportViewFixture(items: SearchItem[]) {
   await sessions.appendEntry({
     tool: "jp_lit_search",
     input: { query: "文学" },
-    cache_key: "ev-fixture",
-    result_ref: { tool: "jp_lit_search", cache_key: "ev-fixture" },
+    cache_key: fixtureCacheKey("ev-fixture"),
+    result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("ev-fixture") },
     selected_items: [],
     notes: []
   });
   await cache.write("jp_lit_search", {
     version: 1,
     tool: "jp_lit_search",
-    cache_key: "ev-fixture",
+    cache_key: fixtureCacheKey("ev-fixture"),
     saved_at: "2026-05-01T00:00:00.000Z",
     input: { query: "文学" },
     structured_content: {
@@ -148,15 +153,15 @@ describe("jp_lit_export_view", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "夏目漱石" },
-      cache_key: "ev1",
-      result_ref: { tool: "jp_lit_search", cache_key: "ev1" },
+      cache_key: fixtureCacheKey("ev1"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("ev1") },
       selected_items: [],
       notes: []
     });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "ev1",
+      cache_key: fixtureCacheKey("ev1"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "夏目漱石" },
       structured_content: {
@@ -182,7 +187,7 @@ describe("jp_lit_export_view", () => {
     expect(result.structuredContent.item_count).toBe(1);
     expect(written).toContain("Cache View Export");
     expect(written).toContain("\"cache_keys\"");
-    expect(written).toContain("ev1");
+    expect(written).toContain(fixtureCacheKey("ev1"));
   });
 
   it("cache_query ビューを json で直接書き出せる", async () => {
@@ -204,15 +209,15 @@ describe("jp_lit_export_view", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "舞姫" },
-      cache_key: "ev2",
-      result_ref: { tool: "jp_lit_search", cache_key: "ev2" },
+      cache_key: fixtureCacheKey("ev2"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("ev2") },
       selected_items: [],
       notes: []
     });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "ev2",
+      cache_key: fixtureCacheKey("ev2"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "舞姫" },
       structured_content: {
@@ -238,7 +243,7 @@ describe("jp_lit_export_view", () => {
     };
     expect(result.structuredContent.view).toBe("cache_query");
     expect(result.structuredContent.item_count).toBe(1);
-    expect(written.cache_keys).toEqual(["ev2"]);
+    expect(written.cache_keys).toEqual([fixtureCacheKey("ev2")]);
   });
 
   it("refined_results ビューを json で直接書き出せる", async () => {
@@ -260,15 +265,15 @@ describe("jp_lit_export_view", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "文学" },
-      cache_key: "ev3",
-      result_ref: { tool: "jp_lit_search", cache_key: "ev3" },
+      cache_key: fixtureCacheKey("ev3"),
+      result_ref: { tool: "jp_lit_search", cache_key: fixtureCacheKey("ev3") },
       selected_items: [],
       notes: []
     });
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "ev3",
+      cache_key: fixtureCacheKey("ev3"),
       saved_at: "2026-05-01T00:00:00.000Z",
       input: { query: "文学" },
       structured_content: {
@@ -288,7 +293,7 @@ describe("jp_lit_export_view", () => {
     const result = await exportViewTool({
       view: "refined_results",
       params: {
-        cache_key: "ev3",
+        cache_key: fixtureCacheKey("ev3"),
         sort_by: "title",
         sort_order: "asc"
       },
@@ -316,7 +321,7 @@ describe("jp_lit_export_view", () => {
     const result = await exportViewTool({
       view: "refined_results",
       params: {
-        cache_key: "ev-fixture",
+        cache_key: fixtureCacheKey("ev-fixture"),
         sort_by: "title",
         sort_order: "asc",
         limit: 20
@@ -346,7 +351,7 @@ describe("jp_lit_export_view", () => {
     const result = await exportViewTool({
       view: "refined_results",
       params: {
-        cache_key: "ev-fixture",
+        cache_key: fixtureCacheKey("ev-fixture"),
         combine: "union",
         key_by: "source_record",
         cluster_offset: 1
@@ -371,7 +376,7 @@ describe("jp_lit_export_view", () => {
       createSearchItem("ev-enrich-1", "吾輩は猫である", "ndl_catalog"),
       createSearchItem("ev-enrich-2", "吾輩は猫である", "cinii_books")
     ]);
-    const enrichCacheKey = "ev-enrich-record";
+    const enrichCacheKey = fixtureCacheKey("ev-enrich-record");
     await sessions.appendEntry({
       tool: "jp_lit_enrich_record",
       input: {
@@ -403,7 +408,7 @@ describe("jp_lit_export_view", () => {
     await exportViewTool({
       view: "refined_results",
       params: {
-        cache_key: "ev-fixture",
+        cache_key: fixtureCacheKey("ev-fixture"),
         include_enrichment: true
       },
       duplicate_notes: true,
@@ -415,6 +420,6 @@ describe("jp_lit_export_view", () => {
     expect(written).toContain("External enrichment");
     expect(written).toContain("DOI: 10.1234/neko");
     expect(written).toContain("Enrichment confidence: high");
-    expect(written).toContain("Enrichment cache keys: ev-enrich-record");
+    expect(written).toContain(`Enrichment cache keys: ${enrichCacheKey}`);
   });
 });

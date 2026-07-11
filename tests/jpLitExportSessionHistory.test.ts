@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionExporter } from "../src/lib/persistence/exportSession.js";
 import { getSessionsRoot } from "../src/lib/persistence/paths.js";
@@ -11,6 +12,10 @@ import type { SessionDocument } from "../src/lib/persistence/types.js";
 import { createJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-export-history-"));
@@ -45,7 +50,7 @@ describe("jp_lit_export_session history", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-current-history",
+      cache_key: fixtureCacheKey("sha256-current-history"),
       saved_at: new Date().toISOString(),
       input: { query: "current session" },
       structured_content: {
@@ -87,10 +92,10 @@ describe("jp_lit_export_session history", () => {
     const currentSession = await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "current session" },
-      cache_key: "sha256-current-history",
+      cache_key: fixtureCacheKey("sha256-current-history"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-current-history"
+        cache_key: fixtureCacheKey("sha256-current-history")
       },
       selected_items: [
         {
@@ -126,7 +131,7 @@ describe("jp_lit_export_session history", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-archived-history",
+      cache_key: fixtureCacheKey("sha256-archived-history"),
       saved_at: new Date().toISOString(),
       input: { query: "archived session" },
       structured_content: {
@@ -198,10 +203,10 @@ describe("jp_lit_export_session history", () => {
         {
           tool: "jp_lit_search",
           input: { query: "archived session" },
-          cache_key: "sha256-archived-history",
+          cache_key: fixtureCacheKey("sha256-archived-history"),
           result_ref: {
             tool: "jp_lit_search",
-            cache_key: "sha256-archived-history"
+            cache_key: fixtureCacheKey("sha256-archived-history")
           },
           selected_items: [
             {
@@ -222,7 +227,7 @@ describe("jp_lit_export_session history", () => {
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
-      cache_key: "sha256-current-other",
+      cache_key: fixtureCacheKey("sha256-current-other"),
       saved_at: new Date().toISOString(),
       input: { query: "other current session" },
       structured_content: {
@@ -264,10 +269,10 @@ describe("jp_lit_export_session history", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "other current session" },
-      cache_key: "sha256-current-other",
+      cache_key: fixtureCacheKey("sha256-current-other"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-current-other"
+        cache_key: fixtureCacheKey("sha256-current-other")
       },
       selected_items: [],
       notes: []

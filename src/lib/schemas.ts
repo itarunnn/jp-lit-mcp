@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  cachedToolSchema,
+  cacheKeySchema
+} from "./persistence/cacheIdentity.js";
+
 export const sourceSchema = z.enum([
   "ndl_search",
   "ndl_catalog",
@@ -92,10 +97,7 @@ const sessionIdInputFieldSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/)
   .describe("調査セッションID。形式は YYYY-MM-DD-HHMMSS。過去セッションを指定して絞り込むときだけ使う。");
 
-const cacheKeyInputFieldSchema = z
-  .string()
-  .trim()
-  .min(1)
+const cacheKeyInputFieldSchema = cacheKeySchema
   .describe("保存済み tool 実行結果を指す cache_key。jp_lit_search や cache 一覧 tool の戻り値から渡す。");
 
 export const searchItemSchema = z.object({
@@ -737,7 +739,7 @@ export const searchCacheIndexOutputSchema = z.object({
 
 export const deleteCacheInputSchema = z
   .object({
-    tool: z.string().trim().min(1).default("jp_lit_search").describe("削除対象の tool cache 名。既定は jp_lit_search。"),
+    tool: cachedToolSchema.default("jp_lit_search").describe("削除対象の tool cache 名。既定は jp_lit_search。"),
     cache_key: cacheKeyInputFieldSchema.optional().describe("削除する個別 cache_key。clear_all=false の場合は必須。"),
     clear_all: z.boolean().default(false).describe("true の場合は指定 tool の cache を全削除する破壊的操作。false の場合は cache_key 単位で削除する。")
   })

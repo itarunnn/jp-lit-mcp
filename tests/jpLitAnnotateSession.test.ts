@@ -3,10 +3,15 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createJpLitAnnotateSessionTool } from "../src/tools/jpLitAnnotateSession.js";
 
 const tempDirs: string[] = [];
+
+function fixtureCacheKey(label: string) {
+  return createCacheKey("jp_lit_search", { fixture: label });
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-annotate-"));
@@ -29,10 +34,10 @@ describe("jp_lit_annotate_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "foo" },
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-a"
+        cache_key: fixtureCacheKey("sha256-a")
       },
       selected_items: [],
       notes: []
@@ -40,7 +45,7 @@ describe("jp_lit_annotate_session", () => {
 
     const result = await tool({
       tool: "jp_lit_search",
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       selected_items: [
         {
           source: "ndl_catalog",
@@ -67,10 +72,10 @@ describe("jp_lit_annotate_session", () => {
     await sessions.appendEntry({
       tool: "jp_lit_search",
       input: { query: "foo" },
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       result_ref: {
         tool: "jp_lit_search",
-        cache_key: "sha256-a"
+        cache_key: fixtureCacheKey("sha256-a")
       },
       selected_items: [],
       notes: []
@@ -79,7 +84,7 @@ describe("jp_lit_annotate_session", () => {
     await expect(
       tool({
         tool: "jp_lit_search",
-        cache_key: "sha256-a",
+        cache_key: fixtureCacheKey("sha256-a"),
         selected_items: [],
         trace: {
           decisions: [
@@ -98,7 +103,7 @@ describe("jp_lit_annotate_session", () => {
 
     const result = await tool({
       tool: "jp_lit_search",
-      cache_key: "sha256-a",
+      cache_key: fixtureCacheKey("sha256-a"),
       selected_items: [],
       trace: {
         agent_label: "Japan Search 担当",
