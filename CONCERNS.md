@@ -40,6 +40,14 @@
 - verification: direct tool contractに加え、in-memory MCP経路の`createServer(env)`で未設定・空白・設定済みの3ケースを検証し、CiNii adapterの結果継続とwarning有無を固定。4本のapp別install docsは公式必須・互換検索のwarning付き続行・KAKEN実行不可・旧推奨表現不在をcontract testで確認。focused tests、全suite、build、secret-flowの`rg`確認でserverからsearch toolへ渡るのはtrim済みの設定有無booleanだけで、persistence/cache/session/snapshot側にappid実値の参照が無いことを確認
 - next step: CiNii公式APIの認証要件または未設定応答が変わった場合にadapter動作とwarning契約を再確認
 
+### C-007 Supported runtime and dependency verification
+- classification: assisted-fix
+- status: resolved
+- evidence: Node.js 18を最低versionとして案内し、CIがなく、scripts配下のTypeScriptを独立してtypecheckしていなかった。更新前auditはproduction 6件、full 9件のadvisoryを報告した
+- action: Node.js floorを22へ統一し、scripts用tsconfigと`typecheck:scripts`を追加。Windows/UbuntuとNode 22/24のmatrixでclean install、build、scripts typecheck、test、offline smokeを実行するCIを追加し、dependencyを現行range内で更新
+- verification: `npm ci`、build、scripts typecheck、598件のtest、offline MCP/local persistence smoke、CI contract test、YAML構文確認がpass。production/full auditはいずれも0件で、direct dependency rangeは変更なし
+- next step: GitHub Actions初回実行でWindows/Ubuntu・Node 22/24の4 jobを確認し、supported matrix変更時はdocs・engine・contract testを同時更新
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止

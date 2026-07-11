@@ -2,6 +2,25 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("install docs", () => {
+  it("requires the supported Node.js floor in package metadata and every install guide", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      engines?: { node?: string };
+    };
+    const docs = [
+      "README.md",
+      "docs/install/codex-app.md",
+      "docs/install/codex-cli.md",
+      "docs/install/cursor.md",
+      "docs/install/claude-code.md"
+    ].map((path) => ({ path, text: readFileSync(path, "utf8") }));
+
+    expect(packageJson.engines?.node).toBe(">=22");
+    for (const doc of docs) {
+      expect.soft(doc.text, doc.path).toContain("Node.js 22");
+      expect.soft(doc.text, doc.path).not.toMatch(/Node\.js 18|`v18`/);
+    }
+  });
+
   it("ships install guides for supported apps", () => {
     expect(existsSync("docs/install/codex-app.md")).toBe(true);
     expect(existsSync("docs/install/codex-cli.md")).toBe(true);

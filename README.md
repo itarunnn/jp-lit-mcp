@@ -47,7 +47,7 @@ Skills によって実際の調査を進めます。どの source から入る�
 
 必要なものは次のとおりです。
 
-- `Node.js 18` 以上
+- `Node.js 22` 以上
 - `npm`
 - MCP に対応した AI アプリ
 
@@ -58,7 +58,7 @@ node -v
 npm -v
 ```
 
-`v18` 以上の Node.js が表示されれば大丈夫です。表示されない場合は、先に Node.js を導入してください。
+`v22` 以上の Node.js が表示されれば大丈夫です。表示されない場合は、先に Node.js を導入してください。
 
 CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 検索を続行し、結果に警告を付けます。一方、KAKEN API tool は未設定では実行できません。OpenAlex / Crossref の照合設定とカーリル図書館MCPは任意です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
 
@@ -148,7 +148,7 @@ npx -y jp-lit-mcp doctor
 
 `doctor` は次を確認します。
 
-- `Node.js 18` 以上か
+- `Node.js 22` 以上か
 - npm パッケージを取得できるか
 - MCP entrypoint が見えるか
 - 同梱 Skills が見えるか

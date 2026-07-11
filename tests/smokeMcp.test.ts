@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import {
   assertJstagePagination,
@@ -601,11 +602,12 @@ describe("smoke-mcp tool manifest", () => {
   });
 
   it("writes matrix report to exports by default", () => {
-    expect(resolveLiveReportPath("J:/apps/jp-lit-mcp", undefined)).toBe(
-      "J:\\apps\\jp-lit-mcp\\exports\\live-smoke-report.json"
+    const baseDir = path.resolve("test-workspace");
+    expect(resolveLiveReportPath(baseDir, undefined)).toBe(
+      path.resolve(baseDir, "exports", "live-smoke-report.json")
     );
     expect(
-      resolveLiveReportPath("J:/apps/jp-lit-mcp", "J:/tmp/custom-report.json")
-    ).toBe("J:\\tmp\\custom-report.json");
+      resolveLiveReportPath(baseDir, path.resolve("custom-report.json"))
+    ).toBe(path.resolve("custom-report.json"));
   });
 });
