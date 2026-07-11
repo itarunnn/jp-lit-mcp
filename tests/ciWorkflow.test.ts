@@ -1,32 +1,69 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
+
+interface WorkflowStep {
+  uses?: string;
+  run?: string;
+  with?: Record<string, unknown>;
+}
+
+interface WorkflowJob {
+  "runs-on": string;
+  strategy: {
+    "fail-fast": boolean;
+    matrix: { os: string[]; node: number[] };
+  };
+  steps: WorkflowStep[];
+}
+
+interface WorkflowDocument {
+  on: {
+    pull_request: null;
+    push: { branches: string[] };
+  };
+  permissions: { contents: string };
+  jobs: Record<string, WorkflowJob>;
+}
 
 describe("CI workflow", () => {
-  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  const workflowText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const workflow = parse(workflowText) as WorkflowDocument;
 
-  it("runs for pull requests and pushes to main across the supported matrix", () => {
-    expect(workflow).toContain("pull_request:");
-    expect(workflow).toContain("push:");
-    expect(workflow).toContain("branches: [main]");
-    expect(workflow).toContain("os: [windows-latest, ubuntu-latest]");
-    expect(workflow).toContain("node: [22, 24]");
+  it("parses pull request and main push triggers as YAML hierarchy", () => {
+    expect(workflow.on).toEqual({
+      pull_request: null,
+      push: { branches: ["main"] }
+    });
+    expect(workflow.permissions).toEqual({ contents: "read" });
   });
 
-  it("uses current setup actions and cross-platform npm commands in order", () => {
-    expect(workflow).toContain("uses: actions/checkout@v6");
-    expect(workflow).toContain("uses: actions/setup-node@v6");
-    expect(workflow).toContain("node-version: $" + "{{ matrix.node }}");
-    expect(workflow).toContain("cache: npm");
-
-    const commands = [
-      "run: npm ci",
-      "run: npm run build",
-      "run: npm run typecheck:scripts",
-      "run: npm test",
-      "run: npm run smoke:mcp"
-    ];
-    const positions = commands.map((command) => workflow.indexOf(command));
-    expect(positions.every((position) => position >= 0)).toBe(true);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  it("parses the supported matrix and ordered cross-platform steps", () => {
+    expect(Object.keys(workflow.jobs)).toEqual(["verify"]);
+    expect(workflow.jobs.verify).toEqual({
+      "runs-on": "${{ matrix.os }}",
+      strategy: {
+        "fail-fast": false,
+        matrix: {
+          os: ["windows-latest", "ubuntu-latest"],
+          node: [22, 24]
+        }
+      },
+      steps: [
+        { uses: "actions/checkout@v6" },
+        {
+          uses: "actions/setup-node@v6",
+          with: {
+            "node-version": "${{ matrix.node }}",
+            cache: "npm"
+          }
+        },
+        { run: "npm ci" },
+        { run: "npm run build" },
+        { run: "npm run typecheck:scripts" },
+        { run: "npm test" },
+        { run: "npm run smoke:mcp:offline" }
+      ]
+    });
   });
 });

@@ -757,6 +757,7 @@ npx -y jp-lit-mcp doctor
 | 開発実行 | `npm run dev` |
 | テスト | `npm test` |
 | 型ビルド | `npm run build` |
+| deterministic offline MCP smoke | `npm run smoke:mcp:offline` |
 | MCP smoke check（軽量 live 依存あり） | `npm run smoke:mcp` |
 | CLI doctor | `npx -y jp-lit-mcp doctor` |
 | live smoke matrix | `npm run smoke:mcp:live-matrix` |
@@ -768,7 +769,9 @@ PowerShell で live smoke check を単発実行する例:
 $env:SMOKE_LIVE="1"; npm run smoke:mcp
 ```
 
-`npm run smoke:mcp` は tool manifest とローカル cache/session/export の導線を確認します。local persistence smoke では既定で `cinii_books` を 1 件検索するため、完全な offline check ではありません。必要なら `SMOKE_LOCAL_SOURCE` / `SMOKE_LOCAL_QUERY` で軽量確認用の source と query を変更できます。
+`npm run smoke:mcp:offline` は固定 fixture をローカル cache へ seed し、外部 `fetch` を禁止した状態で tool manifest、検索 cache hit、annotation、session trace/list、export までを検証します。CI ではこの deterministic offline command だけを使います。
+
+`npm run smoke:mcp` は手動の軽量 live check を維持します。tool manifest とローカル cache/session/export の導線を確認し、local persistence smoke では既定で `cinii_books` を 1 件検索するため、完全な offline check ではありません。必要なら `SMOKE_LOCAL_SOURCE` / `SMOKE_LOCAL_QUERY` で軽量確認用の source と query を変更できます。
 
 live smoke の主な環境変数:
 

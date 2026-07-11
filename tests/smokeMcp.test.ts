@@ -11,6 +11,7 @@ import {
   LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY,
   LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE,
   LIVE_MATRIX_SOURCES,
+  OFFLINE_SEARCH_FIXTURE_TITLE,
   getLiveErrorMessage,
   isSkippableLiveError,
   pickPreferredLiveRecord,
@@ -23,6 +24,8 @@ import {
   resolveSmokeRunMode,
   resolveLiveSmokeSources,
   resolveLiveSmokeQuery,
+  runDeterministicOfflineSmoke,
+  withNetworkDenied,
   SUPPORTED_LIVE_EXTRA_TOOLS
 } from "../scripts/smoke-mcp.js";
 import { createServer } from "../src/server.js";
@@ -89,6 +92,38 @@ describe("J-STAGE live pagination smoke", () => {
     await expect(assertJstagePagination({ callTool }, "癌")).rejects.toThrow(
       /page 1.*source_id/i
     );
+  });
+});
+
+describe("deterministic offline smoke", () => {
+  it("uses a seeded search fixture through annotation, session trace, and export", async () => {
+    await expect(runDeterministicOfflineSmoke()).resolves.toMatchObject({
+      status: "passed",
+      local: {
+        title: OFFLINE_SEARCH_FIXTURE_TITLE,
+        cacheHit: true,
+        annotatedCount: 1,
+        tracedSessionFound: true,
+        exportContainsSelection: true
+      }
+    });
+  });
+
+  it("fails and restores fetch even if an adapter swallows the network error", async () => {
+    const originalFetch = globalThis.fetch;
+
+    await expect(
+      withNetworkDenied(async () => {
+        try {
+          await fetch("https://example.invalid/offline-smoke");
+        } catch {
+          // Simulate an adapter swallowing the fetch failure.
+        }
+        return "continued";
+      })
+    ).rejects.toThrow(/offline smoke blocked network access.*example\.invalid/i);
+
+    expect(globalThis.fetch).toBe(originalFetch);
   });
 });
 

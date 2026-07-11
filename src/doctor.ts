@@ -64,8 +64,8 @@ export function runDoctor(options: DoctorOptions = {}): DoctorResult {
   const checks: Check[] = [];
 
   checks.push({
-    status: parseNodeMajor(nodeVersion) >= 18 ? "pass" : "fail",
-    message: `Node.js >= 18 (${nodeVersion})`
+    status: parseNodeMajor(nodeVersion) >= 22 ? "pass" : "fail",
+    message: `Node.js >= 22 (${nodeVersion})`
   });
 
   checks.push({

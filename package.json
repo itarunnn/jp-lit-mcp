@@ -36,6 +36,7 @@
     "dev": "tsx src/index.ts",
     "prepack": "npm run build",
     "smoke:mcp": "tsx scripts/smoke-mcp.ts",
+    "smoke:mcp:offline": "cross-env SMOKE_OFFLINE=1 tsx scripts/smoke-mcp.ts",
     "smoke:mcp:live-matrix": "cross-env SMOKE_LIVE_MATRIX=1 SMOKE_LIVE=1 tsx scripts/smoke-mcp.ts",
     "smoke:calil-mcp": "tsx scripts/smoke-calil-mcp.ts",
     "test": "vitest run",
@@ -56,6 +57,7 @@
     "cross-env": "^10.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.0",
+    "yaml": "^2.9.0"
   }
 }

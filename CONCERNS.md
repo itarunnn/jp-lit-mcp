@@ -44,8 +44,8 @@
 - classification: assisted-fix
 - status: resolved
 - evidence: Node.js 18を最低versionとして案内し、CIがなく、scripts配下のTypeScriptを独立してtypecheckしていなかった。更新前auditはproduction 6件、full 9件のadvisoryを報告した
-- action: Node.js floorを22へ統一し、scripts用tsconfigと`typecheck:scripts`を追加。Windows/UbuntuとNode 22/24のmatrixでclean install、build、scripts typecheck、test、offline smokeを実行するCIを追加し、dependencyを現行range内で更新
-- verification: `npm ci`、build、scripts typecheck、598件のtest、offline MCP/local persistence smoke、CI contract test、YAML構文確認がpass。production/full auditはいずれも0件で、direct dependency rangeは変更なし
+- action: Node.js floorとdoctor/docsを22へ統一し、scripts用tsconfigと`typecheck:scripts`を追加。Windows/UbuntuとNode 22/24のmatrixでclean install、build、scripts typecheck、test、deterministic offline smokeを実行するCIを追加。offline smokeは固定fixtureをcacheへseedし、network-deny guard下で検索cache hitからannotation、session trace/list、exportまで検証。dependencyは現行range内で更新
+- verification: `npm ci`、build、scripts typecheck、601件のtest、network故障注入、deterministic offline MCP smokeがpass。YAML parserでCIのtrigger/job/runs-on/matrix/steps階層を検証。production/full auditはいずれも0件で、既存direct dependency rangeは変更せず、CI test用のdev-only `yaml`だけを追加
 - next step: GitHub Actions初回実行でWindows/Ubuntu・Node 22/24の4 jobを確認し、supported matrix変更時はdocs・engine・contract testを同時更新
 
 ## Report-only backlog

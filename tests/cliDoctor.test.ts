@@ -29,14 +29,14 @@ describe("CLI doctor", () => {
       cacheDir,
       exportDir,
       env: {},
-      nodeVersion: "v20.11.1",
+      nodeVersion: "v22.0.0",
       packageVersion: "0.1.3",
       writeLine: (line) => lines.push(line)
     });
 
     expect(result.ok).toBe(true);
     expect(lines.join("\n")).toContain("jp-lit-mcp doctor");
-    expect(lines.join("\n")).toContain("Node.js >= 18");
+    expect(lines.join("\n")).toContain("Node.js >= 22");
     expect(lines.join("\n")).toContain("package version: 0.1.3");
     expect(lines.join("\n")).toContain("MCP entrypoint loadable");
     expect(lines.join("\n")).toContain("Skills directory bundled");
@@ -54,13 +54,13 @@ describe("CLI doctor", () => {
       cacheDir: createTempDir(),
       exportDir: createTempDir(),
       env: { CINII_RESEARCH_APP_ID: "dummy" },
-      nodeVersion: "v16.20.2",
+      nodeVersion: "v20.19.0",
       packageVersion: "0.1.3",
       writeLine: (line) => lines.push(line)
     });
 
     expect(result.ok).toBe(false);
-    expect(lines.join("\n")).toContain("Node.js >= 18");
+    expect(lines.join("\n")).toContain("Node.js >= 22");
     expect(lines.join("\n")).toContain("CINII_RESEARCH_APP_ID set (CiNii公式APIのappidを設定済み; KAKEN API tool で使用)");
   });
 });

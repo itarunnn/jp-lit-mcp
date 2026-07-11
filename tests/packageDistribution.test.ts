@@ -64,6 +64,16 @@ describe("npm package distribution", () => {
     expect(packageJson.files ?? []).not.toContain("advice_0504.md");
   });
 
+  it("provides a deterministic offline smoke command without replacing manual live smoke", () => {
+    expect(packageJson.scripts?.["smoke:mcp"]).toBe("tsx scripts/smoke-mcp.ts");
+    expect(packageJson.scripts?.["smoke:mcp:offline"]).toBe(
+      "cross-env SMOKE_OFFLINE=1 tsx scripts/smoke-mcp.ts"
+    );
+    expect(packageJson.scripts?.["smoke:mcp:live-matrix"]).toContain(
+      "SMOKE_LIVE_MATRIX=1"
+    );
+  });
+
   it("デジコレ本体内部APIを公開runtime・workflow・packageから除外する", () => {
     expect(packageJson.files ?? []).not.toContain("docs/research/");
 

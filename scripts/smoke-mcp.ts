@@ -7,7 +7,9 @@ import { pathToFileURL } from "node:url";
 
 import { createServer } from "../src/server.js";
 import { createCacheKey, normalizeCacheInput } from "../src/lib/persistence/cacheKeys.js";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getExportsRoot, getPersistenceRoot } from "../src/lib/persistence/paths.js";
+import type { SearchItem } from "../src/lib/types.js";
 
 export const EXPECTED_TOOL_NAMES = [
   "jp_lit_annotate_session",
@@ -55,6 +57,12 @@ export const DEFAULT_LIVE_RETRY_COUNT = 2;
 
 export const LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE = "cinii_books";
 export const LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY = "夏目漱石";
+export const OFFLINE_SEARCH_FIXTURE_TITLE = "坊っちゃん（offline smoke fixture）";
+
+const OFFLINE_LOCAL_SEARCH = {
+  source: LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE,
+  query: LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY
+};
 
 export const SUPPORTED_LIVE_EXTRA_TOOLS = [
   "jp_lit_search_kaken_projects",
@@ -260,14 +268,98 @@ async function resetSmokePersistence(baseDir: string) {
   await rm(getExportsRoot(baseDir), { recursive: true, force: true });
 }
 
-async function runLocalPersistenceSmoke(client: Client) {
-  const localSearch = resolveLocalPersistenceSmokeSearch();
-  const searchArgs = {
+function buildLocalSearchArgs(localSearch: { source: string; query: string }) {
+  return {
     query: localSearch.query,
     source: localSearch.source,
     limit: 1,
     page: 1
   };
+}
+
+function createOfflineSearchItem(): SearchItem {
+  return {
+    source: "cinii_books",
+    source_id: "offline-smoke-book-1",
+    title: OFFLINE_SEARCH_FIXTURE_TITLE,
+    subtitle: null,
+    title_reading: null,
+    authors: [{ name: "夏目漱石", role: "author" }],
+    publisher: "offline fixture publisher",
+    journal_title: null,
+    issued_at: "1906",
+    issued_at_label: "1906",
+    issued_at_precision: "year",
+    summary: "Deterministic fixture for the offline MCP smoke test.",
+    url: null,
+    availability: { online: false, digital_collection: false },
+    material_type: "Book",
+    subjects: ["offline smoke"],
+    table_of_contents: [],
+    duplicate_key: null,
+    duplicate_count: 1,
+    related_records: []
+  };
+}
+
+async function seedOfflineSearchCache(baseDir: string) {
+  const searchArgs = buildLocalSearchArgs(OFFLINE_LOCAL_SEARCH);
+  const normalizedInput = normalizeCacheInput(searchArgs);
+  const cacheKey = createCacheKey("jp_lit_search", normalizedInput);
+
+  await createFileCache(baseDir).write("jp_lit_search", {
+    version: 1,
+    tool: "jp_lit_search",
+    cache_key: cacheKey,
+    saved_at: "2000-01-01T00:00:00.000Z",
+    input: normalizedInput,
+    structured_content: {
+      query: OFFLINE_LOCAL_SEARCH.query,
+      source: OFFLINE_LOCAL_SEARCH.source,
+      page: 1,
+      limit: 1,
+      total: 1,
+      items: [createOfflineSearchItem()]
+    }
+  });
+}
+
+export async function withNetworkDenied<T>(operation: () => Promise<T>): Promise<T> {
+  const originalFetch = globalThis.fetch;
+  let attemptedUrl: string | null = null;
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    attemptedUrl = String(input);
+    throw new Error(`Offline smoke blocked network access: ${attemptedUrl}`);
+  }) as typeof globalThis.fetch;
+
+  try {
+    const result = await operation();
+    if (attemptedUrl !== null) {
+      throw new Error(`Offline smoke blocked network access: ${attemptedUrl}`);
+    }
+    return result;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+interface LocalPersistenceSmokeSummary {
+  title: string;
+  cacheHit: boolean;
+  annotatedCount: number;
+  tracedSessionFound: boolean;
+  exportContainsSelection: boolean;
+}
+
+async function runLocalPersistenceSmoke(
+  client: Client,
+  options: {
+    search?: { source: string; query: string };
+    expectCacheHit?: boolean;
+  } = {}
+): Promise<LocalPersistenceSmokeSummary> {
+  const localSearch = options.search ?? resolveLocalPersistenceSmokeSearch();
+  const searchArgs = buildLocalSearchArgs(localSearch);
   const searchResult = await client.callTool({
     name: "jp_lit_search",
     arguments: searchArgs
@@ -279,12 +371,16 @@ async function runLocalPersistenceSmoke(client: Client) {
           source_id?: string;
           title?: string;
         }>;
+        cache?: { hit?: boolean };
       }
     | undefined;
 
   const firstItem = searchData?.items?.[0];
   if (!firstItem?.source || !firstItem.source_id || !firstItem.title) {
     throw new Error("Local smoke search returned no annotatable item.");
+  }
+  if (options.expectCacheHit && searchData?.cache?.hit !== true) {
+    throw new Error("Offline smoke did not use the seeded search fixture.");
   }
 
   const cacheKey = createCacheKey(
@@ -394,6 +490,14 @@ async function runLocalPersistenceSmoke(client: Client) {
   if (!exportedText.includes(firstItem.title) || !exportedText.includes("strong_candidate")) {
     throw new Error("Local smoke export did not contain annotated selection.");
   }
+
+  return {
+    title: firstItem.title,
+    cacheHit: searchData?.cache?.hit === true,
+    annotatedCount,
+    tracedSessionFound: true,
+    exportContainsSelection: true
+  };
 }
 
 async function runOcrSmoke(client: Client, sourceId: string, pid: string) {
@@ -895,66 +999,104 @@ async function runLiveSmokeMatrix() {
   }
 }
 
-async function mainSinglePass(): Promise<LiveSmokeStatus> {
+type SmokePassResult = LiveSmokeStatus & {
+  local: LocalPersistenceSmokeSummary;
+};
+
+async function mainSinglePass(
+  options: { offline?: boolean } = {}
+): Promise<SmokePassResult> {
   const originalCwd = process.cwd();
   const smokeDir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-smoke-"));
   process.chdir(smokeDir);
   await resetSmokePersistence(smokeDir);
-  const server = createServer();
-  const client = new Client({
-    name: "jp-lit-smoke-client",
-    version: "0.1.0"
-  });
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
   try {
-    await server.connect(serverTransport);
-    await client.connect(clientTransport);
+    const execute = async (): Promise<SmokePassResult> => {
+      if (options.offline) {
+        await seedOfflineSearchCache(smokeDir);
+      }
 
-    const { tools } = await client.listTools();
-    const toolNames = tools.map((tool) => tool.name).sort();
+      const server = createServer();
+      const client = new Client({
+        name: "jp-lit-smoke-client",
+        version: "0.1.0"
+      });
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
-    if (
-      toolNames.length !== EXPECTED_TOOL_NAMES.length ||
-      toolNames.some((name, i) => name !== EXPECTED_TOOL_NAMES[i])
-    ) {
-      throw new Error(`Unexpected tools: ${toolNames.join(", ")}`);
-    }
+      try {
+        await server.connect(serverTransport);
+        await client.connect(clientTransport);
 
-    console.log("MCP smoke check passed.");
-    console.log(toolNames.join(", "));
-    await runLocalPersistenceSmoke(client);
-    console.log("Local persistence smoke passed.");
+        const { tools } = await client.listTools();
+        const toolNames = tools.map((tool) => tool.name).sort();
 
-    if (process.env.SMOKE_LIVE === "1") {
-      const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_catalog";
-      if (
-        resolveSmokeRunMode(process.env) === "matrix" &&
-        liveSource === "jstage_articles"
-      ) {
-        await assertJstagePagination(
+        if (
+          toolNames.length !== EXPECTED_TOOL_NAMES.length ||
+          toolNames.some((name, i) => name !== EXPECTED_TOOL_NAMES[i])
+        ) {
+          throw new Error(`Unexpected tools: ${toolNames.join(", ")}`);
+        }
+
+        console.log("MCP smoke check passed.");
+        console.log(toolNames.join(", "));
+        const local = await runLocalPersistenceSmoke(
           client,
-          resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY)
+          options.offline
+            ? { search: OFFLINE_LOCAL_SEARCH, expectCacheHit: true }
+            : {}
         );
-      }
+        console.log(
+          options.offline
+            ? "Deterministic offline persistence smoke passed."
+            : "Local persistence smoke passed."
+        );
 
-      const liveOutcome = await runLiveSmoke(client);
-      if (liveOutcome.status === "skipped") {
-        return liveOutcome;
-      }
-      return await runLiveExtraTools(client);
-    }
+        if (!options.offline && process.env.SMOKE_LIVE === "1") {
+          const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_catalog";
+          if (
+            resolveSmokeRunMode(process.env) === "matrix" &&
+            liveSource === "jstage_articles"
+          ) {
+            await assertJstagePagination(
+              client,
+              resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY)
+            );
+          }
 
-    return { status: "passed", note: null };
+          const liveOutcome = await runLiveSmoke(client);
+          if (liveOutcome.status === "skipped") {
+            return { ...liveOutcome, local };
+          }
+          return { ...(await runLiveExtraTools(client)), local };
+        }
+
+        return { status: "passed", note: null, local };
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    };
+
+    return options.offline
+      ? await withNetworkDenied(execute)
+      : await execute();
   } finally {
-    await client.close();
-    await server.close();
     process.chdir(originalCwd);
     await rm(smokeDir, { recursive: true, force: true });
   }
 }
 
+export async function runDeterministicOfflineSmoke() {
+  return mainSinglePass({ offline: true });
+}
+
 export async function main() {
+  if (process.env.SMOKE_OFFLINE === "1") {
+    await runDeterministicOfflineSmoke();
+    return;
+  }
+
   if (resolveSmokeRunMode(process.env) === "matrix") {
     await runLiveSmokeMatrix();
     return;

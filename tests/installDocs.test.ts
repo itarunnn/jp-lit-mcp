@@ -11,7 +11,8 @@ describe("install docs", () => {
       "docs/install/codex-app.md",
       "docs/install/codex-cli.md",
       "docs/install/cursor.md",
-      "docs/install/claude-code.md"
+      "docs/install/claude-code.md",
+      "docs/usage-guide.md"
     ].map((path) => ({ path, text: readFileSync(path, "utf8") }));
 
     expect(packageJson.engines?.node).toBe(">=22");

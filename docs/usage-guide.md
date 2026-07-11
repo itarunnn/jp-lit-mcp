@@ -16,7 +16,7 @@
 npx -y jp-lit-mcp doctor
 ```
 
-`doctor` は `Node.js 18` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。未設定時は、CiNii 検索が警告付きで続行されることと、KAKEN API tool が実行できないことを分けて表示します。検索品質や外部 DB の応答を測る live API チェックではありません。
+`doctor` は `Node.js 22` 以上、パッケージバージョン、同梱 Skills、cache / exports の書き込み、環境変数 `CINII_RESEARCH_APP_ID` の有無を確認します。`CINII_RESEARCH_APP_ID` は CiNii Research の API 利用登録で取得する `appid` を入れるための名前です。未設定時は、CiNii 検索が警告付きで続行されることと、KAKEN API tool が実行できないことを分けて表示します。検索品質や外部 DB の応答を測る live API チェックではありません。
 
 ## 目次
 
