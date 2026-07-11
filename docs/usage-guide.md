@@ -279,6 +279,8 @@ MCP 単体で明示的に使いたい場合は、`jp_lit_search` に `query` を
 jp_lit_search(query="近代日本 労働文化")
 ```
 
+source を指定しない横断検索で一部の source がタイムアウト等になっても、他の source が応答すれば成功分の候補を返します。返り値の `source_errors[]` に失敗 source、`timeout` / `http` / `invalid_payload` / `unknown` の分類、再試行方法が入ります。必要な場合はその `source` を明示して検索し直してください。全 source が失敗したときだけ、横断検索全体が error になります。
+
 ---
 
 ### 別名義や件名を確認したい
@@ -475,6 +477,8 @@ jp_lit_search(source=kokkai_minutes, query="私的録音録画 著作権法改�
 こういうときは、まず保存済みの検索結果を再利用します。原則として、いきなり upstream に再検索しません。対象は今の検索結果だけではありません。過去に保存した検索結果も横断検索して、必要なものだけ拾い直し、統合・差分抽出・共通集合化できます。
 
 検索・取得系ツールはキャッシュ優先です。同じ入力の cache がある場合、`force_refresh=true` を明示しない限り上流 API へは再検索しません。cache hit 時は返り値の `cache.saved_at` に保存日時が入り、`cache.refresh_hint` に「上流APIへは再検索していません」と表示されます。
+
+`source_errors` を含む部分成功も正常な検索結果として cache されます。cache に自動 TTL はなく、同一入力を呼び直すだけでは失敗 source に再接続しません。失敗 source だけを `source=...` で再試行するか、横断検索を `force_refresh=true` で取り直してください。
 
 使うツールは次のとおりです。
 

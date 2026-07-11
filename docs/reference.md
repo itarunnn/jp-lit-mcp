@@ -75,9 +75,12 @@ nihu_bridge
 | `total` | number | この検索呼び出しでの総件数 |
 | `items[]` | `SearchItem[]` | 検索結果 |
 | `facets` | object | source が対応する場合のみ |
+| `source_errors[]` | `{source, category, message, hint}[]` | source 未指定の横断検索で、一部 source が失敗した場合のみ |
 | `cache` | object | キャッシュ状態。`hit=true` の場合は過去保存データの再利用 |
 
 `total` / `limit` / `page` は 1 回の MCP ツール呼び出し単位の値です。Skill が複数回検索して要約する場合は、各検索ごとに読んでください。
+
+source 未指定の横断検索は、1 source 以上が応答すれば成功分の `items` / `total` / `facets` を返します。失敗分は `source_errors[]` の `category` (`timeout` / `http` / `invalid_payload` / `unknown`) で確認し、`source` を明示して再試行できます。応答した source が 0 件を返した場合も、その source は成功扱いです。全 source が失敗した場合だけ tool error になります。
 
 ### `SearchItem` / `RecordItem`
 
@@ -174,8 +177,11 @@ nihu_bridge
 | `interpretation.matching_mode` | 検索結果の読み方。CiNii 系は `metadata_conjunction`、横断検索は `aggregated_cross_source` |
 | `interpretation.breadth` | `none` / `narrow` / `broad` / `very_broad` |
 | `diagnostics[]` | 0 件、ローマ字 query、広すぎる結果などの machine-readable warning |
+| `source_errors[]` | 横断検索で失敗した source、分類、利用者向け説明、明示 source での再試行案内 |
 
 `runCachedTool` を使う検索・取得系ツールは、原則として同じ cache 仕様です。`force_refresh` を明示しない限り保存済み cache を優先し、cache hit 時は上流 API へ再接続しません。`force_refresh` は cache key から除外されるため、同じ検索条件の保存済み cache を無視して取り直すスイッチとして働きます。最新データで取り直したい場合だけ `force_refresh=true` を指定してください。
+
+一部 source が失敗した横断検索も正常結果として cache されます。現在の cache に自動 TTL はなく、同一入力の cache hit で失敗 source だけを自動再試行しません。`source_errors[].source` を明示して個別検索するか、横断検索全体を `force_refresh=true` で取り直してください。
 
 主な cached tool:
 

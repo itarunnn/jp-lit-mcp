@@ -64,6 +64,16 @@
 - verification: fresh storeの初回startが1 sessionだけ作ること、start後の旧session read、concurrent append、start→append順序、mutation失敗後のqueue継続、legacy/new ID、same-key concurrent cache write、失敗時temp cleanup、atomic replace失敗時のrestoreとrestore失敗時のbackup保持、deterministic offline smokeでstart後の旧session exportを確認
 - next step: session file構造またはmutation method追加時は、同じqueueとarchive-first/current-last順序を維持し、並行testを追加する
 
+### C-010 Partial cross-source search
+- classification: assisted-fix
+- status: resolved
+- evidence: source 未指定の既定8 source横断検索が`Promise.all`で、1 sourceのtimeoutや不正payloadで成功sourceの候補も含めて全体rejectしていた
+- action: source順の`Promise.allSettled`集約へ変更し、1 source以上のfulfilledを正常結果としてmerge。失敗は固定の利用者向けmessageと明示source再試行hintを持つ`source_errors`へ分離し、全adapter reject時だけ`CrossSourceSearchError`にした。明示single-sourceのerror identityは維持
+- commit: `fix: preserve partial cross-source search results`
+- verification: focused REDで6件の失敗を確認後、63/63 pass。timeout/http/invalid_payload/unknown分類、source/source_errors順、0件fulfilled、全reject、明示single-source、output schema、response/cache/session非漏洩をtestし、buildとscripts typecheckがpass
+- remaining risk: 部分成功は通常cacheに保存される。自動TTLや失敗sourceだけの再試行はなく、明示source検索または`force_refresh=true`が必要
+- next step: 横断source追加時は順序、error分類、all-failure matrixとcache semanticsを同時に更新する
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止
@@ -80,6 +90,7 @@
 - evidence: 複数MCP processが同じcwdを共有する場合のlock未実装。current/archive/cacheは各file内ではunique temp+renameで置換し、fallback失敗時は旧target復旧またはbackup保持を行うが、複数fileをまとめたtransactionではなく、Windows fallbackではtarget→backup→tempの間に短いgapもあり得る
 - action: 今回は同一SessionStore instance内のmutation serialization、archive-first/current-last、失敗後も継続するqueueまで。process間lockとjournal/recovery protocolは導入しない
 - verification: 同一processのconcurrent appendとstart→append順序、queue failure recovery、旧archive保持、same-key cache concurrent writeはtestで確認。別process間の競合は未検証で、保証しない
+- remaining risk: 複数MCP processが同cwdを使うと、file単位のatomic replacementでもsession全体のlost updateやcurrent/archive間の不整合を防げない
 - next step: 同じcwdを複数MCP processで同時利用する運用が必要になった場合、lock fileまたはOS lockと、current/archiveのjournal/recovery方式を別specで設計する
 
 ### C-103 OCR payload duplication
@@ -88,4 +99,32 @@
 - evidence: normalized pages、raw、text contentで大容量payloadが重複
 - action: 今回の互換修正範囲外
 - verification: pending
+- remaining risk: 大きい資料でcache・出力・MCP responseの容量とメモリ使用量が増える
 - next step: resource linkまたはpagination設計を別spec化
+
+### C-104 NDL Search detail endpoint contract
+- classification: report-only
+- status: open
+- evidence: `ndl_search` / `ndl_digital`の詳細取得は`/api/bib/external/search`のJSON/XML shapeと`f-token`に依存し、fixtureで現行shapeを固定しているが、versionedな公開contractとしての安定性は保証されていない
+- action: 今回はendpoint変更や代替APIへの自動移行を行わない
+- verification: adapter unit contractでURL組み立てとJSON/XML正規化を維持。live網羅確認は行っていない
+- remaining risk: upstreamのendpoint停止、token方式、response shape変更でdetail取得が壊れる
+- next step: 公開仕様または代替経路を確認し、移行は別specと実fixtureで設計する
+
+### C-105 HTML parser versioned contract
+- classification: report-only
+- status: open
+- evidence: J-STAGE detail、IRDB、国立公文書館DA、JACAR、国文研論文DB、NINJAL文献DB、KAKEN詳細などの複数parserがHTML meta/tag/表構造のbest-effort抽出に依存し、upstream shapeのversioned contractがない
+- action: parser共通化、DOM library導入、live巡回を今回の修正に含めない
+- verification: 現行fixtureとadapter unit testを維持。各upstreamの最新HTMLとの一括照合は未実施
+- remaining risk: HTML改修が非例外の0件やfield欠落として現れ、破壊を検知できない可能性がある
+- next step: sourceごとにfixture取得日、shape fingerprint、必須field、劣化時diagnosticを別spec化する
+
+### C-106 Central tool/schema files
+- classification: report-only
+- status: open
+- evidence: `src/lib/schemas.ts`は約1500行、`src/server.ts`は約800行で、公開toolの型・schema・registrationが中央fileに集中している
+- action: Task 8では`source_errors`の最小追加に限定し、file分割やregistry再設計は行わない
+- verification: build、scripts typecheck、tool manifest/output schema contractで今回の追加範囲を確認
+- remaining risk: 並行開発時のconflict、schemaとtool配線の更新漏れ、review範囲の拡大
+- next step: tool domainごとのschema/registration module境界を別specで設計する

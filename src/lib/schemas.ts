@@ -218,6 +218,13 @@ const searchDiagnosticSchema = z.object({
   hint: z.string().nullable()
 });
 
+const sourceSearchErrorSchema = z.object({
+  source: sourceSchema,
+  category: z.enum(["timeout", "http", "invalid_payload", "unknown"]),
+  message: z.string(),
+  hint: z.string()
+});
+
 const searchInterpretationSchema = z.object({
   matching_mode: z.enum([
     "metadata_conjunction",
@@ -333,6 +340,7 @@ export const searchOutputSchema = z.object({
   total: z.number().int().nonnegative(),
   items: z.array(searchItemSchema),
   facets: facetsSchema.optional(),
+  source_errors: z.array(sourceSearchErrorSchema).optional(),
   diagnostics: z.array(searchDiagnosticSchema).optional(),
   interpretation: searchInterpretationSchema.optional(),
   cache: z.object({

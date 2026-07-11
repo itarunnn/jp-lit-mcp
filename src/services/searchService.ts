@@ -1,11 +1,22 @@
-import type { CiniiSearchFilters, SearchFacets, SourceName } from "../lib/types.js";
-import { InvalidRequestError } from "../lib/errors.js";
+import type {
+  CiniiSearchFilters,
+  SearchFacets,
+  SourceName,
+  SourceSearchError
+} from "../lib/types.js";
+import { CrossSourceSearchError, InvalidRequestError } from "../lib/errors.js";
+import {
+  UnsupportedPayloadError,
+  UpstreamHttpError,
+  UpstreamTimeoutError
+} from "../lib/http.js";
 import type {
   IrdbSearchFilters,
   JdcatSearchFilters,
   NdlSearchFilters,
   NihuBridgeSearchFilters,
-  SourceAdapter
+  SourceAdapter,
+  SearchResult
 } from "../sources/types.js";
 import { createSourceRegistry } from "./sourceRegistry.js";
 import type { RelatedSearchRecord, SearchItem } from "../lib/types.js";
@@ -48,6 +59,46 @@ function listCrossSources(registry: ReturnType<typeof createSourceRegistry>) {
   const available = new Set(registry.list());
 
   return CROSS_SOURCE_ORDER.filter((source) => available.has(source));
+}
+
+function classifySourceError(error: unknown): SourceSearchError["category"] {
+  if (error instanceof UpstreamTimeoutError) {
+    return "timeout";
+  }
+  if (error instanceof UpstreamHttpError) {
+    return "http";
+  }
+  if (error instanceof UnsupportedPayloadError) {
+    return "invalid_payload";
+  }
+  return "unknown";
+}
+
+function sourceErrorMessage(category: SourceSearchError["category"]) {
+  switch (category) {
+    case "timeout":
+      return "上流 source の応答がタイムアウトしました。";
+    case "http":
+      return "上流 source へのリクエストに失敗しました。";
+    case "invalid_payload":
+      return "上流 source の応答形式を処理できませんでした。";
+    case "unknown":
+      return "上流 source の検索中に予期しないエラーが発生しました。";
+  }
+}
+
+function toSourceSearchError(
+  source: SourceName,
+  error: unknown
+): SourceSearchError {
+  const category = classifySourceError(error);
+
+  return {
+    source,
+    category,
+    message: sourceErrorMessage(category),
+    hint: `source="${source}" を指定して再試行してください。`
+  };
 }
 
 function roundRobinMerge<T>(groups: T[][], limit: number) {
@@ -242,11 +293,29 @@ export function createSearchService(adapters: SourceAdapter[]) {
         );
       }
 
-      const results = await Promise.all(
-        listCrossSources(registry).map((source) =>
+      const sources = listCrossSources(registry);
+      const settledResults = await Promise.allSettled(
+        sources.map((source) =>
           registry.get(source).search({ ...input, limit: CROSS_SOURCE_FETCH_SIZE })
         )
       );
+      const results: SearchResult[] = [];
+      const sourceErrors: SourceSearchError[] = [];
+
+      settledResults.forEach((settledResult, index) => {
+        if (settledResult.status === "fulfilled") {
+          results.push(settledResult.value);
+          return;
+        }
+
+        sourceErrors.push(
+          toSourceSearchError(sources[index] as SourceName, settledResult.reason)
+        );
+      });
+
+      if (sources.length > 0 && results.length === 0) {
+        throw new CrossSourceSearchError(sourceErrors);
+      }
 
       const mergedItems = roundRobinMerge(
         results.map((result) => result.items),
@@ -256,7 +325,8 @@ export function createSearchService(adapters: SourceAdapter[]) {
       return {
         total: results.reduce((sum, result) => sum + result.total, 0),
         items: annotateDuplicateCandidates(mergedItems),
-        facets: mergeFacets(results)
+        facets: mergeFacets(results),
+        ...(sourceErrors.length > 0 ? { source_errors: sourceErrors } : {})
       };
     }
   };

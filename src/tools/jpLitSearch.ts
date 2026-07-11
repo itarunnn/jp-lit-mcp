@@ -53,7 +53,10 @@ export function createJpLitSearchTool(
           limit: parsed.limit ?? (parsed.source ? 50 : 48),
           total: searchResult.total,
           items: searchResult.items,
-          facets: searchResult.facets
+          facets: searchResult.facets,
+          ...(searchResult.source_errors
+            ? { source_errors: searchResult.source_errors }
+            : {})
         };
       }
     });

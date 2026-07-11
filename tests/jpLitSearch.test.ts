@@ -6,6 +6,11 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { InvalidRequestError } from "../src/lib/errors.js";
+import {
+  UnsupportedPayloadError,
+  UpstreamHttpError,
+  UpstreamTimeoutError
+} from "../src/lib/http.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { searchInputSchema } from "../src/lib/schemas.js";
@@ -16,6 +21,17 @@ import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
 
 const tempDirs: string[] = [];
+
+const CROSS_SOURCE_NAMES = [
+  "ndl_catalog",
+  "ndl_digital",
+  "ndl_articles",
+  "ndl_articles_online",
+  "cinii_articles",
+  "jstage_articles",
+  "cinii_books",
+  "nihu_bridge"
+] as const;
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-search-tool-"));
@@ -1013,7 +1029,8 @@ describe("createSearchService", () => {
         page: { type: "integer" },
         limit: { type: "integer" },
         total: { type: "integer" },
-        items: { type: "array" }
+        items: { type: "array" },
+        source_errors: { type: "array" }
       });
       expect(recordTool?.outputSchema?.properties).toMatchObject({
         source: {},
@@ -1101,6 +1118,211 @@ describe("createSearchService", () => {
       createSearchItem("ndl_catalog", "1", "吾輩は猫である"),
       createSearchItem("ndl_digital", "3", "坊っちゃん")
     ]);
+  });
+
+  it("横断検索は 1 source が timeout でも残り 7 source の結果を返す", async () => {
+    const adapters = CROSS_SOURCE_NAMES.map((source): SourceAdapter => ({
+      source,
+      search: async () => {
+        if (source === "jstage_articles") {
+          throw new UpstreamTimeoutError(10_000);
+        }
+
+        return {
+          total: 1,
+          items: [createSearchItem(source, source, `${source}-result`)]
+        };
+      },
+      getRecord: async () => null
+    }));
+    const service = createSearchService(adapters);
+
+    const result = await service.search({
+      query: "日本文学",
+      limit: 48,
+      page: 1
+    });
+
+    expect(result.items).toHaveLength(7);
+    expect(result.source_errors).toEqual([
+      {
+        source: "jstage_articles",
+        category: "timeout",
+        message: expect.any(String),
+        hint: expect.stringMatching(/再試行|source/)
+      }
+    ]);
+  });
+
+  it("横断検索は全 source 失敗時だけ source 順の CrossSourceSearchError を投げる", async () => {
+    const adapters = CROSS_SOURCE_NAMES.map((source): SourceAdapter => ({
+      source,
+      search: async () => {
+        throw new UpstreamTimeoutError(10_000);
+      },
+      getRecord: async () => null
+    }));
+    const service = createSearchService(adapters);
+
+    await expect(
+      service.search({ query: "日本文学", limit: 48, page: 1 })
+    ).rejects.toMatchObject({
+      name: "CrossSourceSearchError",
+      message: "All cross-source searches failed",
+      sourceErrors: CROSS_SOURCE_NAMES.map((source) => ({
+        source,
+        category: "timeout",
+        message: expect.any(String),
+        hint: expect.stringContaining("source")
+      }))
+    });
+  });
+
+  it("横断検索の source error を 4 category に分類し、上流の詳細を露出しない", async () => {
+    const secret = "secret-token=do-not-leak";
+    const errors = new Map<SearchItem["source"], Error>([
+      ["ndl_digital", new UpstreamTimeoutError(12_345)],
+      ["ndl_articles", new UpstreamHttpError(503, `Bearer ${secret}`)],
+      ["ndl_articles_online", new UnsupportedPayloadError(`bad payload ${secret}`)],
+      [
+        "cinii_articles",
+        new Error(`https://example.test/search?api_key=${secret}`, {
+          cause: new Error(`Authorization: ${secret}`)
+        })
+      ]
+    ]);
+    const adapters = CROSS_SOURCE_NAMES.map((source): SourceAdapter => ({
+      source,
+      search: async () => {
+        const error = errors.get(source);
+        if (error) {
+          throw error;
+        }
+        return { total: 0, items: [] };
+      },
+      getRecord: async () => null
+    }));
+    const service = createSearchService(adapters);
+
+    const result = await service.search({
+      query: "日本文学",
+      limit: 48,
+      page: 1
+    });
+
+    expect(result.source_errors).toEqual([
+      expect.objectContaining({ source: "ndl_digital", category: "timeout" }),
+      expect.objectContaining({ source: "ndl_articles", category: "http" }),
+      expect.objectContaining({
+        source: "ndl_articles_online",
+        category: "invalid_payload"
+      }),
+      expect.objectContaining({ source: "cinii_articles", category: "unknown" })
+    ]);
+    expect(JSON.stringify(result.source_errors)).not.toContain(secret);
+    expect(JSON.stringify(result.source_errors)).not.toContain("api_key");
+    expect(JSON.stringify(result.source_errors)).not.toContain("Authorization");
+    expect(JSON.stringify(result.source_errors)).not.toContain("example.test");
+  });
+
+  it("横断検索は 0 件を返した source も成功 source として扱う", async () => {
+    const adapters = CROSS_SOURCE_NAMES.map((source): SourceAdapter => ({
+      source,
+      search: async () => {
+        if (source === "ndl_catalog") {
+          return { total: 0, items: [] };
+        }
+        throw new UpstreamTimeoutError(10_000);
+      },
+      getRecord: async () => null
+    }));
+    const service = createSearchService(adapters);
+
+    const result = await service.search({
+      query: "存在しない検索語",
+      limit: 48,
+      page: 1
+    });
+
+    expect(result).toMatchObject({
+      total: 0,
+      items: [],
+      source_errors: CROSS_SOURCE_NAMES.slice(1).map((source) =>
+        expect.objectContaining({ source })
+      )
+    });
+  });
+
+  it("明示 single-source 検索は既存の error identity をそのまま伝播する", async () => {
+    const upstreamError = new UpstreamHttpError(503, "Service Unavailable");
+    const adapter: SourceAdapter = {
+      source: "ndl_catalog",
+      search: async () => {
+        throw upstreamError;
+      },
+      getRecord: async () => null
+    };
+    const service = createSearchService([adapter]);
+
+    await expect(
+      service.search({
+        query: "日本文学",
+        source: "ndl_catalog",
+        limit: 50,
+        page: 1
+      })
+    ).rejects.toBe(upstreamError);
+  });
+
+  it("横断検索の partial result と安全な source_errors を cache し、同一入力で再試行しない", async () => {
+    const baseDir = await createTempDir();
+    const secret = "private-query=do-not-cache";
+    const catalogSearch = vi.fn().mockResolvedValue({
+      total: 1,
+      items: [createSearchItem("ndl_catalog", "1", "catalog-result")]
+    });
+    const jstageSearch = vi.fn().mockRejectedValue(
+      new Error(`https://example.test/?token=${secret}`)
+    );
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitSearchTool(
+      createSearchService([
+        {
+          source: "ndl_catalog",
+          search: catalogSearch,
+          getRecord: async () => null
+        },
+        {
+          source: "jstage_articles",
+          search: jstageSearch,
+          getRecord: async () => null
+        }
+      ]),
+      cache,
+      sessions
+    );
+
+    const first = await tool({ query: "日本文学" });
+    const second = await tool({ query: "日本文学" });
+    const cacheKey = first.structuredContent.cache?.cache_key;
+    const cached = cacheKey
+      ? await cache.read("jp_lit_search", cacheKey)
+      : null;
+    const session = await sessions.readCurrent();
+
+    expect(first.structuredContent.source_errors).toEqual([
+      expect.objectContaining({ source: "jstage_articles", category: "unknown" })
+    ]);
+    expect(second.structuredContent.source_errors).toEqual(
+      first.structuredContent.source_errors
+    );
+    expect(second.structuredContent.cache?.hit).toBe(true);
+    expect(catalogSearch).toHaveBeenCalledOnce();
+    expect(jstageSearch).toHaveBeenCalledOnce();
+    expect(JSON.stringify(first)).not.toContain(secret);
+    expect(JSON.stringify(cached)).not.toContain(secret);
+    expect(JSON.stringify(session)).not.toContain(secret);
   });
 
   it("横断検索では source ごとにラウンドロビンで結果を混在させる", async () => {

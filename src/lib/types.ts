@@ -113,6 +113,19 @@ export interface SearchFacets {
   issued_years: Record<string, number>;
 }
 
+export type SourceSearchErrorCategory =
+  | "timeout"
+  | "http"
+  | "invalid_payload"
+  | "unknown";
+
+export interface SourceSearchError {
+  source: SourceName;
+  category: SourceSearchErrorCategory;
+  message: string;
+  hint: string;
+}
+
 export interface SearchItemBase {
   source: SourceName;
   source_id: string;
