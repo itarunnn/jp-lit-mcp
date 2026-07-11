@@ -6,6 +6,7 @@ import {
   rm,
   writeFile
 } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 
 import { getLegacySessionsRoot, getSessionsRoot } from "./paths.js";
@@ -15,10 +16,12 @@ import type {
   SessionEntry,
   SessionEntryTrace,
   SessionTrace,
-  SessionTraceUpdateInput
+  SessionTraceUpdateInput,
+  StartSessionInput
 } from "./types.js";
 
 export interface SessionStore {
+  startSession(input: StartSessionInput): Promise<SessionDocument>;
   appendEntry(entry: SessionEntry): Promise<SessionDocument>;
   annotateEntry(input: SessionAnnotationInput): Promise<SessionDocument>;
   updateTrace(input: SessionTraceUpdateInput): Promise<SessionDocument>;
@@ -27,7 +30,8 @@ export interface SessionStore {
   readCurrent(): Promise<SessionDocument>;
 }
 
-const SESSION_ID_PATTERN = /^\d{4}-\d{2}-\d{2}-\d{6}$/;
+const SESSION_ID_PATTERN =
+  /^\d{4}-\d{2}-\d{2}-\d{6}(?:-[0-9a-f]{8})?$/;
 
 function nowIso() {
   return new Date().toISOString();
@@ -41,17 +45,25 @@ function createSessionId() {
     .slice(11, 19)
     .replace(/:/g, "");
 
-  return `${date}-${time}`;
+  return `${date}-${time}-${randomBytes(4).toString("hex")}`;
 }
 
-function createEmptySession(): SessionDocument {
+function createEmptySession(input: StartSessionInput = {}): SessionDocument {
   const timestamp = nowIso();
+  const trace = normalizeSessionTrace({
+    ...(input.research_goal ? { research_goal: input.research_goal } : {}),
+    ...(input.scope_note ? { scope_note: input.scope_note } : {}),
+    source_plans: [],
+    open_questions: [],
+    next_actions: []
+  });
 
   return {
     session_id: createSessionId(),
     created_at: timestamp,
     updated_at: timestamp,
-    entries: []
+    entries: [],
+    ...(hasSessionTraceContent(trace) ? { trace } : {})
   };
 }
 
@@ -181,228 +193,271 @@ async function readSessionFileWithFallback(primary: string, legacy: string) {
 }
 
 export function createSessionStore(baseDir = process.cwd()): SessionStore {
+  let mutation: Promise<void> = Promise.resolve();
+
+  function serializeMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = mutation.then(operation, operation);
+    mutation = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
+  }
+
   async function ensureDirectory() {
     await mkdir(getSessionsRoot(baseDir), { recursive: true });
   }
 
   async function persist(session: SessionDocument) {
     await ensureDirectory();
-    await writeSessionFile(currentSessionPath(baseDir), session);
     await writeSessionFile(archiveSessionPath(baseDir, session.session_id), session);
+    await writeSessionFile(currentSessionPath(baseDir), session);
+  }
+
+  async function readCurrentUnlocked() {
+    await ensureDirectory();
+
+    try {
+      return await readSessionFile(currentSessionPath(baseDir));
+    } catch (error) {
+      const currentPath = currentSessionPath(baseDir);
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        try {
+          const legacySession = await readSessionFile(legacyCurrentSessionPath(baseDir));
+          await persist(legacySession);
+          return legacySession;
+        } catch (legacyError) {
+          if ((legacyError as NodeJS.ErrnoException).code !== "ENOENT") {
+            throw legacyError;
+          }
+        }
+
+        const session = createEmptySession();
+        await persist(session);
+        return session;
+      }
+
+      if (error instanceof SyntaxError) {
+        try {
+          const brokenPath = `${currentPath}.invalid`;
+          await rename(currentPath, brokenPath);
+        } catch {
+          // ignore follow-up failure
+        }
+
+        const session = createEmptySession();
+        await persist(session);
+        return session;
+      }
+
+      throw error;
+    }
+  }
+
+  async function readById(sessionId: string) {
+    await ensureDirectory();
+    assertValidSessionId(sessionId);
+    return readSessionFileWithFallback(
+      archiveSessionPath(baseDir, sessionId),
+      legacyArchiveSessionPath(baseDir, sessionId)
+    );
+  }
+
+  async function listAll() {
+    await ensureDirectory();
+    const roots = [getSessionsRoot(baseDir), getLegacySessionsRoot(baseDir)];
+    const sessionMap = new Map<string, SessionDocument>();
+
+    for (const root of roots) {
+      let filenames: string[];
+      try {
+        filenames = await readdir(root);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          continue;
+        }
+        throw error;
+      }
+
+      const sessions = await Promise.all(
+        filenames
+          .filter((filename) => filename.endsWith(".json") && filename !== "current.json")
+          .map(async (filename) => {
+            try {
+              return await readSessionFile(path.join(root, filename));
+            } catch {
+              return null;
+            }
+          })
+      );
+
+      for (const session of sessions) {
+        if (session && !sessionMap.has(session.session_id)) {
+          sessionMap.set(session.session_id, session);
+        }
+      }
+    }
+
+    return Array.from(sessionMap.values()).sort((left, right) =>
+      right.updated_at.localeCompare(left.updated_at)
+    );
   }
 
   return {
-    async readCurrent() {
-      await ensureDirectory();
-
-      try {
-        return await readSessionFile(currentSessionPath(baseDir));
-      } catch (error) {
-        const currentPath = currentSessionPath(baseDir);
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          try {
-            const legacySession = await readSessionFile(legacyCurrentSessionPath(baseDir));
-            await persist(legacySession);
-            return legacySession;
-          } catch (legacyError) {
-            if ((legacyError as NodeJS.ErrnoException).code !== "ENOENT") {
-              throw legacyError;
-            }
-          }
-
-          const session = createEmptySession();
-          await persist(session);
-          return session;
-        }
-
-        if (error instanceof SyntaxError) {
-          try {
-            const brokenPath = `${currentPath}.invalid`;
-            await rename(currentPath, brokenPath);
-          } catch {
-            // ignore follow-up failure
-          }
-
-          const session = createEmptySession();
-          await persist(session);
-          return session;
-        }
-
-        throw error;
-      }
+    readCurrent() {
+      return serializeMutation(readCurrentUnlocked);
     },
 
-    async readById(sessionId) {
-      await ensureDirectory();
-      assertValidSessionId(sessionId);
-      return readSessionFileWithFallback(
-        archiveSessionPath(baseDir, sessionId),
-        legacyArchiveSessionPath(baseDir, sessionId)
-      );
-    },
+    readById,
 
-    async listAll() {
-      await ensureDirectory();
-      const roots = [getSessionsRoot(baseDir), getLegacySessionsRoot(baseDir)];
-      const sessionMap = new Map<string, SessionDocument>();
+    listAll,
 
-      for (const root of roots) {
-        let filenames: string[];
-        try {
-          filenames = await readdir(root);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            continue;
-          }
-          throw error;
-        }
-
-        const sessions = await Promise.all(
-          filenames
-            .filter((filename) => filename.endsWith(".json") && filename !== "current.json")
-            .map(async (filename) => {
-              try {
-                return await readSessionFile(path.join(root, filename));
-              } catch {
-                return null;
-              }
-            })
+    startSession(input) {
+      return serializeMutation(async () => {
+        const previous = await readCurrentUnlocked();
+        await writeSessionFile(
+          archiveSessionPath(baseDir, previous.session_id),
+          previous
         );
-
-        for (const session of sessions) {
-          if (session && !sessionMap.has(session.session_id)) {
-            sessionMap.set(session.session_id, session);
-          }
-        }
-      }
-
-      return Array.from(sessionMap.values())
-        .sort((left, right) => right.updated_at.localeCompare(left.updated_at));
+        const session = createEmptySession(input);
+        await persist(session);
+        return session;
+      });
     },
 
-    async appendEntry(entry) {
-      const session = await this.readCurrent();
-      const next: SessionDocument = {
-        ...session,
-        updated_at: nowIso(),
-        entries: [
-          ...session.entries.filter(
-            (candidate) =>
-              !(
-                candidate.tool === entry.tool &&
-                candidate.cache_key === entry.cache_key
-              )
-          ),
-          entry
-        ]
-      };
-
-      await persist(next);
-      return next;
-    },
-
-    async updateTrace(input) {
-      const session = await this.readCurrent();
-      const timestamp = nowIso();
-      const currentTrace = normalizeSessionTrace(session.trace);
-      const nextTrace: SessionTrace = {
-        ...currentTrace,
-        ...(input.research_goal !== undefined
-          ? { research_goal: input.research_goal }
-          : {}),
-        ...(input.scope_note !== undefined ? { scope_note: input.scope_note } : {}),
-        source_plans: [
-          ...currentTrace.source_plans,
-          ...(input.source_plans ?? []).map((entry) => ({
-            ...entry,
-            created_at: timestamp
-          }))
-        ],
-        open_questions: [
-          ...currentTrace.open_questions,
-          ...(input.open_questions ?? []).map((entry) => ({
-            ...entry,
-            created_at: timestamp
-          }))
-        ],
-        next_actions: [
-          ...currentTrace.next_actions,
-          ...(input.next_actions ?? []).map((entry) => ({
-            ...entry,
-            created_at: timestamp
-          }))
-        ]
-      };
-
-      const next: SessionDocument = {
-        ...session,
-        updated_at: timestamp,
-        ...(hasSessionTraceContent(nextTrace) ? { trace: nextTrace } : {})
-      };
-
-      await persist(next);
-      return next;
-    },
-
-    async annotateEntry(input) {
-      const session = await this.readCurrent();
-      const timestamp = nowIso();
-      let matched = false;
-      const nextEntries = session.entries.map((entry) => {
-        if (entry.tool !== input.tool || entry.cache_key !== input.cache_key) {
-          return entry;
-        }
-
-        matched = true;
-        const currentTrace = normalizeEntryTrace(entry.trace);
-        const inputTrace = input.trace;
-        const nextTrace: SessionEntryTrace = {
-          ...currentTrace,
-          ...(inputTrace?.agent_label !== undefined
-            ? { agent_label: inputTrace.agent_label }
-            : {}),
-          ...(inputTrace?.task_scope !== undefined
-            ? { task_scope: inputTrace.task_scope }
-            : {}),
-          ...(inputTrace?.intent !== undefined ? { intent: inputTrace.intent } : {}),
-          ...(inputTrace?.search_attempt !== undefined
-            ? { search_attempt: inputTrace.search_attempt }
-            : {}),
-          decisions: [
-            ...currentTrace.decisions,
-            ...(inputTrace?.decisions ?? []).map((decision) => ({
-              ...decision,
-              created_at: timestamp
-            }))
-          ],
-          evidence_scope: [
-            ...currentTrace.evidence_scope,
-            ...(inputTrace?.evidence_scope ?? [])
+    appendEntry(entry) {
+      return serializeMutation(async () => {
+        const session = await readCurrentUnlocked();
+        const next: SessionDocument = {
+          ...session,
+          updated_at: nowIso(),
+          entries: [
+            ...session.entries.filter(
+              (candidate) =>
+                !(
+                  candidate.tool === entry.tool &&
+                  candidate.cache_key === entry.cache_key
+                )
+            ),
+            entry
           ]
         };
 
-        return {
-          ...entry,
-          selected_items: input.selected_items,
-          notes: input.notes ?? entry.notes,
-          ...(hasEntryTraceContent(nextTrace) ? { trace: nextTrace } : {})
-        };
+        await persist(next);
+        return next;
       });
+    },
 
-      if (!matched) {
-        throw new Error(
-          `Session entry not found for annotation: ${input.tool}/${input.cache_key}`
-        );
-      }
+    updateTrace(input) {
+      return serializeMutation(async () => {
+        const session = await readCurrentUnlocked();
+        const timestamp = nowIso();
+        const currentTrace = normalizeSessionTrace(session.trace);
+        const nextTrace: SessionTrace = {
+          ...currentTrace,
+          ...(input.research_goal !== undefined
+            ? { research_goal: input.research_goal }
+            : {}),
+          ...(input.scope_note !== undefined
+            ? { scope_note: input.scope_note }
+            : {}),
+          source_plans: [
+            ...currentTrace.source_plans,
+            ...(input.source_plans ?? []).map((entry) => ({
+              ...entry,
+              created_at: timestamp
+            }))
+          ],
+          open_questions: [
+            ...currentTrace.open_questions,
+            ...(input.open_questions ?? []).map((entry) => ({
+              ...entry,
+              created_at: timestamp
+            }))
+          ],
+          next_actions: [
+            ...currentTrace.next_actions,
+            ...(input.next_actions ?? []).map((entry) => ({
+              ...entry,
+              created_at: timestamp
+            }))
+          ]
+        };
 
-      const next: SessionDocument = {
-        ...session,
-        updated_at: timestamp,
-        entries: nextEntries
-      };
+        const next: SessionDocument = {
+          ...session,
+          updated_at: timestamp,
+          ...(hasSessionTraceContent(nextTrace) ? { trace: nextTrace } : {})
+        };
 
-      await persist(next);
-      return next;
+        await persist(next);
+        return next;
+      });
+    },
+
+    annotateEntry(input) {
+      return serializeMutation(async () => {
+        const session = await readCurrentUnlocked();
+        const timestamp = nowIso();
+        let matched = false;
+        const nextEntries = session.entries.map((entry) => {
+          if (entry.tool !== input.tool || entry.cache_key !== input.cache_key) {
+            return entry;
+          }
+
+          matched = true;
+          const currentTrace = normalizeEntryTrace(entry.trace);
+          const inputTrace = input.trace;
+          const nextTrace: SessionEntryTrace = {
+            ...currentTrace,
+            ...(inputTrace?.agent_label !== undefined
+              ? { agent_label: inputTrace.agent_label }
+              : {}),
+            ...(inputTrace?.task_scope !== undefined
+              ? { task_scope: inputTrace.task_scope }
+              : {}),
+            ...(inputTrace?.intent !== undefined
+              ? { intent: inputTrace.intent }
+              : {}),
+            ...(inputTrace?.search_attempt !== undefined
+              ? { search_attempt: inputTrace.search_attempt }
+              : {}),
+            decisions: [
+              ...currentTrace.decisions,
+              ...(inputTrace?.decisions ?? []).map((decision) => ({
+                ...decision,
+                created_at: timestamp
+              }))
+            ],
+            evidence_scope: [
+              ...currentTrace.evidence_scope,
+              ...(inputTrace?.evidence_scope ?? [])
+            ]
+          };
+
+          return {
+            ...entry,
+            selected_items: input.selected_items,
+            notes: input.notes ?? entry.notes,
+            ...(hasEntryTraceContent(nextTrace) ? { trace: nextTrace } : {})
+          };
+        });
+
+        if (!matched) {
+          throw new Error(
+            `Session entry not found for annotation: ${input.tool}/${input.cache_key}`
+          );
+        }
+
+        const next: SessionDocument = {
+          ...session,
+          updated_at: timestamp,
+          entries: nextEntries
+        };
+
+        await persist(next);
+        return next;
+      });
     }
   };
 }

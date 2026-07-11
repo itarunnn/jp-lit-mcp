@@ -18,6 +18,94 @@ afterEach(async () => {
 });
 
 describe("session store", () => {
+  const entryA = {
+    tool: "jp_lit_search",
+    input: { query: "alpha" },
+    cache_key: "sha256-alpha",
+    result_ref: {
+      tool: "jp_lit_search",
+      cache_key: "sha256-alpha"
+    },
+    selected_items: [],
+    notes: []
+  };
+  const entryB = {
+    tool: "jp_lit_get_record",
+    input: { source: "ndl_catalog", source_id: "beta" },
+    cache_key: "sha256-beta",
+    result_ref: {
+      tool: "jp_lit_get_record",
+      cache_key: "sha256-beta"
+    },
+    selected_items: [],
+    notes: []
+  };
+
+  it("starts a new current session while preserving the previous archive", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+    const first = await store.readCurrent();
+
+    const second = await store.startSession({
+      research_goal: "new research",
+      scope_note: "new scope"
+    });
+
+    expect(second.session_id).not.toBe(first.session_id);
+    expect(second.session_id).toMatch(
+      /^\d{4}-\d{2}-\d{2}-\d{6}-[0-9a-f]{8}$/
+    );
+    await expect(store.readById(first.session_id)).resolves.toEqual(first);
+    expect(await store.readCurrent()).toMatchObject({
+      session_id: second.session_id,
+      entries: [],
+      trace: {
+        research_goal: "new research",
+        scope_note: "new scope"
+      }
+    });
+  });
+
+  it("serializes concurrent append operations", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+
+    await Promise.all([store.appendEntry(entryA), store.appendEntry(entryB)]);
+
+    expect((await store.readCurrent()).entries).toEqual(
+      expect.arrayContaining([entryA, entryB])
+    );
+  });
+
+  it("orders a concurrent start before a following append without losing either session", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+    const first = await store.readCurrent();
+
+    const startPromise = store.startSession({ research_goal: "second" });
+    const appendPromise = store.appendEntry(entryA);
+    const [second, appended] = await Promise.all([startPromise, appendPromise]);
+
+    expect(appended.session_id).toBe(second.session_id);
+    expect((await store.readCurrent()).entries).toEqual([entryA]);
+    await expect(store.readById(first.session_id)).resolves.toEqual(first);
+  });
+
+  it("continues processing queued mutations after a rejected mutation", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+
+    const rejected = store.annotateEntry({
+      tool: "jp_lit_search",
+      cache_key: "missing",
+      selected_items: []
+    });
+    const appended = store.appendEntry(entryA);
+
+    await expect(rejected).rejects.toThrow("Session entry not found");
+    await expect(appended).resolves.toMatchObject({ entries: [entryA] });
+  });
+
   it("creates current session and appends entries", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);

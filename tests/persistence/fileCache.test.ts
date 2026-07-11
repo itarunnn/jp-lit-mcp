@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -32,6 +32,53 @@ describe("createCacheKey", () => {
 });
 
 describe("file cache", () => {
+  it("serializes concurrent writes to the same key and leaves parseable JSON", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const key = createCacheKey("jp_lit_search", { query: "concurrent" });
+
+    await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        cache.write("jp_lit_search", {
+          version: 1,
+          tool: "jp_lit_search",
+          cache_key: key,
+          saved_at: `2026-05-01T00:00:0${index}.000Z`,
+          input: { query: "concurrent" },
+          structured_content: { index }
+        })
+      )
+    );
+
+    const target = path.join(getCacheRoot(baseDir), "jp_lit_search", `${key}.json`);
+    const persisted = await readFile(target, "utf8");
+    expect(() => JSON.parse(persisted)).not.toThrow();
+    await expect(cache.read("jp_lit_search", key)).resolves.toMatchObject({
+      cache_key: key
+    });
+  });
+
+  it("removes its unique temp file when replacement fails", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const key = createCacheKey("jp_lit_search", { query: "cleanup" });
+    const directory = path.join(getCacheRoot(baseDir), "jp_lit_search");
+    await mkdir(path.join(directory, `${key}.json`), { recursive: true });
+
+    await expect(
+      cache.write("jp_lit_search", {
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: key,
+        saved_at: "2026-05-01T00:00:00.000Z",
+        input: { query: "cleanup" },
+        structured_content: { cleanup: true }
+      })
+    ).rejects.toThrow();
+
+    expect((await readdir(directory)).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+  });
+
   it("round-trips structured content", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);

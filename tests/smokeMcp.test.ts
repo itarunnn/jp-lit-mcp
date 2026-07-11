@@ -104,7 +104,9 @@ describe("deterministic offline smoke", () => {
         cacheHit: true,
         annotatedCount: 1,
         tracedSessionFound: true,
-        exportContainsSelection: true
+        exportContainsSelection: true,
+        startedNewSession: true,
+        archivedSessionExported: true
       }
     });
   });
@@ -177,6 +179,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_search_kokusho_fulltext",
       "jp_lit_search_kokusho_image_tags",
       "jp_lit_search_pages",
+      "jp_lit_start_session",
       "jp_lit_suggest_classification_codes",
       "jp_lit_update_session_trace"
     ]);

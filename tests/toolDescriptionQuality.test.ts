@@ -32,12 +32,95 @@ const priorityTools = [
   "jp_lit_export_view",
   "jp_lit_export_session",
   "jp_lit_annotate_session",
+  "jp_lit_start_session",
   "jp_lit_update_session_trace",
   "jp_lit_find_sessions",
   "jp_lit_list_sessions"
 ];
 
 describe("tool definition quality", () => {
+  it("全28 toolが副作用と外部到達性をannotationsで公開する", async () => {
+    const tools = await listPublishedTools();
+    const externalReadOnly = new Set([
+      "jp_lit_search",
+      "jp_lit_search_guides_manuals",
+      "jp_lit_search_guides_cases",
+      "jp_lit_resolve_authority",
+      "jp_lit_find_authority_terms_by_classification",
+      "jp_lit_suggest_classification_codes",
+      "jp_lit_enrich_record",
+      "jp_lit_search_kaken_projects",
+      "jp_lit_get_record",
+      "jp_lit_get_text_coordinates",
+      "jp_lit_get_fulltext",
+      "jp_lit_search_pages",
+      "jp_lit_search_fulltext",
+      "jp_lit_search_illustrations",
+      "jp_lit_search_kokusho_fulltext",
+      "jp_lit_search_kokusho_image_tags"
+    ]);
+    const localReadOnly = new Set([
+      "jp_lit_refine_results",
+      "jp_lit_find_sessions",
+      "jp_lit_list_sessions",
+      "jp_lit_search_cache_index",
+      "jp_lit_list_cache"
+    ]);
+    const localWrites = new Set([
+      "jp_lit_annotate_session",
+      "jp_lit_update_session_trace",
+      "jp_lit_start_session",
+      "jp_lit_export_session",
+      "jp_lit_export_view"
+    ]);
+    const destructive = new Set([
+      "jp_lit_delete_cache",
+      "jp_lit_prune_cache"
+    ]);
+
+    expect(tools).toHaveLength(28);
+    for (const tool of tools) {
+      const annotations = tool.annotations;
+      expect(annotations, tool.name).toBeDefined();
+      expect(typeof annotations?.readOnlyHint, tool.name).toBe("boolean");
+      expect(typeof annotations?.destructiveHint, tool.name).toBe("boolean");
+      expect(typeof annotations?.idempotentHint, tool.name).toBe("boolean");
+      expect(typeof annotations?.openWorldHint, tool.name).toBe("boolean");
+
+      if (externalReadOnly.has(tool.name)) {
+        expect(annotations, tool.name).toMatchObject({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true
+        });
+      } else if (localReadOnly.has(tool.name)) {
+        expect(annotations, tool.name).toMatchObject({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false
+        });
+      } else if (localWrites.has(tool.name)) {
+        expect(annotations, tool.name).toMatchObject({
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false
+        });
+      } else if (destructive.has(tool.name)) {
+        expect(annotations, tool.name).toMatchObject({
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: false
+        });
+      } else {
+        throw new Error(`Unclassified tool annotations: ${tool.name}`);
+      }
+    }
+  });
+
   it("優先 tool は十分な tool description を公開する", async () => {
     const tools = await listPublishedTools();
 
@@ -71,6 +154,7 @@ describe("tool definition quality", () => {
       ["jp_lit_export_session", /exports\/|書き出|write|export/i],
       ["jp_lit_export_view", /exports\/|書き出|write|export/i],
       ["jp_lit_annotate_session", /保存|追記|write|session/i],
+      ["jp_lit_start_session", /開始|start|lifecycle|session/i],
       ["jp_lit_update_session_trace", /追記|更新|write|session/i]
     ] as const;
 

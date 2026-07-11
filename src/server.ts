@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
 import {
   annotateSessionInputSchema,
@@ -55,6 +56,8 @@ import {
   searchKakenProjectsOutputSchema,
   listSessionsInputSchema,
   listSessionsOutputSchema,
+  startSessionInputSchema,
+  startSessionOutputSchema,
   updateSessionTraceInputSchema,
   updateSessionTraceOutputSchema
 } from "./lib/schemas.js";
@@ -97,6 +100,7 @@ import { createOpenAlexClient } from "./sources/externalWork/openalexClient.js";
 import { createJpLitGetRecordTool } from "./tools/jpLitGetRecord.js";
 import { createJpLitAnnotateSessionTool } from "./tools/jpLitAnnotateSession.js";
 import { createJpLitUpdateSessionTraceTool } from "./tools/jpLitUpdateSessionTrace.js";
+import { createJpLitStartSessionTool } from "./tools/jpLitStartSession.js";
 import { createJpLitExportSessionTool } from "./tools/jpLitExportSession.js";
 import { createJpLitExportViewTool } from "./tools/jpLitExportView.js";
 import { createJpLitFindSessionsTool } from "./tools/jpLitFindSessions.js";
@@ -156,6 +160,34 @@ interface ServerEnv {
   OPENALEX_BASE_URL?: string;
   OPENALEX_API_KEY?: string;
 }
+
+const EXTERNAL_READ_ONLY_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true
+};
+
+const LOCAL_READ_ONLY_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false
+};
+
+const LOCAL_WRITE_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: false
+};
+
+const LOCAL_DESTRUCTIVE_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: false
+};
 
 const SEARCH_ENDPOINT_PATH = "/api/sru";
 const LEGACY_SEARCH_ENDPOINT_PATH = "/api/opensearch";
@@ -394,6 +426,7 @@ export function createServer(env: ServerEnv = process.env) {
   );
   const recordTool = createJpLitGetRecordTool(recordService, cache, sessions);
   const annotateSessionTool = createJpLitAnnotateSessionTool(sessions);
+  const startSessionTool = createJpLitStartSessionTool(sessions);
   const updateSessionTraceTool = createJpLitUpdateSessionTraceTool(sessions);
   const exportSessionTool = createJpLitExportSessionTool(sessions, sessionExporter);
   const findSessionsTool = createJpLitFindSessionsTool(sessions);
@@ -444,7 +477,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。cinii_dissertations / national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、博士論文・学位論文、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「博士論文/学位論文/CiNii Dissertations」→cinii_dissertations、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=cinii_books では filters.cinii.category に NDC/NDLC notation を半角スペース区切りで渡せる。CiNii 系の 0 件・ローマ字 query・広すぎる結果では interpretation / diagnostics を読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
       inputSchema: searchInputToolSchema,
-      outputSchema: searchOutputSchema
+      outputSchema: searchOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchTool
   );
@@ -454,7 +488,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "レファレンス協同データベースの調べ方マニュアルを検索する。書誌検索ではなく、どの資料や索引・参考図書をどう使って調べるかの手がかりを得るためのツール",
       inputSchema: guidesManualsInputSchema,
-      outputSchema: guidesManualsOutputSchema
+      outputSchema: guidesManualsOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchGuidesManualsTool
   );
@@ -464,7 +499,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照するためのツール",
       inputSchema: guidesCasesInputSchema,
-      outputSchema: guidesCasesOutputSchema
+      outputSchema: guidesCasesOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchGuidesCasesTool
   );
@@ -474,7 +510,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助 tool。分類記号から件名候補を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
       inputSchema: resolveAuthorityInputSchema,
-      outputSchema: resolveAuthorityOutputSchema
+      outputSchema: resolveAuthorityOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     resolveAuthorityTool
   );
@@ -484,7 +521,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す。分類記号が分かるときの語彙展開に使い、人名・件名の文字列から典拠候補を探す場合は jp_lit_resolve_authority、文献検索本体は jp_lit_search を使う",
       inputSchema: authorityTermsByClassificationInputSchema,
-      outputSchema: authorityTermsByClassificationOutputSchema
+      outputSchema: authorityTermsByClassificationOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     findAuthorityTermsByClassificationTool
   );
@@ -494,7 +532,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。Web NDL Authorities で件名語から NDC/NDLC 分類記号を探し、CiNii Books の category filter に渡せる suggested_category_param と jp_lit_search 呼び出し例を返す。分類記号から件名語を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
       inputSchema: suggestClassificationCodesInputSchema,
-      outputSchema: suggestClassificationCodesOutputSchema
+      outputSchema: suggestClassificationCodesOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     suggestClassificationCodesTool
   );
@@ -504,7 +543,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。既に見つけた単一文献候補を Crossref / OpenAlex で DOI・タイトル・著者・刊行年から照合し、候補の書誌確認 confidence と根拠を返す。文献検索 source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の外部検証に使う。OpenAlex は OPENALEX_API_KEY が無い場合 skipped になり、未収録・低引用は日本語人文系での低重要度を意味しない",
       inputSchema: enrichRecordInputToolSchema,
-      outputSchema: enrichRecordOutputSchema
+      outputSchema: enrichRecordOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     enrichRecordTool
   );
@@ -514,7 +554,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "KAKEN から研究課題を検索し、研究テーマ・キーワード・報告書 PDF・成果リストの手がかりを返す補助 tool。論文・図書の文献確定は CiNii / J-STAGE / IRDB / NDL で再確認する",
       inputSchema: searchKakenProjectsInputSchema,
-      outputSchema: searchKakenProjectsOutputSchema
+      outputSchema: searchKakenProjectsOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchKakenProjectsTool
   );
@@ -524,7 +565,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない。個人送信対象など、MCP から自動全文取得できなくても NDL ログインや参加館・館内端末で手動閲覧できる導線は content_access.manual_viewing を確認する",
       inputSchema: recordInputSchema,
-      outputSchema: recordOutputSchema
+      outputSchema: recordOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     recordTool
   );
@@ -534,7 +576,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。include_enrichment=true なら保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。cache_key が分かっている結果を再評価するときに使い、cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
       inputSchema: refineResultsInputSchema,
-      outputSchema: refineResultsOutputSchema
+      outputSchema: refineResultsOutputSchema,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS
     },
     refineResultsTool
   );
@@ -544,7 +587,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "write: session。現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものや cache は変更せず、採否・保留・弱候補などの選別判断だけを追加する。調査全体の目的・未確認事項・次アクションは jp_lit_update_session_trace、単なる履歴検索には jp_lit_find_sessions / jp_lit_list_sessions を使う",
       inputSchema: annotateSessionInputSchema,
-      outputSchema: annotateSessionOutputSchema
+      outputSchema: annotateSessionOutputSchema,
+      annotations: LOCAL_WRITE_ANNOTATIONS
     },
     annotateSessionTool
   );
@@ -554,9 +598,21 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "write: session trace。現在の調査セッション全体に、調査目的・確認範囲・source 選択理由・未確認事項・次アクションを追記または更新する。検索結果や選択候補そのものではなく、調査経過と判断の台帳を残すための tool。候補単位の採否メモは jp_lit_annotate_session を使う",
       inputSchema: updateSessionTraceInputSchema,
-      outputSchema: updateSessionTraceOutputSchema
+      outputSchema: updateSessionTraceOutputSchema,
+      annotations: LOCAL_WRITE_ANNOTATIONS
     },
     updateSessionTraceTool
+  );
+
+  server.registerTool(
+    "jp_lit_start_session",
+    {
+      description: "write: session lifecycle。現在の調査セッションを履歴として保持したまま、新しい空の調査セッションを開始する。research_goal と scope_note は新セッションの trace に保存され、検索結果・候補・注釈は旧セッションに残る。既存セッションへ目的や次アクションを追記するだけなら jp_lit_update_session_trace、旧セッションの確認は jp_lit_list_sessions / jp_lit_export_session を使う",
+      inputSchema: startSessionInputSchema,
+      outputSchema: startSessionOutputSchema,
+      annotations: LOCAL_WRITE_ANNOTATIONS
+    },
+    startSessionTool
   );
 
   server.registerTool(
@@ -564,7 +620,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "export/write file。現在の調査セッション、または session_id で指定した過去セッションを repo 内の exports/ または output_path に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する。session は読み取るだけで変更しない。cache 一覧や再抽出結果だけを書き出す場合は jp_lit_export_view を使う",
       inputSchema: exportSessionInputSchema,
-      outputSchema: exportSessionOutputSchema
+      outputSchema: exportSessionOutputSchema,
+      annotations: LOCAL_WRITE_ANNOTATIONS
     },
     exportSessionTool
   );
@@ -574,7 +631,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。過去の調査セッションを主題・キーワード・候補タイトル・メモから検索する。検索語が分かっていて過去の探索履歴を再利用したいときに使う。検索語を覚えていない場合や新しい順の棚卸しには jp_lit_list_sessions を使う。session や cache は変更しない",
       inputSchema: findSessionsInputSchema,
-      outputSchema: findSessionsOutputSchema
+      outputSchema: findSessionsOutputSchema,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS
     },
     findSessionsTool
   );
@@ -584,7 +642,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。過去の調査セッションを新しい順または作成日順に一覧し、trace や選別済み候補の有無、source、日付範囲で絞り込む。検索語を覚えていない調査履歴の棚卸しや再開候補探しに使う。特定語で探す場合は jp_lit_find_sessions を使う。session や cache は変更しない",
       inputSchema: listSessionsInputSchema,
-      outputSchema: listSessionsOutputSchema
+      outputSchema: listSessionsOutputSchema,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS
     },
     listSessionsTool
   );
@@ -594,7 +653,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "export/write file。キャッシュ系ビュー（一覧・横断検索・再抽出）の結果を exports/ または output_path に直接書き出す。refined_results は全件 export と重複確認ノートに対応する。session 全体の調査ログを書き出す場合は jp_lit_export_session を使う。cache や session は読み取るだけで変更しない",
       inputSchema: exportViewInputSchema,
-      outputSchema: exportViewOutputSchema
+      outputSchema: exportViewOutputSchema,
+      annotations: LOCAL_WRITE_ANNOTATIONS
     },
     exportViewTool
   );
@@ -604,7 +664,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。保存済み jp_lit_search cache を横断検索し、再抽出や export に渡せる cache_key 一覧を返す。新規に外部検索したい場合は jp_lit_search、保存済み cache の棚卸しは jp_lit_list_cache、検索結果の集合演算や重複確認は jp_lit_refine_results を使う。ローカル cache と session 紐づけを読むだけで、cache や session は変更しない",
       inputSchema: searchCacheIndexInputSchema,
-      outputSchema: searchCacheIndexOutputSchema
+      outputSchema: searchCacheIndexOutputSchema,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS
     },
     searchCacheIndexTool
   );
@@ -614,7 +675,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "delete/destructive。ローカル保存された cache を cache_key 単位、または clear_all=true で指定 tool 単位に削除する。削除前に対象確認したい場合は jp_lit_list_cache、古い cache 候補を安全に点検したい場合は jp_lit_prune_cache の dry_run=true を使う。session 履歴は削除しないが、cache 本体は戻せない",
       inputSchema: deleteCacheInputSchema,
-      outputSchema: deleteCacheOutputSchema
+      outputSchema: deleteCacheOutputSchema,
+      annotations: LOCAL_DESTRUCTIVE_ANNOTATIONS
     },
     deleteCacheTool
   );
@@ -624,7 +686,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "delete when dry_run=false。古いローカル cache 候補を列挙し、既定の dry_run=true では削除せず候補だけ返す。dry_run=false のときだけ older_than_days と limit に一致する cache を削除する。個別 cache_key を削除する場合は jp_lit_delete_cache、一覧確認だけなら jp_lit_list_cache を使う",
       inputSchema: pruneCacheInputSchema,
-      outputSchema: pruneCacheOutputSchema
+      outputSchema: pruneCacheOutputSchema,
+      annotations: LOCAL_DESTRUCTIVE_ANNOTATIONS
     },
     pruneCacheTool
   );
@@ -634,7 +697,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。ローカル cache の一覧・集計を返し、tool、session_id、保存日、source で絞り込める。cache_key を探す棚卸しに使う。保存済み jp_lit_search の中身を語で横断検索したい場合は jp_lit_search_cache_index、削除は jp_lit_delete_cache または jp_lit_prune_cache を使う。cache や session は変更しない",
       inputSchema: listCacheInputSchema,
-      outputSchema: listCacheOutputSchema
+      outputSchema: listCacheOutputSchema,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS
     },
     listCacheTool
   );
@@ -644,7 +708,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。NDL デジタルコレクション資料のページ単位 OCR テキストと座標を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。ページ番号を探す段階では jp_lit_search_pages、全文一括取得は jp_lit_get_fulltext を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: textCoordinatesInputSchema,
-      outputSchema: textCoordinatesOutputSchema
+      outputSchema: textCoordinatesOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     textCoordinatesTool
   );
@@ -654,7 +719,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。NDL デジタルコレクション資料の全文 OCR JSON を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。特定ページだけ確認する場合は jp_lit_get_text_coordinates、資料内検索でページを探す場合は jp_lit_search_pages を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: fulltextInputSchema,
-      outputSchema: fulltextOutputSchema
+      outputSchema: fulltextOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     fulltextTool
   );
@@ -664,7 +730,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。NDL デジタルコレクション資料内のページをキーワードで全文検索する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。全資料から候補 pid を探す段階では jp_lit_search_fulltext、特定ページの OCR テキストと画像 URL 確認は jp_lit_get_text_coordinates を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
       inputSchema: searchPagesInputSchema,
-      outputSchema: searchPagesOutputSchema
+      outputSchema: searchPagesOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchPagesTool
   );
@@ -674,7 +741,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "read-only。次世代デジタルライブラリー収録資料を対象に OCR 全文テキストからキーワード検索する。デジコレ本体の全文検索画面/APIではなく、デジコレ本体の「ログインなしで閲覧可能」資料全体も対象ではない。館内限定・送信サービス限定資料を含め、公式検索画面の全文ヒットは網羅しない。網羅性が必要な調査では、この結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う",
       inputSchema: searchFulltextInputSchema,
-      outputSchema: searchFulltextOutputSchema
+      outputSchema: searchFulltextOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchFulltextTool
   );
@@ -684,7 +752,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "NDL デジタルコレクション全資料の図版・挿絵をテキストキーワードで検索する（公開範囲のみ）。結果には IIIF 画像 URL（ページ全体・図版トリミング）を含む",
       inputSchema: searchIllustrationsInputSchema,
-      outputSchema: searchIllustrationsOutputSchema
+      outputSchema: searchIllustrationsOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchIllustrationsTool
   );
@@ -694,7 +763,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "国書データベースの翻刻/OCR系スニペットをキーワード検索する。本文全体・manifest 本体・画像本体は取得せず、bid、コマ番号、スニペット、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
       inputSchema: searchKokushoFulltextInputSchema,
-      outputSchema: searchKokushoFulltextOutputSchema
+      outputSchema: searchKokushoFulltextOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchKokushoFulltextTool
   );
@@ -704,7 +774,8 @@ export function createServer(env: ServerEnv = process.env) {
     {
       description: "国書データベースの画像タグをキーワード検索する。画像本体や IIIF image API は取得せず、タグ文字列、画像パス文字列、bid、コマ番号、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
       inputSchema: searchKokushoImageTagsInputSchema,
-      outputSchema: searchKokushoImageTagsOutputSchema
+      outputSchema: searchKokushoImageTagsOutputSchema,
+      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
     },
     searchKokushoImageTagsTool
   );

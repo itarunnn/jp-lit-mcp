@@ -1,4 +1,5 @@
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 import { InvalidRequestError } from "../errors.js";
@@ -70,6 +71,23 @@ async function listChildDirs(directory: string) {
 export function createFileCache(baseDir = process.cwd()): FileCache {
   const cacheRoot = getCacheRoot(baseDir);
   const legacyCacheRoot = getLegacyCacheRoot(baseDir);
+  const writes = new Map<string, Promise<void>>();
+
+  function serializeWrite(target: string, operation: () => Promise<void>) {
+    const previous = writes.get(target) ?? Promise.resolve();
+    const result = previous.then(operation, operation);
+    const settled = result.then(
+      () => undefined,
+      () => undefined
+    );
+    writes.set(target, settled);
+    void settled.then(() => {
+      if (writes.get(target) === settled) {
+        writes.delete(target);
+      }
+    });
+    return result;
+  }
 
   return {
     async read<T>(tool: string, key: string) {
@@ -104,16 +122,22 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
       const target = getCacheFilePath(cacheRoot, tool, envelope.cache_key);
       const temp = resolveContainedCachePath(
         cacheRoot,
-        `${path.relative(cacheRoot, target)}.tmp`
+        `${path.relative(cacheRoot, target)}.${process.pid}.${randomUUID()}.tmp`
       );
 
-      await mkdir(directory, { recursive: true });
-      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, directory));
-      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, target));
-      resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, temp));
-      await writeFile(temp, JSON.stringify(envelope, null, 2), "utf8");
-      await rm(target, { force: true });
-      await rename(temp, target);
+      return serializeWrite(target, async () => {
+        await mkdir(directory, { recursive: true });
+        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, directory));
+        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, target));
+        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, temp));
+        try {
+          await writeFile(temp, JSON.stringify(envelope, null, 2), "utf8");
+          await rm(target, { force: true });
+          await rename(temp, target);
+        } finally {
+          await rm(temp, { force: true });
+        }
+      });
     },
 
     async delete(tool: string, key: string) {

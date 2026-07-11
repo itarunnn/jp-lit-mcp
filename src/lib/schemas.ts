@@ -94,8 +94,8 @@ const forceRefreshFieldSchema = z.boolean().default(false).describe(
 const sessionIdInputFieldSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}-\d{6}$/)
-  .describe("調査セッションID。形式は YYYY-MM-DD-HHMMSS。過去セッションを指定して絞り込むときだけ使う。");
+  .regex(/^\d{4}-\d{2}-\d{2}-\d{6}(?:-[0-9a-f]{8})?$/)
+  .describe("調査セッションID。形式は YYYY-MM-DD-HHMMSS-8桁hex（旧形式 YYYY-MM-DD-HHMMSS も可）。過去セッションを指定して絞り込むときだけ使う。");
 
 const cacheKeyInputFieldSchema = cacheKeySchema
   .describe("保存済み tool 実行結果を指す cache_key。jp_lit_search や cache 一覧 tool の戻り値から渡す。");
@@ -574,6 +574,23 @@ export const annotateSessionOutputSchema = z.object({
   session_id: z.string(),
   updated_at: z.string(),
   annotated_count: z.number().int().nonnegative()
+});
+
+export const startSessionInputSchema = z.object({
+  research_goal: z.string().trim().min(1).optional().describe("新しい調査セッションの目的。未指定なら目的なしで開始する。"),
+  scope_note: z.string().trim().min(1).optional().describe("新しい調査セッションの範囲、除外範囲、前提の短いメモ。")
+}).strict();
+
+export const startSessionOutputSchema = z.object({
+  session_id: z.string(),
+  created_at: z.string(),
+  trace: z.object({
+    research_goal: z.string().optional(),
+    scope_note: z.string().optional(),
+    source_plans: z.array(z.unknown()),
+    open_questions: z.array(z.unknown()),
+    next_actions: z.array(z.unknown())
+  })
 });
 
 export const updateSessionTraceInputSchema = z.object({
@@ -1455,6 +1472,8 @@ export type SuggestClassificationCodesInput = z.infer<typeof suggestClassificati
 export type SuggestClassificationCodesOutput = z.infer<typeof suggestClassificationCodesOutputSchema>;
 export type AnnotateSessionInput = z.infer<typeof annotateSessionInputSchema>;
 export type AnnotateSessionOutput = z.infer<typeof annotateSessionOutputSchema>;
+export type StartSessionInput = z.infer<typeof startSessionInputSchema>;
+export type StartSessionOutput = z.infer<typeof startSessionOutputSchema>;
 export type UpdateSessionTraceInput = z.infer<typeof updateSessionTraceInputSchema>;
 export type UpdateSessionTraceOutput = z.infer<typeof updateSessionTraceOutputSchema>;
 export type ExportSessionInput = z.infer<typeof exportSessionInputSchema>;

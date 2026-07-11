@@ -56,6 +56,14 @@
 - verification: tag-only/full validatorのpositive/negative child-process testと、YAML parserでtrusted checkout→env-only precheck→qualified tag checkout→tag ref/peeled commit＝HEAD→trusted version確認→未公開確認→target限定npm ci/build/test/publishの構造・順序を確認。target cache dependency pathと全npm stepの`package/` working directoryも固定し、localではregistryへの`npm view`と`npm publish`を実行していない
 - next step: push後のmanual workflow初回実行でTrusted Publishingとnpm CLIの実際のnot-found出力を確認し、追加のnot-found形式が必要なら明示的なcontractとして追加
 
+### C-009 Session lifecycle and in-process lost updates
+- classification: assisted-fix
+- status: resolved
+- evidence: 明示的にcurrent sessionを切り替えるtoolがなく、同一process内でappend/annotate/trace updateが並行するとread-modify-write間でentryやtraceを失う再現があった。同一cache keyの並行writeも共有`.tmp`を奪い合い、rename失敗やtemp残留が起きた
+- action: `jp_lit_start_session`を追加し、旧currentをarchiveへ保持してからrandom suffix付きIDの新currentを開始する。SessionStoreのcurrent初期化・start・append・annotate・trace updateを単一in-process queueへ通し、失敗後もqueueを継続する。session persistはarchiveを先に、current pointerを最後にatomic temp renameし、cache writeはPID+UUIDのtempと同一target単位queue、finally cleanupを使う
+- verification: start後の旧session read、concurrent append、start→append順序、mutation失敗後のqueue継続、legacy/new ID、same-key concurrent cache write、失敗時temp cleanup、deterministic offline smokeでstart後の旧session exportを確認
+- next step: session file構造またはmutation method追加時は、同じqueueとarchive-first/current-last順序を維持し、並行testを追加する
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止
@@ -69,10 +77,10 @@
 ### C-102 Cross-process session locking
 - classification: report-only
 - status: open
-- evidence: 複数MCP processが同じcwdを共有する場合のlock未実装
-- action: 今回はin-process serializationのみ
-- verification: pending
-- next step: 実運用で競合が確認された場合にlock方式を設計
+- evidence: 複数MCP processが同じcwdを共有する場合のlock未実装。current/archive/cacheは各file内ではunique temp+renameで置換するが、複数fileをまとめたtransactionではなく、Windows fallbackではtarget→backup→tempの間に短いgapもあり得る
+- action: 今回は同一SessionStore instance内のmutation serialization、archive-first/current-last、失敗後も継続するqueueまで。process間lockとjournal/recovery protocolは導入しない
+- verification: 同一processのconcurrent appendとstart→append順序、queue failure recovery、旧archive保持、same-key cache concurrent writeはtestで確認。別process間の競合は未検証で、保証しない
+- next step: 同じcwdを複数MCP processで同時利用する運用が必要になった場合、lock fileまたはOS lockと、current/archiveのjournal/recovery方式を別specで設計する
 
 ### C-103 OCR payload duplication
 - classification: report-only

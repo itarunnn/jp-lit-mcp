@@ -37,6 +37,7 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_search_kokusho_fulltext",
   "jp_lit_search_kokusho_image_tags",
   "jp_lit_search_pages",
+  "jp_lit_start_session",
   "jp_lit_suggest_classification_codes",
   "jp_lit_update_session_trace"
 ];
@@ -349,6 +350,8 @@ interface LocalPersistenceSmokeSummary {
   annotatedCount: number;
   tracedSessionFound: boolean;
   exportContainsSelection: boolean;
+  startedNewSession: boolean;
+  archivedSessionExported: boolean;
 }
 
 async function runLocalPersistenceSmoke(
@@ -408,8 +411,14 @@ async function runLocalPersistenceSmoke(
 
   const annotatedCount = (sessionRecord.structuredContent as { annotated_count?: number } | undefined)
     ?.annotated_count;
+  const annotatedSessionId = (
+    sessionRecord.structuredContent as { session_id?: string } | undefined
+  )?.session_id;
   if (annotatedCount !== 1) {
     throw new Error("Local smoke annotation did not persist selected item.");
+  }
+  if (!annotatedSessionId) {
+    throw new Error("Local smoke annotation did not return a session id.");
   }
 
   const traceResult = await client.callTool({
@@ -491,12 +500,50 @@ async function runLocalPersistenceSmoke(
     throw new Error("Local smoke export did not contain annotated selection.");
   }
 
+  const startResult = await client.callTool({
+    name: "jp_lit_start_session",
+    arguments: {
+      research_goal: "next smoke session",
+      scope_note: "verify archived session remains readable"
+    }
+  });
+  const startedSessionId = (
+    startResult.structuredContent as { session_id?: string } | undefined
+  )?.session_id;
+  if (!startedSessionId || startedSessionId === annotatedSessionId) {
+    throw new Error("Local smoke did not start a distinct new session.");
+  }
+
+  const archivedExportResult = await client.callTool({
+    name: "jp_lit_export_session",
+    arguments: {
+      session_id: annotatedSessionId,
+      format: "markdown",
+      output_path: path.join("exports", "smoke-session-archive.md")
+    }
+  });
+  const archivedExportPath = (
+    archivedExportResult.structuredContent as { path?: string } | undefined
+  )?.path;
+  if (!archivedExportPath) {
+    throw new Error("Local smoke archived session export did not return a path.");
+  }
+  const archivedExportText = await readFile(archivedExportPath, "utf8");
+  if (
+    !archivedExportText.includes(firstItem.title) ||
+    !archivedExportText.includes("strong_candidate")
+  ) {
+    throw new Error("Local smoke could not read and export the archived session.");
+  }
+
   return {
     title: firstItem.title,
     cacheHit: searchData?.cache?.hit === true,
     annotatedCount,
     tracedSessionFound: true,
-    exportContainsSelection: true
+    exportContainsSelection: true,
+    startedNewSession: true,
+    archivedSessionExported: true
   };
 }
 

@@ -185,3 +185,8 @@ export interface SessionTraceUpdateInput {
   open_questions?: Array<Omit<OpenQuestion, "created_at">>;
   next_actions?: Array<Omit<NextAction, "created_at">>;
 }
+
+export interface StartSessionInput {
+  research_goal?: string;
+  scope_note?: string;
+}

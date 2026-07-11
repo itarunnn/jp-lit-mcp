@@ -512,6 +512,17 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 検索結果や詳細取得結果はキャッシュに保存され、候補の選別結果はセッションに保存できます。重い OCR / 全文 / 図版 payload は session 側に重複保存せず、cache key 参照で扱います。
 
+#### `jp_lit_start_session`
+
+現在のセッションを履歴として保持したまま、新しい調査セッションを開始します。新しいセッションIDは `YYYY-MM-DD-HHMMSS-<8桁hex>` 形式です。既存データとの互換性のため、過去セッションを指定する引数では旧 `YYYY-MM-DD-HHMMSS` 形式も受理します。
+
+| 引数 | 型 | 説明 |
+| ---- | -- | ---- |
+| `research_goal` | string | 新しい調査セッションの目的（任意） |
+| `scope_note` | string | 新しい調査セッションの範囲、除外範囲、前提（任意） |
+
+返り値には新しい `session_id`、`created_at`、初期 `trace` が含まれます。旧セッションの候補やtraceは新セッションへコピーせず、`jp_lit_list_sessions` / `jp_lit_export_session(session_id=...)` から引き続き参照できます。
+
 #### `jp_lit_annotate_session`
 
 既存の検索・書誌取得結果に候補ラベルとメモを保存します。
@@ -549,7 +560,7 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
-| `session_id` | string | 現在のセッション | `YYYY-MM-DD-HHMMSS` |
+| `session_id` | string | 現在のセッション | 新形式 `YYYY-MM-DD-HHMMSS-<8桁hex>`。旧 `YYYY-MM-DD-HHMMSS` も受理 |
 | `format` | string | `markdown` | `markdown` / `json` / `csl-json` |
 | `profile` | string | `full_log` | `full_log` / `selected` / `unselected` |
 | `output_path` | string | 自動 | 出力先 |

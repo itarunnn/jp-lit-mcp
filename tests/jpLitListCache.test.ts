@@ -95,7 +95,9 @@ describe("jp_lit_list_cache", () => {
     expect(result.structuredContent.summary.by_tool.jp_lit_search).toBe(1);
     expect(result.structuredContent.summary.by_source.ndl_catalog).toBe(1);
     expect(result.structuredContent.items[0]?.session_ids).toEqual([
-      expect.stringMatching(/^\d{4}-\d{2}-\d{2}-\d{6}$/)
+      expect.stringMatching(
+        /^\d{4}-\d{2}-\d{2}-\d{6}(?:-[0-9a-f]{8})?$/
+      )
     ]);
   });
 
