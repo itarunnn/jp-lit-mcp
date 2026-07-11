@@ -189,6 +189,13 @@ const LOCAL_DESTRUCTIVE_ANNOTATIONS: ToolAnnotations = {
   openWorldHint: false
 };
 
+const LOCAL_DESTRUCTIVE_NON_IDEMPOTENT_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: false,
+  openWorldHint: false
+};
+
 const SEARCH_ENDPOINT_PATH = "/api/sru";
 const LEGACY_SEARCH_ENDPOINT_PATH = "/api/opensearch";
 const RECORD_ENDPOINT_PATH = "/api/bib/external/search";
@@ -687,7 +694,7 @@ export function createServer(env: ServerEnv = process.env) {
       description: "delete when dry_run=false。古いローカル cache 候補を列挙し、既定の dry_run=true では削除せず候補だけ返す。dry_run=false のときだけ older_than_days と limit に一致する cache を削除する。個別 cache_key を削除する場合は jp_lit_delete_cache、一覧確認だけなら jp_lit_list_cache を使う",
       inputSchema: pruneCacheInputSchema,
       outputSchema: pruneCacheOutputSchema,
-      annotations: LOCAL_DESTRUCTIVE_ANNOTATIONS
+      annotations: LOCAL_DESTRUCTIVE_NON_IDEMPOTENT_ANNOTATIONS
     },
     pruneCacheTool
   );

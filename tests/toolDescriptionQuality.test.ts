@@ -73,10 +73,8 @@ describe("tool definition quality", () => {
       "jp_lit_export_session",
       "jp_lit_export_view"
     ]);
-    const destructive = new Set([
-      "jp_lit_delete_cache",
-      "jp_lit_prune_cache"
-    ]);
+    const destructiveIdempotent = new Set(["jp_lit_delete_cache"]);
+    const destructiveNonIdempotent = new Set(["jp_lit_prune_cache"]);
 
     expect(tools).toHaveLength(28);
     for (const tool of tools) {
@@ -108,11 +106,18 @@ describe("tool definition quality", () => {
           idempotentHint: false,
           openWorldHint: false
         });
-      } else if (destructive.has(tool.name)) {
+      } else if (destructiveIdempotent.has(tool.name)) {
         expect(annotations, tool.name).toMatchObject({
           readOnlyHint: false,
           destructiveHint: true,
           idempotentHint: true,
+          openWorldHint: false
+        });
+      } else if (destructiveNonIdempotent.has(tool.name)) {
+        expect(annotations, tool.name).toMatchObject({
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: false,
           openWorldHint: false
         });
       } else {
