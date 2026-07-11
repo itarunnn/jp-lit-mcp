@@ -4,6 +4,7 @@ dist/
 coverage/
 .cache/
 .codex/
+.worktrees/
 exports/
 scripts/update-codex-after-exit.ps1
 .claude/
