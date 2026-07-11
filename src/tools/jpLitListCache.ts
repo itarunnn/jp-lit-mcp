@@ -1,7 +1,4 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-
-import { getCacheRoot, getLegacyCacheRoot } from "../lib/persistence/paths.js";
+import { listCacheInventory } from "../lib/persistence/cacheInventory.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { resolveSavedDateFilter } from "../lib/savedDateFilter.js";
@@ -49,79 +46,58 @@ export function createJpLitListCacheTool(
       }
     }
 
-    const cacheRoots = [getCacheRoot(baseDir), getLegacyCacheRoot(baseDir)];
-    const targetTools = parsed.tool
-      ? [parsed.tool]
-      : Array.from(
-          new Set(
-            (
-              await Promise.all(
-                cacheRoots.map((root) => readdir(root).catch(() => [] as string[]))
-              )
-            ).flat()
-          )
-        );
-
+    const inventory = await listCacheInventory(baseDir, parsed.tool);
+    const seenCacheIdentities = new Set<string>();
     const summaries: CachedSummary[] = [];
-    for (const tool of targetTools) {
-      const cacheKeys = Array.from(
-        new Set(
-          (
-            await Promise.all(
-              cacheRoots.map((root) =>
-                readdir(path.join(root, tool)).catch(() => [] as string[])
-              )
-            )
-          )
-            .flat()
-            .filter((filename) => filename.endsWith(".json"))
-            .map((filename) => filename.replace(/\.json$/i, ""))
-        )
-      );
-
-      for (const cacheKey of cacheKeys) {
-        const cached = await cache.read<Record<string, unknown>>(tool, cacheKey);
-        if (!cached) {
-          continue;
-        }
-        if (effectiveSavedFrom && cached.saved_at < effectiveSavedFrom) {
-          continue;
-        }
-        if (effectiveSavedTo && cached.saved_at > effectiveSavedTo) {
-          continue;
-        }
-
-        const sessionIds = Array.from(cacheToSessionIds.get(cacheKey) ?? []);
-        if (parsed.session_id && !sessionIds.includes(parsed.session_id)) {
-          continue;
-        }
-
-        const content = cached.structured_content as Partial<SearchOutput>;
-        const source = typeof content.source === "string" ? content.source : null;
-        if (parsed.source && source !== parsed.source) {
-          continue;
-        }
-
-        const query =
-          typeof content.query === "string"
-            ? content.query
-            : typeof cached.input.query === "string"
-              ? cached.input.query
-              : null;
-        const itemCount = Array.isArray(content.items) ? content.items.length : 0;
-        const total = typeof content.total === "number" ? content.total : itemCount;
-
-        summaries.push({
-          tool,
-          cache_key: cacheKey,
-          saved_at: cached.saved_at,
-          source,
-          session_ids: sessionIds,
-          query_preview: createPreview(query),
-          total,
-          item_count: itemCount
-        });
+    for (const item of inventory.items) {
+      const cacheIdentity = `${item.tool}:${item.cache_key}`;
+      if (seenCacheIdentities.has(cacheIdentity)) {
+        continue;
       }
+      seenCacheIdentities.add(cacheIdentity);
+      const tool = item.tool;
+      const cacheKey = item.cache_key;
+      const cached = await cache.read<Record<string, unknown>>(tool, cacheKey);
+      if (!cached) {
+        continue;
+      }
+      if (effectiveSavedFrom && cached.saved_at < effectiveSavedFrom) {
+        continue;
+      }
+      if (effectiveSavedTo && cached.saved_at > effectiveSavedTo) {
+        continue;
+      }
+
+      const sessionIds = Array.from(cacheToSessionIds.get(cacheKey) ?? []);
+      if (parsed.session_id && !sessionIds.includes(parsed.session_id)) {
+        continue;
+      }
+
+      const content = cached.structured_content as Partial<SearchOutput>;
+      const source = typeof content.source === "string" ? content.source : null;
+      if (parsed.source && source !== parsed.source) {
+        continue;
+      }
+
+      const query =
+        typeof content.query === "string"
+          ? content.query
+          : typeof cached.input.query === "string"
+            ? cached.input.query
+            : null;
+      const itemCount = Array.isArray(content.items) ? content.items.length : 0;
+      const total = typeof content.total === "number" ? content.total : itemCount;
+
+      summaries.push({
+        tool,
+        cache_key: cacheKey,
+        saved_at: cached.saved_at,
+        source,
+        session_ids: sessionIds,
+        query_preview: createPreview(query),
+        total,
+        item_count: itemCount
+      });
     }
 
     summaries.sort((left, right) => right.saved_at.localeCompare(left.saved_at));

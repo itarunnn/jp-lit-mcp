@@ -794,7 +794,7 @@ export const pruneCacheOutputSchema = z.object({
 });
 
 export const listCacheInputSchema = z.object({
-  tool: z.string().trim().min(1).optional().describe("一覧対象の tool cache 名。未指定なら全 tool cache を対象にする。"),
+  tool: cachedToolSchema.optional().describe("一覧対象の tool cache 名。未指定なら全 tool cache を対象にする。"),
   session_id: sessionIdInputFieldSchema.optional().describe("このセッションに紐づく cache だけを一覧する。"),
   saved_on: z
     .string()

@@ -1,7 +1,4 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-
-import { getCacheRoot, getLegacyCacheRoot } from "../lib/persistence/paths.js";
+import { listCacheInventory } from "../lib/persistence/cacheInventory.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { resolveSavedDateFilter } from "../lib/savedDateFilter.js";
@@ -82,27 +79,9 @@ export function createJpLitSearchCacheIndexTool(
       }
     }
 
-    const searchCacheDirs = [
-      path.join(getCacheRoot(baseDir), "jp_lit_search"),
-      path.join(getLegacyCacheRoot(baseDir), "jp_lit_search")
-    ];
+    const inventory = await listCacheInventory(baseDir, "jp_lit_search");
     const cacheKeys = Array.from(
-      new Set(
-        (
-          await Promise.all(
-            searchCacheDirs.map(async (directory) => {
-              try {
-                return await readdir(directory);
-              } catch {
-                return [] as string[];
-              }
-            })
-          )
-        )
-          .flat()
-          .filter((filename) => filename.endsWith(".json"))
-          .map((filename) => filename.replace(/\.json$/i, ""))
-      )
+      new Set(inventory.items.map((item) => item.cache_key))
     );
 
     const results: SearchCacheIndexOutput["items"] = [];

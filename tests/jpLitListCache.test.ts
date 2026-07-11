@@ -1,11 +1,14 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
-import { getLegacyCacheRoot } from "../src/lib/persistence/paths.js";
+import {
+  getCacheRoot,
+  getLegacyCacheRoot
+} from "../src/lib/persistence/paths.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitListCacheTool } from "../src/tools/jpLitListCache.js";
@@ -262,5 +265,129 @@ describe("jp_lit_list_cache", () => {
 
     const result = await tool({ tool: "jp_lit_search" });
     expect(result.structuredContent.cache_keys).toContain(fixtureCacheKey("legacy-list"));
+  });
+
+  it.each(["unexpected", "../../../../victim"])(
+    "未知または traversal tool %s を schema で拒否する",
+    async (invalidTool) => {
+      const baseDir = await createTempDir();
+      const tool = createJpLitListCacheTool(
+        createFileCache(baseDir),
+        createSessionStore(baseDir),
+        baseDir
+      );
+
+      await expect(tool({ tool: invalidTool })).rejects.toThrow();
+    }
+  );
+
+  it("未知 directory と non-SHA filename を安全に無視する", async () => {
+    const baseDir = await createTempDir();
+    const currentRoot = getCacheRoot(baseDir);
+    const unknownDir = path.join(currentRoot, "unexpected");
+    const searchDir = path.join(currentRoot, "jp_lit_search");
+    await mkdir(unknownDir, { recursive: true });
+    await mkdir(searchDir, { recursive: true });
+    await writeFile(
+      path.join(unknownDir, `${fixtureCacheKey("unknown-list")}.json`),
+      "{}",
+      "utf8"
+    );
+    await writeFile(path.join(searchDir, "not-sha.json"), "{}", "utf8");
+    const tool = createJpLitListCacheTool(
+      createFileCache(baseDir),
+      createSessionStore(baseDir),
+      baseDir
+    );
+
+    const result = await tool({});
+
+    expect(result.structuredContent.total).toBe(0);
+    expect(result.structuredContent.cache_keys).toEqual([]);
+  });
+
+  it.each([
+    ["current", "outside"],
+    ["current", "dangling"],
+    ["legacy", "outside"],
+    ["legacy", "dangling"]
+  ] as const)(
+    "%s の %s tool directory containment error を握りつぶさない",
+    async (rootKind, linkKind) => {
+      const baseDir = await createTempDir();
+      const cacheRoot =
+        rootKind === "current"
+          ? getCacheRoot(baseDir)
+          : getLegacyCacheRoot(baseDir);
+      const target = path.join(baseDir, `${rootKind}-${linkKind}-target`);
+      await mkdir(cacheRoot, { recursive: true });
+      if (linkKind === "outside") {
+        await mkdir(target, { recursive: true });
+      }
+      await symlink(
+        target,
+        path.join(cacheRoot, "jp_lit_search"),
+        process.platform === "win32" ? "junction" : "dir"
+      );
+      const tool = createJpLitListCacheTool(
+        createFileCache(baseDir),
+        createSessionStore(baseDir),
+        baseDir
+      );
+
+      await expect(tool({ tool: "jp_lit_search" })).rejects.toThrow(/cache/i);
+    }
+  );
+
+  it("同一 key が current と legacy にある場合は current を優先する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const key = fixtureCacheKey("list-current-first");
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: key,
+      saved_at: "2026-05-02T00:00:00.000Z",
+      input: { query: "current" },
+      structured_content: {
+        query: "current",
+        source: "ndl_catalog",
+        page: 1,
+        limit: 50,
+        total: 0,
+        items: []
+      }
+    });
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(
+      path.join(legacyDir, `${key}.json`),
+      JSON.stringify({
+        version: 1,
+        tool: "jp_lit_search",
+        cache_key: key,
+        saved_at: "2026-05-01T00:00:00.000Z",
+        input: { query: "legacy" },
+        structured_content: {
+          query: "legacy",
+          source: "ndl_catalog",
+          page: 1,
+          limit: 50,
+          total: 0,
+          items: []
+        }
+      }),
+      "utf8"
+    );
+    const tool = createJpLitListCacheTool(
+      cache,
+      createSessionStore(baseDir),
+      baseDir
+    );
+
+    const result = await tool({ tool: "jp_lit_search" });
+
+    expect(result.structuredContent.total).toBe(1);
+    expect(result.structuredContent.items[0]?.query_preview).toBe("current");
   });
 });
