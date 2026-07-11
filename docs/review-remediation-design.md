@@ -41,6 +41,20 @@ MCP から渡る `tool` と `cache_key` を、filesystem path の構成要素と
 
 ## 2. 接続 DB/API drift
 
+### デジコレ本体の内部 API
+
+デジコレ本体の `https://dl.ndl.go.jp/api/item/search` と `https://dl.ndl.go.jp/api/fulltext/search` は、公開・文書化 API ではなく、個人調査で公式 viewer の確認候補を発見するためのローカル専用経路として扱う。
+
+- `src/`、公開 MCP tool、npm package、公開 docs、batch workflow、CI、live smoke matrix へ組み込まない。
+- ユーザーが「裏API」「デジコレ本体全文検索」「MCPで拾えない限定資料」等を明示した個人調査でのみ、git 管理外の `docs/research/dl-ndl-internal-api-local.md` を参照する。
+- 低頻度・小さい `pageSize` に限定し、網羅クロール、一括収集、定期実行を行わない。
+- 本文・画像取得、cookie/session 利用、閲覧制限回避には使わない。
+- 保存・報告対象は書誌、PID、公開範囲、最小限のスニペット、公式 viewer URL までとする。
+- 結果は `内部 API 候補` と表示し、採用・引用には公式 viewer での人間確認を要求する。
+- package distribution test で `docs/research/` が配布対象外であることを固定する。
+
+公開機能の OCR 検索・全文取得は、引き続き文書化された次世代デジタルライブラリー API に限定する。内部 API の公開機能への混入リスクは `CONCERNS.md` に `report-only` で記録する。
+
 ### J-STAGE
 
 J-STAGE WebAPI の pagination を、現行公式仕様どおり `start=(page - 1) * limit + 1` と `count=limit` で構築する。`page` パラメータは送信しない。
@@ -129,6 +143,7 @@ repo root に `CONCERNS.md` を追加する。
 - legitimate cache と legacy cache 操作が維持される。
 - J-STAGE page 2 が page 1 と異なる結果を取得する。
 - CiNii の無appid互換動作を保ちつつ公式必須条件が明示される。
+- デジコレ本体の内部 API が公開実装・配布 package・自動 smoke に含まれない。
 - production audit が解消され、通常 CI と publish gate が追加される。
 - 新しい調査 session を明示開始でき、1 source 障害時も横断検索の正常結果が残る。
 - `CONCERNS.md` に修正結果と残存リスクが記録される。
