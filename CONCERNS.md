@@ -48,6 +48,14 @@
 - verification: `npm ci`、build、scripts typecheck、601件のtest、network故障注入、deterministic offline MCP smokeがpass。YAML parserでCIのtrigger/job/runs-on/matrix/steps階層を検証。production/full auditはいずれも0件で、既存direct dependency rangeは変更せず、CI test用のdev-only `yaml`だけを追加
 - next step: GitHub Actions初回実行でWindows/Ubuntu・Node 22/24の4 jobを確認し、supported matrix変更時はdocs・engine・contract testを同時更新
 
+### C-008 npm publish ref injection and registry failure handling
+- classification: assisted-fix
+- status: resolved
+- evidence: `workflow_dispatch`の`package-ref`をbashの`run:`へ直接展開しており、stable tag・package version一致・既公開versionを検証していなかった
+- action: checkoutのaction input以外ではdispatch inputを`env`経由に限定し、child process validatorでstable `vX.Y.Z`とpackage version完全一致を検証。`npm view`成功は既公開として停止し、非zeroはE404または該当versionなしだけを未公開として続行し、network/auth/registry障害はfail closedにした
+- verification: validatorのpositive/negative child-process testと、YAML parserによるWindows `pwsh`、env参照、validator→package version確認→未公開確認→publish順序、fail-closed分岐の構造testで確認。localではregistryへの`npm view`と`npm publish`を実行していない
+- next step: push後のmanual workflow初回実行でTrusted Publishingとnpm CLIの実際のnot-found出力を確認し、追加のnot-found形式が必要なら明示的なcontractとして追加
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止

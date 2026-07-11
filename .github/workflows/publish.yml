@@ -16,15 +16,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Resolve publish ref
-        id: publish-ref
-        shell: bash
-        run: echo "ref=${{ inputs.package-ref }}" >> "$GITHUB_OUTPUT"
-
       - name: Check out package ref
         uses: actions/checkout@v6
         with:
-          ref: ${{ steps.publish-ref.outputs.ref }}
+          ref: ${{ inputs.package-ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -32,6 +27,21 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
+
+      - name: Validate package ref and version
+        shell: pwsh
+        env:
+          PACKAGE_REF: ${{ inputs.package-ref }}
+        run: |
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          $validatedTag = node scripts/validate-publish-ref.mjs "$env:PACKAGE_REF" "$version"
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          if ($validatedTag -cne "v$version") {
+            throw "Validated tag does not match package version"
+          }
+          "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install dependencies
         run: npm ci
@@ -41,6 +51,27 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Check package version is unpublished
+        shell: pwsh
+        run: |
+          $viewOutput = npm view "jp-lit-mcp@$env:PACKAGE_VERSION" version --json 2>&1
+          $viewStatus = $LASTEXITCODE
+          $viewText = ($viewOutput | Out-String).Trim()
+
+          if ($viewStatus -eq 0) {
+            throw "jp-lit-mcp@$env:PACKAGE_VERSION is already published"
+          }
+
+          $versionIsAbsent =
+            $viewText -match '(?im)\bE404\b' -or
+            $viewText -match '(?im)No match found for version'
+
+          if (-not $versionIsAbsent) {
+            throw "npm view failed without a not-found response (exit $viewStatus): $viewText"
+          }
+
+          Write-Host "Confirmed jp-lit-mcp@$env:PACKAGE_VERSION is unpublished"
 
       - name: Publish to npm
         run: npm publish
