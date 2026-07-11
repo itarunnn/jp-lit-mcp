@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -18,6 +18,32 @@ function collectFiles(directory: string, extension: string): string[] {
 
     return entry.isFile() && entry.name.endsWith(extension) ? [entryPath] : [];
   });
+}
+
+function collectPackagePath(packagePath: string): string[] {
+  const stats = statSync(packagePath);
+  if (stats.isFile()) {
+    return [path.normalize(packagePath)];
+  }
+  if (!stats.isDirectory()) {
+    return [];
+  }
+  return readdirSync(packagePath, { withFileTypes: true }).flatMap((entry) =>
+    collectPackagePath(path.join(packagePath, entry.name))
+  );
+}
+
+function collectEffectivePackageFiles(packageJson: PackageJson) {
+  return Array.from(
+    new Set(
+      [
+        "package.json",
+        "README.md",
+        "LICENSE",
+        ...(packageJson.files ?? [])
+      ].flatMap(collectPackagePath)
+    )
+  );
 }
 
 describe("npm package distribution", () => {
@@ -74,7 +100,7 @@ describe("npm package distribution", () => {
     );
   });
 
-  it("デジコレ本体内部APIを公開runtime・workflow・packageから除外する", () => {
+  it("デジコレ本体内部APIを公開runtime・workflow・package全体から除外する", () => {
     expect(packageJson.files ?? []).not.toContain("docs/research/");
 
     const publicRuntimeFiles = [
@@ -90,6 +116,23 @@ describe("npm package distribution", () => {
     expect("dl.ndl.go.jp/api/item/search").toMatch(internalApiPattern);
     expect("dl.ndl.go.jp/api/fulltext/search").toMatch(internalApiPattern);
     expect(publicRuntimeText).not.toMatch(internalApiPattern);
+
+    const effectivePackageFiles = collectEffectivePackageFiles(packageJson);
+    const effectivePackageText = effectivePackageFiles
+      .map((file) => readFileSync(file, "utf8"))
+      .join("\n");
+    expect(effectivePackageFiles).toEqual(
+      expect.arrayContaining([
+        "README.md",
+        path.join("docs", "api-notes", "next-digital-library.md"),
+        path.join("docs", "install", "codex-app.md"),
+        path.join("skills", "jp-lit-research", "SKILL.md"),
+        path.join("scripts", "install-skills.mjs"),
+        path.join("scripts", "install-skills.ps1"),
+        path.join("scripts", "install-skills.sh")
+      ])
+    );
+    expect(effectivePackageText).not.toMatch(internalApiPattern);
   });
 
   it("uses a node shebang in the TypeScript entrypoint", () => {

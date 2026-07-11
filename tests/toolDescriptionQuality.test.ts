@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createServer } from "../src/server.js";
+import { CACHED_TOOL_NAMES } from "../src/lib/persistence/cacheIdentity.js";
 
 async function listPublishedTools() {
   const server = createServer();
@@ -41,24 +42,7 @@ const priorityTools = [
 describe("tool definition quality", () => {
   it("全28 toolが副作用と外部到達性をannotationsで公開する", async () => {
     const tools = await listPublishedTools();
-    const externalReadOnly = new Set([
-      "jp_lit_search",
-      "jp_lit_search_guides_manuals",
-      "jp_lit_search_guides_cases",
-      "jp_lit_resolve_authority",
-      "jp_lit_find_authority_terms_by_classification",
-      "jp_lit_suggest_classification_codes",
-      "jp_lit_enrich_record",
-      "jp_lit_search_kaken_projects",
-      "jp_lit_get_record",
-      "jp_lit_get_text_coordinates",
-      "jp_lit_get_fulltext",
-      "jp_lit_search_pages",
-      "jp_lit_search_fulltext",
-      "jp_lit_search_illustrations",
-      "jp_lit_search_kokusho_fulltext",
-      "jp_lit_search_kokusho_image_tags"
-    ]);
+    const cachedExternalWrites = new Set(CACHED_TOOL_NAMES);
     const localReadOnly = new Set([
       "jp_lit_refine_results",
       "jp_lit_find_sessions",
@@ -85,11 +69,11 @@ describe("tool definition quality", () => {
       expect(typeof annotations?.idempotentHint, tool.name).toBe("boolean");
       expect(typeof annotations?.openWorldHint, tool.name).toBe("boolean");
 
-      if (externalReadOnly.has(tool.name)) {
+      if (cachedExternalWrites.has(tool.name as (typeof CACHED_TOOL_NAMES)[number])) {
         expect(annotations, tool.name).toMatchObject({
-          readOnlyHint: true,
+          readOnlyHint: false,
           destructiveHint: false,
-          idempotentHint: true,
+          idempotentHint: false,
           openWorldHint: true
         });
       } else if (localReadOnly.has(tool.name)) {
@@ -176,15 +160,24 @@ describe("tool definition quality", () => {
       "jp_lit_list_cache",
       "jp_lit_find_sessions",
       "jp_lit_list_sessions",
-      "jp_lit_refine_results",
-      "jp_lit_resolve_authority",
-      "jp_lit_find_authority_terms_by_classification",
-      "jp_lit_suggest_classification_codes"
+      "jp_lit_refine_results"
     ];
 
     for (const toolName of readOnlyTools) {
       const tool = tools.find((candidate) => candidate.name === toolName);
       expect(tool?.description, toolName).toMatch(/read-only|読み取るだけ/);
+    }
+  });
+
+  it("cached external tool は外部source readとlocal bookkeeping writeを明示する", async () => {
+    const tools = await listPublishedTools();
+
+    for (const toolName of CACHED_TOOL_NAMES) {
+      const tool = tools.find((candidate) => candidate.name === toolName);
+      expect(tool?.description, toolName).toMatch(/external read/i);
+      expect(tool?.description, toolName).toMatch(/local (?:cache|bookkeeping) write/i);
+      expect(tool?.description, toolName).toMatch(/外部sourceは変更しない/);
+      expect(tool?.description, toolName).not.toMatch(/read-only/i);
     }
   });
 

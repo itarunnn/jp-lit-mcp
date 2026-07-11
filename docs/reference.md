@@ -181,6 +181,8 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 `runCachedTool` を使う検索・取得系ツールは、原則として同じ cache 仕様です。`force_refresh` を明示しない限り保存済み cache を優先し、cache hit 時は上流 API へ再接続しません。`force_refresh` は cache key から除外されるため、同じ検索条件の保存済み cache を無視して取り直すスイッチとして働きます。最新データで取り直したい場合だけ `force_refresh=true` を指定してください。
 
+これらの cached tool は外部 source を変更しない非破壊の読み取りですが、cache hit でもローカル session 履歴を更新し、cache miss または `force_refresh=true` ではローカル cache を作成・置換します。そのため ToolAnnotations は環境を変更しない `readOnly` / `idempotent` とせず、`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true` として公開します。
+
 一部 source が失敗した横断検索も正常結果として cache されます。現在の cache に自動 TTL はなく、同一入力の cache hit で失敗 source だけを自動再試行しません。`source_errors[].source` を明示して個別検索するか、横断検索全体を `force_refresh=true` で取り直してください。
 
 主な cached tool:
@@ -288,7 +290,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 #### `jp_lit_enrich_record`
 
-既に見つけた単一文献候補を Crossref / OpenAlex で照合し、DOI・タイトル・著者・刊行年の一致根拠と `match_confidence` を返します。`jp_lit_search` の source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の書誌確認を補強する read-only tool です。
+既に見つけた単一文献候補を Crossref / OpenAlex で照合し、DOI・タイトル・著者・刊行年の一致根拠と `match_confidence` を返します。`jp_lit_search` の source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の書誌確認を補強する非破壊 tool です。外部 source は変更しませんが、他の cached tool と同じくローカル cache と session 履歴を更新します。
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |

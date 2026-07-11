@@ -35,12 +35,18 @@ function parseCacheKey(key: string) {
   }
 }
 
-function getToolDir(root: string, tool: string) {
-  return resolveContainedCachePath(root, parseCacheTool(tool));
+function getToolDir(baseDir: string, root: string, tool: string) {
+  return resolveContainedCachePath(baseDir, root, parseCacheTool(tool));
 }
 
-function getCacheFilePath(root: string, tool: string, key: string) {
+function getCacheFilePath(
+  baseDir: string,
+  root: string,
+  tool: string,
+  key: string
+) {
   return resolveContainedCachePath(
+    baseDir,
     root,
     parseCacheTool(tool),
     `${parseCacheKey(key)}.json`
@@ -92,7 +98,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
   return {
     async read<T>(tool: string, key: string) {
-      const target = getCacheFilePath(cacheRoot, tool, key);
+      const target = getCacheFilePath(baseDir, cacheRoot, tool, key);
 
       try {
         const text = await readFile(target, "utf8");
@@ -103,7 +109,12 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
           return null;
         }
 
-        const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
+        const legacyTarget = getCacheFilePath(
+          baseDir,
+          legacyCacheRoot,
+          tool,
+          key
+        );
         try {
           const legacyText = await readFile(legacyTarget, "utf8");
           return JSON.parse(legacyText) as CacheEnvelope<T>;
@@ -119,18 +130,36 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
     },
 
     async write<T>(tool: string, envelope: CacheEnvelope<T>) {
-      const directory = getToolDir(cacheRoot, tool);
-      const target = getCacheFilePath(cacheRoot, tool, envelope.cache_key);
+      const directory = getToolDir(baseDir, cacheRoot, tool);
+      const target = getCacheFilePath(
+        baseDir,
+        cacheRoot,
+        tool,
+        envelope.cache_key
+      );
       const temp = resolveContainedCachePath(
+        baseDir,
         cacheRoot,
         `${path.relative(cacheRoot, target)}.${process.pid}.${randomUUID()}.tmp`
       );
 
       return serializeWrite(target, async () => {
         await mkdir(directory, { recursive: true });
-        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, directory));
-        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, target));
-        resolveContainedCachePath(cacheRoot, path.relative(cacheRoot, temp));
+        resolveContainedCachePath(
+          baseDir,
+          cacheRoot,
+          path.relative(cacheRoot, directory)
+        );
+        resolveContainedCachePath(
+          baseDir,
+          cacheRoot,
+          path.relative(cacheRoot, target)
+        );
+        resolveContainedCachePath(
+          baseDir,
+          cacheRoot,
+          path.relative(cacheRoot, temp)
+        );
         try {
           await writeFile(temp, JSON.stringify(envelope, null, 2), "utf8");
           await replaceFileAtomically(temp, target);
@@ -141,7 +170,7 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
     },
 
     async delete(tool: string, key: string) {
-      const target = getCacheFilePath(cacheRoot, tool, key);
+      const target = getCacheFilePath(baseDir, cacheRoot, tool, key);
       try {
         await rm(target, { force: false });
         return true;
@@ -151,7 +180,12 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
         }
       }
 
-      const legacyTarget = getCacheFilePath(legacyCacheRoot, tool, key);
+      const legacyTarget = getCacheFilePath(
+        baseDir,
+        legacyCacheRoot,
+        tool,
+        key
+      );
       try {
         await rm(legacyTarget, { force: false });
         return true;
@@ -167,14 +201,15 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
       if (tool) {
         const parsedTool = parseCacheTool(tool);
         const directories = [
-          getToolDir(cacheRoot, parsedTool),
-          getToolDir(legacyCacheRoot, parsedTool)
+          getToolDir(baseDir, cacheRoot, parsedTool),
+          getToolDir(baseDir, legacyCacheRoot, parsedTool)
         ];
         const targets = (
           await Promise.all(directories.map((directory) => listJsonFilenames(directory)))
         ).flatMap((filenames, index) =>
           filenames.map((filename) =>
             resolveContainedCachePath(
+              baseDir,
               index === 0 ? cacheRoot : legacyCacheRoot,
               parsedTool,
               filename
@@ -189,8 +224,12 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
       const toolDirs = Array.from(
         new Set([
-          ...(await listChildDirs(resolveContainedCachePath(cacheRoot))),
-          ...(await listChildDirs(resolveContainedCachePath(legacyCacheRoot)))
+          ...(await listChildDirs(
+            resolveContainedCachePath(baseDir, cacheRoot)
+          )),
+          ...(await listChildDirs(
+            resolveContainedCachePath(baseDir, legacyCacheRoot)
+          ))
         ])
       );
 

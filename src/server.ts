@@ -161,12 +161,16 @@ interface ServerEnv {
   OPENALEX_API_KEY?: string;
 }
 
-const EXTERNAL_READ_ONLY_ANNOTATIONS: ToolAnnotations = {
-  readOnlyHint: true,
+const CACHED_EXTERNAL_ANNOTATIONS: ToolAnnotations = {
+  readOnlyHint: false,
   destructiveHint: false,
-  idempotentHint: true,
+  idempotentHint: false,
   openWorldHint: true
 };
+
+function cachedExternalDescription(description: string) {
+  return `external read / local bookkeeping write（非破壊）。${description} 外部sourceは変更しない。cache hitでもlocal session履歴を更新し、cache missまたはforce_refreshではlocal cacheを作成・置換する。`;
+}
 
 const LOCAL_READ_ONLY_ANNOTATIONS: ToolAnnotations = {
   readOnlyHint: true,
@@ -482,10 +486,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search",
     {
-      description: "日本語文献ポータルを検索する。source 未指定で8ソース横断。cinii_dissertations / national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、博士論文・学位論文、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「博士論文/学位論文/CiNii Dissertations」→cinii_dissertations、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=cinii_books では filters.cinii.category に NDC/NDLC notation を半角スペース区切りで渡せる。CiNii 系の 0 件・ローマ字 query・広すぎる結果では interpretation / diagnostics を読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること",
+      description: cachedExternalDescription("日本語文献ポータルを検索する。source 未指定で8ソース横断。cinii_dissertations / national_archives / jacar / nijl_articles / kokusho / ninjal_bibliography は既定横断に含めず、博士論文・学位論文、公文書・外交・軍事・旧外地資料、国文学論文、古典籍、日本語研究文献などで明示指定された場合のみ使う。ユーザーの言い回しから source を読み替える: 「NDL/国会図書館」→ndl_catalog、「デジコレ/NDLデジタル」→ndl_digital、「CiNii論文」→cinii_articles、「博士論文/学位論文/CiNii Dissertations」→cinii_dissertations、「CiNii図書/大学図書館」→cinii_books、「J-STAGE」→jstage_articles、「機関リポジトリ/IRDB」→irdb、「国会会議録」→kokkai_minutes、「帝国議会」→teikoku_minutes、「人文専門DB/nihu_bridge」→nihu_bridge、「Japan Search/ジャパンサーチ」→japan_search、「国立公文書館/特定歴史公文書/太政官/省庁資料」→national_archives、「JACAR/アジア歴史資料/外交/軍事/旧外地/植民地/朝鮮/台湾/関東州」→jacar、「国文学論文/国文研論文/日本文学研究論文」→nijl_articles、「国書/古典籍/写本/版本」→kokusho、「日本語研究/日本語教育文献/国語教育文献」→ninjal_bibliography。`total` / `limit` / `page` はこの 1 回の検索呼び出し単位の値であり、Skill が複数回検索して要約する場合は各回ごとに読む。source=cinii_books では filters.cinii.category に NDC/NDLC notation を半角スペース区切りで渡せる。CiNii 系の 0 件・ローマ字 query・広すぎる結果では interpretation / diagnostics を読む。source=ndl_digital の結果にはインターネット非公開（館内限定・図書館送信）資料のメタデータも含まれる。OCR 系ツールを使う前に jp_lit_get_record で source_metadata.next_digital_library.available を確認すること"),
       inputSchema: searchInputToolSchema,
       outputSchema: searchOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchTool
   );
@@ -493,10 +497,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_guides_manuals",
     {
-      description: "レファレンス協同データベースの調べ方マニュアルを検索する。書誌検索ではなく、どの資料や索引・参考図書をどう使って調べるかの手がかりを得るためのツール",
+      description: cachedExternalDescription("レファレンス協同データベースの調べ方マニュアルを検索する。書誌検索ではなく、どの資料や索引・参考図書をどう使って調べるかの手がかりを得るためのツール"),
       inputSchema: guidesManualsInputSchema,
       outputSchema: guidesManualsOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchGuidesManualsTool
   );
@@ -504,10 +508,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_guides_cases",
     {
-      description: "レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照するためのツール",
+      description: cachedExternalDescription("レファレンス協同データベースのレファレンス事例を検索する。類似質問、回答プロセス、参考資料を調査の次の一手の材料として参照するためのツール"),
       inputSchema: guidesCasesInputSchema,
       outputSchema: guidesCasesOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchGuidesCasesTool
   );
@@ -515,10 +519,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_resolve_authority",
     {
-      description: "read-only。Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助 tool。分類記号から件名候補を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
+      description: cachedExternalDescription("Web NDL Authorities で人名・団体名・件名などの典拠候補を確認し、別名義や安全な検索ヒントを返す。文献検索 source ではなく検索語展開・名義確認の補助 tool。分類記号から件名候補を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う"),
       inputSchema: resolveAuthorityInputSchema,
       outputSchema: resolveAuthorityOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     resolveAuthorityTool
   );
@@ -526,10 +530,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_find_authority_terms_by_classification",
     {
-      description: "read-only。Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す。分類記号が分かるときの語彙展開に使い、人名・件名の文字列から典拠候補を探す場合は jp_lit_resolve_authority、文献検索本体は jp_lit_search を使う",
+      description: cachedExternalDescription("Web NDL Authorities で NDC などの分類から対応する件名標目を探し、未知の本を探すための探索語候補を返す。分類記号が分かるときの語彙展開に使い、人名・件名の文字列から典拠候補を探す場合は jp_lit_resolve_authority、文献検索本体は jp_lit_search を使う"),
       inputSchema: authorityTermsByClassificationInputSchema,
       outputSchema: authorityTermsByClassificationOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     findAuthorityTermsByClassificationTool
   );
@@ -537,10 +541,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_suggest_classification_codes",
     {
-      description: "read-only。Web NDL Authorities で件名語から NDC/NDLC 分類記号を探し、CiNii Books の category filter に渡せる suggested_category_param と jp_lit_search 呼び出し例を返す。分類記号から件名語を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う",
+      description: cachedExternalDescription("Web NDL Authorities で件名語から NDC/NDLC 分類記号を探し、CiNii Books の category filter に渡せる suggested_category_param と jp_lit_search 呼び出し例を返す。分類記号から件名語を探す場合は jp_lit_find_authority_terms_by_classification、実際の文献検索は jp_lit_search を使う"),
       inputSchema: suggestClassificationCodesInputSchema,
       outputSchema: suggestClassificationCodesOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     suggestClassificationCodesTool
   );
@@ -548,10 +552,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_enrich_record",
     {
-      description: "read-only。既に見つけた単一文献候補を Crossref / OpenAlex で DOI・タイトル・著者・刊行年から照合し、候補の書誌確認 confidence と根拠を返す。文献検索 source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の外部検証に使う。OpenAlex は OPENALEX_API_KEY が無い場合 skipped になり、未収録・低引用は日本語人文系での低重要度を意味しない",
+      description: cachedExternalDescription("既に見つけた単一文献候補を Crossref / OpenAlex で DOI・タイトル・著者・刊行年から照合し、候補の書誌確認 confidence と根拠を返す。文献検索 source ではなく、NDL / CiNii / J-STAGE / IRDB などで得た候補の外部検証に使う。OpenAlex は OPENALEX_API_KEY が無い場合 skipped になり、未収録・低引用は日本語人文系での低重要度を意味しない"),
       inputSchema: enrichRecordInputToolSchema,
       outputSchema: enrichRecordOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     enrichRecordTool
   );
@@ -559,10 +563,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_kaken_projects",
     {
-      description: "KAKEN から研究課題を検索し、研究テーマ・キーワード・報告書 PDF・成果リストの手がかりを返す補助 tool。論文・図書の文献確定は CiNii / J-STAGE / IRDB / NDL で再確認する",
+      description: cachedExternalDescription("KAKEN から研究課題を検索し、研究テーマ・キーワード・報告書 PDF・成果リストの手がかりを返す補助 tool。論文・図書の文献確定は CiNii / J-STAGE / IRDB / NDL で再確認する"),
       inputSchema: searchKakenProjectsInputSchema,
       outputSchema: searchKakenProjectsOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchKakenProjectsTool
   );
@@ -570,10 +574,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_record",
     {
-      description: "文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない。個人送信対象など、MCP から自動全文取得できなくても NDL ログインや参加館・館内端末で手動閲覧できる導線は content_access.manual_viewing を確認する",
+      description: cachedExternalDescription("文献レコード詳細を取得する。source=national_archives / jacar は目録メタデータと公式レコードURLを返し、画像本体・IIIF・OCR本文は取得しない。source=nijl_articles は国文学論文DBのHTMLから書誌メタデータと公式レコードURLを best-effort で返し、本文・PDF・OPAC追跡は取得しない。source=kokusho は国書DBのJSONから書誌・著作・所在・公式URL・manifest URL 等のメタデータを返し、manifest 本体・画像・OCR は取得しない。source=ninjal_bibliography は日本語研究・日本語教育文献DBのHTMLから書誌メタデータと本文リンクURLを best-effort で返し、本文自体は取得しない。source=ndl_digital の場合、source_metadata.next_digital_library.available=true であれば jp_lit_get_text_coordinates / jp_lit_get_fulltext / jp_lit_search_pages が利用可能。false の場合は OCR 系ツールを利用できない。実務上は次世代側未収録であることが多いが、現実装ではアクセス制限等との厳密な区別はしていない。個人送信対象など、MCP から自動全文取得できなくても NDL ログインや参加館・館内端末で手動閲覧できる導線は content_access.manual_viewing を確認する"),
       inputSchema: recordInputSchema,
       outputSchema: recordOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     recordTool
   );
@@ -713,10 +717,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_text_coordinates",
     {
-      description: "read-only。NDL デジタルコレクション資料のページ単位 OCR テキストと座標を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。ページ番号を探す段階では jp_lit_search_pages、全文一括取得は jp_lit_get_fulltext を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: cachedExternalDescription("NDL デジタルコレクション資料のページ単位 OCR テキストと座標を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。ページ番号を探す段階では jp_lit_search_pages、全文一括取得は jp_lit_get_fulltext を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい"),
       inputSchema: textCoordinatesInputSchema,
       outputSchema: textCoordinatesOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     textCoordinatesTool
   );
@@ -724,10 +728,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_get_fulltext",
     {
-      description: "read-only。NDL デジタルコレクション資料の全文 OCR JSON を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。特定ページだけ確認する場合は jp_lit_get_text_coordinates、資料内検索でページを探す場合は jp_lit_search_pages を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: cachedExternalDescription("NDL デジタルコレクション資料の全文 OCR JSON を取得する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。特定ページだけ確認する場合は jp_lit_get_text_coordinates、資料内検索でページを探す場合は jp_lit_search_pages を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい"),
       inputSchema: fulltextInputSchema,
       outputSchema: fulltextOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     fulltextTool
   );
@@ -735,10 +739,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_pages",
     {
-      description: "read-only。NDL デジタルコレクション資料内のページをキーワードで全文検索する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。全資料から候補 pid を探す段階では jp_lit_search_fulltext、特定ページの OCR テキストと画像 URL 確認は jp_lit_get_text_coordinates を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい",
+      description: cachedExternalDescription("NDL デジタルコレクション資料内のページをキーワードで全文検索する（インターネット公開資料のみ）。source_id を使う場合は事前に jp_lit_get_record で next_digital_library.available=true を確認すること。全資料から候補 pid を探す段階では jp_lit_search_fulltext、特定ページの OCR テキストと画像 URL 確認は jp_lit_get_text_coordinates を使う。jp_lit_search_fulltext の結果の pid はそのまま渡してよい"),
       inputSchema: searchPagesInputSchema,
       outputSchema: searchPagesOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchPagesTool
   );
@@ -746,10 +750,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_fulltext",
     {
-      description: "read-only。次世代デジタルライブラリー収録資料を対象に OCR 全文テキストからキーワード検索する。デジコレ本体の全文検索画面/APIではなく、デジコレ本体の「ログインなしで閲覧可能」資料全体も対象ではない。館内限定・送信サービス限定資料を含め、公式検索画面の全文ヒットは網羅しない。網羅性が必要な調査では、この結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う",
+      description: cachedExternalDescription("次世代デジタルライブラリー収録資料を対象に OCR 全文テキストからキーワード検索する。デジコレ本体の全文検索画面/APIではなく、デジコレ本体の「ログインなしで閲覧可能」資料全体も対象ではない。館内限定・送信サービス限定資料を含め、公式検索画面の全文ヒットは網羅しない。網羅性が必要な調査では、この結果だけで「デジコレ全文にヒットなし」と断定せず、公式画面でのブラウザ検索・手動確認を併用する。searchfield=contentonly で本文のみ、metaonly でメタデータのみ、all で両方を検索。結果には pid が含まれ、特定資料内のページ特定は jp_lit_search_pages、ページ画像と OCR 座標確認は jp_lit_get_text_coordinates で行う"),
       inputSchema: searchFulltextInputSchema,
       outputSchema: searchFulltextOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchFulltextTool
   );
@@ -757,10 +761,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_illustrations",
     {
-      description: "NDL デジタルコレクション全資料の図版・挿絵をテキストキーワードで検索する（公開範囲のみ）。結果には IIIF 画像 URL（ページ全体・図版トリミング）を含む",
+      description: cachedExternalDescription("NDL デジタルコレクション全資料の図版・挿絵をテキストキーワードで検索する（公開範囲のみ）。結果には IIIF 画像 URL（ページ全体・図版トリミング）を含む"),
       inputSchema: searchIllustrationsInputSchema,
       outputSchema: searchIllustrationsOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchIllustrationsTool
   );
@@ -768,10 +772,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_kokusho_fulltext",
     {
-      description: "国書データベースの翻刻/OCR系スニペットをキーワード検索する。本文全体・manifest 本体・画像本体は取得せず、bid、コマ番号、スニペット、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
+      description: cachedExternalDescription("国書データベースの翻刻/OCR系スニペットをキーワード検索する。本文全体・manifest 本体・画像本体は取得せず、bid、コマ番号、スニペット、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する"),
       inputSchema: searchKokushoFulltextInputSchema,
       outputSchema: searchKokushoFulltextOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchKokushoFulltextTool
   );
@@ -779,10 +783,10 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_kokusho_image_tags",
     {
-      description: "国書データベースの画像タグをキーワード検索する。画像本体や IIIF image API は取得せず、タグ文字列、画像パス文字列、bid、コマ番号、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する",
+      description: cachedExternalDescription("国書データベースの画像タグをキーワード検索する。画像本体や IIIF image API は取得せず、タグ文字列、画像パス文字列、bid、コマ番号、公式確認 URL を返す。国書DB Web アプリの公開 JSON endpoint に依存するため、採用時は公式画面で最終確認する"),
       inputSchema: searchKokushoImageTagsInputSchema,
       outputSchema: searchKokushoImageTagsOutputSchema,
-      annotations: EXTERNAL_READ_ONLY_ANNOTATIONS
+      annotations: CACHED_EXTERNAL_ANNOTATIONS
     },
     searchKokushoImageTagsTool
   );

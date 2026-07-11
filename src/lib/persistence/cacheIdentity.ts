@@ -80,16 +80,37 @@ function isContained(root: string, target: string) {
   );
 }
 
-export function resolveContainedCachePath(root: string, ...segments: string[]) {
+export function resolveContainedCachePath(
+  baseDir: string,
+  root: string,
+  ...segments: string[]
+) {
+  const resolvedBaseDir = path.resolve(baseDir);
   const resolvedRoot = path.resolve(root);
+  if (!isContained(resolvedBaseDir, resolvedRoot)) {
+    throw new InvalidRequestError(
+      "cache root must remain inside the persistence base directory"
+    );
+  }
+
   const target = path.resolve(resolvedRoot, ...segments);
   if (!isContained(resolvedRoot, target)) {
     throw new InvalidRequestError("cache path must remain inside the cache root");
   }
 
+  const realBaseDir = resolveRealPathThroughExistingAncestor(resolvedBaseDir);
   const realRoot = resolveRealPathThroughExistingAncestor(resolvedRoot);
+  if (!isContained(realBaseDir, realRoot)) {
+    throw new InvalidRequestError(
+      "cache root must remain inside the persistence base directory"
+    );
+  }
+
   const realTarget = resolveRealPathThroughExistingAncestor(target);
-  if (!isContained(realRoot, realTarget)) {
+  if (
+    !isContained(realRoot, realTarget) ||
+    !isContained(realBaseDir, realTarget)
+  ) {
     throw new InvalidRequestError("cache path must remain inside the cache root");
   }
 

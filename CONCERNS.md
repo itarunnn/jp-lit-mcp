@@ -11,9 +11,9 @@
 ### C-001 Cache path traversal
 - classification: assisted-fix
 - status: resolved
-- evidence: `tool` / `cache_key` がcache root外のJSONへ到達できる再現あり
-- action: Task 1でFileCacheとcache inventoryを共有境界にし、prune/list/search-indexを統合
-- verification: current/legacyのtraversal・junction・prune/list/search-index回帰test、全test suite、buildがpass
+- evidence: `tool` / `cache_key` に加え、current/legacy cache root自体または`cache/v1`の親directoryを外部へ向けるjunctionで、read/write/delete/clear/list/prune/search-indexがbaseDir実体外へ到達する再現あり
+- action: cache path共有helperを`baseDir + root + target`境界へ変更し、lexical containmentとreal baseDirをanchorにしたroot/target realpath containmentを検証。baseDir自体がjunctionの正常運用は許容
+- verification: current 7 route・legacy 6 routeのroot/parent junction 26-case negative matrix、baseDir junction positive control、既存current/legacy回帰test、全test suite、buildで確認
 - next step: cache境界を変更する場合に回帰testと実経路containmentを再確認
 
 ### C-004 Export path and overwrite boundary
@@ -74,6 +74,14 @@
 - remaining risk: 部分成功は通常cacheに保存される。自動TTLや失敗sourceだけの再試行はなく、明示source検索または`force_refresh=true`が必要
 - next step: 横断source追加時は順序、error分類、all-failure matrixとcache semanticsを同時に更新する
 
+### C-011 Cached external tool annotations
+- classification: assisted-fix
+- status: resolved
+- evidence: 16 cached external toolを`readOnlyHint=true` / `idempotentHint=true`としていたが、cache hitでもsessionを更新し、miss/refreshではcacheを作成・置換する
+- action: 外部sourceを変更しない非破壊操作であることと、local cache/sessionを書き換えることを分離し、16 toolを`readOnlyHint=false`、`idempotentHint=false`、`destructiveHint=false`、`openWorldHint=true`へ統一。descriptionと公開referenceもexternal read / local bookkeeping writeへ更新
+- verification: `CACHED_TOOL_NAMES`をsource of truthにしたregistry contractで16 toolの4 annotation値とdescriptionを固定。local純read 5 toolはread-onlyを維持
+- next step: cached tool追加時はcache/session副作用と`CACHED_TOOL_NAMES`、annotations、descriptionを同時更新する
+
 ## Report-only backlog
 
 ### C-101 デジコレ本体内部APIの公開面への混入防止
@@ -81,7 +89,7 @@
 - status: monitored
 - evidence: local-only `docs/research/dl-ndl-internal-api-local.md`
 - action: 公開MCP・package・CIへ組み込まない
-- verification: package allowlistが`docs/research/`を含まず、`src/**/*.ts`と`.github/workflows/*.yml`に内部endpointが無いことをpackage distribution testで確認。方針を記載した設計文書はlocal-only memoと同様に検査対象外
+- verification: package allowlistが`docs/research/`を含まないことに加え、`src/**/*.ts`と`.github/workflows/*.yml`、`package.json.files`から実効展開したREADME・公開docs・skills・install scripts・dist等に具体endpoint 2値が無いことをdistribution testで確認。非配布の設計文書は検査対象外
 - next step: 境界変更時に人間レビュー
 
 ### C-102 Cross-process session locking

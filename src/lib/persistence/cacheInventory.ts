@@ -72,13 +72,14 @@ function parseCacheKey(key: string) {
 }
 
 async function collectRoot(
+  baseDir: string,
   rootPath: string,
   root: CacheRootKind,
   toolFilter?: string
 ) {
   const items: CacheInventoryItem[] = [];
   const skipped: SkippedCacheFile[] = [];
-  const containedRoot = resolveContainedCachePath(rootPath);
+  const containedRoot = resolveContainedCachePath(baseDir, rootPath);
   const tools = toolFilter
     ? [parseCacheTool(toolFilter)]
     : (await listDirs(containedRoot)).flatMap((tool) => {
@@ -87,9 +88,14 @@ async function collectRoot(
       });
 
   for (const tool of tools) {
-    const toolDir = resolveContainedCachePath(containedRoot, tool);
+    const toolDir = resolveContainedCachePath(baseDir, rootPath, tool);
     for (const filename of await listJsonFiles(toolDir)) {
-      const filePath = resolveContainedCachePath(containedRoot, tool, filename);
+      const filePath = resolveContainedCachePath(
+        baseDir,
+        rootPath,
+        tool,
+        filename
+      );
       const filenameKey = filename.endsWith(".json")
         ? filename.slice(0, -".json".length)
         : filename;
@@ -146,8 +152,18 @@ async function collectRoot(
 }
 
 export async function listCacheInventory(baseDir = process.cwd(), tool?: string) {
-  const current = await collectRoot(getCacheRoot(baseDir), "current", tool);
-  const legacy = await collectRoot(getLegacyCacheRoot(baseDir), "legacy", tool);
+  const current = await collectRoot(
+    baseDir,
+    getCacheRoot(baseDir),
+    "current",
+    tool
+  );
+  const legacy = await collectRoot(
+    baseDir,
+    getLegacyCacheRoot(baseDir),
+    "legacy",
+    tool
+  );
   return {
     items: [...current.items, ...legacy.items],
     skipped: [...current.skipped, ...legacy.skipped]
@@ -163,6 +179,7 @@ export async function removeInventoryItem(
   const tool = parseCacheTool(item.tool);
   const cacheKey = parseCacheKey(item.cache_key);
   const target = resolveContainedCachePath(
+    baseDir,
     rootPath,
     tool,
     `${cacheKey}.json`
