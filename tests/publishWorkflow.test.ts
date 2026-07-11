@@ -4,11 +4,13 @@ import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
 interface WorkflowStep {
+  id?: string;
   name?: string;
   uses?: string;
   shell?: string;
   env?: Record<string, string>;
   run?: string;
+  "working-directory"?: string;
   with?: Record<string, unknown>;
 }
 
@@ -44,6 +46,13 @@ function runValidator(ref?: string, version?: string) {
 }
 
 describe("publish ref validator", () => {
+  it("accepts a stable tag without a version during trusted precheck", () => {
+    expect(runValidator("v0.8.1")).toMatchObject({
+      status: 0,
+      stdout: "v0.8.1"
+    });
+  });
+
   it("accepts a stable tag that exactly matches the package version", () => {
     expect(runValidator("v0.8.1", "0.8.1")).toMatchObject({
       status: 0,
@@ -68,43 +77,95 @@ describe("publish workflow", () => {
   const publishJob = workflow.jobs.publish;
   const steps = publishJob.steps;
 
-  it("passes the dispatch ref only through checkout input or a step env", () => {
+  it("prechecks raw input from a separately checked out trusted commit", () => {
     expect(workflow.on.workflow_dispatch.inputs).toHaveProperty("package-ref");
     expect(publishJob["runs-on"]).toBe("windows-latest");
 
-    const checkout = steps.find((step) => step.uses === "actions/checkout@v6");
-    expect(checkout?.with?.ref).toBe("${{ inputs.package-ref }}");
+    const trustedCheckout = steps.find(
+      (step) => step.name === "Check out trusted workflow source"
+    );
+    const precheck = steps.find((step) => step.name === "Precheck package tag");
+
+    expect(trustedCheckout).toMatchObject({
+      uses: "actions/checkout@v6",
+      with: {
+        ref: "${{ github.sha }}",
+        path: "trusted",
+        "persist-credentials": false
+      }
+    });
+    expect(precheck).toMatchObject({
+      id: "package-tag",
+      shell: "pwsh",
+      "working-directory": "trusted",
+      env: { PACKAGE_REF: "${{ inputs.package-ref }}" }
+    });
+    expect(precheck?.run).toContain(
+      'node scripts/validate-publish-ref.mjs "$env:PACKAGE_REF"'
+    );
+    expect(precheck?.run).toContain("$env:GITHUB_OUTPUT");
 
     for (const step of steps) {
       expect(step.run ?? "").not.toContain("${{ inputs.package-ref }}");
     }
   });
 
-  it("validates the env ref in PowerShell before running package code", () => {
-    const validationIndex = steps.findIndex(
-      (step) => step.name === "Validate package ref and version"
+  it("checks out only the fully qualified validated tag into the package path", () => {
+    const packageCheckout = steps.find(
+      (step) => step.name === "Check out qualified package tag"
     );
-    const installIndex = steps.findIndex((step) => step.run === "npm ci");
-    const validation = steps[validationIndex];
 
-    expect(validationIndex).toBeGreaterThan(-1);
-    expect(validationIndex).toBeLessThan(installIndex);
+    expect(packageCheckout).toMatchObject({
+      uses: "actions/checkout@v6",
+      with: {
+        ref: "refs/tags/${{ steps.package-tag.outputs.tag }}",
+        path: "package",
+        "persist-credentials": false,
+        "fetch-depth": 1
+      }
+    });
+    expect(packageCheckout?.with?.ref).not.toContain("inputs.package-ref");
+  });
+
+  it("requires the fetched tag to peel to the checked out package HEAD", () => {
+    const verification = steps.find(
+      (step) => step.name === "Verify tag commit matches package HEAD"
+    );
+
+    expect(verification).toMatchObject({
+      shell: "pwsh",
+      "working-directory": "package",
+      env: { VALIDATED_TAG: "${{ steps.package-tag.outputs.tag }}" }
+    });
+    expect(verification?.run).toContain("git show-ref --verify --quiet");
+    expect(verification?.run).toContain('git rev-parse "$tagRef^{commit}"');
+    expect(verification?.run).toContain("git rev-parse HEAD");
+    expect(verification?.run).toContain("$tagCommit -cne $headCommit");
+    expect(verification?.run).toContain(
+      "Fetched tag ref does not exist"
+    );
+    expect(verification?.run).toContain("does not match package HEAD");
+  });
+
+  it("uses the trusted validator for the target package version", () => {
+    const validation = steps.find(
+      (step) => step.name === "Validate package version"
+    );
+
     expect(validation).toMatchObject({
       shell: "pwsh",
-      env: { PACKAGE_REF: "${{ inputs.package-ref }}" }
+      "working-directory": "package",
+      env: { VALIDATED_TAG: "${{ steps.package-tag.outputs.tag }}" }
     });
-    expect(validation.run).toContain(
-      'node scripts/validate-publish-ref.mjs "$env:PACKAGE_REF" "$version"'
+    expect(validation?.run).toContain(
+      '"trusted/scripts/validate-publish-ref.mjs"'
     );
-
-    const validatorIndex = validation.run?.indexOf(
+    expect(validation?.run).toContain(
+      '"$env:VALIDATED_TAG" "$version"'
+    );
+    expect(validation?.run).not.toContain(
       "node scripts/validate-publish-ref.mjs"
     );
-    const packageVersionCheckIndex = validation.run?.indexOf(
-      '$validatedTag -cne "v$version"'
-    );
-    expect(validatorIndex).toBeGreaterThanOrEqual(0);
-    expect(packageVersionCheckIndex).toBeGreaterThan(validatorIndex ?? -1);
   });
 
   it("fails closed unless npm reports that the exact version is absent", () => {
@@ -112,7 +173,10 @@ describe("publish workflow", () => {
       (step) => step.name === "Check package version is unpublished"
     );
 
-    expect(availability).toMatchObject({ shell: "pwsh" });
+    expect(availability).toMatchObject({
+      shell: "pwsh",
+      "working-directory": "package"
+    });
     expect(availability?.run).toContain("npm view");
     expect(availability?.run).toContain("$viewStatus -eq 0");
     expect(availability?.run).toMatch(/E404/);
@@ -121,17 +185,44 @@ describe("publish workflow", () => {
     expect(availability?.run).toContain("throw");
   });
 
-  it("orders validation, unpublished confirmation, and publish", () => {
-    const validationIndex = steps.findIndex(
-      (step) => step.name === "Validate package ref and version"
-    );
-    const availabilityIndex = steps.findIndex(
-      (step) => step.name === "Check package version is unpublished"
-    );
-    const publishIndex = steps.findIndex((step) => step.run === "npm publish");
+  it("runs the trusted boundary checks before package commands in order", () => {
+    const stepIndex = (name: string) =>
+      steps.findIndex((step) => step.name === name);
+    const orderedNames = [
+      "Check out trusted workflow source",
+      "Precheck package tag",
+      "Check out qualified package tag",
+      "Verify tag commit matches package HEAD",
+      "Set up Node.js",
+      "Validate package version",
+      "Check package version is unpublished",
+      "Install dependencies",
+      "Build",
+      "Test",
+      "Publish to npm"
+    ];
 
-    expect(validationIndex).toBeGreaterThan(-1);
-    expect(availabilityIndex).toBeGreaterThan(validationIndex);
-    expect(publishIndex).toBeGreaterThan(availabilityIndex);
+    const indexes = orderedNames.map(stepIndex);
+    expect(indexes.every((index) => index >= 0)).toBe(true);
+    expect(indexes).toEqual([...indexes].sort((a, b) => a - b));
+
+    const setupNode = steps[stepIndex("Set up Node.js")];
+    expect(setupNode?.with).toMatchObject({
+      cache: "npm",
+      "cache-dependency-path": "package/package-lock.json"
+    });
+
+    const packageCommands = {
+      "Install dependencies": "npm ci",
+      Build: "npm run build",
+      Test: "npm test",
+      "Publish to npm": "npm publish"
+    };
+    for (const [name, command] of Object.entries(packageCommands)) {
+      expect(steps[stepIndex(name)]).toMatchObject({
+        "working-directory": "package",
+        run: command
+      });
+    }
   });
 });

@@ -6,7 +6,7 @@ if (!/^v\d+\.\d+\.\d+$/.test(ref ?? "")) {
   throw new Error("package-ref must be a vX.Y.Z tag");
 }
 
-if (ref !== `v${version}`) {
+if (version !== undefined && ref !== `v${version}`) {
   throw new Error(`tag ${ref} does not match package version ${version}`);
 }
 

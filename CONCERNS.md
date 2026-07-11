@@ -51,9 +51,9 @@
 ### C-008 npm publish ref injection and registry failure handling
 - classification: assisted-fix
 - status: resolved
-- evidence: `workflow_dispatch`の`package-ref`をbashの`run:`へ直接展開しており、stable tag・package version一致・既公開versionを検証していなかった
-- action: checkoutのaction input以外ではdispatch inputを`env`経由に限定し、child process validatorでstable `vX.Y.Z`とpackage version完全一致を検証。`npm view`成功は既公開として停止し、非zeroはE404または該当versionなしだけを未公開として続行し、network/auth/registry障害はfail closedにした
-- verification: validatorのpositive/negative child-process testと、YAML parserによるWindows `pwsh`、env参照、validator→package version確認→未公開確認→publish順序、fail-closed分岐の構造testで確認。localではregistryへの`npm view`と`npm publish`を実行していない
+- evidence: 当初は`workflow_dispatch`のraw inputをbashの`run:`へ直接展開し、修正後もraw inputでcheckoutした対象内validator/package.jsonによる自己検証だった。同名branchとtagを区別せず、tag refがpeelするcommitとtarget `HEAD`の一致も証明していなかった
+- action: workflow実行元`${{ github.sha }}`を`trusted/`へ分離checkoutし、そのvalidatorのtag-only modeでraw inputをprecheck。validated outputから完全修飾`refs/tags/<tag>`だけを`package/`へcheckoutし、tag refの存在と`^{commit}`でpeelしたcommit＝target `HEAD`を確認後、trusted validatorのfull modeでpackage version完全一致を検証。`npm view`はE404または該当versionなしだけを続行し、その他はfail closedにした
+- verification: tag-only/full validatorのpositive/negative child-process testと、YAML parserでtrusted checkout→env-only precheck→qualified tag checkout→tag ref/peeled commit＝HEAD→trusted version確認→未公開確認→target限定npm ci/build/test/publishの構造・順序を確認。target cache dependency pathと全npm stepの`package/` working directoryも固定し、localではregistryへの`npm view`と`npm publish`を実行していない
 - next step: push後のmanual workflow初回実行でTrusted Publishingとnpm CLIの実際のnot-found出力を確認し、追加のnot-found形式が必要なら明示的なcontractとして追加
 
 ## Report-only backlog

@@ -16,25 +16,75 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Check out package ref
+      - name: Check out trusted workflow source
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.package-ref }}
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Precheck package tag
+        id: package-tag
+        shell: pwsh
+        working-directory: trusted
+        env:
+          PACKAGE_REF: ${{ inputs.package-ref }}
+        run: |
+          $validatedTag = node scripts/validate-publish-ref.mjs "$env:PACKAGE_REF"
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          "tag=$validatedTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Check out qualified package tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ steps.package-tag.outputs.tag }}
+          path: package
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify tag commit matches package HEAD
+        shell: pwsh
+        working-directory: package
+        env:
+          VALIDATED_TAG: ${{ steps.package-tag.outputs.tag }}
+        run: |
+          $tagRef = "refs/tags/$env:VALIDATED_TAG"
+          git show-ref --verify --quiet "$tagRef"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Fetched tag ref does not exist: $tagRef"
+          }
+
+          $tagCommit = (git rev-parse "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to peel tag ref to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to resolve package HEAD"
+          }
+          if ($tagCommit -cne $headCommit) {
+            throw "Tag commit $tagCommit does not match package HEAD $headCommit"
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package/package-lock.json
 
-      - name: Validate package ref and version
+      - name: Validate package version
         shell: pwsh
+        working-directory: package
         env:
-          PACKAGE_REF: ${{ inputs.package-ref }}
+          VALIDATED_TAG: ${{ steps.package-tag.outputs.tag }}
         run: |
           $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
-          $validatedTag = node scripts/validate-publish-ref.mjs "$env:PACKAGE_REF" "$version"
+          $trustedValidator = Join-Path $env:GITHUB_WORKSPACE "trusted/scripts/validate-publish-ref.mjs"
+          $validatedTag = node "$trustedValidator" "$env:VALIDATED_TAG" "$version"
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
@@ -43,17 +93,9 @@ jobs:
           }
           "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
       - name: Check package version is unpublished
         shell: pwsh
+        working-directory: package
         run: |
           $viewOutput = npm view "jp-lit-mcp@$env:PACKAGE_VERSION" version --json 2>&1
           $viewStatus = $LASTEXITCODE
@@ -73,5 +115,18 @@ jobs:
 
           Write-Host "Confirmed jp-lit-mcp@$env:PACKAGE_VERSION is unpublished"
 
+      - name: Install dependencies
+        working-directory: package
+        run: npm ci
+
+      - name: Build
+        working-directory: package
+        run: npm run build
+
+      - name: Test
+        working-directory: package
+        run: npm test
+
       - name: Publish to npm
+        working-directory: package
         run: npm publish
