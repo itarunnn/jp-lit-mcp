@@ -185,6 +185,16 @@ describe("publish workflow", () => {
     expect(availability?.run).toContain("throw");
   });
 
+  it("explicitly succeeds after accepting npm's nonzero not-found result", () => {
+    const availability = steps.find(
+      (step) => step.name === "Check package version is unpublished"
+    );
+
+    expect(availability?.run?.trimEnd()).toMatch(
+      /Write-Host "Confirmed jp-lit-mcp@\$env:PACKAGE_VERSION is unpublished"\s+exit 0$/
+    );
+  });
+
   it("runs the trusted boundary checks before package commands in order", () => {
     const stepIndex = (name: string) =>
       steps.findIndex((step) => step.name === name);

@@ -114,6 +114,7 @@ jobs:
           }
 
           Write-Host "Confirmed jp-lit-mcp@$env:PACKAGE_VERSION is unpublished"
+          exit 0
 
       - name: Install dependencies
         working-directory: package
