@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="jp-lit-mcp の実コードを、一回の検索処理から理解するアーキテクチャガイド">
+  <title>jp-lit-mcp — コードから読む構造</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2314242c'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='28' fill='%23e4a18e'%3E文%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へ移動</a>
+  <header class="hero" id="top">
+    <div class="hero__rule" aria-hidden="true"><span>FIELD NOTES</span><span>v0.9 architecture</span></div>
+    <p class="eyebrow">日本語文献調査 MCP / implementation field guide</p>
+    <h1>コードから読む、<br><em>jp-lit-mcp</em> の構造。</h1>
+    <p class="hero__lead">これは「APIをたくさん呼ぶサーバー」ではない。異なる文献データベースを同じ型へ翻訳し、LLMが安全に調査を続けられる道具へ組み直す、小さな研究基盤だ。</p>
+    <div class="hero__meta">
+      <div><b>想定読者</b><span>TypeScript の基礎がわかる</span></div>
+      <div><b>読了時間</b><span>約 35–50 分</span></div>
+      <div><b>到達点</b><span>source / tool を追加できる</span></div>
+    </div>
+    <a class="start-link" href="#frameworks">01 から読みはじめる <span aria-hidden="true">↓</span></a>
+  </header>
+
+  <div class="page-shell">
+    <aside class="rail" aria-label="章ナビゲーション">
+      <a class="rail__brand" href="#top" aria-label="ページ先頭へ">JP<br>LIT</a>
+      <nav>
+        <a href="#frameworks"><span>01</span>Framework</a>
+        <a href="#flow"><span>02</span>全体像</a>
+        <a href="#journey"><span>03</span>検索の旅</a>
+        <a href="#layers"><span>04</span>レイヤー</a>
+        <a href="#decisions"><span>05</span>設計判断</a>
+        <a href="#persistence"><span>06</span>永続化</a>
+        <a href="#extensions"><span>07</span>拡張</a>
+        <a href="#testing"><span>08</span>テスト</a>
+        <a href="#reading-routes"><span>09</span>読む順</a>
+      </nav>
+      <div class="rail__progress" aria-hidden="true"><span></span></div>
+    </aside>
+
+    <main id="main">
+      <section class="chapter chapter--intro" id="frameworks" data-section>
+        <header class="chapter__head"><span>01</span><div><p>まず、土台を分ける</p><h2>Framework は何をして、<br>何をしていないか</h2></div></header>
+        <p class="lede">この repo に「全部入りの web framework」はない。小さな部品を組み合わせ、MCP の通信部分と文献検索の業務ロジックを分離している。</p>
+        <div class="framework-stack">
+          <article><span class="framework-stack__index">A</span><h3>Node.js 22+</h3><p>プロセス、標準入出力、filesystem、組み込み <code>fetch</code> を提供する実行環境。HTTP server を公開するのではなく、MCP host の子プロセスとして動く。</p><small>runtime</small></article>
+          <article><span class="framework-stack__index">B</span><h3>MCP SDK</h3><p><code>McpServer</code>、tool 登録、schema 公開、<code>StdioServerTransport</code> を担当する。検索方法やデータの意味は知らない。</p><small>protocol framework</small></article>
+          <article><span class="framework-stack__index">C</span><h3>TypeScript + ESM</h3><p>adapter 間の共通契約を型で固定する。<code>NodeNext</code> なので source 内の import もビルド後を見越して <code>.js</code> を付ける。</p><small>language & modules</small></article>
+          <article><span class="framework-stack__index">D</span><h3>Zod</h3><p>LLMから届く未知の入力を runtime で検証し、MCP client に input/output schema を公開する。TypeScript の型だけでは守れない境界を守る。</p><small>runtime contract</small></article>
+          <article><span class="framework-stack__index">E</span><h3>Vitest</h3><p>adapter、mapper、service、persistence、MCP manifest を fixture 中心に検証する。実APIの揺らぎと自分の変換ミスを切り分ける。</p><small>test runner</small></article>
+        </div>
+        <aside class="note"><b>重要な境界</b><p>MCP SDK は「tool を呼べるようにする」。この repo は「どの source をどう検索し、何を共通形式で返すか」を実装する。</p></aside>
+      </section>
+
+      <section class="chapter" id="flow" data-section>
+        <header class="chapter__head"><span>02</span><div><p>一枚で見る</p><h2>要求が結果になるまで</h2></div></header>
+        <div class="view-switch" role="group" aria-label="図の表示視点">
+          <button type="button" class="is-active" data-view="request">検索経路</button>
+          <button type="button" data-view="framework">Framework</button>
+          <button type="button" data-view="persistence">永続化</button>
+        </div>
+        <div class="architecture-board">
+          <svg class="architecture" viewBox="0 0 1060 500" role="img" aria-labelledby="architecture-title architecture-desc" data-current-view="request">
+            <title id="architecture-title">jp-lit-mcp のレイヤー構成</title>
+            <desc id="architecture-desc">MCP host から stdio、server、tool、service、adapter、外部APIへ進み、toolからcacheとsessionへ分岐する。</desc>
+            <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 8 4 0 8Z"/></marker></defs>
+            <path class="wire wire--main" d="M138 160H220M360 160H430M570 160H640M780 160H850"/>
+            <path class="wire wire--store" d="M500 205V310H410M500 310H620"/>
+            <g class="layer" data-layer="host" tabindex="0" role="button" aria-label="MCP Host"><rect x="20" y="105" width="118" height="110"/><text x="79" y="145">MCP</text><text x="79" y="172">HOST</text><text class="sub" x="79" y="196">Codex / Claude</text></g>
+            <g class="layer" data-layer="transport" tabindex="0" role="button" aria-label="stdio transport"><rect x="220" y="105" width="140" height="110"/><text x="290" y="153">stdio</text><text class="sub" x="290" y="190">MCP SDK</text></g>
+            <g class="layer" data-layer="tool" tabindex="0" role="button" aria-label="server and tool"><rect x="430" y="80" width="140" height="160"/><text x="500" y="132">SERVER</text><text x="500" y="163">+ TOOL</text><text class="sub" x="500" y="208">Zod boundary</text></g>
+            <g class="layer" data-layer="service" tabindex="0" role="button" aria-label="search service"><rect x="640" y="105" width="140" height="110"/><text x="710" y="145">SEARCH</text><text x="710" y="172">SERVICE</text><text class="sub" x="710" y="196">orchestration</text></g>
+            <g class="layer" data-layer="adapter" tabindex="0" role="button" aria-label="source adapters"><rect x="850" y="72" width="175" height="176"/><text x="937" y="130">SOURCE</text><text x="937" y="158">ADAPTERS</text><text class="sub" x="937" y="210">NDL / CiNii / …</text></g>
+            <g class="layer layer--store" data-layer="cache" tabindex="0" role="button" aria-label="file cache"><rect x="300" y="310" width="175" height="105"/><text x="387" y="352">FILE CACHE</text><text class="sub" x="387" y="390">result reuse</text></g>
+            <g class="layer layer--store" data-layer="session" tabindex="0" role="button" aria-label="session store"><rect x="620" y="310" width="175" height="105"/><text x="707" y="352">SESSION</text><text class="sub" x="707" y="390">research trail</text></g>
+            <text class="external-label" x="937" y="285">↕ external APIs</text>
+          </svg>
+          <div class="layer-detail" aria-live="polite">
+            <span>SELECT A LAYER</span>
+            <h3 data-layer-title>Tool が境界の中心</h3>
+            <p data-layer-copy>図の箱を選ぶと、そのレイヤーが何を受け取り、何を返すかを確認できます。</p>
+            <code data-layer-path>src/tools/</code>
+          </div>
+        </div>
+        <p class="caption">矢印は依存の向きではなく、1回の request が進む主経路を表す。実際の依存は <code>server.ts</code> が外側から注入する。</p>
+      </section>
+
+      <section class="chapter" id="journey" data-section>
+        <header class="chapter__head"><span>03</span><div><p>コードツアー</p><h2><code>jp_lit_search</code><br>一回の旅</h2></div></header>
+        <p class="lede">最も理解しやすい入口は、抽象的な class 図ではなく一つの呼び出しだ。ここでは文字列 <code>"夏目漱石"</code> が検索結果になるまでを追う。</p>
+        <ol class="journey">
+          <li><div class="journey__no">1</div><div><p class="file">src/index.ts</p><h3>プロセスを起動する</h3><p><code>main()</code> は CLI option を振り分け、通常時は <code>startServer()</code> を呼ぶ。ここは domain logic を持たない、実行ファイルの玄関。</p></div></li>
+          <li><div class="journey__no">2</div><div><p class="file">src/server.ts</p><h3>依存を一度だけ組み立てる</h3><p><code>createServer()</code> が cache、session、clients、adapters、services、tools を生成する。これが composition root。最後に SDK の <code>registerTool</code> へ handler と Zod schema を渡す。</p></div></li>
+          <li><div class="journey__no">3</div><div><p class="file">src/tools/jpLitSearch.ts</p><h3>外部入力を tool の言葉へ変える</h3><p><code>searchInputSchema.parse(input)</code> で検証し、cache 対象から <code>force_refresh</code> を除外する。Tool は MCP response の <code>content</code> と <code>structuredContent</code> も組み立てる。</p></div></li>
+          <li><div class="journey__no">4</div><div><p class="file">src/lib/persistence/runCachedTool.ts</p><h3>同じ問いなら結果を再利用する</h3><p>入力を正規化し hash key を作る。hit ならAPIへ行かず返す。ただし session entry は追記し、「今回その結果を使った」事実を残す。</p></div></li>
+          <li><div class="journey__no">5</div><div><p class="file">src/services/searchService.ts</p><h3>一つか、横断かを決める</h3><p><code>source</code> 指定時は一 adapter。未指定時は複数 source を <code>Promise.allSettled</code> で並列検索し、成功分を round-robin で混ぜる。</p></div></li>
+          <li><div class="journey__no">6</div><div><p class="file">src/sources/ndlSearch/adapter.ts</p><h3>共通語を source 固有語へ翻訳する</h3><p>共通の <code>SearchParams</code> を CQL と SRU URL に変換する。response は parser / mapper を通し、共通 <code>SearchItem</code> に戻す。</p></div></li>
+          <li><div class="journey__no">7</div><div><p class="file">src/tools/jpLitSearch.ts</p><h3>LLMが扱える二重形式で返す</h3><p>人間にも読める JSON text と、client が型付きで扱える structured content を同時に返す。diagnostics と cache metadata もここで付く。</p></div></li>
+        </ol>
+
+        <div class="code-lab">
+          <div class="code-lab__top"><span>核心だけ抜き出す</span><div role="group" aria-label="コード注釈"><button class="is-active" data-code-note="parse">境界</button><button data-code-note="live">実処理</button><button data-code-note="response">返却</button></div></div>
+          <pre aria-label="jpLitSearch の簡略コード"><code><span data-code-line="parse">const parsed = searchInputSchema.parse(input);</span>
+
+<span data-code-line="live">const result = await runCachedTool({
+  input: cacheableInput,
+  live: () =&gt; searchService.search(parsed)
+});</span>
+
+<span data-code-line="response">return {
+  content: [{ type: "text", text: JSON.stringify(response) }],
+  structuredContent: response
+};</span></code></pre>
+          <p class="code-explanation" data-code-explanation><b>境界：</b>TypeScript の型注釈では、プロセス外から来た値は検証できない。Zod の parse が「未知の JSON」を信頼できる入力へ変える。</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="layers" data-section>
+        <header class="chapter__head"><span>04</span><div><p>責務で切る</p><h2>六つのレイヤー、<br>六つの問い</h2></div></header>
+        <div class="layer-ledger">
+          <article><span>01</span><h3>CLI</h3><b>どう起動する？</b><p>help、version、doctor、skill installer、server start を振り分ける。</p><code>src/index.ts</code></article>
+          <article><span>02</span><h3>Server</h3><b>何と何を接続する？</b><p>環境変数を option へ変換し、実装を生成し、MCP SDKへ登録する。</p><code>src/server.ts</code></article>
+          <article><span>03</span><h3>Tool</h3><b>LLMとの契約は？</b><p>入力検証、cache/session、diagnostic、MCP response を担当。</p><code>src/tools/</code></article>
+          <article><span>04</span><h3>Service</h3><b>複数実装をどう束ねる？</b><p>source 選択、並列化、merge、部分失敗など use case を実行。</p><code>src/services/</code></article>
+          <article><span>05</span><h3>Adapter + Mapper</h3><b>source差をどこで吸収する？</b><p>URL / query / payload を各 API と共通型の間で翻訳する。</p><code>src/sources/</code></article>
+          <article><span>06</span><h3>Persistence</h3><b>何を後で再利用する？</b><p>結果 cache、調査 session、export を filesystem に安全に残す。</p><code>src/lib/persistence/</code></article>
+        </div>
+        <blockquote><p>レイヤー分割の基準は「ファイルをきれいに並べる」ことではない。<strong>変化する理由を分ける</strong>ことだ。NDL の payload が変わっても MCP tool schema は変えずに済む。</p></blockquote>
+      </section>
+
+      <section class="chapter" id="decisions" data-section>
+        <header class="chapter__head"><span>05</span><div><p>なぜ、この形か</p><h2>コードに埋め込まれた<br>設計判断</h2></div></header>
+        <div class="decision-grid">
+          <article><div class="decision-grid__mark">↳</div><h3>Factory function</h3><p><code>createJpLitSearchTool(service, cache, sessions)</code> のように必要物を引数で受ける。global singleton を避け、fixture や fake を差し替えやすい。</p></article>
+          <article><div class="decision-grid__mark">∥</div><h3><code>Promise.allSettled</code></h3><p>一つの外部APIが落ちても全検索を失敗させない。成功分を返し、失敗は安全な <code>source_errors</code> として可視化する。</p></article>
+          <article><div class="decision-grid__mark">≋</div><h3>共通 interface</h3><p><code>SourceAdapter</code> は <code>search</code> と <code>getRecord</code> だけを要求する。service は NDL や CiNii の詳細を知らずに呼べる。</p></article>
+          <article><div class="decision-grid__mark">⇄</div><h3>Round-robin merge</h3><p>横断検索で最初の source だけが上位を独占しない。各 source の結果を順番に取り、発見経路の多様性を保つ。</p></article>
+          <article><div class="decision-grid__mark">◇</div><h3>Mapper を分離</h3><p>network I/O と data projection を分ける。保存 fixture だけで複雑な XML / JSON 正規化を高速に試験できる。</p></article>
+          <article><div class="decision-grid__mark">!</div><h3>明示的な副作用</h3><p>Tool annotations で external read、local write、destructive operation を client に伝える。「検索＝完全な read-only」ではない。</p></article>
+        </div>
+        <div class="contract-strip">
+          <p>共通契約 — <code>src/sources/types.ts</code></p>
+          <pre><code>interface SourceAdapter {
+  source: SourceName;
+  search(params: SearchParams): Promise&lt;SearchResult&gt;;
+  getRecord(sourceId: string): Promise&lt;RecordItem | null&gt;;
+}</code></pre>
+          <p>この小ささが重要。APIごとの高度な機能は dedicated tool / client に逃がし、全 source に無理な共通化を強制しない。</p>
+        </div>
+      </section>
+
+      <section class="chapter" id="persistence" data-section>
+        <header class="chapter__head"><span>06</span><div><p>似ているが、違う</p><h2>Cache と Session を<br>分けて考える</h2></div></header>
+        <div class="versus">
+          <article class="versus__cache"><p class="kicker">RESULT MEMORY</p><h3>File Cache</h3><p class="big">「この入力の結果は何だったか」</p><ul><li>tool名＋正規化入力から key を作る</li><li>外部API呼び出しを再利用する</li><li><code>force_refresh</code> で bypass できる</li><li>structured content を保存する</li></ul></article>
+          <div class="versus__sign" aria-hidden="true">≠</div>
+          <article class="versus__session"><p class="kicker">RESEARCH MEMORY</p><h3>Session Store</h3><p class="big">「調査で何を使い、どう判断したか」</p><ul><li>cache hit でも entry を記録する</li><li>選択項目、note、trace を保持する</li><li>後で検索・注釈・export できる</li><li>調査の再現性を支える</li></ul></article>
+        </div>
+        <div class="sequence" aria-label="cache hit と miss の処理比較">
+          <div><b>MISS</b><span>normalize → key → API → cache write → session append → return</span></div>
+          <div><b>HIT</b><span>normalize → key → cache read ─────────→ session append → return</span></div>
+        </div>
+        <p class="caption"><code>src/lib/persistence/runCachedTool.ts</code> がこの二つを一か所で調停する。cache は性能だけでなく、同じ調査入力に安定した snapshot を与える役割も持つ。</p>
+      </section>
+
+      <section class="chapter" id="extensions" data-section>
+        <header class="chapter__head"><span>07</span><div><p>理解を実装へ</p><h2>新しい Source / Tool を<br>追加する道順</h2></div></header>
+        <div class="recipes">
+          <article><header><span>A</span><div><p>RECIPE</p><h3>Source adapter を追加</h3></div></header><ol><li><b>API契約を確認</b><small>利用条件、rate limit、payload、identifier</small></li><li><b>fixture を保存</b><small>search / record の代表 response</small></li><li><b>mapper を test-first で実装</b><small>payload → SearchItem / RecordItem</small></li><li><b><code>SourceAdapter</code> を実装</b><small>query構築、fetch、error変換</small></li><li><b><code>server.ts</code> で生成</b><small>adapters 配列へ追加</small></li><li><b>schema と docs を同期</b><small>SourceName、tool description、利用条件</small></li></ol></article>
+          <article><header><span>B</span><div><p>RECIPE</p><h3>MCP tool を追加</h3></div></header><ol><li><b>tool の境界を決める</b><small>既存検索の option か、独立 use case か</small></li><li><b>Zod input/output を定義</b><small><code>src/lib/schemas.ts</code></small></li><li><b>handler test を先に書く</b><small>structuredContent と副作用</small></li><li><b>factory handler を実装</b><small><code>src/tools/</code></small></li><li><b>依存を server から注入</b><small>client / service / persistence</small></li><li><b>SDKへ登録</b><small>description、schema、annotations</small></li></ol></article>
+        </div>
+        <aside class="warning"><b>追加前に一度止まる</b><p>source 固有の全文・画像・典拠検索を、無理に <code>SourceAdapter</code> へ詰め込まない。全 source に共通な「書誌検索・詳細取得」だけを adapter にし、特殊機能は dedicated client / tool として保つ。</p></aside>
+      </section>
+
+      <section class="chapter" id="testing" data-section>
+        <header class="chapter__head"><span>08</span><div><p>境界ごとに保証する</p><h2>テストは小さな<br>観測窓</h2></div></header>
+        <div class="test-pyramid">
+          <div><span>04</span><h3>MCP smoke</h3><p>tools/list、stdio、offline end-to-end</p><code>tests/smokeMcp.test.ts</code></div>
+          <div><span>03</span><h3>Tool / Service</h3><p>schema、cache、merge、partial failure</p><code>tests/jpLitSearch.test.ts</code></div>
+          <div><span>02</span><h3>Adapter</h3><p>URL構築、HTTP状態、source固有分岐</p><code>tests/*.adapter.test.ts</code></div>
+          <div><span>01</span><h3>Mapper + Fixture</h3><p>外部 payload を決定的に正規化</p><code>tests/fixtures/</code></div>
+        </div>
+        <p class="lede lede--small">fixture が「外部APIから最後に観測した形」、mapper test が「その形をどう解釈するか」を記録する。live smoke は契約の drift を見つけるが、通常 test の再現性は fixture が支える。</p>
+      </section>
+
+      <section class="chapter chapter--last" id="reading-routes" data-section>
+        <header class="chapter__head"><span>09</span><div><p>次に、実コードへ</p><h2>目的別の読む順</h2></div></header>
+        <div class="routes">
+          <article><span>15 min</span><h3>全体像だけ掴む</h3><ol><li><code>src/index.ts</code></li><li><code>src/sources/types.ts</code></li><li><code>src/services/searchService.ts</code></li></ol></article>
+          <article><span>60 min</span><h3>検索を完全に追う</h3><ol><li><code>src/server.ts</code> の createServer</li><li><code>src/tools/jpLitSearch.ts</code></li><li><code>src/lib/persistence/runCachedTool.ts</code></li><li><code>src/sources/ndlSearch/adapter.ts</code></li><li>同 directory の mapper / parser</li></ol></article>
+          <article><span>BUILD</span><h3>機能追加に入る</h3><ol><li>近い adapter とその test</li><li><code>src/lib/schemas.ts</code></li><li><code>src/server.ts</code> の tool registration</li><li><code>tests/smokeMcp.test.ts</code></li></ol></article>
+        </div>
+        <div class="closing"><p>理解の目印は、ファイル名を覚えることではない。</p><h2>「どの境界の変更か」を<br>言えるようになること。</h2><a href="#top">先頭へ戻る ↑</a></div>
+      </section>
+    </main>
+  </div>
+  <footer><span>jp-lit-mcp / architecture field guide</span><span>実装に基づく解説 — 2026.07</span></footer>
+</body>
+</html>
