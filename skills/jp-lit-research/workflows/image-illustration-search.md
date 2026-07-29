@@ -13,7 +13,7 @@
 
 | 目的 | ツール / source |
 |------|---------------|
-| デジコレ全資料の図版をキーワード検索 | `jp_lit_search_illustrations` |
+| 次世代デジタルライブラリー収録資料の図版をキーワード検索 | `jp_lit_search_illustrations` |
 | 国書DBの画像タグを検索 | `jp_lit_search_kokusho_image_tags` |
 | 図版を含む資料ページの画像 URL | `jp_lit_get_text_coordinates` |
 | 美術・文化財・博物館資料 | `jp_lit_search(source=japan_search)` |

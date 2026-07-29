@@ -224,6 +224,50 @@ describe("jp-lit-research skill guide", () => {
     );
   });
 
+  it("requires explicit browser permission for Digital Collections coverage", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const workflow = readFileSync(
+      "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+      "utf8"
+    );
+    const failureModes = readFileSync(
+      "skills/jp-lit-research/heuristics/failure-modes.md",
+      "utf8"
+    );
+    const imageWorkflow = readFileSync(
+      "skills/jp-lit-research/workflows/image-illustration-search.md",
+      "utf8"
+    );
+    const readme = readFileSync("README.md", "utf8");
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const reference = readFileSync("docs/reference.md", "utf8");
+    expect(skill).toContain(
+      "デジコレ公式画面のブラウザ操作は既定では行わない"
+    );
+    expect(skill).toContain("未ログイン検索");
+    expect(skill).toContain("ログイン済み Chrome");
+    expect(skill).toContain("別の権限");
+    expect(skill).toContain("無断で切り替えない");
+    expect(skill).toContain("MCP の検索件数で決めない");
+    expect(workflow).toContain("MCP の検索件数にかかわらず");
+    expect(workflow).toContain("既定は MCP のみ");
+    expect(workflow).toContain("ログイン済み Chrome は別の権限");
+    expect(workflow).toContain("公開・文書化 API");
+    expect(workflow).toContain("全件収集");
+    expect(workflow).toContain("検索と閲覧");
+    expect(workflow).toContain("人間が認証した事実だけでは");
+    expect(workflow).toContain("本文: アクセス制限");
+    expect(workflow).not.toContain("インターネット公開済み、available 確認不要");
+    expect(imageWorkflow).not.toContain("デジコレ全資料");
+    expect(failureModes).toContain("0 件の場合だけ");
+    expect(failureModes).toContain("MCP の検索件数にかかわらず");
+    expect(readme).toContain("ブラウザ操作は明示的に許可");
+    expect(usageGuide).toContain("未ログイン検索のみ");
+    expect(usageGuide).toContain("ログイン済み Chrome も使用可");
+    expect(reference).toContain("公開・文書化 API");
+    expect(reference).toContain("安定した全件収集");
+  });
+
   it("documents rolling checkpoints and environment-neutral delegation contracts", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     const workflowCore = readFileSync(
