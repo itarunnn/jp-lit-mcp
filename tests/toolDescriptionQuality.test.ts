@@ -40,13 +40,14 @@ const priorityTools = [
 ];
 
 describe("tool definition quality", () => {
-  it("jp_lit_search は発掘調査報告書を irdb へ案内する", async () => {
+  it("jp_lit_search は発掘調査報告書を irdb、ndl_search、ndl_catalog の順に案内する", async () => {
     const tools = await listPublishedTools();
     const description =
       tools.find((tool) => tool.name === "jp_lit_search")?.description ?? "";
 
-    expect(description).toContain("発掘調査報告書");
-    expect(description).toContain("irdb");
+    expect(description).toContain(
+      "「発掘調査報告書/遺跡/埋蔵文化財/出土遺物」→まずirdb、NDL Search横断確認はndl_search、NDL所蔵確認はndl_catalog"
+    );
   });
 
   it("全28 toolが副作用と外部到達性をannotationsで公開する", async () => {

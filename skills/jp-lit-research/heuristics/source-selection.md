@@ -80,7 +80,7 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 
 | ドメイン | 判定の手がかり | 積極的に使う source |
 |---------|--------------|-------------------|
-| 国文学・日本語学・歴史・民俗・考古 | 固有名詞が古典的、時代名・地域名が含まれる | `nihu_bridge`（必須）+ `ndl_digital` + `nijl_articles`（国文学論文）+ `kokusho`（古典籍）+ `ninjal_bibliography`（日本語研究）+ `japan_search`（物質文化・地域資料が含まれる場合）|
+| 国文学・日本語学・歴史・民俗 | 固有名詞が古典的、時代名・地域名が含まれる | `nihu_bridge`（必須）+ `ndl_digital` + `nijl_articles`（国文学論文）+ `kokusho`（古典籍）+ `ninjal_bibliography`（日本語研究）+ `japan_search`（物質文化・地域資料が含まれる場合）|
 | 社会科学・統計・調査データ | 「調査」「統計」「データ」「アンケート」 | `jdcat` を追加 |
 | 理工系・医学系 | 英語混じり、数値・実験の記述 | `jstage_articles` を優先 |
 | 紀要・学位論文・報告書 | 「修士論文」「紀要」「研究報告」 | `irdb` を優先 |

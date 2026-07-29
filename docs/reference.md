@@ -125,12 +125,14 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 | `cinii_books` | `holding_count`, `holdings[]` |
 | `jstage_articles` | `pdf_url`, `article_url` |
 | `irdb` search | `source_uri`, `repository_name`, `language`, `record_updated_at`, `journal_issn`, `journal_volume`, `journal_number`, `starting_page`, `ending_page`, `sitereports` |
-| `irdb` detail | 上記に加え `file_urls`, `sitereports.record_id`, `sitereports.record_url`, `sitereports.doi` |
+| `irdb` detail | `irname`, `source_uri`, `repository_name`, `publication_type`, `resource_type`, `record_updated_at`, `journal_issn`, `journal_ncid`, `journal_volume`, `journal_number`, `starting_page`, `ending_page`, `file_url`, `file_urls`, `file_mime_type`, `sitereports.record_id`, `sitereports.record_url`, `sitereports.doi` |
 | `nijl_articles` | `nijl_article_id`, `volume`, `serial_number`, `period_classification`, `field`, `nijl_call_number`, `opac_url`, `raw_fields` |
 | `kokusho` | `bid`, `wid`, `record_kind`, `work_title`, `collection`, `call_number`, `kansha`, `volumes`, `has_images`, `manifest_url`, `license_url`, `shubetsu` |
 | `ninjal_bibliography` | `bibliography_id`, `db_kind`, `library_call_number`, `volume`, `pages`, `keywords`, `fields`, `fulltext_links`, `raw_fields` |
 | `kokkai_minutes` / `teikoku_minutes` | 会議・発言単位の識別情報 |
 | `national_archives` / `jacar` | `hierarchy`, `call_number`, `holding_institution`, `creator`, `image_count`, `has_images`, `access_restriction`, `raw_csv`。`jacar` には `reference_code` も入る |
+
+`irdb` search の言語は `source_metadata.language` に入ります。`irdb` detail の言語はトップレベルの `RecordItem.language` に入り、`source_metadata` には重複して保持しません。
 
 ## MCP ツール
 
