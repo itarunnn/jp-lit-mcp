@@ -7,6 +7,7 @@ import {
   deriveSitereportsReference,
   normalizeProvenanceUrl
 } from "./sitereports.js";
+import { normalizeIrdbRecordUrl } from "./recordUrl.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -102,7 +103,11 @@ function toAuthors(value: unknown) {
 }
 
 function mapIrdbEntry(entry: XmlObject): SearchItem {
-  const url = readString(asRecord(entry.link)?.["@_href"] ?? entry.link) ?? readString(entry.id);
+  const url =
+    normalizeIrdbRecordUrl(
+      readString(asRecord(entry.link)?.["@_href"] ?? entry.link)
+    ) ??
+    normalizeIrdbRecordUrl(readString(entry.id));
   const sourceUri = readString(entry.URI);
   const summary = readString(entry.content);
   const materialType = readString(entry.category);

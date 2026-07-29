@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <opensearch:totalResults>7</opensearch:totalResults>
+  <entry>
+    <title>valid record URL</title>
+    <link href="https://irdb.nii.ac.jp/01242/0007332690"/>
+  </entry>
+  <entry>
+    <title>unsafe schemes</title>
+    <link href="javascript:alert(1)"/>
+    <id>data:text/html,unsafe</id>
+  </entry>
+  <entry>
+    <title>credentials</title>
+    <link href="https://user:secret@irdb.nii.ac.jp/01242/0007332691"/>
+    <id>https://user:secret@irdb.nii.ac.jp/01242/0007332691</id>
+  </entry>
+  <entry>
+    <title>relative URLs</title>
+    <link href="//attacker.example/record"/>
+    <id>/01242/0007332692</id>
+  </entry>
+  <entry>
+    <title>external and malformed URLs</title>
+    <link href="https://attacker.example/record"/>
+    <id>not a valid URL</id>
+  </entry>
+  <entry>
+    <title>official HTTP URL</title>
+    <link href="http://irdb.nii.ac.jp/01242/0007332693"/>
+  </entry>
+  <entry>
+    <title>safe id fallback</title>
+    <link href="javascript:alert(2)"/>
+    <id>https://irdb.nii.ac.jp/01242/0007332694</id>
+  </entry>
+</feed>

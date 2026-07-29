@@ -127,6 +127,12 @@ OpenSearch Atom の検索結果では、次を `source_metadata` に保持する
 だけを公開する。`javascript:`、`data:`、relative URL、malformed URL は
 `source_uri` や `sitereports` に昇格させない。
 
+検索結果のトップレベル `url` / `source_id` は、credentials と非標準 port
+を含まない `irdb.nii.ac.jp` の record URL だけを採用する。`link` が不正でも
+`id` が有効なら `id` を使い、HTTP は HTTPS に正規化する。詳細取得では同じ
+`source_id` 形式を検証し、absolute URL や protocol-relative URL による
+`detailBaseUrl` の origin 上書きを fetch 前に拒否する。
+
 ### detail
 
 詳細画面では、次を `source_metadata` に保持する。search と同じ値を

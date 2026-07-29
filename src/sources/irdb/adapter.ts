@@ -2,6 +2,7 @@ import { fetchText, UpstreamHttpError } from "../../lib/http.js";
 import type { SourceAdapter } from "../types.js";
 import { mapIrdbRecordResponse } from "./mapRecord.js";
 import { mapIrdbSearchResponse } from "./mapSearch.js";
+import { resolveIrdbRecordUrl } from "./recordUrl.js";
 
 const DEFAULT_SEARCH_BASE_URL = "https://irdb.nii.ac.jp/opensearch/search";
 const DEFAULT_DETAIL_BASE_URL = "https://irdb.nii.ac.jp";
@@ -9,14 +10,6 @@ const DEFAULT_DETAIL_BASE_URL = "https://irdb.nii.ac.jp";
 interface IrdbAdapterOptions {
   searchBaseUrl?: string;
   detailBaseUrl?: string;
-}
-
-function normalizeSourceUrl(baseUrl: string, sourceId: string) {
-  try {
-    return new URL(sourceId, baseUrl).toString();
-  } catch {
-    return sourceId;
-  }
 }
 
 function resolveCount(limit: number) {
@@ -79,7 +72,7 @@ export function createIrdbAdapter(
     async getRecord(sourceId) {
       try {
         const payload = await fetchText(
-          normalizeSourceUrl(detailBaseUrl, sourceId)
+          resolveIrdbRecordUrl(detailBaseUrl, sourceId)
         );
 
         return mapIrdbRecordResponse(sourceId, payload.text);

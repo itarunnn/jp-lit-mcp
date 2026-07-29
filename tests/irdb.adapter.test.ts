@@ -109,6 +109,35 @@ describe("IRDB mappers", () => {
     }
   });
 
+  it("IRDB Atom の record URL は公式 origin の安全な URL だけを公開する", async () => {
+    const xml = readFixture("search-unsafe-record-url-response.xml");
+    const { mapIrdbSearchResponse } = await import("../src/sources/irdb/mapSearch.js");
+
+    const result = mapIrdbSearchResponse(xml);
+
+    expect(result.items.map((item) => ({
+      source_id: item.source_id,
+      url: item.url
+    }))).toEqual([
+      {
+        source_id: "/01242/0007332690",
+        url: "https://irdb.nii.ac.jp/01242/0007332690"
+      },
+      { source_id: "missing-irdb-id", url: null },
+      { source_id: "missing-irdb-id", url: null },
+      { source_id: "missing-irdb-id", url: null },
+      { source_id: "missing-irdb-id", url: null },
+      {
+        source_id: "/01242/0007332693",
+        url: "https://irdb.nii.ac.jp/01242/0007332693"
+      },
+      {
+        source_id: "/01242/0007332694",
+        url: "https://irdb.nii.ac.jp/01242/0007332694"
+      }
+    ]);
+  });
+
   it("IRDB 詳細 HTML を共通 RecordItem に正規化する", async () => {
     const html = readFixture("record-response.html");
     const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
@@ -374,7 +403,66 @@ describe("createIrdbAdapter", () => {
     const { createIrdbAdapter } = await import("../src/sources/irdb/adapter.js");
     const adapter = createIrdbAdapter();
 
-    await expect(adapter.getRecord("/missing")).resolves.toBeNull();
+    await expect(adapter.getRecord("/missing/record")).resolves.toBeNull();
+  });
+
+  it("IRDB 詳細取得は origin を上書きする source_id を fetch 前に拒否する", async () => {
+    const recordFixture = readFixture("record-response.html");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === "content-type"
+            ? "text/html; charset=utf-8"
+            : null
+      },
+      text: async () => recordFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createIrdbAdapter } = await import("../src/sources/irdb/adapter.js");
+    const adapter = createIrdbAdapter();
+    const unsafeSourceIds = [
+      "http://127.0.0.1/internal",
+      "http://169.254.169.254/latest/meta-data",
+      "https://attacker.example/record",
+      "//attacker.example/record",
+      "https://user:secret@irdb.nii.ac.jp/01242/0007332690"
+    ];
+
+    for (const sourceId of unsafeSourceIds) {
+      await expect(adapter.getRecord(sourceId)).rejects.toThrow(
+        /source_id 形式が不正/
+      );
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("IRDB 詳細取得は custom detailBaseUrl と同一 origin の record path を使う", async () => {
+    const recordFixture = readFixture("record-response.html");
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === "content-type"
+            ? "text/html; charset=utf-8"
+            : null
+      },
+      text: async () => recordFixture
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    const { createIrdbAdapter } = await import("../src/sources/irdb/adapter.js");
+    const adapter = createIrdbAdapter({
+      detailBaseUrl: "https://irdb.test/base/"
+    });
+
+    await adapter.getRecord("/01242/0007332690");
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "https://irdb.test/01242/0007332690"
+    );
   });
 
   it("filters.irdb.fulltext=true のとき URL に fulltext=1 が付く", async () => {
