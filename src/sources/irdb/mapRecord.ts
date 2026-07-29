@@ -3,7 +3,7 @@ import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import type { PersonRole, RecordItem } from "../../lib/types.js";
 import {
   deriveSitereportsReference,
-  normalizeSitereportsUrl
+  normalizeProvenanceUrl
 } from "./sitereports.js";
 
 type MetaMap = Map<string, string[]>;
@@ -133,33 +133,10 @@ function extractLabeledLink(html: string | null, label: string) {
   return value ? decodeHtmlEntities(value).trim() : null;
 }
 
-function normalizeAbsoluteHttpUrl(value: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(decodeHtmlEntities(value).trim());
-    if (
-      !["http:", "https:"].includes(parsed.protocol) ||
-      parsed.username ||
-      parsed.password
-    ) {
-      return null;
-    }
-
-    const normalized = normalizeSitereportsUrl(parsed.toString());
-    if (!normalized) {
-      return null;
-    }
-
-    const normalizedUrl = new URL(normalized);
-    return ["http:", "https:"].includes(normalizedUrl.protocol)
-      ? normalizedUrl.toString().replace(/\/$/, "")
-      : null;
-  } catch {
-    return null;
-  }
+function normalizeHtmlUrl(value: string | null) {
+  return normalizeProvenanceUrl(
+    value ? decodeHtmlEntities(value).trim() : null
+  );
 }
 
 function isDoiUrl(value: string) {
@@ -172,7 +149,7 @@ function isDoiUrl(value: string) {
 }
 
 function extractIdentifierUri(identifierHtml: string | null) {
-  const labeledUri = normalizeAbsoluteHttpUrl(
+  const labeledUri = normalizeHtmlUrl(
     extractLabeledLink(identifierHtml, "URI")
   );
   if (labeledUri) {
@@ -180,7 +157,7 @@ function extractIdentifierUri(identifierHtml: string | null) {
   }
 
   const links = extractLinks(identifierHtml)
-    .map((value) => normalizeAbsoluteHttpUrl(value))
+    .map((value) => normalizeHtmlUrl(value))
     .filter((value): value is string => value !== null);
 
   return (
@@ -204,10 +181,10 @@ function extractDoi(identifierHtml: string | null) {
     return null;
   }
 
-  const doiUrl = normalizeAbsoluteHttpUrl(
+  const doiUrl = normalizeHtmlUrl(
     extractLabeledLink(identifierHtml, "DOI")
   ) ?? extractLinks(identifierHtml)
-    .map((value) => normalizeAbsoluteHttpUrl(value))
+    .map((value) => normalizeHtmlUrl(value))
     .find((value): value is string => value !== null && isDoiUrl(value));
   if (!doiUrl || !isDoiUrl(doiUrl)) {
     return null;
@@ -313,8 +290,9 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     cleanText(dateRow);
   const normalizedSourceUri = extractIdentifierUri(identifierRow);
   const doi = extractDoi(identifierRow);
+  const hdl = normalizeHtmlUrl(extractLabeledLink(identifierRow, "HDL"));
   const fileUrls = extractLinks(fileRow)
-    .map((value) => normalizeAbsoluteHttpUrl(value))
+    .map((value) => normalizeHtmlUrl(value))
     .filter((value): value is string => value !== null);
   const sitereports = deriveSitereportsReference(normalizedSourceUri, doi);
   const fileMimeType = extractFileMimeType(fileRow);
@@ -328,7 +306,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
   const volume = extractLabeledValue(journalRow, "巻");
   const number = extractLabeledValue(journalRow, "号");
   const url =
-    normalizeAbsoluteHttpUrl(first(meta, "og:url")) ??
+    normalizeHtmlUrl(first(meta, "og:url")) ??
     `https://irdb.nii.ac.jp${sourceId}`;
 
   return {
@@ -364,6 +342,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     identifiers: {
       ...(normalizedSourceUri ? { uri: normalizedSourceUri } : {}),
       ...(doi ? { doi } : {}),
+      ...(hdl ? { hdl } : {}),
       ...(journalIssn ? { pissn: journalIssn } : {}),
       ...(journalNcid ? { ncid: journalNcid } : {})
     },
@@ -374,7 +353,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
       viewer_url:
         fileUrls[0] ??
         normalizedSourceUri ??
-        normalizeAbsoluteHttpUrl(url),
+        normalizeHtmlUrl(url),
       access_note: fileMimeType
     },
     source_metadata: {

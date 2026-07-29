@@ -23,9 +23,30 @@ export function normalizeSitereportsUrl(value: string | null): string | null {
       return null;
     }
     url.protocol = "https:";
-    return url.toString().replace(/\/$/, "");
+    return url.toString();
   } catch {
     return value;
+  }
+}
+
+export function normalizeProvenanceUrl(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password
+    ) {
+      return null;
+    }
+
+    return normalizeSitereportsUrl(url.toString());
+  } catch {
+    return null;
   }
 }
 

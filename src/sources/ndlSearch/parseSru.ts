@@ -309,9 +309,9 @@ function projectRecord(record: JsonRecord): JsonRecord | null {
   return {
     id: sourceId,
     summary:
-      bib["dcterms:abstract"] ??
-      bib["dcterms:description"] ??
-      bib["dc:description"] ??
+      readNdlSearchString(bib["dcterms:abstract"]) ??
+      readNdlSearchString(bib["dcterms:description"]) ??
+      readNdlSearchString(bib["dc:description"]) ??
       null,
     repositoryNo: extractRepositoryNo(sourceId),
     ciniiCrid: extractCiniiCrid(allLinks),

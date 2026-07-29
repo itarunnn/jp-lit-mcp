@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <opensearch:totalResults>6</opensearch:totalResults>
+  <entry>
+    <title>valid provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/valid"/>
+    <URI>https://example.test/record?next=/#metadata/</URI>
+  </entry>
+  <entry>
+    <title>javascript provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/javascript"/>
+    <URI>javascript:alert(1)</URI>
+  </entry>
+  <entry>
+    <title>data provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/data"/>
+    <URI>data:text/html,unsafe</URI>
+  </entry>
+  <entry>
+    <title>credential provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/credentials"/>
+    <URI>https://user:secret@example.test/record</URI>
+  </entry>
+  <entry>
+    <title>relative provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/relative"/>
+    <URI>/relative/record</URI>
+  </entry>
+  <entry>
+    <title>malformed provenance</title>
+    <link href="https://irdb.nii.ac.jp/example/malformed"/>
+    <URI>not a valid URL</URI>
+  </entry>
+</feed>

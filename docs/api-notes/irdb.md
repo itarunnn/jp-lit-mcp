@@ -106,13 +106,37 @@
 - `content="application/pdf"` のように、抄録ではなくファイル種別が入るケースがある。
 - `author` / `contributor` / 多言語表記の扱いは正規化ルールを決める必要がある。
 
-## source_metadata の候補
+## search / detail の公開契約
 
-- `irname`
+### search
+
+OpenSearch Atom の検索結果では、次を `source_metadata` に保持する。
+
 - `source_uri`
 - `repository_name`
-- `resource_type`
+- `language`
+- `record_updated_at`
+- `journal_issn`
+- `journal_volume`
+- `journal_number`
+- `starting_page`
+- `ending_page`
+- `sitereports`
+
+`source_uri` は、credentials を含まない absolute `http:` / `https:` URL
+だけを公開する。`javascript:`、`data:`、relative URL、malformed URL は
+`source_uri` や `sitereports` に昇格させない。
+
+### detail
+
+詳細画面では、次を `source_metadata` に保持する。search と同じ値を
+一律に引き継ぐわけではなく、詳細 HTML から確認できた項目を返す。
+
+- `irname`
+- `repository_name`
+- `source_uri`
 - `publication_type`
+- `resource_type`
 - `journal_issn`
 - `journal_ncid`
 - `journal_volume`
@@ -120,8 +144,36 @@
 - `starting_page`
 - `ending_page`
 - `file_url`
+- `file_urls`
 - `file_mime_type`
 - `record_updated_at`
+- `sitereports`
+
+`file_urls` は、詳細画面が返した file link のうち、credentials を含まない
+absolute `http:` / `https:` URL の配列である。`file_url` はその先頭要素を
+後方互換用に残す。query と fragment は HTML entity を復号した後も変更しない。
+不採用 link を含む元 HTML は `raw.sections.file` で確認できる。
+
+`identifiers` は typed label ごとに保持する。
+
+- `identifiers.uri`: `URI` label の原機関 URL
+- `identifiers.hdl`: `HDL` label の Handle URL
+- `identifiers.doi`: `DOI` label の DOI 値
+
+DOI、HDL、URI が同じ row にある場合も、いずれかで置き換えず同時に返す。
+
+### 全国文化財総覧参照
+
+`source_uri` が exact host `sitereports.nabunken.go.jp` の numeric root path
+を指す場合だけ、`source_metadata.sitereports` を追加する。
+
+- `record_id`
+- `record_url`
+- `doi`
+
+`record_url` は HTTPS の canonical record URL とし、入力 URL の query /
+fragment は付けない。subdomain suffix、credentials、非標準 port、nested path
+は公式 record とみなさない。
 
 ## 初版でやらないこと
 

@@ -1313,6 +1313,63 @@ describe("createNdlSearchAdapter", () => {
     });
   });
 
+  it("空の dcterms:abstract があっても dcterms:description を summary に使う", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+    <numberOfRecords>1</numberOfRecords>
+    <records><record><recordData>
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+               xmlns:dcterms="http://purl.org/dc/terms/"
+               xmlns:dcndl="http://ndl.go.jp/dcndl/terms/">
+        <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000025-IEMPTY">
+          <dcterms:title>空 abstract の資料</dcterms:title>
+          <dcterms:abstract/>
+          <dcterms:description>fallback する摘要。</dcterms:description>
+        </dcndl:BibResource>
+      </rdf:RDF>
+    </recordData></record></records>
+  </searchRetrieveResponse>`;
+    const { projectNdlSruSearchResponse } = await import(
+      "../src/sources/ndlSearch/parseSru.js"
+    );
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse(projectNdlSruSearchResponse(xml));
+
+    expect(result.items[0]?.summary).toBe("fallback する摘要。");
+  });
+
+  it("属性付き whitespace-only abstract でも dc:description を summary に使う", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+    <numberOfRecords>1</numberOfRecords>
+    <records><record><recordData>
+      <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+               xmlns:dc="http://purl.org/dc/elements/1.1/"
+               xmlns:dcterms="http://purl.org/dc/terms/"
+               xmlns:dcndl="http://ndl.go.jp/dcndl/terms/">
+        <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000025-IWHITESPACE">
+          <dcterms:title>属性付き abstract の資料</dcterms:title>
+          <dcterms:abstract xml:lang="ja">   </dcterms:abstract>
+          <dc:description>dc fallback の摘要。</dc:description>
+        </dcndl:BibResource>
+      </rdf:RDF>
+    </recordData></record></records>
+  </searchRetrieveResponse>`;
+    const { projectNdlSruSearchResponse } = await import(
+      "../src/sources/ndlSearch/parseSru.js"
+    );
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse(projectNdlSruSearchResponse(xml));
+
+    expect(result.items[0]?.summary).toBe("dc fallback の摘要。");
+  });
+
   it("SRU 検索結果に dcterms:tableOfContents がある場合 SearchItem.table_of_contents に反映される", async () => {
     const xml = readSruFixture("search-toc.xml");
     const { projectNdlSruSearchResponse } = await import(

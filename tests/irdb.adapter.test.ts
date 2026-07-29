@@ -88,6 +88,27 @@ describe("IRDB mappers", () => {
     });
   });
 
+  it("IRDB Atom の provenance は安全な absolute HTTP(S) URL だけを公開する", async () => {
+    const xml = readFixture("search-unsafe-uri-response.xml");
+    const { mapIrdbSearchResponse } = await import("../src/sources/irdb/mapSearch.js");
+
+    const result = mapIrdbSearchResponse(xml);
+
+    expect(result.items.map((item) => item.source_metadata)).toEqual([
+      expect.objectContaining({
+        source_uri: "https://example.test/record?next=/#metadata/"
+      }),
+      expect.objectContaining({ source_uri: null }),
+      expect.objectContaining({ source_uri: null }),
+      expect.objectContaining({ source_uri: null }),
+      expect.objectContaining({ source_uri: null }),
+      expect.objectContaining({ source_uri: null })
+    ]);
+    for (const item of result.items) {
+      expect(item.source_metadata).not.toHaveProperty("sitereports");
+    }
+  });
+
   it("IRDB 詳細 HTML を共通 RecordItem に正規化する", async () => {
     const html = readFixture("record-response.html");
     const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
@@ -114,6 +135,7 @@ describe("IRDB mappers", () => {
       material_type: "departmental bulletin paper",
       identifiers: {
         uri: "https://kumadai.repo.nii.ac.jp/records/2001355",
+        hdl: "http://hdl.handle.net/2298/0002001355",
         pissn: "1348-530X",
         ncid: "AA11837081"
       },
@@ -181,7 +203,8 @@ describe("IRDB mappers", () => {
       subjects: ["縄文", "石器"],
       identifiers: {
         uri: "https://sitereports.nabunken.go.jp/12345",
-        doi: "10.24484/sitereports.12345"
+        doi: "10.24484/sitereports.12345",
+        hdl: "https://hdl.handle.net/20.500.00000/12345"
       },
       content_access: {
         viewer_url: "https://sitereports.nabunken.go.jp/files/12345_1.pdf"
@@ -215,7 +238,8 @@ describe("IRDB mappers", () => {
         </td></tr>
         <tr><th>ファイル</th><td><ul>
           <li><a href="javascript:alert(1)">unsafe script</a></li>
-          <li><a href="https://example.test/download?first=1&amp;second=2">safe file</a></li>
+          <li><a href="https://example.test/download?first=1&amp;next=/">safe query file</a></li>
+          <li><a href="https://example.test/report.pdf#section/">safe fragment file</a></li>
           <li><a href="file:///tmp/report.pdf">local file</a></li>
           <li><a href="/relative/report.pdf">relative file</a></li>
         </ul></td></tr>
@@ -226,11 +250,14 @@ describe("IRDB mappers", () => {
     const record = mapIrdbRecordResponse("/example/links", html);
 
     expect(record.content_access.viewer_url).toBe(
-      "https://example.test/download?first=1&second=2"
+      "https://example.test/download?first=1&next=/"
     );
     expect(record.source_metadata).toMatchObject({
-      file_url: "https://example.test/download?first=1&second=2",
-      file_urls: ["https://example.test/download?first=1&second=2"]
+      file_url: "https://example.test/download?first=1&next=/",
+      file_urls: [
+        "https://example.test/download?first=1&next=/",
+        "https://example.test/report.pdf#section/"
+      ]
     });
     expect(record.raw).toMatchObject({
       sections: {
@@ -249,6 +276,11 @@ describe("IRDB 全国文化財総覧 URL helpers", () => {
 
     expect(normalizeSitereportsUrl("http://sitereports.nabunken.go.jp/12345"))
       .toBe("https://sitereports.nabunken.go.jp/12345");
+    expect(normalizeSitereportsUrl(
+      "http://sitereports.nabunken.go.jp/12345?next=/#metadata/"
+    )).toBe(
+      "https://sitereports.nabunken.go.jp/12345?next=/#metadata/"
+    );
     expect(deriveSitereportsReference(
       "https://sitereports.nabunken.go.jp/12345?lang=ja#metadata"
     )).toEqual({

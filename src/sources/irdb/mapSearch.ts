@@ -5,7 +5,7 @@ import { parseXml, type XmlObject } from "../../lib/xml.js";
 import type { SearchResult } from "../types.js";
 import {
   deriveSitereportsReference,
-  normalizeSitereportsUrl
+  normalizeProvenanceUrl
 } from "./sitereports.js";
 
 type JsonRecord = Record<string, unknown>;
@@ -106,7 +106,7 @@ function mapIrdbEntry(entry: XmlObject): SearchItem {
   const sourceUri = readString(entry.URI);
   const summary = readString(entry.content);
   const materialType = readString(entry.category);
-  const normalizedSourceUri = normalizeSitereportsUrl(sourceUri);
+  const normalizedSourceUri = normalizeProvenanceUrl(sourceUri);
   const repositoryName = readString(entry.irname);
   const sitereports = deriveSitereportsReference(normalizedSourceUri);
   const language = readString(entry.language);
