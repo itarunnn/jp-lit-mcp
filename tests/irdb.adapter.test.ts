@@ -37,6 +37,17 @@ describe("IRDB mappers", () => {
         issued_at_precision: "day",
         summary: "In this paper, Sayoko, Itoko, and Fujio are reread as Oriental \"water women\".",
         url: "https://irdb.nii.ac.jp/01242/0007332690",
+        source_metadata: {
+          source_uri: "https://kumadai.repo.nii.ac.jp/records/2001355",
+          repository_name: "熊本大学",
+          language: "jpn",
+          record_updated_at: "2026-04-10",
+          journal_issn: "1348-530X",
+          journal_volume: "24",
+          journal_number: null,
+          starting_page: "210",
+          ending_page: "191"
+        },
         availability: {
           online: true,
           digital_collection: false
@@ -49,6 +60,32 @@ describe("IRDB mappers", () => {
         related_records: []
       }
     ]);
+  });
+
+  it("全国文化財総覧由来の IRDB Atom で provenance と公式 record URL を保持する", async () => {
+    const xml = readFixture("search-sitereports-response.xml");
+    const { mapIrdbSearchResponse } = await import("../src/sources/irdb/mapSearch.js");
+
+    const result = mapIrdbSearchResponse(xml);
+
+    expect(result.items[0]).toMatchObject({
+      source: "irdb",
+      source_id: "/01144/0000000001",
+      summary: "縄文時代の竪穴建物と石器を確認した。",
+      subjects: ["縄文", "石器"],
+      source_metadata: {
+        source_uri: "https://sitereports.nabunken.go.jp/12345",
+        repository_name: "奈良文化財研究所",
+        language: "jpn",
+        record_updated_at: "2025-04-01",
+        journal_volume: "12",
+        sitereports: {
+          record_id: "12345",
+          record_url: "https://sitereports.nabunken.go.jp/12345",
+          doi: null
+        }
+      }
+    });
   });
 
   it("IRDB 詳細 HTML を共通 RecordItem に正規化する", async () => {

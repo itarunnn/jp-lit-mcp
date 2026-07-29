@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+      xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/"
+      xml:lang="ja">
+  <opensearch:totalResults>1</opensearch:totalResults>
+  <entry>
+    <title>架空谷遺跡発掘調査報告書</title>
+    <link href="https://irdb.nii.ac.jp/01144/0000000001"/>
+    <id>https://irdb.nii.ac.jp/01144/0000000001</id>
+    <author><name>架空市教育委員会</name></author>
+    <language>jpn</language>
+    <publisher>架空市教育委員会</publisher>
+    <URI>http://sitereports.nabunken.go.jp/12345</URI>
+    <irname>奈良文化財研究所</irname>
+    <subject>縄文</subject>
+    <subject>石器</subject>
+    <prism:publicationName>架空市埋蔵文化財調査報告書</prism:publicationName>
+    <prism:volume>12</prism:volume>
+    <prism:publicationDate>2024-03-31</prism:publicationDate>
+    <content type="text">縄文時代の竪穴建物と石器を確認した。</content>
+    <updated>2025-04-01</updated>
+  </entry>
+</feed>

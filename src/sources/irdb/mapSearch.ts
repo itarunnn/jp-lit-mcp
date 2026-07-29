@@ -3,6 +3,10 @@ import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import type { SearchItem } from "../../lib/types.js";
 import { parseXml, type XmlObject } from "../../lib/xml.js";
 import type { SearchResult } from "../types.js";
+import {
+  deriveSitereportsReference,
+  normalizeSitereportsUrl
+} from "./sitereports.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -102,6 +106,16 @@ function mapIrdbEntry(entry: XmlObject): SearchItem {
   const sourceUri = readString(entry.URI);
   const summary = readString(entry.content);
   const materialType = readString(entry.category);
+  const normalizedSourceUri = normalizeSitereportsUrl(sourceUri);
+  const repositoryName = readString(entry.irname);
+  const sitereports = deriveSitereportsReference(normalizedSourceUri);
+  const language = readString(entry.language);
+  const recordUpdatedAt = readString(entry.updated);
+  const journalIssn = readString(entry["prism:issn"]);
+  const journalVolume = readString(entry["prism:volume"]);
+  const journalNumber = readString(entry["prism:number"]);
+  const startingPage = readString(entry["prism:startingPage"]);
+  const endingPage = readString(entry["prism:endingPage"]);
 
   return {
     source: "irdb",
@@ -116,6 +130,18 @@ function mapIrdbEntry(entry: XmlObject): SearchItem {
     summary:
       summary && summary !== "application/pdf" ? summary : null,
     url,
+    source_metadata: {
+      source_uri: normalizedSourceUri,
+      repository_name: repositoryName,
+      language,
+      record_updated_at: recordUpdatedAt,
+      journal_issn: journalIssn,
+      journal_volume: journalVolume,
+      journal_number: journalNumber,
+      starting_page: startingPage,
+      ending_page: endingPage,
+      ...(sitereports ? { sitereports } : {})
+    },
     availability: {
       online: Boolean(url || sourceUri),
       digital_collection: false
