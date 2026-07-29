@@ -45,8 +45,8 @@
     "skills:install": "node scripts/install-skills.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "fast-xml-parser": "^5.7.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "fast-xml-parser": "^5.10.1",
     "zod": "^3.23.8"
   },
   "engines": {
