@@ -1,6 +1,10 @@
 import { normalizeIssuedAt } from "../../lib/date.js";
 import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import type { PersonRole, RecordItem } from "../../lib/types.js";
+import {
+  deriveSitereportsReference,
+  normalizeSitereportsUrl
+} from "./sitereports.js";
 
 type MetaMap = Map<string, string[]>;
 
@@ -103,6 +107,43 @@ function extractFirstLink(html: string | null) {
   return cleanText(html.match(/<a [^>]*href="([^"]+)"/i)?.[1] ?? null);
 }
 
+function removeInlineLabels(html: string | null) {
+  return html?.replace(
+    /<span[^>]*class="[^"]*label-field[^"]*"[^>]*>[\s\S]*?<\/span>/gi,
+    ""
+  ) ?? null;
+}
+
+function extractLinks(html: string | null) {
+  if (!html) {
+    return [];
+  }
+
+  return uniqueStrings(
+    [...html.matchAll(/<a\b[^>]*href="([^"]+)"/gi)].map((match) => match[1])
+  );
+}
+
+function dedupeRepeatedText(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const repeated = value.match(/^(.+?)\s+\1$/u);
+  return repeated?.[1]?.trim() ?? value;
+}
+
+function extractDoi(identifierHtml: string | null) {
+  if (!identifierHtml) {
+    return null;
+  }
+
+  const match = identifierHtml.match(
+    /<span[^>]*>\s*DOI\s*<\/span>[\s\S]*?<a\b[^>]*href="https?:\/\/(?:dx\.)?doi\.org\/([^"]+)"/i
+  );
+  return match?.[1]?.trim().toLowerCase() ?? null;
+}
+
 function extractFileMimeType(html: string | null) {
   if (!html) {
     return null;
@@ -156,6 +197,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
   const titleRow = matchRow(html, "タイトル");
   const creatorsRow = matchRow(html, "作成者");
   const descriptionRow = matchRow(html, "内容注記");
+  const subjectRow = matchRow(html, "主題");
   const publisherRow = matchRow(html, "出版者");
   const dateRow = matchRow(html, "日付");
   const languageRow = matchRow(html, "言語");
@@ -171,14 +213,17 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
   const titleMain = first(meta, "citation_title") ?? extractListItems(titleRow)[0] ?? "Untitled";
   const titleReading = extractLabeledValue(titleRow, "ja-Kana");
   const englishTitle = extractLabeledValue(titleRow, "en");
-  const summaryCandidates = extractListItems(descriptionRow).filter(
-    (value) => value !== "application/pdf"
-  );
+  const descriptionWithoutLabels = removeInlineLabels(descriptionRow);
   const issuedAtLabel =
     extractLabeledValue(dateRow, "Issued") ??
     cleanText(dateRow);
   const sourceUri = extractFirstLink(identifierRow);
-  const fileUrl = extractFirstLink(fileRow);
+  const normalizedSourceUri = normalizeSitereportsUrl(sourceUri);
+  const doi = extractDoi(identifierRow);
+  const fileUrls = extractLinks(fileRow)
+    .map((value) => normalizeSitereportsUrl(value))
+    .filter((value): value is string => value !== null);
+  const sitereports = deriveSitereportsReference(normalizedSourceUri, doi);
   const fileMimeType = extractFileMimeType(fileRow);
   const journalTitle =
     extractLabeledValue(journalRow, "ja") ??
@@ -198,17 +243,14 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     subtitle: null,
     title_reading: titleReading,
     authors: toAuthors(meta, creatorsRow),
-    publisher:
+    publisher: dedupeRepeatedText(
       extractLabeledValue(publisherRow, "ja") ??
       extractLabeledValue(publisherRow, "en") ??
-      cleanText(publisherRow),
+      cleanText(publisherRow)
+    ),
     journal_title: journalTitle,
     ...toIssuedFields(issuedAtLabel),
-    summary:
-      extractLabeledValue(descriptionRow, "ja") ??
-      extractLabeledValue(descriptionRow, "en") ??
-      summaryCandidates[0] ??
-      null,
+    summary: extractListItems(descriptionWithoutLabels)[0] ?? null,
     url,
     availability: {
       online: true,
@@ -223,9 +265,10 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
       number ? `no.${number}` : null,
       startingPage ? `pp.${startingPage}${endingPage ? `-${endingPage}` : ""}` : null
     ]).join(", ") || null,
-    subjects: [],
+    subjects: extractListItems(removeInlineLabels(subjectRow)),
     identifiers: {
-      ...(sourceUri ? { uri: sourceUri } : {}),
+      ...(normalizedSourceUri ? { uri: normalizedSourceUri } : {}),
+      ...(doi ? { doi } : {}),
       ...(journalIssn ? { pissn: journalIssn } : {}),
       ...(journalNcid ? { ncid: journalNcid } : {})
     },
@@ -233,13 +276,13 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     content_access: {
       has_page_images: false,
       has_text_coordinates: false,
-      viewer_url: fileUrl ?? sourceUri ?? url,
+      viewer_url: fileUrls[0] ?? normalizedSourceUri ?? url,
       access_note: fileMimeType
     },
     source_metadata: {
       irname: cleanText(repositoryRow),
       repository_name: cleanText(repositoryRow),
-      source_uri: sourceUri,
+      source_uri: normalizedSourceUri,
       publication_type: cleanText(publicationTypeRow),
       resource_type: cleanText(resourceTypeRow),
       journal_issn: journalIssn,
@@ -248,9 +291,11 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
       journal_number: number,
       starting_page: startingPage,
       ending_page: endingPage,
-      file_url: fileUrl,
+      file_url: fileUrls[0] ?? null,
+      file_urls: fileUrls,
       file_mime_type: fileMimeType,
-      record_updated_at: cleanText(updatedRow)
+      record_updated_at: cleanText(updatedRow),
+      ...(sitereports ? { sitereports } : {})
     },
     raw: {
       meta: Object.fromEntries(meta.entries()),
@@ -258,6 +303,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
         title: titleRow,
         creators: creatorsRow,
         description: descriptionRow,
+        subjects: subjectRow,
         publisher: publisherRow,
         date: dateRow,
         identifiers: identifierRow,

@@ -137,6 +137,40 @@ describe("IRDB mappers", () => {
       record_updated_at: "2026-04-10"
     });
   });
+
+  it("全国文化財総覧由来の IRDB detail で DOI・複数 file・主題を保持し表示ラベルを除く", async () => {
+    const html = readFixture("record-sitereports-response.html");
+    const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
+
+    const record = mapIrdbRecordResponse("/01144/0000000001", html);
+
+    expect(record).toMatchObject({
+      publisher: "架空市教育委員会",
+      summary: "縄文時代の竪穴建物と石器を確認した。",
+      subjects: ["縄文", "石器"],
+      identifiers: {
+        uri: "https://sitereports.nabunken.go.jp/12345",
+        doi: "10.24484/sitereports.12345"
+      },
+      content_access: {
+        viewer_url: "https://sitereports.nabunken.go.jp/files/12345_1.pdf"
+      },
+      source_metadata: {
+        source_uri: "https://sitereports.nabunken.go.jp/12345",
+        file_url: "https://sitereports.nabunken.go.jp/files/12345_1.pdf",
+        file_urls: [
+          "https://sitereports.nabunken.go.jp/files/12345_1.pdf",
+          "https://sitereports.nabunken.go.jp/files/12345_2.pdf",
+          "https://sitereports.nabunken.go.jp/files/12345_3.xlsx"
+        ],
+        sitereports: {
+          record_id: "12345",
+          record_url: "https://sitereports.nabunken.go.jp/12345",
+          doi: "10.24484/sitereports.12345"
+        }
+      }
+    });
+  });
 });
 
 describe("createIrdbAdapter", () => {
