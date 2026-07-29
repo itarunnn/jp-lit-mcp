@@ -99,14 +99,6 @@ function extractLabeledValue(html: string | null, label: string) {
   return cleanText(html.match(pattern)?.[1] ?? null);
 }
 
-function extractFirstLink(html: string | null) {
-  if (!html) {
-    return null;
-  }
-
-  return cleanText(html.match(/<a [^>]*href="([^"]+)"/i)?.[1] ?? null);
-}
-
 function removeInlineLabels(html: string | null) {
   return html?.replace(
     /<span[^>]*class="[^"]*label-field[^"]*"[^>]*>[\s\S]*?<\/span>/gi,
@@ -120,7 +112,81 @@ function extractLinks(html: string | null) {
   }
 
   return uniqueStrings(
-    [...html.matchAll(/<a\b[^>]*href="([^"]+)"/gi)].map((match) => match[1])
+    [...html.matchAll(/<a\b[^>]*href="([^"]+)"/gi)].map((match) =>
+      decodeHtmlEntities(match[1]).trim()
+    )
+  );
+}
+
+function extractLabeledLink(html: string | null, label: string) {
+  if (!html) {
+    return null;
+  }
+
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `<span[^>]*>\\s*${escaped}\\s*<\\/span>\\s*,?\\s*<a\\b[^>]*href="([^"]+)"`,
+    "i"
+  );
+
+  const value = html.match(pattern)?.[1];
+  return value ? decodeHtmlEntities(value).trim() : null;
+}
+
+function normalizeAbsoluteHttpUrl(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(decodeHtmlEntities(value).trim());
+    if (
+      !["http:", "https:"].includes(parsed.protocol) ||
+      parsed.username ||
+      parsed.password
+    ) {
+      return null;
+    }
+
+    const normalized = normalizeSitereportsUrl(parsed.toString());
+    if (!normalized) {
+      return null;
+    }
+
+    const normalizedUrl = new URL(normalized);
+    return ["http:", "https:"].includes(normalizedUrl.protocol)
+      ? normalizedUrl.toString().replace(/\/$/, "")
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDoiUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname === "doi.org" || hostname === "dx.doi.org";
+  } catch {
+    return false;
+  }
+}
+
+function extractIdentifierUri(identifierHtml: string | null) {
+  const labeledUri = normalizeAbsoluteHttpUrl(
+    extractLabeledLink(identifierHtml, "URI")
+  );
+  if (labeledUri) {
+    return labeledUri;
+  }
+
+  const links = extractLinks(identifierHtml)
+    .map((value) => normalizeAbsoluteHttpUrl(value))
+    .filter((value): value is string => value !== null);
+
+  return (
+    links.find((value) => deriveSitereportsReference(value) !== null) ??
+    links.find((value) => !isDoiUrl(value)) ??
+    null
   );
 }
 
@@ -138,10 +204,39 @@ function extractDoi(identifierHtml: string | null) {
     return null;
   }
 
-  const match = identifierHtml.match(
-    /<span[^>]*>\s*DOI\s*<\/span>[\s\S]*?<a\b[^>]*href="https?:\/\/(?:dx\.)?doi\.org\/([^"]+)"/i
+  const doiUrl = normalizeAbsoluteHttpUrl(
+    extractLabeledLink(identifierHtml, "DOI")
+  ) ?? extractLinks(identifierHtml)
+    .map((value) => normalizeAbsoluteHttpUrl(value))
+    .find((value): value is string => value !== null && isDoiUrl(value));
+  if (!doiUrl || !isDoiUrl(doiUrl)) {
+    return null;
+  }
+
+  const doi = new URL(doiUrl).pathname.replace(/^\/+/, "");
+  return doi
+    ? doi.trim().toLowerCase()
+    : null;
+}
+
+function isMimeType(value: string) {
+  return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+(?:\s*;.*)?$/i.test(
+    value.trim()
   );
-  return match?.[1]?.trim().toLowerCase() ?? null;
+}
+
+function selectSummary(descriptionHtml: string | null) {
+  const labeledCandidates = [
+    extractLabeledValue(descriptionHtml, "ja"),
+    extractLabeledValue(descriptionHtml, "en")
+  ];
+  const fallbackCandidates = extractListItems(
+    removeInlineLabels(descriptionHtml)
+  );
+
+  return [...labeledCandidates, ...fallbackCandidates].find(
+    (value): value is string => value !== null && !isMimeType(value)
+  ) ?? null;
 }
 
 function extractFileMimeType(html: string | null) {
@@ -213,15 +308,13 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
   const titleMain = first(meta, "citation_title") ?? extractListItems(titleRow)[0] ?? "Untitled";
   const titleReading = extractLabeledValue(titleRow, "ja-Kana");
   const englishTitle = extractLabeledValue(titleRow, "en");
-  const descriptionWithoutLabels = removeInlineLabels(descriptionRow);
   const issuedAtLabel =
     extractLabeledValue(dateRow, "Issued") ??
     cleanText(dateRow);
-  const sourceUri = extractFirstLink(identifierRow);
-  const normalizedSourceUri = normalizeSitereportsUrl(sourceUri);
+  const normalizedSourceUri = extractIdentifierUri(identifierRow);
   const doi = extractDoi(identifierRow);
   const fileUrls = extractLinks(fileRow)
-    .map((value) => normalizeSitereportsUrl(value))
+    .map((value) => normalizeAbsoluteHttpUrl(value))
     .filter((value): value is string => value !== null);
   const sitereports = deriveSitereportsReference(normalizedSourceUri, doi);
   const fileMimeType = extractFileMimeType(fileRow);
@@ -234,7 +327,9 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
   const endingPage = extractLabeledValue(journalRow, "終了ページ");
   const volume = extractLabeledValue(journalRow, "巻");
   const number = extractLabeledValue(journalRow, "号");
-  const url = first(meta, "og:url") ?? `https://irdb.nii.ac.jp${sourceId}`;
+  const url =
+    normalizeAbsoluteHttpUrl(first(meta, "og:url")) ??
+    `https://irdb.nii.ac.jp${sourceId}`;
 
   return {
     source: "irdb",
@@ -250,7 +345,7 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     ),
     journal_title: journalTitle,
     ...toIssuedFields(issuedAtLabel),
-    summary: extractListItems(descriptionWithoutLabels)[0] ?? null,
+    summary: selectSummary(descriptionRow),
     url,
     availability: {
       online: true,
@@ -276,7 +371,10 @@ export function mapIrdbRecordResponse(sourceId: string, html: string): RecordIte
     content_access: {
       has_page_images: false,
       has_text_coordinates: false,
-      viewer_url: fileUrls[0] ?? normalizedSourceUri ?? url,
+      viewer_url:
+        fileUrls[0] ??
+        normalizedSourceUri ??
+        normalizeAbsoluteHttpUrl(url),
       access_note: fileMimeType
     },
     source_metadata: {

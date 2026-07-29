@@ -14,6 +14,14 @@ export function normalizeSitereportsUrl(value: string | null): string | null {
     if (url.hostname !== "sitereports.nabunken.go.jp") {
       return value;
     }
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.port
+    ) {
+      return null;
+    }
     url.protocol = "https:";
     return url.toString().replace(/\/$/, "");
   } catch {
@@ -32,11 +40,17 @@ export function deriveSitereportsReference(
 
   try {
     const url = new URL(normalized);
-    if (url.hostname !== "sitereports.nabunken.go.jp") {
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "sitereports.nabunken.go.jp" ||
+      url.username ||
+      url.password ||
+      url.port
+    ) {
       return null;
     }
-    const recordId = url.pathname.split("/").filter(Boolean).at(-1);
-    if (!recordId || !/^\d+$/.test(recordId)) {
+    const recordId = url.pathname.match(/^\/(\d+)\/?$/)?.[1];
+    if (!recordId) {
       return null;
     }
     return {

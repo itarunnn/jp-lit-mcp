@@ -113,7 +113,7 @@ describe("IRDB mappers", () => {
       language: "jpn",
       material_type: "departmental bulletin paper",
       identifiers: {
-        uri: "http://hdl.handle.net/2298/0002001355",
+        uri: "https://kumadai.repo.nii.ac.jp/records/2001355",
         pissn: "1348-530X",
         ncid: "AA11837081"
       },
@@ -126,7 +126,7 @@ describe("IRDB mappers", () => {
     });
     expect(record.source_metadata).toMatchObject({
       irname: "熊本大学",
-      source_uri: "http://hdl.handle.net/2298/0002001355",
+      source_uri: "https://kumadai.repo.nii.ac.jp/records/2001355",
       journal_issn: "1348-530X",
       journal_ncid: "AA11837081",
       journal_volume: "24",
@@ -136,6 +136,37 @@ describe("IRDB mappers", () => {
       file_mime_type: "application/pdf",
       record_updated_at: "2026-04-10"
     });
+  });
+
+  it("内容注記が MIME type だけなら summary に採用しない", async () => {
+    const html = `
+      <table>
+        <tr><th>内容注記</th><td><ul>
+          <li><span class="label-field label-field__colon">Other</span>application/pdf</li>
+        </ul></td></tr>
+      </table>
+    `;
+    const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
+
+    const record = mapIrdbRecordResponse("/example/mime-only", html);
+
+    expect(record.summary).toBeNull();
+  });
+
+  it("内容注記は HTML 上で en が先でも ja を優先する", async () => {
+    const html = `
+      <table>
+        <tr><th>内容注記</th><td><ul>
+          <li><span class="label-field label-field__colon">en</span>English abstract.</li>
+          <li><span class="label-field label-field__colon">ja</span>日本語の摘要。</li>
+        </ul></td></tr>
+      </table>
+    `;
+    const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
+
+    const record = mapIrdbRecordResponse("/example/multilingual", html);
+
+    expect(record.summary).toBe("日本語の摘要。");
   });
 
   it("全国文化財総覧由来の IRDB detail で DOI・複数 file・主題を保持し表示ラベルを除く", async () => {
@@ -170,6 +201,75 @@ describe("IRDB mappers", () => {
         }
       }
     });
+  });
+
+  it("file link は HTML entity を復号し absolute HTTP(S) だけを公開する", async () => {
+    const html = `
+      <head>
+        <meta name="og:url" content="https://irdb.nii.ac.jp/example/links">
+      </head>
+      <table>
+        <tr><th>資源識別子</th><td>
+          <span class="label-field label-field__colon">URI</span>
+          <a href="https://example.test/record/1">record</a>
+        </td></tr>
+        <tr><th>ファイル</th><td><ul>
+          <li><a href="javascript:alert(1)">unsafe script</a></li>
+          <li><a href="https://example.test/download?first=1&amp;second=2">safe file</a></li>
+          <li><a href="file:///tmp/report.pdf">local file</a></li>
+          <li><a href="/relative/report.pdf">relative file</a></li>
+        </ul></td></tr>
+      </table>
+    `;
+    const { mapIrdbRecordResponse } = await import("../src/sources/irdb/mapRecord.js");
+
+    const record = mapIrdbRecordResponse("/example/links", html);
+
+    expect(record.content_access.viewer_url).toBe(
+      "https://example.test/download?first=1&second=2"
+    );
+    expect(record.source_metadata).toMatchObject({
+      file_url: "https://example.test/download?first=1&second=2",
+      file_urls: ["https://example.test/download?first=1&second=2"]
+    });
+    expect(record.raw).toMatchObject({
+      sections: {
+        file: expect.stringContaining("javascript:alert(1)")
+      }
+    });
+  });
+});
+
+describe("IRDB 全国文化財総覧 URL helpers", () => {
+  it("exact host の HTTP record URL を HTTPS の公式参照へ変換する", async () => {
+    const {
+      deriveSitereportsReference,
+      normalizeSitereportsUrl
+    } = await import("../src/sources/irdb/sitereports.js");
+
+    expect(normalizeSitereportsUrl("http://sitereports.nabunken.go.jp/12345"))
+      .toBe("https://sitereports.nabunken.go.jp/12345");
+    expect(deriveSitereportsReference(
+      "https://sitereports.nabunken.go.jp/12345?lang=ja#metadata"
+    )).toEqual({
+      record_id: "12345",
+      record_url: "https://sitereports.nabunken.go.jp/12345",
+      doi: null
+    });
+  });
+
+  it.each([
+    "https://sitereports.nabunken.go.jp.evil.test/12345",
+    "javascript://sitereports.nabunken.go.jp/12345",
+    "https://user@sitereports.nabunken.go.jp/12345",
+    "https://sitereports.nabunken.go.jp:8443/12345",
+    "https://sitereports.nabunken.go.jp/records/12345"
+  ])("unsafe または非公式形式の URL を公式参照にしない: %s", async (value) => {
+    const { deriveSitereportsReference } = await import(
+      "../src/sources/irdb/sitereports.js"
+    );
+
+    expect(deriveSitereportsReference(value)).toBeNull();
   });
 });
 
