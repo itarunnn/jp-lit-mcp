@@ -283,6 +283,23 @@ source を指定しない横断検索で一部の source がタイムアウト�
 
 ---
 
+### 発掘調査報告書を探したい
+
+発掘調査報告書や遺跡・出土遺物を探す場合は、まず IRDB で書誌・摘要・公式公開導線を確認し、NDL Search でより広い書誌・所蔵候補を確認します。
+
+```text
+jp_lit_search(source="irdb", query="栃原岩陰遺跡発掘調査報告書")
+jp_lit_get_record(source="irdb", source_id="/01144/0004756406")
+jp_lit_search(source="ndl_search", query="栃原岩陰遺跡発掘調査報告書")
+```
+
+- IRDB の結果は `summary`、`subjects`、DOI、公式 source URL の確認に使います。
+- NDL Search は、より広い書誌・所蔵候補の discovery に使います。
+- NDL Search では同一報告書を表す複数の hit が返ることがあるため、hit 件数を報告書実数として扱いません。
+- PDF リンクが存在しても、PDF 本文を確認済み、または再利用が許可されていることを意味しません。本文確認とリンク先コンテンツの利用条件確認は別に行います。
+
+---
+
 ### 別名義や件名を確認したい
 
 別名義や件名の確認が必要な場合は、Web NDL Authorities を使って典拠を確認できます。

@@ -21,6 +21,14 @@
 - 調べ方・類似事例: `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases`
 - 地方人物・地方紙・地方雑誌・郷土資料: 地域候補を優先づけ、カーリル MCP の `search_libraries` で地域名・館種・ネットワーク名を検索してから地域公共図書館 OPAC / `search_books`
 
+考古学:
+
+- 書誌: `遺跡名 + 発掘調査報告書`
+- 地域: `自治体名 + 遺跡`
+- 時代・遺構: `遺跡名 + 縄文 + 竪穴建物`
+- 遺物: `地域名 + 土器 + 石器`
+- 取得順: `irdb` → `jp_lit_get_record(source=irdb)` → `ndl_search` → 所蔵が必要なら `ndl_catalog`
+
 ## 実検索の初動原則
 
 新規テーマでは、レファ協・NDL リサーチ・ナビを参考に調査計画を立ててから実検索へ進む。NDL リサーチ・ナビは API / MCP source ではなく Web 上の調べ方案内なので、Web 検索で `site:ndlsearch.ndl.go.jp/rnavi <固有名詞または主題語>` を試す。固有名詞 query が不発なら、そこで止めずに抽象度を上げた調べ方 query へ切り替える。

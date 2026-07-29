@@ -40,6 +40,15 @@ const priorityTools = [
 ];
 
 describe("tool definition quality", () => {
+  it("jp_lit_search は発掘調査報告書を irdb へ案内する", async () => {
+    const tools = await listPublishedTools();
+    const description =
+      tools.find((tool) => tool.name === "jp_lit_search")?.description ?? "";
+
+    expect(description).toContain("発掘調査報告書");
+    expect(description).toContain("irdb");
+  });
+
   it("全28 toolが副作用と外部到達性をannotationsで公開する", async () => {
     const tools = await listPublishedTools();
     const cachedExternalWrites = new Set(CACHED_TOOL_NAMES);

@@ -30,6 +30,7 @@
 
 ## 最近の更新
 
+- 2026-07-30: 発掘調査報告書・遺跡・埋蔵文化財・出土遺物は、明示指定した `irdb` を最初に使い、`ndl_search` で広域の書誌・所蔵候補を確認し、NDL 所蔵だけが必要な場合に `ndl_catalog` を使う routing を追加。全国文化財総覧の一部レコードを既存 IRDB / NDL Search 連携メタデータから間接 discovery する境界であり、全国の発掘調査報告書を完全収録するという主張ではない。全国文化財総覧本体の OAI-PMH harvest、endpoint 呼び出し、リンク先 PDF・画像・Excel・報告書本文の取得は実装していない
 - `0.9.0`: 全体レビューを反映し、cache / export の path containment と上書き境界、junction / symlink と書込失敗時の復旧、明示的な `jp_lit_start_session`、session 更新の直列化、28 tool の実副作用に沿った annotations を整備した。J-STAGE pagination を現行 `start` contractへ修正し、CiNii appid 未設定時は検索を継続しつつ公式必須の警告を返す。横断検索は一部 source 障害時も成功結果と `source_errors` を返し、全 source 失敗時だけ全体 error とする。Node.js 22以上、Windows / Ubuntu × Node 22 / 24 CI、deterministic offline smoke、audit 0件、publish tag identity検証を追加し、デジコレ本体の画面内部 endpointは公開MCP・公開文書・npm packageへ含めない境界を維持した
 - `0.8.0`: `jp_lit_suggest_classification_codes` を追加。Web NDL Authorities の件名語から NDC / NDLC 分類記号を抽出し、CiNii Books `category` filter に渡せる `suggested_category_param` と `jp_lit_search` 呼び出し例を返す。`jp_lit_search` は `filters.cinii.category` を `source=cinii_books` のときだけ受け付け、CiNii 系検索の 0 件・ローマ字 query と、source を問わない広い結果集合に `interpretation` / `diagnostics` を返す
 - `0.7.10`: 次世代デジタルライブラリー Book API の `f-ndc` filter について、`f_ndc: "9"` のような短い上位分類指定を `9*` に正規化し、`f_ndc: ""` や空白だけの値は未指定と同じ cache entry に畳むようにした。adapter test では公式パラメータ `f-ndc` / `fc-isClassic` と、非採用 alias（`field` / `ndc` / `isClassic`、Illustration API の `q-contents` / `graphictag`）が URL に混入しないことを固定した

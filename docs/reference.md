@@ -120,11 +120,12 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 | source | 主なフィールド |
 | ------ | -------------- |
-| NDL 系検索結果 | `classification.ndc`, `classification.ndlc` |
+| `ndl_search` | `repository_no`, `provider_name`, `identifiers`, `classification` |
 | `ndl_digital` | `next_digital_library`, `provider_id`, `provider_name` |
 | `cinii_books` | `holding_count`, `holdings[]` |
 | `jstage_articles` | `pdf_url`, `article_url` |
-| `irdb` | `source_uri`, `repository_name`, `publication_type` |
+| `irdb` search | `source_uri`, `repository_name`, `language`, `record_updated_at`, `journal_issn`, `journal_volume`, `journal_number`, `starting_page`, `ending_page`, `sitereports` |
+| `irdb` detail | 上記に加え `file_urls`, `sitereports.record_id`, `sitereports.record_url`, `sitereports.doi` |
 | `nijl_articles` | `nijl_article_id`, `volume`, `serial_number`, `period_classification`, `field`, `nijl_call_number`, `opac_url`, `raw_fields` |
 | `kokusho` | `bid`, `wid`, `record_kind`, `work_title`, `collection`, `call_number`, `kansha`, `volumes`, `has_images`, `manifest_url`, `license_url`, `shubetsu` |
 | `ninjal_bibliography` | `bibliography_id`, `db_kind`, `library_call_number`, `volume`, `pages`, `keywords`, `fields`, `fulltext_links`, `raw_fields` |

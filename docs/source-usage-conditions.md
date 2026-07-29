@@ -21,6 +21,7 @@
 | `irdb` | 明示的な登録要件は未確認 | 規程ベース | 規程と個別条件に従う | 個人情報・詳細HTML取得に留意 | 検索は OpenSearch、詳細は IRDB 詳細画面 HTML の best-effort |
 | `japan_search` | 公開 API に登録不要と読める | データごとに異なる | source 表記推奨、参加機関条件確認 | 個別コンテンツ条件確認 | metadata / thumbnail / content で条件が異なる |
 | `jdcat` | 利用者登録不要 | 配布者 / 提供者ごとに異なる | 配布者側条件確認 | 個別データ条件確認 | WEKO3 JSON API に依存するメタデータ横断検索 |
+| `sitereports`（候補 / 未実装） | 明示的な登録要件は未確認 | 条件確認 | 元レコード・発行機関・個別権利表示を保持 | 少数の確認で 429。本番収集は defer | 全国文化財総覧 OAI-PMH。包括的なメタデータ再利用条件と推奨収集間隔を確認してから再判断 |
 | `nihu_bridge` | 明示的な登録要件は未確認 | 個別 DB / コンテンツ条件に依存 | 元 DB 側条件確認 | 個別確認が必要 | 利用者向け API 仕様書あり。ポータル的性格が強い |
 | `nijl_articles` | 明示的な登録要件は未確認 | 規程確認。営利目的は不可が原則 | 国文学研究資料館DB利用の明記が必要な場合あり | HTML best-effort。低頻度・キャッシュ前提 | 検索HTML、詳細HTMLで国文学論文目録を確認。本文・PDF・OPAC詳細は取得しない |
 | `nihonbungaku_metadata`（候補 / 未実装） | 提供元への連絡・API キー確認が必要 | 条件確認 | サービス名・元リンク・LLM生成メタデータである旨の表示を確認 | 未許諾での自動取得・ミラー化はしない | 個人運営の日本文学研究論文メタデータ検索。ローカルMCPでは利用者ごとの `NIHONBUNGAKU_METADATA_API_KEY` を想定 |
@@ -185,6 +186,9 @@
 - `jp_lit_search(source=irdb, ...)` は公式に案内されている `https://irdb.nii.ac.jp/opensearch/search` を使います。
 - `jp_lit_get_record(source=irdb, ...)` は OpenSearch 結果に含まれる IRDB 詳細画面 URL の HTML を取得し、ページ内メタデータを best-effort で抽出します。
 - 原機関リポジトリ側の URL は `source_metadata.source_uri` として保持します。
+- 全国文化財総覧の一部レコードは、既存の IRDB / NDL Search API 連携メタデータから間接 discovery できます。これらの API メタデータ利用は、それぞれの公開条件に従います。
+- 検索結果にリンクされた PDF、画像、Excel、報告書本文は、発行機関・提供機関の利用条件に従います。リンクの存在だけで本文確認済み、または再利用許可済みとは扱いません。
+- この実装はリンク先ファイルを取得せず、全国文化財総覧 endpoint を呼びません。
 
 確認できたこと:
 
@@ -237,6 +241,38 @@
 参考:
 
 - JDCat トップ: https://jdcat.jsps.go.jp/
+
+### 全国文化財総覧（候補 / 未実装）
+
+調査時点の判断:
+
+- 2025-03-31 に「全国遺跡報告総覧」から「全国文化財総覧」へ改称されています。同じサービスの名称変更です。
+- OAI-PMH endpoint は公開されており、`Identify`、`oai_dc`、`junii2` の存在を確認しました。
+- 少数の probe で HTTP 429 となり、`Retry-After` header はありませんでした。通常ページの確認も同時期に行っていたため、OAI-PMH 固有の閾値や安全な推奨間隔はこの結果から推定できません。
+- OAI-PMH の公開は技術的な収集入口ですが、それだけでメタデータ全体の長期保存・索引化・再配布が包括的に許諾されるわけではありません。
+- 公式ガイドでは、報告書データの著作権は発行自治体・機関等に帰属し、引用の範囲を超える利用や画像利用では発行機関への確認が必要と案内されています。
+- 個別データに CC license が表示される場合でも、サービス全体の license として一般化しません。
+- `Identify` は `deletedRecord=transient` を返します。差分同期だけで削除を永続追跡できるとは限りません。
+- `robots.txt` は今回 429 で現行内容を確認できませんでした。検索 HTML のクロール、PDF・画像・OCR 全文の一括取得は行いません。
+
+運用メモ:
+
+- 現在の判断は `defer` です。OAI-PMH の推奨アクセス間隔、メタデータの長期保存・索引化・再表示、全件照合、必要な帰属表示を提供元へ確認してから本番実装を再判断します。
+- `indirect_discovery: go` とし、直接 harvest の代わりに既存の IRDB / NDL Search 連携メタデータを使います。対象は書誌、摘要中の遺構・遺物語、DOI、公式 record URL で、座標・調査面積等の全国文化財総覧固有 field は対象外です。
+- fixture を使う parser や写像の限定検証はできますが、追加の live 反復取得、全件収集、429 を避けるための並列化や接続元変更は行いません。
+- 再開する場合も `sitereports` は明示指定 source とし、既定横断検索には含めません。
+- 元レコード URL、DOI、取得日、個別権利表示を保持し、PDF URL は案内に限定します。
+
+詳細:
+
+- `docs/api-notes/sitereports.md`
+
+参考:
+
+- 全国文化財総覧: https://sitereports.nabunken.go.jp/ja
+- 名称変更のお知らせ: https://www.nabunken.go.jp/nabunkenblog/2025/03/soran20250331.html
+- 使い方ガイド: https://sitereports.nabunken.go.jp/ja/abouts/guide
+- OAI-PMH 2.0: https://www.openarchives.org/OAI/openarchivesprotocol.html
 
 ### nihuBridge
 

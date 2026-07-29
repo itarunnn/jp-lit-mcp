@@ -130,6 +130,12 @@
 - 既定横断検索への投入
 - source 固有 filter の全面公開
 
+## 2026-07-29 全国文化財総覧の間接 discovery
+
+- 全国文化財総覧の一部 record は IRDB OpenSearch / detail から検索できる。
+- Atom の `URI` が公式 record、`content` が摘要、`irname` が原リポジトリ provenance を返す。
+- 全国文化財総覧本体を harvest せず、既存 IRDB adapter で書誌・摘要・公式 URL を取得する経路を採用する。
+
 ## filters.irdb と OpenSearch パラメータ写像
 
 `jp_lit_search(source=irdb, filters={irdb: {...}})` で指定できる絞り込み条件。

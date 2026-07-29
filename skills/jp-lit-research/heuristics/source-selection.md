@@ -84,12 +84,20 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 | 社会科学・統計・調査データ | 「調査」「統計」「データ」「アンケート」 | `jdcat` を追加 |
 | 理工系・医学系 | 英語混じり、数値・実験の記述 | `jstage_articles` を優先 |
 | 紀要・学位論文・報告書 | 「修士論文」「紀要」「研究報告」 | `irdb` を優先 |
-| 美術・文化財・地域資料・博物館資料 | 「作品」「文化財」「地域」「コレクション」「博物館」「民具」「遺跡」「浮世絵」 | `japan_search`（主力）+ `jp_lit_search_illustrations` + `nihu_bridge`（民俗・考古補完）|
+| 美術・文化財・地域資料・博物館資料 | 「作品」「文化財」「地域」「コレクション」「博物館」「民具」「浮世絵」 | `japan_search`（主力）+ `jp_lit_search_illustrations` + `nihu_bridge`（民俗補完）|
+| 発掘調査報告書・遺跡・埋蔵文化財・出土遺物 | 遺跡名、調査次数、自治体教育委員会、報告書集番号、土器・石器・遺構名 | `irdb` + `ndl_search`。本文・公式公開導線は `irdb` detail、NDL所蔵だけを確かめる場合は `ndl_catalog` |
 | 議会・法令・官庁資料 | 「法律」「答弁」「審議」「議会」 | `kokkai_minutes` / `teikoku_minutes`。官庁原資料・特定歴史公文書なら `national_archives` |
 | 公文書・アジア歴史資料 | 「内閣」「太政官」「省庁」「公文書」「外交」「軍事」「旧外地」「植民地」「朝鮮」「台湾」「関東州」「外務省外交史料館」「防衛研究所」 | 国内官庁・特定歴史公文書は `national_archives`、近現代アジア・外交・軍事・旧外地は `jacar` |
 | 人物回想・雑誌目次・一般誌記事 | 人名単独、回想、追想、雑誌名、昭和戦後一般誌、掲載号探索 | `ndl_search` + `japan_search` → `ndl_articles` / `ndl_catalog` / `cinii_books` |
 | 地方人物・地方紙・地方雑誌・郷土資料 | 出身地、在住地、発行地、旧地名、県史・市町村史、郷土人物、地域紙、ミニコミ誌 | `ndl_search` + `japan_search` + レファ協 / リサーチ・ナビで地域候補を作り、地方公共図書館ルートへ進む |
 | 全般（判定できない） | — | `ndl_search` + `japan_search` を既定セットにし、レファ協・リサーチ・ナビで示唆された source を加える |
+
+発掘調査報告書では、次の query rule を使う。
+
+- 最初は `irdb` で「遺跡名 + 報告書」「地域名 + 遺物名」を検索する。
+- `summary` / `subjects` に遺物語が入る場合があるが、遺物種別の構造化 field ではない。
+- `source_metadata.sitereports` があれば全国文化財総覧由来と確認できる。
+- `ndl_search` は所蔵・IRDB・公共図書館由来の重複を含むので、件数を報告書実数として扱わない。
 
 ---
 
