@@ -309,6 +309,16 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
       readNdlSearchString(record.date)
   );
   const classification = readClassification(record);
+  const repositoryNo = readNdlSearchString(record.repositoryNo);
+  const providerName = readNdlSearchString(record.providerName);
+  const identifiers = readNdlSearchObject(record.identifiers);
+  const sourceMetadata: Record<string, unknown> = {
+    ...(classification ? { classification } : {}),
+    ...(repositoryNo ? { repository_no: repositoryNo } : {}),
+    ...(providerId ? { provider_id: providerId } : {}),
+    ...(providerName ? { provider_name: providerName } : {}),
+    ...(Object.keys(identifiers).length > 0 ? { identifiers } : {})
+  };
 
   const baseSourceId = deriveSourceId(record, url);
   const ciniiCrid = readNdlSearchString(record.ciniiCrid);
@@ -363,7 +373,9 @@ export function mapNdlSearchSearchEntry(entry: unknown): SearchItem {
     table_of_contents: readNdlSearchStringList(
       record.tableOfContents ?? record.table_of_contents
     ),
-    ...(classification ? { source_metadata: { classification } } : {}),
+    ...(Object.keys(sourceMetadata).length > 0
+      ? { source_metadata: sourceMetadata }
+      : {}),
     duplicate_key: null,
     duplicate_count: 1,
     related_records: []

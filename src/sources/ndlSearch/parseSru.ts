@@ -47,6 +47,10 @@ function extractSourceId(url: string | null): string | null {
   }
 }
 
+function extractRepositoryNo(sourceId: string | null) {
+  return sourceId?.match(/^(R\d{9})-/)?.[1] ?? null;
+}
+
 function extractTypedIdentifiers(value: unknown): Record<string, string> {
   const identifiers: Record<string, string> = {};
 
@@ -281,6 +285,7 @@ function projectRecord(record: JsonRecord): JsonRecord | null {
   const admin = pickBibAdminResource(rdf);
   const itemRecords = pickItemRecords(rdf);
   const aboutUrl = removeFragment(readNdlSearchString(bib["@_rdf:about"]));
+  const sourceId = extractSourceId(aboutUrl);
   const itemLinks = flattenResourceLinks(
     ...itemRecords.map((entry) => entry["rdfs:seeAlso"]),
     ...itemRecords.map((entry) => entry["dcterms:relation"])
@@ -302,7 +307,13 @@ function projectRecord(record: JsonRecord): JsonRecord | null {
     readNdlSearchString(bib["dcterms:description"])?.includes("国立国会図書館デジタルコレクション") === true;
 
   return {
-    id: extractSourceId(aboutUrl),
+    id: sourceId,
+    summary:
+      bib["dcterms:abstract"] ??
+      bib["dcterms:description"] ??
+      bib["dc:description"] ??
+      null,
+    repositoryNo: extractRepositoryNo(sourceId),
     ciniiCrid: extractCiniiCrid(allLinks),
     title: bib["dcterms:title"] ?? bib["dc:title"] ?? "Untitled",
     titleReading: readTitleTranscription(bib["dc:title"]),

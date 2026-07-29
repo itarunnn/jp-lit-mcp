@@ -65,6 +65,13 @@ describe("NDL Search mappers", () => {
         material_type: "電子書籍・電子雑誌",
         subjects: [],
         table_of_contents: [],
+        source_metadata: {
+          identifiers: {
+            issn: "1349-0621",
+            issnl: "0385-325X",
+            ndljp: "info:ndljp/pid/1000732"
+          }
+        },
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -109,6 +116,9 @@ describe("NDL Search mappers", () => {
         material_type: null,
         subjects: [],
         table_of_contents: [],
+        source_metadata: {
+          provider_id: "ndl-dl"
+        },
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -508,6 +518,9 @@ describe("NDL Search mappers", () => {
         material_type: null,
         subjects: [],
         table_of_contents: [],
+        source_metadata: {
+          provider_id: "iss-ndl-opac"
+        },
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -1247,6 +1260,55 @@ describe("createNdlSearchAdapter", () => {
       classification: {
         ndc: ["335.04"],
         ndlc: ["DH1"]
+      }
+    });
+  });
+
+  it("IRDB 由来の NDL SRU record で description と repository number を保持する", async () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <searchRetrieveResponse xmlns="http://www.loc.gov/zing/srw/">
+    <numberOfRecords>1</numberOfRecords>
+    <records>
+      <record>
+        <recordData>
+          <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                   xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+                   xmlns:dc="http://purl.org/dc/elements/1.1/"
+                   xmlns:dcterms="http://purl.org/dc/terms/"
+                   xmlns:dcndl="http://ndl.go.jp/dcndl/terms/">
+            <dcndl:BibAdminResource>
+              <dcterms:provenance>学術機関リポジトリデータベース（IRDB）</dcterms:provenance>
+            </dcndl:BibAdminResource>
+            <dcndl:BibResource rdf:about="https://ndlsearch.ndl.go.jp/books/R000000025-I011440000000001">
+              <dcterms:title>架空谷遺跡発掘調査報告書</dcterms:title>
+              <dcterms:description>縄文時代の竪穴建物と石器を確認した。</dcterms:description>
+              <dcterms:identifier rdf:datatype="http://ndl.go.jp/dcndl/terms/NIIBibID">BB12345678</dcterms:identifier>
+              <rdfs:seeAlso rdf:resource="https://ndlsearch.ndl.go.jp/books/R000000025-I011440000000001"/>
+            </dcndl:BibResource>
+          </rdf:RDF>
+        </recordData>
+      </record>
+    </records>
+  </searchRetrieveResponse>`;
+
+    const { projectNdlSruSearchResponse } = await import(
+      "../src/sources/ndlSearch/parseSru.js"
+    );
+    const { mapNdlSearchSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapSearch.js"
+    );
+
+    const result = mapNdlSearchSearchResponse(projectNdlSruSearchResponse(xml));
+
+    expect(result.items[0]).toMatchObject({
+      source_id: "R000000025-I011440000000001",
+      summary: "縄文時代の竪穴建物と石器を確認した。",
+      source_metadata: {
+        repository_no: "R000000025",
+        provider_name: "学術機関リポジトリデータベース（IRDB）",
+        identifiers: {
+          niibibid: "BB12345678"
+        }
       }
     });
   });
