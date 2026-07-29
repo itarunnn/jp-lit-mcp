@@ -65,6 +65,12 @@ describe("NDL Digital mappers", () => {
         material_type: "雑誌",
         subjects: [],
         table_of_contents: [],
+        source_metadata: {
+          identifiers: {
+            issn: "0385-325X",
+            ndljp: "info:ndljp/pid/1012769"
+          }
+        },
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
@@ -103,6 +109,9 @@ describe("NDL Digital mappers", () => {
         material_type: null,
         subjects: [],
         table_of_contents: [],
+        source_metadata: {
+          provider_id: "ndl-dl"
+        },
         duplicate_key: null,
         duplicate_count: 1,
         related_records: []
