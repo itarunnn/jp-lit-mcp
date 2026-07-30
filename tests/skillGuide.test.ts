@@ -650,4 +650,20 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(workflow).toContain("ブラウザ利用許可を意味しない");
   });
+
+  it("documents the batch record detail contract in public guides", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
+    const reference = readFileSync("docs/reference.md", "utf8");
+    const projectStatus = readFileSync("docs/project-status.md", "utf8");
+    const combined = `${readme}\n${usageGuide}\n${reference}`;
+
+    expect(readme).toContain("jp_lit_get_records");
+    expect(combined).toContain("1〜10件");
+    expect(usageGuide).toContain("2〜10件なら");
+    expect(usageGuide).toContain("ブラウザは起動しない");
+    expect(reference).toContain("独立した cache namespace を持ちません");
+    expect(combined).toContain("上流の一括 API ではありません");
+    expect(projectStatus).toContain("公開ツール 29 種");
+  });
 });

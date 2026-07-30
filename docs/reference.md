@@ -289,6 +289,48 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 `source=ninjal_bibliography` の場合、日本語研究・日本語教育文献データベースの HTML から論文・図書の書誌メタデータを best-effort で抽出します。`source_id` は文献IDです。本文リンクがある場合は `source_metadata.fulltext_links` と `content_access.viewer_url` に URL を保持しますが、本文ファイル自体は取得しません。
 
+#### `jp_lit_get_records`
+
+検索後に選別した同じ source の1〜10件について、`jp_lit_get_record` 相当の詳細取得をまとめて実行します。1件だけなら `jp_lit_get_record`、2〜10件なら `jp_lit_get_records` を使います。生の検索結果全件を自動詳細化する tool ではありません。
+
+入力 schema:
+
+| 引数 | 型 | 既定 | 説明 |
+| ---- | -- | ---- | ---- |
+| `source` | source | 必須 | 全 `source_ids` に共通する取得元 source |
+| `source_ids` | string[] | 必須 | 1〜10件。各 ID を trim し、重複は最初の出現だけを処理 |
+| `force_refresh` | boolean | `false` | `true` で全一意 ID の単件 cache を無視して upstream 再取得 |
+
+出力 schema:
+
+| フィールド | 型 | 説明 |
+| ---------- | -- | ---- |
+| `source` | source | 入力と同じ source |
+| `requested_count` | integer | 重複を含む入力件数 |
+| `unique_count` | integer | trim 後の重複を除いた処理件数 |
+| `success_count` | integer | `status="ok"` の件数 |
+| `error_count` | integer | `status="error"` の件数 |
+| `items` | object[] | 重複除去後の入力順を保つ item |
+
+`items[]` は `source_id` と `status` を必ず持ちます。成功 item は `status="ok"` と `record` を返し、`record.cache` には `jp_lit_get_record` と同じ cache 情報が入ります。失敗 item は `status="error"` と `error.category` / `error.message` を返します。一部の ID が失敗しても他の ID は処理を続けるため、結果全体は部分成功になりえます。
+
+| error category | 意味 |
+| -------------- | ---- |
+| `not_found` | 該当レコードが見つからない |
+| `invalid_request` | `source_id` を指定 source の詳細取得に利用できない |
+| `timeout` | 上流 source の応答がタイムアウトした |
+| `http` | 上流 source への HTTP リクエストが失敗した |
+| `invalid_payload` | 上流 source の応答形式を処理できない |
+| `unknown` | 上記以外の予期しないエラー |
+
+重複除去後の item は固定 concurrency 2 で処理します。完了順にかかわらず `items[]` は最初の出現順を保ち、`items.length = unique_count`、`success_count + error_count = unique_count` です。
+
+これは MCP 側で単件照会をまとめる機能であり、上流の一括 API ではありません。cache miss または `force_refresh=true` の一意 ID ごとに、個別の外部照会が発生します。
+
+`jp_lit_get_records` は `CACHED_TOOL_NAMES` に独立した cache namespace を持ちません。各成功 item は `jp_lit_get_record` の cache key と session entry を使います。batch 全体を表す cache key や session entry は作成しません。`force_refresh=true` は重複除去後の全一意 ID に適用され、それぞれの単件 cache を無視します。
+
+batch は外部 source の API だけを使い、ブラウザは起動しません。`source=ndl_digital` では、候補ごとに `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を独立して確認してください。前者は人間が公式画面で読む導線、後者は MCP の次世代デジタルライブラリー OCR 系ツールの利用可否であり、`next_digital_library.available=false` と `manual_viewing.available=true` は両立します。
+
 ### 外部書誌照合
 
 #### `jp_lit_enrich_record`

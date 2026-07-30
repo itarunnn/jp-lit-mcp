@@ -375,6 +375,30 @@ jp_lit_enrich_record(
 
 ---
 
+### 検索後に複数候補の詳細を確認したい
+
+検索結果から詳細確認する候補を選び、1件なら `jp_lit_get_record`、同じ source の2〜10件なら `jp_lit_get_records` を使います。最大10件までで、生の検索結果全件を自動的に詳細化するための tool ではありません。
+
+```text
+jp_lit_get_records(
+  source="ndl_digital",
+  source_ids=[
+    "R100000002-I000000011084-d1403198",
+    "R100000039-I1000732"
+  ]
+)
+```
+
+返り値の `requested_count` は入力した件数、`unique_count` は trim 後の重複を除いた件数です。重複 ID は最初の出現だけを処理し、`items[]` はその入力順を保ちます。各 item は成功時に `status="ok"` と詳細レコード、失敗時に `status="error"` と `error.category` / `error.message` を返します。`error.category` は `not_found` / `invalid_request` / `timeout` / `http` / `invalid_payload` / `unknown` です。一部が失敗しても残りは処理され、`success_count` / `error_count` で部分成功を確認できます。
+
+処理の同時実行数は固定で2です。これは MCP 内で単件詳細取得をまとめる機能であり、上流の一括 API ではありません。単件 cache にない一意 ID は、それぞれ個別に上流 source へ照会します。
+
+batch 全体の独自 cache/session は作らず、成功 item は `jp_lit_get_record` の単件 cache key と session entry を共有します。このため、先に取得済みの単件は batch でも再利用され、batch の成功 item を後から単件で呼ぶ場合も同じ cache を使います。`force_refresh=true` は重複除去後の全一意 ID に適用され、それぞれの単件 cache を無視して再取得します。
+
+`source="ndl_digital"` では、各候補の `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を独立して確認します。前者は公式画面での手動閲覧導線、後者は MCP の次世代デジタルライブラリー OCR 系ツールが利用可能かを表し、一方から他方を推定しません。batch でもブラウザは起動しないため、公式画面を確認する場合は別途ユーザーの許可が必要です。
+
+---
+
 ### デジコレ全文から特定の語を探したい
 
 「国立国会図書館デジタルコレクション（デジコレ）の本文から語を探す」には、ツールの使い分けが重要です。

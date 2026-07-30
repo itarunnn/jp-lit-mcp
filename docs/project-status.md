@@ -2,7 +2,7 @@
 
 2026-07-30 時点の状態:
 
-- 公開ツール 28 種・対応 source 20 種・テスト 685 件すべて通過
+- 公開ツール 29 種・対応 source 20 種・テスト 701 件すべて通過
 - `npm test` / `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -16,6 +16,7 @@
 ## 実装済み
 
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
+- 同じ source の選別済み候補1〜10件を、順序を保った部分成功と単件 cache/session 共有で詳細取得する `jp_lit_get_records` を実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、明示的な調査セッション開始（`jp_lit_start_session`）、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
 - 過去セッション一覧（`jp_lit_list_sessions`）、過去セッション検索（`jp_lit_find_sessions`）、`session_id` 指定 export に対応済み
