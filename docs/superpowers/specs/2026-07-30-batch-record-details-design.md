@@ -58,7 +58,14 @@
     | {
         source_id: string;
         status: "ok";
-        record: RecordOutput;
+        record: RecordOutput & {
+          cache: {
+            hit: boolean;
+            cache_key: string;
+            saved_at: string;
+            refresh_hint: string | null;
+          };
+        };
       }
     | {
         source_id: string;
@@ -81,7 +88,7 @@
 - `requested_count` は入力配列の件数、`unique_count` は trim・一意化後の件数とする。
 - `success_count + error_count === unique_count` を常に満たす。
 - `items` は一意化後の入力順を保つ。成功と失敗を別配列に分けず、各 ID の結果を同じ位置関係で確認できるようにする。
-- 成功要素の `record` は既存 `recordOutputSchema` と同じで、単件キャッシュの `cache.hit`、`cache.cache_key`、`cache.saved_at`、`cache.refresh_hint` を含む。
+- 成功要素の `record` は既存 `recordOutputSchema` の全フィールドに加え、単件キャッシュの `cache.hit`、`cache.cache_key`、`cache.saved_at`、`cache.refresh_hint` を必須で含む。
 - 個別取得の失敗は tool 全体を失敗させず、該当 ID の `status="error"` として返す。
 - エラー message は category ごとの固定された安全な説明とし、上流応答本文や例外 message をそのまま公開しない。
 
@@ -144,7 +151,8 @@
 ## 実装対象
 
 - `src/lib/schemas.ts`
-  - batch input、成功・失敗 item、batch output schema と型を追加する。
+  - batch input、cache 必須の成功 item、失敗 item、batch output schema と型を追加する。
+  - MCP 登録用の top-level object schema と、件数不変条件を検証する内部 schema を分ける。
 - `src/tools/jpLitGetRecord.ts`
   - 既存の単件キャッシュ付き詳細取得を共有関数へ抽出する。公開 tool の挙動は維持する。
 - `src/tools/jpLitGetRecords.ts`
@@ -152,7 +160,7 @@
 - `src/server.ts`
   - tool を生成・登録し、入力・出力 schema、description、annotations を公開する。
 - `scripts/smoke-mcp.ts`
-  - 公開 tool 一覧へ追加し、offline smoke で複数件結果を確認する。
+  - 公開 tool 一覧へ追加し、offline smoke で2件の単件 cache を seed して、順序、cache hit、単件 session namespace を確認する。
 - `tests/jpLitGetRecords.test.ts`
   - schema、順序、一意化、上限、部分失敗、error category、cache 共有、force refresh、concurrency をテストする。
 - `tests/jpLitGetRecord.test.ts`
@@ -175,6 +183,7 @@
   - 1件と2〜10件の使い分け、閲覧経路・OCR 可否の読み方、ブラウザ権限との分離を説明する。
 - `tests/skillGuide.test.ts`
   - Skill の候補選別、件数別 tool 選択、全件詳細化禁止、ブラウザ権限分離を固定する。
+  - README、usage guide、reference、project status の tool 名、上限、cache 境界、上流一括 API との違い、公開 tool 数を固定する。
 
 ## 非対象
 
@@ -189,7 +198,7 @@
 
 ## 検証
 
-1. batch schema と tool の failing test を先に追加し、未実装で RED になることを確認する。
+1. batch schema と tool の failing test を先に追加し、未実装で RED になることを確認する。成功 item の cache 必須性と `items.length`・status 別件数・合計件数の不変条件には negative test も置く。
 2. 共有単件 lookup を抽出し、既存 `jp_lit_get_record` tests が GREEN のままであることを確認する。
 3. batch tool を最小実装し、順序、一意化、部分失敗、固定 concurrency、単件 cache 共有、`force_refresh` を focused tests で確認する。
 4. server、smoke、tool definition tests を更新し、公開 tool が29件で正しい schema と annotations を持つことを確認する。
