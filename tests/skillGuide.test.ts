@@ -656,14 +656,56 @@ describe("jp-lit-research skill guide", () => {
     const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
     const reference = readFileSync("docs/reference.md", "utf8");
     const projectStatus = readFileSync("docs/project-status.md", "utf8");
-    const combined = `${readme}\n${usageGuide}\n${reference}`;
 
     expect(readme).toContain("jp_lit_get_records");
-    expect(combined).toContain("1〜10件");
+    expect(readme).toContain("同じ source の1〜10件");
     expect(usageGuide).toContain("2〜10件なら");
     expect(usageGuide).toContain("ブラウザは起動しない");
+    expect(reference).toContain("同じ source の1〜10件");
+    expect(reference).toContain("重複除去後の入力順");
+    expect(reference).toContain("部分成功");
+    expect(reference).toContain("items.length = unique_count");
+    expect(reference).toContain(
+      "success_count + error_count = unique_count"
+    );
+    for (const category of [
+      "not_found",
+      "invalid_request",
+      "timeout",
+      "http",
+      "invalid_payload",
+      "unknown"
+    ]) {
+      expect(reference).toContain(`\`${category}\``);
+    }
+    expect(reference).toContain("固定 concurrency 2");
+    expect(reference).toContain(
+      "各 ID を trim し、重複は最初の出現だけを処理"
+    );
+    expect(reference).toContain(
+      "`force_refresh=true` は重複除去後の全一意 ID に適用"
+    );
+    expect(reference).toContain("上流の一括 API ではありません");
+    expect(reference).toContain(
+      "cache miss または `force_refresh=true` の一意 ID ごとに"
+    );
+    expect(reference).toContain(
+      "batch の cache miss は単件取得と同じ上流への個別照会経路を使い"
+    );
+    expect(reference).not.toContain("batch は外部 source の API だけを使い");
     expect(reference).toContain("独立した cache namespace を持ちません");
-    expect(combined).toContain("上流の一括 API ではありません");
+    expect(reference).toContain(
+      "各成功 item は `jp_lit_get_record` の cache key と session entry を使います"
+    );
+    expect(reference).toContain(
+      "batch 全体を表す cache key や session entry は作成しません"
+    );
+    expect(reference).toContain("`content_access.manual_viewing`");
+    expect(reference).toContain(
+      "`source_metadata.next_digital_library.available`"
+    );
+    expect(reference).toContain("独立して確認してください");
     expect(projectStatus).toContain("公開ツール 29 種");
+    expect(projectStatus).toContain("テスト 701 件");
   });
 });

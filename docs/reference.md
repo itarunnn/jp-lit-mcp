@@ -329,7 +329,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 `jp_lit_get_records` は `CACHED_TOOL_NAMES` に独立した cache namespace を持ちません。各成功 item は `jp_lit_get_record` の cache key と session entry を使います。batch 全体を表す cache key や session entry は作成しません。`force_refresh=true` は重複除去後の全一意 ID に適用され、それぞれの単件 cache を無視します。
 
-batch は外部 source の API だけを使い、ブラウザは起動しません。`source=ndl_digital` では、候補ごとに `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を独立して確認してください。前者は人間が公式画面で読む導線、後者は MCP の次世代デジタルライブラリー OCR 系ツールの利用可否であり、`next_digital_library.available=false` と `manual_viewing.available=true` は両立します。
+batch の cache miss は単件取得と同じ上流への個別照会経路を使い、ブラウザは起動しません。`source=ndl_digital` では、候補ごとに `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を独立して確認してください。前者は人間が公式画面で読む導線、後者は MCP の次世代デジタルライブラリー OCR 系ツールの利用可否であり、`next_digital_library.available=false` と `manual_viewing.available=true` は両立します。
 
 ### 外部書誌照合
 
