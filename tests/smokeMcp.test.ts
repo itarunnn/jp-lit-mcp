@@ -29,6 +29,7 @@ import {
   SUPPORTED_LIVE_EXTRA_TOOLS
 } from "../scripts/smoke-mcp.js";
 import { createServer } from "../src/server.js";
+import { CACHED_TOOL_NAMES } from "../src/lib/persistence/cacheIdentity.js";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   version: string;
@@ -106,7 +107,8 @@ describe("deterministic offline smoke", () => {
         tracedSessionFound: true,
         exportContainsSelection: true,
         startedNewSession: true,
-        archivedSessionExported: true
+        archivedSessionExported: true,
+        batchRecordCount: 2
       }
     });
   });
@@ -163,6 +165,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_find_sessions",
       "jp_lit_get_fulltext",
       "jp_lit_get_record",
+      "jp_lit_get_records",
       "jp_lit_get_text_coordinates",
       "jp_lit_list_cache",
       "jp_lit_list_sessions",
@@ -260,6 +263,7 @@ describe("smoke-mcp tool manifest", () => {
 
     const cachedToolNames = [
       "jp_lit_get_record",
+      "jp_lit_get_records",
       "jp_lit_get_fulltext",
       "jp_lit_get_text_coordinates",
       "jp_lit_search_pages",
@@ -285,6 +289,32 @@ describe("smoke-mcp tool manifest", () => {
           force_refresh: { type: "boolean" }
         });
       }
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it("publishes batch record detail schema without a separate cache namespace", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-get-records-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const { tools } = await client.listTools();
+      const tool = tools.find((candidate) => candidate.name === "jp_lit_get_records");
+
+      expect(tool?.inputSchema.properties).toMatchObject({
+        source: { type: "string" },
+        source_ids: { type: "array", maxItems: 10, minItems: 1 },
+        force_refresh: { type: "boolean" }
+      });
+      expect(CACHED_TOOL_NAMES).not.toContain("jp_lit_get_records");
     } finally {
       await client.close();
       await server.close();
@@ -431,7 +461,7 @@ describe("smoke-mcp tool manifest", () => {
     }
   });
 
-  it("publishes specialist explicit sources in jp_lit_search and jp_lit_get_record schemas", async () => {
+  it("publishes specialist explicit sources in search and record detail schemas", async () => {
     const server = createServer();
     const client = new Client({
       name: "jp-lit-source-schema-test-client",
@@ -446,9 +476,12 @@ describe("smoke-mcp tool manifest", () => {
       const { tools } = await client.listTools();
       const searchTool = tools.find((tool) => tool.name === "jp_lit_search");
       const recordTool = tools.find((tool) => tool.name === "jp_lit_get_record");
+      const recordsTool = tools.find((tool) => tool.name === "jp_lit_get_records");
       const searchSourceEnum = (searchTool?.inputSchema.properties?.source as { enum?: string[] } | undefined)
         ?.enum;
       const recordSourceEnum = (recordTool?.inputSchema.properties?.source as { enum?: string[] } | undefined)
+        ?.enum;
+      const recordsSourceEnum = (recordsTool?.inputSchema.properties?.source as { enum?: string[] } | undefined)
         ?.enum;
 
       expect(searchSourceEnum).toEqual(
@@ -467,6 +500,7 @@ describe("smoke-mcp tool manifest", () => {
           "ninjal_bibliography"
         ])
       );
+      expect(recordsSourceEnum).toEqual(recordSourceEnum);
     } finally {
       await client.close();
       await server.close();

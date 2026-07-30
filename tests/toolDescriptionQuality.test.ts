@@ -5,6 +5,11 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../src/server.js";
 import { CACHED_TOOL_NAMES } from "../src/lib/persistence/cacheIdentity.js";
 
+const cachedExternalToolNames = [
+  ...CACHED_TOOL_NAMES,
+  "jp_lit_get_records"
+] as const;
+
 async function listPublishedTools() {
   const server = createServer();
   const client = new Client({
@@ -25,6 +30,7 @@ async function listPublishedTools() {
 }
 
 const priorityTools = [
+  "jp_lit_get_records",
   "jp_lit_search_cache_index",
   "jp_lit_list_cache",
   "jp_lit_delete_cache",
@@ -50,9 +56,9 @@ describe("tool definition quality", () => {
     );
   });
 
-  it("全28 toolが副作用と外部到達性をannotationsで公開する", async () => {
+  it("全29 toolが副作用と外部到達性をannotationsで公開する", async () => {
     const tools = await listPublishedTools();
-    const cachedExternalWrites = new Set(CACHED_TOOL_NAMES);
+    const cachedExternalWrites = new Set(cachedExternalToolNames);
     const localReadOnly = new Set([
       "jp_lit_refine_results",
       "jp_lit_find_sessions",
@@ -70,7 +76,7 @@ describe("tool definition quality", () => {
     const destructiveIdempotent = new Set(["jp_lit_delete_cache"]);
     const destructiveNonIdempotent = new Set(["jp_lit_prune_cache"]);
 
-    expect(tools).toHaveLength(28);
+    expect(tools).toHaveLength(29);
     for (const tool of tools) {
       const annotations = tool.annotations;
       expect(annotations, tool.name).toBeDefined();
@@ -79,7 +85,7 @@ describe("tool definition quality", () => {
       expect(typeof annotations?.idempotentHint, tool.name).toBe("boolean");
       expect(typeof annotations?.openWorldHint, tool.name).toBe("boolean");
 
-      if (cachedExternalWrites.has(tool.name as (typeof CACHED_TOOL_NAMES)[number])) {
+      if (cachedExternalWrites.has(tool.name as (typeof cachedExternalToolNames)[number])) {
         expect(annotations, tool.name).toMatchObject({
           readOnlyHint: false,
           destructiveHint: false,
@@ -182,7 +188,7 @@ describe("tool definition quality", () => {
   it("cached external tool は外部source readとlocal bookkeeping writeを明示する", async () => {
     const tools = await listPublishedTools();
 
-    for (const toolName of CACHED_TOOL_NAMES) {
+    for (const toolName of cachedExternalToolNames) {
       const tool = tools.find((candidate) => candidate.name === toolName);
       expect(tool?.description, toolName).toMatch(/external read/i);
       expect(tool?.description, toolName).toMatch(/local (?:cache|bookkeeping) write/i);
@@ -195,6 +201,8 @@ describe("tool definition quality", () => {
   it("関連 tool は代替 tool との差分を description に含める", async () => {
     const tools = await listPublishedTools();
     const expectations = [
+      ["jp_lit_get_record", /jp_lit_get_records/],
+      ["jp_lit_get_records", /jp_lit_get_record|1件/],
       ["jp_lit_search_cache_index", /jp_lit_search|jp_lit_list_cache|jp_lit_refine_results/],
       ["jp_lit_list_cache", /jp_lit_search_cache_index|jp_lit_delete_cache|jp_lit_prune_cache/],
       ["jp_lit_export_session", /jp_lit_export_view/],

@@ -9,7 +9,7 @@ import { createServer } from "../src/server.js";
 import { createCacheKey, normalizeCacheInput } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getExportsRoot, getPersistenceRoot } from "../src/lib/persistence/paths.js";
-import type { SearchItem } from "../src/lib/types.js";
+import type { RecordItem, SearchItem } from "../src/lib/types.js";
 
 export const EXPECTED_TOOL_NAMES = [
   "jp_lit_annotate_session",
@@ -21,6 +21,7 @@ export const EXPECTED_TOOL_NAMES = [
   "jp_lit_find_sessions",
   "jp_lit_get_fulltext",
   "jp_lit_get_record",
+  "jp_lit_get_records",
   "jp_lit_get_text_coordinates",
   "jp_lit_list_cache",
   "jp_lit_list_sessions",
@@ -64,6 +65,12 @@ const OFFLINE_LOCAL_SEARCH = {
   source: LOCAL_PERSISTENCE_SMOKE_DEFAULT_SOURCE,
   query: LOCAL_PERSISTENCE_SMOKE_DEFAULT_QUERY
 };
+
+const OFFLINE_RECORD_SOURCE = "cinii_books";
+const OFFLINE_RECORD_IDS = [
+  "1971993809689508364",
+  "1971993809689508365"
+] as const;
 
 export const SUPPORTED_LIVE_EXTRA_TOOLS = [
   "jp_lit_search_kaken_projects",
@@ -325,6 +332,62 @@ async function seedOfflineSearchCache(baseDir: string) {
   });
 }
 
+function createOfflineRecordItem(sourceId: string): RecordItem {
+  return {
+    source: OFFLINE_RECORD_SOURCE,
+    source_id: sourceId,
+    title: `offline record ${sourceId}`,
+    subtitle: null,
+    title_reading: null,
+    authors: [],
+    publisher: "offline fixture publisher",
+    journal_title: null,
+    issued_at: "1906",
+    issued_at_label: "1906",
+    issued_at_precision: "year",
+    summary: "Deterministic batch record fixture.",
+    url: null,
+    availability: { online: false, digital_collection: false },
+    alternative_titles: [],
+    publication_place: null,
+    language: "jpn",
+    material_type: "book",
+    extent: null,
+    subjects: [],
+    identifiers: {},
+    table_of_contents: [],
+    content_access: {
+      has_page_images: false,
+      has_text_coordinates: false,
+      viewer_url: null,
+      access_note: null
+    },
+    source_metadata: {},
+    raw: {}
+  };
+}
+
+async function seedOfflineRecordCaches(baseDir: string) {
+  const cache = createFileCache(baseDir);
+  await Promise.all(
+    OFFLINE_RECORD_IDS.map(async (sourceId) => {
+      const input = normalizeCacheInput({
+        source: OFFLINE_RECORD_SOURCE,
+        source_id: sourceId
+      });
+      const cacheKey = createCacheKey("jp_lit_get_record", input);
+      await cache.write("jp_lit_get_record", {
+        version: 1,
+        tool: "jp_lit_get_record",
+        cache_key: cacheKey,
+        saved_at: "2000-01-01T00:00:00.000Z",
+        input,
+        structured_content: createOfflineRecordItem(sourceId)
+      });
+    })
+  );
+}
+
 export async function withNetworkDenied<T>(operation: () => Promise<T>): Promise<T> {
   const originalFetch = globalThis.fetch;
   let attemptedUrl: string | null = null;
@@ -352,6 +415,7 @@ interface LocalPersistenceSmokeSummary {
   exportContainsSelection: boolean;
   startedNewSession: boolean;
   archivedSessionExported: boolean;
+  batchRecordCount: number;
 }
 
 async function runLocalPersistenceSmoke(
@@ -359,6 +423,8 @@ async function runLocalPersistenceSmoke(
   options: {
     search?: { source: string; query: string };
     expectCacheHit?: boolean;
+    batchRecordSource?: string;
+    batchRecordIds?: readonly string[];
   } = {}
 ): Promise<LocalPersistenceSmokeSummary> {
   const localSearch = options.search ?? resolveLocalPersistenceSmokeSearch();
@@ -384,6 +450,40 @@ async function runLocalPersistenceSmoke(
   }
   if (options.expectCacheHit && searchData?.cache?.hit !== true) {
     throw new Error("Offline smoke did not use the seeded search fixture.");
+  }
+
+  let batchRecordCount = 0;
+  if (options.batchRecordSource && options.batchRecordIds) {
+    const batchResult = await client.callTool({
+      name: "jp_lit_get_records",
+      arguments: {
+        source: options.batchRecordSource,
+        source_ids: [...options.batchRecordIds]
+      }
+    });
+    const batchData = batchResult.structuredContent as
+      | {
+          success_count?: number;
+          error_count?: number;
+          items?: Array<{
+            source_id?: string;
+            status?: string;
+            record?: { cache?: { hit?: boolean } };
+          }>;
+        }
+      | undefined;
+    if (
+      batchData?.success_count !== 2 ||
+      batchData.error_count !== 0 ||
+      batchData.items?.map((item) => item.source_id).join(",") !==
+        options.batchRecordIds.join(",") ||
+      batchData.items?.some(
+        (item) => item.status !== "ok" || item.record?.cache?.hit !== true
+      ) !== false
+    ) {
+      throw new Error("Offline batch record smoke returned unexpected data.");
+    }
+    batchRecordCount = batchData.success_count;
   }
 
   const cacheKey = createCacheKey(
@@ -499,6 +599,13 @@ async function runLocalPersistenceSmoke(
   if (!exportedText.includes(firstItem.title) || !exportedText.includes("strong_candidate")) {
     throw new Error("Local smoke export did not contain annotated selection.");
   }
+  if (
+    options.batchRecordIds &&
+    (!exportedText.includes("## jp_lit_get_record") ||
+      exportedText.includes("## jp_lit_get_records"))
+  ) {
+    throw new Error("Offline batch record smoke used an unexpected session namespace.");
+  }
 
   const startResult = await client.callTool({
     name: "jp_lit_start_session",
@@ -543,7 +650,8 @@ async function runLocalPersistenceSmoke(
     tracedSessionFound: true,
     exportContainsSelection: true,
     startedNewSession: true,
-    archivedSessionExported: true
+    archivedSessionExported: true,
+    batchRecordCount
   };
 }
 
@@ -867,21 +975,28 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
     throw new Error("Live smoke search returned an item without source/source_id.");
   }
 
-  const candidateRecords: LiveRecordCandidate[] = [];
-  for (const item of candidateItems) {
-    const recordResult = await client.callTool({
-      name: "jp_lit_get_record",
-      arguments: {
-        source: item.source!,
-        source_id: item.source_id!
-      }
-    });
-    const recordData = recordResult.structuredContent as LiveRecordCandidate | undefined;
-
-    if (recordData) {
-      candidateRecords.push(recordData);
+  const recordResult = await client.callTool({
+    name: "jp_lit_get_records",
+    arguments: {
+      source: candidateItems[0]!.source!,
+      source_ids: candidateItems.map((item) => item.source_id!)
     }
-  }
+  });
+  const batchData = recordResult.structuredContent as
+    | {
+        items?: Array<{
+          status?: string;
+          record?: LiveRecordCandidate;
+        }>;
+      }
+    | undefined;
+  const candidateRecords =
+    batchData?.items
+      ?.filter(
+        (item): item is { status?: string; record: LiveRecordCandidate } =>
+          item.status === "ok" && item.record !== undefined
+      )
+      .map((item) => item.record) ?? [];
 
   const recordData = pickPreferredLiveRecord(liveSource, candidateRecords);
 
@@ -1061,7 +1176,10 @@ async function mainSinglePass(
   try {
     const execute = async (): Promise<SmokePassResult> => {
       if (options.offline) {
-        await seedOfflineSearchCache(smokeDir);
+        await Promise.all([
+          seedOfflineSearchCache(smokeDir),
+          seedOfflineRecordCaches(smokeDir)
+        ]);
       }
 
       const server = createServer();
@@ -1090,7 +1208,12 @@ async function mainSinglePass(
         const local = await runLocalPersistenceSmoke(
           client,
           options.offline
-            ? { search: OFFLINE_LOCAL_SEARCH, expectCacheHit: true }
+            ? {
+                search: OFFLINE_LOCAL_SEARCH,
+                expectCacheHit: true,
+                batchRecordSource: OFFLINE_RECORD_SOURCE,
+                batchRecordIds: OFFLINE_RECORD_IDS
+              }
             : {}
         );
         console.log(
