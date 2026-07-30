@@ -639,8 +639,15 @@ describe("jp-lit-research skill guide", () => {
     expect(combined).toContain("1件なら `jp_lit_get_record`");
     expect(combined).toContain("2〜10件なら `jp_lit_get_records`");
     expect(workflow).toContain("生の検索結果全件を自動詳細化しない");
-    expect(workflow).toContain("content_access.manual_viewing");
-    expect(workflow).toContain("source_metadata.next_digital_library.available");
+    expect(workflow).toContain(
+      "10件を超える場合は絞り込み、または理由を説明できる小さな chunk"
+    );
+    expect(workflow).toContain(
+      "`content_access.manual_viewing.access_type` と `source_metadata.next_digital_library.available` は独立して読む"
+    );
+    expect(workflow).toContain(
+      "`available=false` だけでアクセス制限の原因を断定しない"
+    );
     expect(workflow).toContain("ブラウザ利用許可を意味しない");
   });
 });
