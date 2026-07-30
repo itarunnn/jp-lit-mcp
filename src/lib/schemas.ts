@@ -308,6 +308,20 @@ export const recordInputSchema = z.object({
   force_refresh: forceRefreshFieldSchema
 });
 
+const recordSourceIdsInputSchema = z
+  .array(z.string().trim().min(1))
+  .min(1)
+  .max(10)
+  .describe(
+    "同じ source から詳細取得する source_id の配列。1〜10件。trim 後の重複は最初の1件だけ処理する。"
+  );
+
+export const recordsInputSchema = z.object({
+  source: sourceInputFieldSchema,
+  source_ids: recordSourceIdsInputSchema,
+  force_refresh: forceRefreshFieldSchema
+});
+
 const externalProviderSchema = z.enum(["crossref", "openalex"]);
 const externalProviderStatusSchema = z.enum(["ok", "not_found", "skipped", "error"]);
 const matchConfidenceSchema = z.enum(["high", "medium", "low", "none"]);
@@ -354,6 +368,70 @@ export const searchOutputSchema = z.object({
 export const recordOutputSchema = recordItemSchema.extend({
   cache: toolCacheSchema.optional()
 });
+
+export const recordBatchErrorCategorySchema = z.enum([
+  "not_found",
+  "invalid_request",
+  "timeout",
+  "http",
+  "invalid_payload",
+  "unknown"
+]);
+
+export const cachedRecordOutputSchema = recordOutputSchema.extend({
+  cache: toolCacheSchema
+});
+
+const recordBatchItemSchema = z.discriminatedUnion("status", [
+  z.object({
+    source_id: z.string(),
+    status: z.literal("ok"),
+    record: cachedRecordOutputSchema
+  }),
+  z.object({
+    source_id: z.string(),
+    status: z.literal("error"),
+    error: z.object({
+      category: recordBatchErrorCategorySchema,
+      message: z.string()
+    })
+  })
+]);
+
+export const recordsOutputToolSchema = z.object({
+  source: sourceSchema,
+  requested_count: z.number().int().positive(),
+  unique_count: z.number().int().positive(),
+  success_count: z.number().int().nonnegative(),
+  error_count: z.number().int().nonnegative(),
+  items: z.array(recordBatchItemSchema)
+});
+
+export const recordsOutputSchema = recordsOutputToolSchema.superRefine(
+  (data, ctx) => {
+    const successCount = data.items.filter(
+      (item) => item.status === "ok"
+    ).length;
+    const errorCount = data.items.length - successCount;
+    const uniqueItemCount = new Set(
+      data.items.map((item) => item.source_id)
+    ).size;
+    if (
+      data.items.length !== data.unique_count ||
+      uniqueItemCount !== data.unique_count ||
+      data.requested_count < data.unique_count ||
+      data.success_count !== successCount ||
+      data.error_count !== errorCount ||
+      data.success_count + data.error_count !== data.unique_count
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record counts do not match items",
+        path: ["items"]
+      });
+    }
+  }
+);
 
 const externalProviderSummarySchema = z.object({
   status: externalProviderStatusSchema,
@@ -455,9 +533,14 @@ export type JdcatFilters = z.infer<typeof jdcatFiltersSchema>;
 export type NihuBridgeBbox = z.infer<typeof nihuBridgeBboxSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
+export type RecordsInput = z.infer<typeof recordsInputSchema>;
 export type EnrichRecordInput = z.infer<typeof enrichRecordInputSchema>;
 export type SearchOutput = z.infer<typeof searchOutputSchema>;
 export type RecordOutput = z.infer<typeof recordOutputSchema>;
+export type RecordsOutput = z.infer<typeof recordsOutputSchema>;
+export type RecordBatchErrorCategory = z.infer<
+  typeof recordBatchErrorCategorySchema
+>;
 export type EnrichRecordOutput = z.infer<typeof enrichRecordOutputSchema>;
 export type TextCoordinatesInput = z.infer<typeof textCoordinatesInputSchema>;
 export type TextCoordinatesOutput = z.infer<typeof textCoordinatesOutputSchema>;
