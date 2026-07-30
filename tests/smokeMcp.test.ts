@@ -314,6 +314,50 @@ describe("smoke-mcp tool manifest", () => {
         source_ids: { type: "array", maxItems: 10, minItems: 1 },
         force_refresh: { type: "boolean" }
       });
+      const outputSchema = tool?.outputSchema as
+        | {
+            required?: string[];
+            properties?: {
+              items?: {
+                items?: {
+                  anyOf?: Array<{
+                    properties?: {
+                      status?: { const?: string };
+                      record?: { required?: string[] };
+                    };
+                    required?: string[];
+                  }>;
+                };
+              };
+            };
+          }
+        | undefined;
+      expect(outputSchema?.required).toEqual([
+        "source",
+        "requested_count",
+        "unique_count",
+        "success_count",
+        "error_count",
+        "items"
+      ]);
+      const itemBranches = outputSchema?.properties?.items?.items?.anyOf;
+      expect(itemBranches?.map((branch) => branch.properties?.status?.const)).toEqual([
+        "ok",
+        "error"
+      ]);
+      const successBranch = itemBranches?.find(
+        (branch) => branch.properties?.status?.const === "ok"
+      );
+      const errorBranch = itemBranches?.find(
+        (branch) => branch.properties?.status?.const === "error"
+      );
+      expect(successBranch?.required).toEqual(
+        expect.arrayContaining(["source_id", "status", "record"])
+      );
+      expect(successBranch?.properties?.record?.required).toContain("cache");
+      expect(errorBranch?.required).toEqual(
+        expect.arrayContaining(["source_id", "status", "error"])
+      );
       expect(CACHED_TOOL_NAMES).not.toContain("jp_lit_get_records");
     } finally {
       await client.close();
@@ -556,6 +600,62 @@ describe("smoke-mcp tool manifest", () => {
     ]);
 
     expect(selected?.source_id).toBe("second");
+  });
+
+  it("live batch前に全candidateがexplicit sourceとbatch sourceへ一致することを要求する", async () => {
+    const smokeModule = await import("../scripts/smoke-mcp.js");
+    const assertLiveBatchCandidateSources = (
+      smokeModule as typeof smokeModule & {
+        assertLiveBatchCandidateSources?: (
+          explicitSource: string,
+          batchSource: string,
+          candidates: Array<{ source?: string }>
+        ) => void;
+      }
+    ).assertLiveBatchCandidateSources;
+
+    expect(() =>
+      assertLiveBatchCandidateSources?.("ndl_digital", "ndl_digital", [
+        { source: "ndl_digital" },
+        { source: "ndl_digital" }
+      ])
+    ).not.toThrow();
+    expect(() =>
+      assertLiveBatchCandidateSources?.("ndl_digital", "ndl_catalog", [
+        { source: "ndl_catalog" }
+      ])
+    ).toThrow("Live smoke search returned mixed sources.");
+    expect(() =>
+      assertLiveBatchCandidateSources?.("ndl_digital", "ndl_digital", [
+        { source: "ndl_digital" },
+        { source: "ndl_catalog" }
+      ])
+    ).toThrow("Live smoke search returned mixed sources.");
+  });
+
+  it("live batch成功recordがbatch sourceへ一致することを要求する", async () => {
+    const smokeModule = await import("../scripts/smoke-mcp.js");
+    const assertLiveBatchRecordSources = (
+      smokeModule as typeof smokeModule & {
+        assertLiveBatchRecordSources?: (
+          batchSource: string,
+          records: Array<{ source?: string }>
+        ) => void;
+      }
+    ).assertLiveBatchRecordSources;
+
+    expect(() =>
+      assertLiveBatchRecordSources?.("ndl_digital", [
+        { source: "ndl_digital" },
+        { source: "ndl_digital" }
+      ])
+    ).not.toThrow();
+    expect(() =>
+      assertLiveBatchRecordSources?.("ndl_digital", [
+        { source: "ndl_digital" },
+        { source: "ndl_catalog" }
+      ])
+    ).toThrow("Live smoke batch returned a record from another source.");
   });
 
   it("uses a stable OCR fallback keyword for ndl_digital", () => {

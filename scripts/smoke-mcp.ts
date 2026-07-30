@@ -256,6 +256,31 @@ type LiveRecordCandidate = {
   };
 };
 
+export function assertLiveBatchCandidateSources(
+  explicitSource: string,
+  batchSource: string,
+  candidates: Array<{ source?: string }>
+) {
+  if (
+    batchSource !== explicitSource ||
+    candidates.some(
+      (candidate) =>
+        candidate.source !== explicitSource || candidate.source !== batchSource
+    )
+  ) {
+    throw new Error("Live smoke search returned mixed sources.");
+  }
+}
+
+export function assertLiveBatchRecordSources(
+  batchSource: string,
+  records: Array<{ source?: string }>
+) {
+  if (records.some((record) => record.source !== batchSource)) {
+    throw new Error("Live smoke batch returned a record from another source.");
+  }
+}
+
 export function pickPreferredLiveRecord(
   source: string,
   records: LiveRecordCandidate[]
@@ -974,11 +999,13 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
   if (candidateItems.some((item) => !item?.source || !item.source_id)) {
     throw new Error("Live smoke search returned an item without source/source_id.");
   }
+  const batchSource = candidateItems[0]!.source!;
+  assertLiveBatchCandidateSources(liveSource, batchSource, candidateItems);
 
   const recordResult = await client.callTool({
     name: "jp_lit_get_records",
     arguments: {
-      source: candidateItems[0]!.source!,
+      source: batchSource,
       source_ids: candidateItems.map((item) => item.source_id!)
     }
   });
@@ -997,6 +1024,7 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
           item.status === "ok" && item.record !== undefined
       )
       .map((item) => item.record) ?? [];
+  assertLiveBatchRecordSources(batchSource, candidateRecords);
 
   const recordData = pickPreferredLiveRecord(liveSource, candidateRecords);
 

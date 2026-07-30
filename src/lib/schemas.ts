@@ -416,18 +416,46 @@ export const recordsOutputSchema = recordsOutputToolSchema.superRefine(
     const uniqueItemCount = new Set(
       data.items.map((item) => item.source_id)
     ).size;
-    if (
-      data.items.length !== data.unique_count ||
-      uniqueItemCount !== data.unique_count ||
-      data.requested_count < data.unique_count ||
-      data.success_count !== successCount ||
-      data.error_count !== errorCount ||
-      data.success_count + data.error_count !== data.unique_count
-    ) {
+    if (data.items.length !== data.unique_count) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "batch record counts do not match items",
+        message: "batch record items.length must equal unique_count",
         path: ["items"]
+      });
+    }
+    if (uniqueItemCount !== data.unique_count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record items must contain unique source_ids",
+        path: ["items"]
+      });
+    }
+    if (data.requested_count < data.unique_count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record requested_count must cover unique_count",
+        path: ["requested_count"]
+      });
+    }
+    if (data.success_count !== successCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record success_count does not match items",
+        path: ["success_count"]
+      });
+    }
+    if (data.error_count !== errorCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record error_count does not match items",
+        path: ["error_count"]
+      });
+    }
+    if (data.success_count + data.error_count !== data.unique_count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "batch record status counts must equal unique_count",
+        path: ["success_count"]
       });
     }
   }

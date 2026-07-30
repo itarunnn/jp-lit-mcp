@@ -14,6 +14,13 @@ export class InvalidRequestError extends Error {
   }
 }
 
+export class InvalidSourceIdError extends InvalidRequestError {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidSourceIdError";
+  }
+}
+
 export class CrossSourceSearchError extends Error {
   constructor(readonly sourceErrors: SourceSearchError[]) {
     super("All cross-source searches failed");

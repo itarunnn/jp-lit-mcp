@@ -1,4 +1,4 @@
-import { InvalidRequestError } from "./errors.js";
+import { InvalidRequestError, InvalidSourceIdError } from "./errors.js";
 import type { SourceName } from "./types.js";
 
 const NDL_SOURCE_ID_PATTERN = /^R[0-9A-Za-z-]+$/;
@@ -15,7 +15,7 @@ const NDL_PID_PATTERN = /^\d+$/;
 
 function assertSourceId(source: SourceName, sourceId: string, pattern: RegExp, hint: string) {
   if (!pattern.test(sourceId)) {
-    throw new InvalidRequestError(
+    throw new InvalidSourceIdError(
       `${source} の source_id 形式が不正です: ${sourceId}（例: ${hint}）`
     );
   }
@@ -24,7 +24,7 @@ function assertSourceId(source: SourceName, sourceId: string, pattern: RegExp, h
 export function validateSourceId(source: SourceName, sourceId: string): string {
   const trimmed = sourceId.trim();
   if (!trimmed) {
-    throw new InvalidRequestError("source_id は空にできません");
+    throw new InvalidSourceIdError("source_id は空にできません");
   }
 
   switch (source) {

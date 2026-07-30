@@ -75,6 +75,34 @@ function createRecordItem(sourceId: string): RecordItem {
   };
 }
 
+function createValidErrorBatchOutput() {
+  return {
+    source: "ndl_digital" as const,
+    requested_count: 2,
+    unique_count: 2,
+    success_count: 0,
+    error_count: 2,
+    items: [
+      {
+        source_id: "R100000039-I1000732",
+        status: "error" as const,
+        error: {
+          category: "not_found" as const,
+          message: "該当レコードが見つかりませんでした。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000733",
+        status: "error" as const,
+        error: {
+          category: "timeout" as const,
+          message: "上流 source の応答がタイムアウトしました。"
+        }
+      }
+    ]
+  };
+}
+
 async function createBatchHarness(
   implementation: (sourceId: string) => Promise<RecordItem | null>
 ) {
@@ -164,7 +192,7 @@ describe("jp_lit_get_records schemas", () => {
     expect(parsed.items.map((item) => item.source_id)).toEqual(["A", "B"]);
   });
 
-  it("成功 item の cache と count invariants を必須にする", () => {
+  it("成功 item の cache を必須にする", () => {
     const valid = {
       source: "ndl_digital" as const,
       requested_count: 1,
@@ -199,12 +227,6 @@ describe("jp_lit_get_records schemas", () => {
     expect(
       recordsOutputSchema.safeParse({
         ...valid,
-        unique_count: 2
-      }).success
-    ).toBe(false);
-    expect(
-      recordsOutputSchema.safeParse({
-        ...valid,
         items: [
           {
             ...valid.items[0],
@@ -213,6 +235,60 @@ describe("jp_lit_get_records schemas", () => {
         ]
       }).success
     ).toBe(false);
+  });
+
+  it("重複 item だけの mutation を拒否する", () => {
+    const valid = createValidErrorBatchOutput();
+    const duplicateItemResult = recordsOutputSchema.safeParse({
+      ...valid,
+      items: [
+        valid.items[0],
+        {
+          ...valid.items[1],
+          source_id: valid.items[0].source_id
+        }
+      ]
+    });
+
+    expect(recordsOutputSchema.safeParse(valid).success).toBe(true);
+    expect(duplicateItemResult.success).toBe(false);
+    if (!duplicateItemResult.success) {
+      expect(duplicateItemResult.error.issues.map((issue) => issue.message)).toContain(
+        "batch record items must contain unique source_ids"
+      );
+    }
+  });
+
+  it("requested_count が unique_count 未満になる mutation を拒否する", () => {
+    const valid = createValidErrorBatchOutput();
+    const requestedCountResult = recordsOutputSchema.safeParse({
+      ...valid,
+      requested_count: 1
+    });
+
+    expect(recordsOutputSchema.safeParse(valid).success).toBe(true);
+    expect(requestedCountResult.success).toBe(false);
+    if (!requestedCountResult.success) {
+      expect(requestedCountResult.error.issues.map((issue) => issue.message)).toContain(
+        "batch record requested_count must cover unique_count"
+      );
+    }
+  });
+
+  it("items.length だけを変更した mutation を拒否する", () => {
+    const valid = createValidErrorBatchOutput();
+    const itemsLengthResult = recordsOutputSchema.safeParse({
+      ...valid,
+      items: valid.items.slice(0, 1)
+    });
+
+    expect(recordsOutputSchema.safeParse(valid).success).toBe(true);
+    expect(itemsLengthResult.success).toBe(false);
+    if (!itemsLengthResult.success) {
+      expect(itemsLengthResult.error.issues.map((issue) => issue.message)).toContain(
+        "batch record items.length must equal unique_count"
+      );
+    }
   });
 });
 
@@ -264,29 +340,24 @@ describe("jp_lit_get_records tool", () => {
     expect(getRecord).toHaveBeenCalledTimes(3);
   });
 
-  it("成功と個別失敗を固定 category と安全な message に変換する", async () => {
+  it("既知の個別失敗を固定 category と安全な message に変換しretryしない", async () => {
     const cases = new Map<
       string,
       RecordItem | null | Error
     >([
       ["R100000039-I1000732", createRecordItem("R100000039-I1000732")],
       ["R100000039-I1000733", null],
+      ["R100000039-I1000734", new UpstreamTimeoutError(123)],
       [
-        "R100000039-I1000734",
-        new InvalidRequestError("raw invalid request details")
-      ],
-      ["R100000039-I1000735", new UpstreamTimeoutError(123)],
-      [
-        "R100000039-I1000736",
+        "R100000039-I1000735",
         new UpstreamHttpError(503, "Sensitive upstream")
       ],
       [
-        "R100000039-I1000737",
+        "R100000039-I1000736",
         new UnsupportedPayloadError("raw payload details")
-      ],
-      ["R100000039-I1000738", new Error("secret unexpected details")]
+      ]
     ]);
-    const { tool } = await createBatchHarness(async (sourceId) => {
+    const { tool, getRecord } = await createBatchHarness(async (sourceId) => {
       const value = cases.get(sourceId);
       if (value instanceof Error) {
         throw value;
@@ -319,20 +390,12 @@ describe("jp_lit_get_records tool", () => {
         source_id: "R100000039-I1000734",
         status: "error",
         error: {
-          category: "invalid_request",
-          message: "source_id をこの source の詳細取得に利用できません。"
-        }
-      },
-      {
-        source_id: "R100000039-I1000735",
-        status: "error",
-        error: {
           category: "timeout",
           message: "上流 source の応答がタイムアウトしました。"
         }
       },
       {
-        source_id: "R100000039-I1000736",
+        source_id: "R100000039-I1000735",
         status: "error",
         error: {
           category: "http",
@@ -340,15 +403,61 @@ describe("jp_lit_get_records tool", () => {
         }
       },
       {
-        source_id: "R100000039-I1000737",
+        source_id: "R100000039-I1000736",
         status: "error",
         error: {
           category: "invalid_payload",
           message: "上流 source の応答形式を処理できませんでした。"
         }
-      },
+      }
+    ]);
+    expect(result.structuredContent).toMatchObject({
+      success_count: 1,
+      error_count: 4
+    });
+    for (const sourceId of cases.keys()) {
+      expect(
+        getRecord.mock.calls.filter(([calledSourceId]) => calledSourceId === sourceId)
+      ).toHaveLength(1);
+    }
+  });
+
+  it("実際に不正な source_id だけを invalid_request に変換する", async () => {
+    const { tool, getRecord } = await createBatchHarness(async (sourceId) =>
+      createRecordItem(sourceId)
+    );
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_ids: ["not a valid source id"]
+    });
+
+    expect(result.structuredContent.items).toEqual([
       {
-        source_id: "R100000039-I1000738",
+        source_id: "not a valid source id",
+        status: "error",
+        error: {
+          category: "invalid_request",
+          message: "source_id をこの source の詳細取得に利用できません。"
+        }
+      }
+    ]);
+    expect(getRecord).not.toHaveBeenCalled();
+  });
+
+  it("adapter/cache/config相当の通常InvalidRequestErrorを安全なunknownにする", async () => {
+    const { tool } = await createBatchHarness(async () => {
+      throw new InvalidRequestError("raw systemic invalid request details");
+    });
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_ids: ["R100000039-I1000732"]
+    });
+
+    expect(result.structuredContent.items).toEqual([
+      {
+        source_id: "R100000039-I1000732",
         status: "error",
         error: {
           category: "unknown",
@@ -356,10 +465,37 @@ describe("jp_lit_get_records tool", () => {
         }
       }
     ]);
-    expect(result.structuredContent).toMatchObject({
-      success_count: 1,
-      error_count: 6
+    expect(JSON.stringify(result.structuredContent)).not.toContain(
+      "raw systemic invalid request details"
+    );
+    expect(JSON.stringify(result.structuredContent)).not.toContain(
+      "source_id をこの source"
+    );
+  });
+
+  it("通常のunknown errorを安全なunknownにする", async () => {
+    const { tool } = await createBatchHarness(async () => {
+      throw new Error("secret unexpected details");
     });
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_ids: ["R100000039-I1000732"]
+    });
+
+    expect(result.structuredContent.items).toEqual([
+      {
+        source_id: "R100000039-I1000732",
+        status: "error",
+        error: {
+          category: "unknown",
+          message: "レコード詳細の取得中に予期しないエラーが発生しました。"
+        }
+      }
+    ]);
+    expect(JSON.stringify(result.structuredContent)).not.toContain(
+      "secret unexpected details"
+    );
   });
 
   it("単件取得後の batch 取得が同じ cache を使う", async () => {

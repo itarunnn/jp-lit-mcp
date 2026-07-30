@@ -1,4 +1,4 @@
-import { InvalidRequestError, NotFoundError } from "../lib/errors.js";
+import { InvalidSourceIdError, NotFoundError } from "../lib/errors.js";
 import {
   UnsupportedPayloadError,
   UpstreamHttpError,
@@ -32,7 +32,7 @@ function toBatchRecordError(
       message: "該当レコードが見つかりませんでした。"
     };
   }
-  if (error instanceof InvalidRequestError) {
+  if (error instanceof InvalidSourceIdError) {
     return {
       category: "invalid_request",
       message: "source_id をこの source の詳細取得に利用できません。"
