@@ -626,4 +626,21 @@ describe("jp-lit-research skill guide", () => {
       existsSync("skills/jp-lit-research/scripts/plan-regional-library-search.mjs")
     ).toBe(true);
   });
+
+  it("details selected NDL Digital candidates before OCR or browser decisions", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const workflow = readFileSync(
+      "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+      "utf8"
+    );
+    const combined = `${skill}\n${workflow}`;
+
+    expect(skill).toContain("選別済みの `ndl_digital` 候補");
+    expect(combined).toContain("1件なら `jp_lit_get_record`");
+    expect(combined).toContain("2〜10件なら `jp_lit_get_records`");
+    expect(workflow).toContain("生の検索結果全件を自動詳細化しない");
+    expect(workflow).toContain("content_access.manual_viewing");
+    expect(workflow).toContain("source_metadata.next_digital_library.available");
+    expect(workflow).toContain("ブラウザ利用許可を意味しない");
+  });
 });
