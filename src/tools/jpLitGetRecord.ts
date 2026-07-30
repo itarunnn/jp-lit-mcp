@@ -5,19 +5,18 @@ import { createSessionStore } from "../lib/persistence/sessionStore.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { withToolCache } from "../lib/toolCache.js";
 import { recordInputSchema, recordOutputSchema } from "../lib/schemas.js";
-import type { RecordOutput } from "../lib/schemas.js";
+import type { RecordInput, RecordOutput } from "../lib/schemas.js";
 import type { createRecordService } from "../services/recordService.js";
 
 type RecordService = ReturnType<typeof createRecordService>;
 
-export function createJpLitGetRecordTool(
+export function createCachedRecordLookup(
   recordService: RecordService,
   cache: FileCache = createFileCache(),
   sessions: SessionStore = createSessionStore()
 ) {
-  return async (input: unknown) => {
-    const parsed = recordInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+  return async (input: RecordInput): Promise<RecordOutput> => {
+    const { force_refresh, ...cacheableInput } = input;
     const result = await runCachedTool<RecordOutput>({
       tool: "jp_lit_get_record",
       input: cacheableInput as unknown as Record<string, unknown>,
@@ -25,17 +24,33 @@ export function createJpLitGetRecordTool(
       sessions,
       bypassCache: force_refresh,
       live: async () => {
-        const result = await recordService.getRecord({
-          source: parsed.source,
-          sourceId: parsed.source_id
+        const record = await recordService.getRecord({
+          source: input.source,
+          sourceId: input.source_id
         });
 
-        return recordOutputSchema.parse(result);
+        return recordOutputSchema.parse(record);
       }
     });
-    const structuredContent = recordOutputSchema.parse(
-      withToolCache(result.structuredContent as Record<string, unknown>, result)
+
+    return recordOutputSchema.parse(
+      withToolCache(
+        result.structuredContent as Record<string, unknown>,
+        result
+      )
     );
+  };
+}
+
+export function createJpLitGetRecordTool(
+  recordService: RecordService,
+  cache: FileCache = createFileCache(),
+  sessions: SessionStore = createSessionStore()
+) {
+  const lookup = createCachedRecordLookup(recordService, cache, sessions);
+
+  return async (input: unknown) => {
+    const structuredContent = await lookup(recordInputSchema.parse(input));
 
     return {
       content: [

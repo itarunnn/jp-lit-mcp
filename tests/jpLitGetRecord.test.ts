@@ -1,11 +1,35 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InvalidRequestError, NotFoundError } from "../src/lib/errors.js";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { recordInputSchema } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
 import { createRecordService } from "../src/services/recordService.js";
 import type { SourceAdapter } from "../src/sources/types.js";
-import { createJpLitGetRecordTool } from "../src/tools/jpLitGetRecord.js";
+import {
+  createCachedRecordLookup,
+  createJpLitGetRecordTool
+} from "../src/tools/jpLitGetRecord.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir(): Promise<string> {
+  const directory = await mkdtemp(join(tmpdir(), "jp-lit-get-record-"));
+  tempDirs.push(directory);
+  return directory;
+}
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true }))
+  );
+});
 
 function createRecordItem(sourceId: string): RecordItem {
   return {
@@ -283,6 +307,39 @@ describe("createRecordService", () => {
         text: JSON.stringify(result.structuredContent, null, 2)
       }
     ]);
+  });
+
+  it("共有 lookup が単件 cache namespace と cache metadata を維持する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const getRecord = vi.fn(async (sourceId: string) =>
+      createRecordItem(sourceId)
+    );
+    const service = createRecordService([
+      {
+        source: "ndl_digital",
+        search: async () => ({ total: 0, items: [] }),
+        getRecord
+      }
+    ]);
+    const lookup = createCachedRecordLookup(service, cache, sessions);
+
+    const first = await lookup({
+      source: "ndl_digital",
+      source_id: "R100000039-I1000732",
+      force_refresh: false
+    });
+    const second = await lookup({
+      source: "ndl_digital",
+      source_id: "R100000039-I1000732",
+      force_refresh: false
+    });
+
+    expect(first.cache?.hit).toBe(false);
+    expect(second.cache?.hit).toBe(true);
+    expect(first.cache?.cache_key).toBe(second.cache?.cache_key);
+    expect(getRecord).toHaveBeenCalledTimes(1);
   });
 
   it("tool handler が ndl_articles の crid: source_id を詳細取得へ渡す", async () => {
