@@ -1,10 +1,41 @@
-import { describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { InvalidRequestError } from "../src/lib/errors.js";
+import {
+  UnsupportedPayloadError,
+  UpstreamHttpError,
+  UpstreamTimeoutError
+} from "../src/lib/http.js";
+import { createFileCache } from "../src/lib/persistence/fileCache.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import {
   recordsInputSchema,
   recordsOutputSchema
 } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
+import { createRecordService } from "../src/services/recordService.js";
+import type { SourceAdapter } from "../src/sources/types.js";
+import { createJpLitGetRecordTool } from "../src/tools/jpLitGetRecord.js";
+import { createJpLitGetRecordsTool } from "../src/tools/jpLitGetRecords.js";
+
+const tempDirs: string[] = [];
+
+async function createTempDir() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-records-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  await Promise.all(
+    tempDirs.splice(0).map((dir) =>
+      rm(dir, { recursive: true, force: true })
+    )
+  );
+});
 
 function createRecordItem(sourceId: string): RecordItem {
   return {
@@ -41,6 +72,30 @@ function createRecordItem(sourceId: string): RecordItem {
     },
     source_metadata: {},
     raw: {}
+  };
+}
+
+async function createBatchHarness(
+  implementation: (sourceId: string) => Promise<RecordItem | null>
+) {
+  const baseDir = await createTempDir();
+  const cache = createFileCache(baseDir);
+  const sessions = createSessionStore(baseDir);
+  const getRecord = vi.fn(implementation);
+  const adapter: SourceAdapter = {
+    source: "ndl_digital",
+    search: async () => ({ total: 0, items: [] }),
+    getRecord
+  };
+  const service = createRecordService([adapter]);
+
+  return {
+    cache,
+    sessions,
+    service,
+    getRecord,
+    tool: createJpLitGetRecordsTool(service, cache, sessions),
+    singleTool: createJpLitGetRecordTool(service, cache, sessions)
   };
 }
 
@@ -157,6 +212,317 @@ describe("jp_lit_get_records schemas", () => {
           }
         ]
       }).success
+    ).toBe(false);
+  });
+});
+
+describe("jp_lit_get_records tool", () => {
+  it("重複を除いた入力順で成功と部分失敗を返す", async () => {
+    const { tool, getRecord } = await createBatchHarness(async (sourceId) => {
+      if (sourceId === "R100000039-I9999999") {
+        return null;
+      }
+      return createRecordItem(sourceId);
+    });
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_ids: [
+        " R100000039-I1000732 ",
+        "R100000039-I9999999",
+        "R100000039-I1000732",
+        "R100000039-I1000733"
+      ]
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      source: "ndl_digital",
+      requested_count: 4,
+      unique_count: 3,
+      success_count: 2,
+      error_count: 1
+    });
+    expect(result.structuredContent.items.map((item) => item.source_id)).toEqual([
+      "R100000039-I1000732",
+      "R100000039-I9999999",
+      "R100000039-I1000733"
+    ]);
+    expect(result.structuredContent.items[1]).toMatchObject({
+      source_id: "R100000039-I9999999",
+      status: "error",
+      error: {
+        category: "not_found",
+        message: "該当レコードが見つかりませんでした。"
+      }
+    });
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify(result.structuredContent, null, 2)
+      }
+    ]);
+    expect(getRecord).toHaveBeenCalledTimes(3);
+  });
+
+  it("成功と個別失敗を固定 category と安全な message に変換する", async () => {
+    const cases = new Map<
+      string,
+      RecordItem | null | Error
+    >([
+      ["R100000039-I1000732", createRecordItem("R100000039-I1000732")],
+      ["R100000039-I1000733", null],
+      [
+        "R100000039-I1000734",
+        new InvalidRequestError("raw invalid request details")
+      ],
+      ["R100000039-I1000735", new UpstreamTimeoutError(123)],
+      [
+        "R100000039-I1000736",
+        new UpstreamHttpError(503, "Sensitive upstream")
+      ],
+      [
+        "R100000039-I1000737",
+        new UnsupportedPayloadError("raw payload details")
+      ],
+      ["R100000039-I1000738", new Error("secret unexpected details")]
+    ]);
+    const { tool } = await createBatchHarness(async (sourceId) => {
+      const value = cases.get(sourceId);
+      if (value instanceof Error) {
+        throw value;
+      }
+      return value ?? null;
+    });
+
+    const result = await tool({
+      source: "ndl_digital",
+      source_ids: Array.from(cases.keys())
+    });
+
+    expect(result.structuredContent.items).toEqual([
+      expect.objectContaining({
+        source_id: "R100000039-I1000732",
+        status: "ok",
+        record: expect.objectContaining({
+          source_id: "R100000039-I1000732"
+        })
+      }),
+      {
+        source_id: "R100000039-I1000733",
+        status: "error",
+        error: {
+          category: "not_found",
+          message: "該当レコードが見つかりませんでした。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000734",
+        status: "error",
+        error: {
+          category: "invalid_request",
+          message: "source_id をこの source の詳細取得に利用できません。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000735",
+        status: "error",
+        error: {
+          category: "timeout",
+          message: "上流 source の応答がタイムアウトしました。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000736",
+        status: "error",
+        error: {
+          category: "http",
+          message: "上流 source へのリクエストに失敗しました。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000737",
+        status: "error",
+        error: {
+          category: "invalid_payload",
+          message: "上流 source の応答形式を処理できませんでした。"
+        }
+      },
+      {
+        source_id: "R100000039-I1000738",
+        status: "error",
+        error: {
+          category: "unknown",
+          message: "レコード詳細の取得中に予期しないエラーが発生しました。"
+        }
+      }
+    ]);
+    expect(result.structuredContent).toMatchObject({
+      success_count: 1,
+      error_count: 6
+    });
+  });
+
+  it("単件取得後の batch 取得が同じ cache を使う", async () => {
+    const { singleTool, tool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+
+    const single = await singleTool({
+      source: "ndl_digital",
+      source_id: "R100000039-I1000732"
+    });
+    const batch = await tool({
+      source: "ndl_digital",
+      source_ids: ["R100000039-I1000732"]
+    });
+
+    expect(single.structuredContent.cache?.hit).toBe(false);
+    expect(batch.structuredContent.items[0]).toMatchObject({
+      status: "ok",
+      record: {
+        cache: {
+          hit: true,
+          cache_key: single.structuredContent.cache?.cache_key
+        }
+      }
+    });
+    expect(getRecord).toHaveBeenCalledTimes(1);
+  });
+
+  it("batch 取得後の単件取得が同じ cache を使う", async () => {
+    const { singleTool, tool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+
+    const batch = await tool({
+      source: "ndl_digital",
+      source_ids: ["R100000039-I1000732"]
+    });
+    const single = await singleTool({
+      source: "ndl_digital",
+      source_id: "R100000039-I1000732"
+    });
+
+    expect(batch.structuredContent.items[0]).toMatchObject({
+      status: "ok",
+      record: {
+        cache: {
+          hit: false,
+          cache_key: single.structuredContent.cache?.cache_key
+        }
+      }
+    });
+    expect(single.structuredContent.cache?.hit).toBe(true);
+    expect(getRecord).toHaveBeenCalledTimes(1);
+  });
+
+  it("force_refresh=true では各一意 ID を再取得する", async () => {
+    const { tool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+    const sourceIds = [
+      "R100000039-I1000732",
+      "R100000039-I1000733"
+    ];
+
+    await tool({
+      source: "ndl_digital",
+      source_ids: sourceIds
+    });
+    const refreshed = await tool({
+      source: "ndl_digital",
+      source_ids: [...sourceIds, sourceIds[0]],
+      force_refresh: true
+    });
+
+    expect(refreshed.structuredContent).toMatchObject({
+      requested_count: 3,
+      unique_count: 2,
+      success_count: 2
+    });
+    for (const item of refreshed.structuredContent.items) {
+      expect(item).toMatchObject({
+        status: "ok",
+        record: {
+          cache: {
+            hit: false
+          }
+        }
+      });
+    }
+    expect(getRecord).toHaveBeenCalledTimes(4);
+  });
+
+  it("詳細取得の同時実行数を2に固定する", async () => {
+    let active = 0;
+    let started = 0;
+    let maxActive = 0;
+    const releases: Array<() => void> = [];
+    const { tool } = await createBatchHarness(async (sourceId) => {
+      active += 1;
+      started += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      active -= 1;
+      return createRecordItem(sourceId);
+    });
+
+    const pending = tool({
+      source: "ndl_digital",
+      source_ids: [
+        "R100000039-I1000732",
+        "R100000039-I1000733",
+        "R100000039-I1000734",
+        "R100000039-I1000735"
+      ]
+    });
+
+    await vi.waitFor(() => expect(started).toBe(2));
+    expect(maxActive).toBe(2);
+    releases.splice(0).forEach((release) => release());
+
+    await vi.waitFor(() => expect(started).toBe(4));
+    expect(maxActive).toBe(2);
+    releases.splice(0).forEach((release) => release());
+
+    await expect(pending).resolves.toMatchObject({
+      structuredContent: {
+        success_count: 4,
+        error_count: 0
+      }
+    });
+  });
+
+  it("成功した一意 ID だけ単件 tool の session entry を残す", async () => {
+    const { tool, sessions } = await createBatchHarness(async (sourceId) => {
+      if (sourceId === "R100000039-I9999999") {
+        return null;
+      }
+      return createRecordItem(sourceId);
+    });
+
+    await tool({
+      source: "ndl_digital",
+      source_ids: [
+        "R100000039-I1000732",
+        "R100000039-I9999999",
+        "R100000039-I1000732",
+        "R100000039-I1000733"
+      ]
+    });
+    const session = await sessions.readCurrent();
+
+    expect(session.entries).toHaveLength(2);
+    expect(session.entries.map((entry) => entry.tool)).toEqual([
+      "jp_lit_get_record",
+      "jp_lit_get_record"
+    ]);
+    expect(session.entries.map((entry) => entry.input.source_id).sort()).toEqual([
+      "R100000039-I1000732",
+      "R100000039-I1000733"
+    ]);
+    expect(
+      session.entries.some((entry) => entry.tool === "jp_lit_get_records")
     ).toBe(false);
   });
 });
