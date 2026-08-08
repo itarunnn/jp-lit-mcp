@@ -6,6 +6,7 @@ import type { CacheEnvelope, SessionEntry } from "./types.js";
 interface RunCachedToolOptions<T> {
   tool: string;
   input: Record<string, unknown>;
+  sessionId: string;
   live: () => Promise<T>;
   cache: FileCache;
   sessions: SessionStore;
@@ -19,6 +20,7 @@ interface RunCachedToolOptions<T> {
 export async function runCachedTool<T>({
   tool,
   input,
+  sessionId,
   live,
   cache,
   sessions,
@@ -42,7 +44,7 @@ export async function runCachedTool<T>({
   const cached = bypassCache ? null : await cache.read<T>(tool, cacheKey);
 
   if (cached) {
-    await sessions.appendEntry(entry);
+    await sessions.appendEntry(entry, sessionId);
 
     return {
       cacheKey,
@@ -63,7 +65,7 @@ export async function runCachedTool<T>({
   };
 
   await cache.write(tool, envelope);
-  await sessions.appendEntry(entry);
+  await sessions.appendEntry(entry, sessionId);
 
   return {
     cacheKey,

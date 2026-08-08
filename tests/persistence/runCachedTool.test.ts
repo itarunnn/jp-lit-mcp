@@ -24,11 +24,13 @@ describe("runCachedTool", () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
+    const targetSession = await sessions.readCurrent();
     const live = vi.fn(async () => ({ total: 1 }));
 
     const first = await runCachedTool({
       tool: "jp_lit_search",
       input: { query: "foo", page: 1 },
+      sessionId: targetSession.session_id,
       live,
       cache,
       sessions
@@ -37,6 +39,7 @@ describe("runCachedTool", () => {
     const second = await runCachedTool({
       tool: "jp_lit_search",
       input: { page: 1, query: "foo" },
+      sessionId: targetSession.session_id,
       live,
       cache,
       sessions
@@ -48,15 +51,16 @@ describe("runCachedTool", () => {
     expect(second.cacheHit).toBe(true);
     expect(live).toHaveBeenCalledTimes(1);
 
-    const session = await sessions.readCurrent();
-    expect(session.entries).toHaveLength(1);
-    expect(session.entries[0]?.cache_key).toBe(first.cacheKey);
+    const storedSession = await sessions.readCurrent();
+    expect(storedSession.entries).toHaveLength(1);
+    expect(storedSession.entries[0]?.cache_key).toBe(first.cacheKey);
   });
 
   it("bypassCache=true のときは毎回 live を実行する", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
+    const targetSession = await sessions.readCurrent();
     const live = vi
       .fn()
       .mockResolvedValueOnce({ total: 1 })
@@ -65,6 +69,7 @@ describe("runCachedTool", () => {
     const first = await runCachedTool({
       tool: "jp_lit_search",
       input: { query: "foo", page: 1 },
+      sessionId: targetSession.session_id,
       live,
       cache,
       sessions,
@@ -73,6 +78,7 @@ describe("runCachedTool", () => {
     const second = await runCachedTool({
       tool: "jp_lit_search",
       input: { query: "foo", page: 1 },
+      sessionId: targetSession.session_id,
       live,
       cache,
       sessions,
@@ -83,5 +89,36 @@ describe("runCachedTool", () => {
     expect(first.cacheHit).toBe(false);
     expect(second.cacheHit).toBe(false);
     expect(second.structuredContent).toEqual({ total: 2 });
+  });
+
+  it("shares cache results while routing entries to explicit sessions", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const firstSession = await sessions.startSession({ research_goal: "first" });
+    const secondSession = await sessions.startSession({ research_goal: "second" });
+    const live = vi.fn(async () => ({ total: 1 }));
+
+    const first = await runCachedTool({
+      tool: "jp_lit_search",
+      input: { query: "foo", page: 1 },
+      sessionId: firstSession.session_id,
+      live,
+      cache,
+      sessions
+    });
+    const second = await runCachedTool({
+      tool: "jp_lit_search",
+      input: { query: "foo", page: 1 },
+      sessionId: secondSession.session_id,
+      live,
+      cache,
+      sessions
+    });
+
+    expect(second.cacheKey).toBe(first.cacheKey);
+    expect(live).toHaveBeenCalledTimes(1);
+    expect((await sessions.readById(firstSession.session_id)).entries).toHaveLength(1);
+    expect((await sessions.readById(secondSession.session_id)).entries).toHaveLength(1);
   });
 });
