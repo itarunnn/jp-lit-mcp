@@ -29,7 +29,7 @@
 - Consumes: `SessionDocument`、`SessionEntry`、archive/current paths。
 - Produces: `appendEntry(entry, sessionId?)`、`annotateEntry(input, sessionId?)`、`updateTrace(input, sessionId?)`。明示 ID の場合は archive を更新し、同じ ID が current のときだけ `current.json` も同期する。
 
-- [ ] **Step 1: routing の failing test を追加する**
+- [x] **Step 1: routing の failing test を追加する**
 
 ```ts
 const first = await store.startSession({ research_goal: "first" });
@@ -41,13 +41,13 @@ expect((await store.readCurrent()).session_id).toBe(second.session_id);
 expect((await store.readCurrent()).entries).toEqual([]);
 ```
 
-- [ ] **Step 2: RED を確認する**
+- [x] **Step 2: RED を確認する**
 
 Run: `npm test -- tests/persistence/sessionStore.test.ts`
 
 Expected: first session ではなく current が更新されるため FAIL。
 
-- [ ] **Step 3: target loader と persist policy を実装する**
+- [x] **Step 3: target loader と persist policy を実装する**
 
 ```ts
 async function loadMutationTarget(sessionId?: string) {
@@ -60,13 +60,13 @@ async function loadMutationTarget(sessionId?: string) {
 
 `persist(session, mirrorCurrent)` は archive を常に書き、`mirrorCurrent` の場合だけ current も書く。
 
-- [ ] **Step 4: GREEN を確認する**
+- [x] **Step 4: GREEN を確認する**
 
 Run: `npm test -- tests/persistence/sessionStore.test.ts tests/persistence/sessionStoreHistory.test.ts`
 
 Expected: PASS。
 
-- [ ] **Step 5: commit**
+- [x] **Step 5: commit**
 
 Run: `git commit -am "feat: route session mutations by explicit id"`
 
@@ -81,7 +81,7 @@ Run: `git commit -am "feat: route session mutations by explicit id"`
 **Interfaces:**
 - Produces: required `RunCachedToolOptions.sessionId: string` と、全 session-recording tool schema の required `session_id: string`。
 
-- [ ] **Step 1: cache 共有と session 分離の failing test を追加する**
+- [x] **Step 1: cache 共有と session 分離の failing test を追加する**
 
 ```ts
 const a = await sessions.startSession({ research_goal: "A" });
@@ -94,17 +94,17 @@ expect((await sessions.readById(a.session_id)).entries).toHaveLength(1);
 expect((await sessions.readById(b.session_id)).entries).toHaveLength(1);
 ```
 
-- [ ] **Step 2: schema table の failing test を追加する**
+- [x] **Step 2: schema table の failing test を追加する**
 
 `searchInputSchema`、`recordInputSchema`、`recordsInputSchema`、`enrichRecordInputSchema`、NDL fulltext/page/image schemas、国書/CRD/典拠/KAKEN schemas、`annotateSessionInputSchema`、`updateSessionTraceInputSchema`、`exportSessionInputSchema` を table 化し、missing ID は FAIL、`2026-08-08-120000-a1b2c3d4` 付きは PASS とする。
 
-- [ ] **Step 3: RED を確認する**
+- [x] **Step 3: RED を確認する**
 
 Run: `npm test -- tests/persistence/runCachedTool.test.ts tests/explicitSessionSchemas.test.ts`
 
 Expected: routing と missing-ID rejection が未実装なので FAIL。
 
-- [ ] **Step 4: runner と schemas を実装する**
+- [x] **Step 4: runner と schemas を実装する**
 
 ```ts
 interface RunCachedToolOptions<T> {
@@ -119,7 +119,7 @@ interface RunCachedToolOptions<T> {
 
 cache hit / miss の両 branch で `sessions.appendEntry(entry, sessionId)` を呼ぶ。schema field の説明は transport ID ではなく調査案件 handle と明記する。
 
-- [ ] **Step 5: GREEN と commit**
+- [x] **Step 5: GREEN と commit**
 
 Run: `npm test -- tests/persistence/runCachedTool.test.ts tests/explicitSessionSchemas.test.ts`
 
@@ -151,13 +151,13 @@ Run: `git add -- src/lib/persistence/runCachedTool.ts src/lib/schemas.ts tests/p
 - Consumes: parsed `{ session_id, force_refresh, ...cacheableInput }`。
 - Produces: every `runCachedTool` call has `sessionId: session_id`; batch lookup forwards the same ID to every inner record lookup。
 
-- [ ] **Step 1: TypeScript RED を確認する**
+- [x] **Step 1: TypeScript RED を確認する**
 
 Run: `npm run build`
 
 Expected: `runCachedTool` caller に required `sessionId` error。
 
-- [ ] **Step 2: 最小 plumbing を実装する**
+- [x] **Step 2: 最小 plumbing を実装する**
 
 ```ts
 const { session_id, force_refresh, ...cacheableInput } = parsed;
@@ -174,7 +174,7 @@ await runCachedTool({
 
 normalization 前に ID を分離し、upstream input と cache input に入れない。`jp_lit_get_records` は inner lookup に `session_id: parsed.session_id` を追加する。
 
-- [ ] **Step 3: GREEN と commit**
+- [x] **Step 3: GREEN と commit**
 
 Run: `npm run build`
 
@@ -199,15 +199,15 @@ Run: `git add -- src/tools tests; git commit -m "feat: thread session handles th
 **Interfaces:**
 - Produces: annotation/trace/export target requested archive; refine requires exactly one of `session_id` / `cache_key` / `cache_keys` and has no `readCurrent()` branch。
 
-- [ ] **Step 1: explicit target と selector の failing tests を追加する**
+- [x] **Step 1: explicit target と selector の failing tests を追加する**
 
 非 current session を annotate/update/export して current が変わらないこと、refine `{}` と複数 selector が validation error になることを検証する。
 
-- [ ] **Step 2: RED を確認する**
+- [x] **Step 2: RED を確認する**
 
 Run: `npm test -- tests/jpLitAnnotateSession.test.ts tests/jpLitUpdateSessionTrace.test.ts tests/jpLitExportSessionHistory.test.ts tests/jpLitRefineResults.test.ts tests/jpLitExportView.test.ts`
 
-- [ ] **Step 3: routing と selector validation を実装する**
+- [x] **Step 3: routing と selector validation を実装する**
 
 ```ts
 const session = await sessionStore.annotateEntry(annotation, parsed.session_id);
@@ -217,7 +217,7 @@ const session = await sessionStore.readById(parsed.session_id);
 
 refine の implicit latest cache / implicit enrichment current を削除する。`exportView(view="refined_results")` の `params` default `{}` も削除する。
 
-- [ ] **Step 4: GREEN と commit**
+- [x] **Step 4: GREEN と commit**
 
 Run: `npm test -- tests/jpLitAnnotateSession.test.ts tests/jpLitUpdateSessionTrace.test.ts tests/jpLitExportSessionHistory.test.ts tests/jpLitRefineResults.test.ts tests/jpLitExportView.test.ts`
 
@@ -241,15 +241,15 @@ Run: `git add -- src/tools src/lib/schemas.ts tests; git commit -m "feat: remove
 **Interfaces:**
 - Produces: workflow は start で得た ID を検索・注釈・trace・export に引き回し、ID を失った場合は list/find sessions で回復する。
 
-- [ ] **Step 1: workflow contract の failing tests を追加する**
+- [x] **Step 1: workflow contract の failing tests を追加する**
 
 Skill が「調査開始時に start」「返却 ID を全 stateful call に渡す」「session ID と cache key を分離」を指示し、deterministic smoke が実際に同じ ID を使うことを検証する。
 
-- [ ] **Step 2: RED を確認する**
+- [x] **Step 2: RED を確認する**
 
 Run: `npm test -- tests/skillGuide.test.ts tests/smokeMcp.test.ts`
 
-- [ ] **Step 3: smoke / Skill / docs を更新する**
+- [x] **Step 3: smoke / Skill / docs を更新する**
 
 ```ts
 const started = await callTool("jp_lit_start_session", { research_goal: "offline smoke" });
@@ -259,7 +259,7 @@ await callTool("jp_lit_search", { session_id: sessionId, query: "fixture" });
 
 reference の全 cached tool 共通入力に `session_id` 必須を記載し、保存済み JSON migration は不要、cache は session 間共有と説明する。status は未公開実装であることを明記する。
 
-- [ ] **Step 4: GREEN と commit**
+- [x] **Step 4: GREEN と commit**
 
 Run: `npm test -- tests/skillGuide.test.ts tests/smokeMcp.test.ts tests/readmeLinks.test.ts tests/toolDescriptionQuality.test.ts`
 
@@ -276,7 +276,7 @@ Run: `git add -- scripts/smoke-mcp.ts tests/smokeMcp.test.ts skills/jp-lit-resea
 **Interfaces:**
 - Produces: checkbox と実測結果を反映した完了 plan、fresh build/test evidence、未公開状態と既知制約の明示。
 
-- [ ] **Step 1: fresh verification を実行する**
+- [x] **Step 1: fresh verification を実行する**
 
 ```powershell
 npm run build
@@ -287,16 +287,23 @@ git diff --check
 git status --short --branch
 ```
 
-- [ ] **Step 2: 設計 coverage を照合する**
+- [x] **Step 2: 設計 coverage を照合する**
 
 cached 17 tool、annotate/trace/export、refine、cache-sharing test、non-current mutation test、Skill/smoke、対象外の誤記なしを確認する。
 
-- [ ] **Step 3: plan checkbox と検証実績を更新して commit する**
+- [x] **Step 3: plan checkbox と検証実績を更新して commit する**
 
 Run: `git add -f -- docs/superpowers/plans/2026-08-08-explicit-research-session-handles.md; git add -- docs/project-status.md; git commit -m "chore: complete explicit session handle migration"`
 
-- [ ] **Step 4: final commit 上で再検証する**
+- [x] **Step 4: final commit 上で再検証する**
 
 Run: `npm run build; npm run typecheck:scripts; npm run smoke:mcp:offline; npm test; git diff --check`
 
 Expected: 全 command exit 0。push、version bump、npm publish は行わない。
+
+## Execution Record
+
+- 2026-08-08: Task 1〜5 を TDD で実装。schema missing-ID、cache 共有/session 分離、非 current mutation、refine selector、deterministic offline smoke、Skill contract をテストで固定した。
+- 2026-08-08: cached direct tool 16種と batch tool 1種を照合し、`session_id` を cache input / upstream input から分離した。annotation / trace / export / refine の公開 current fallback を削除した。
+- 2026-08-08: `npm run build`、`npm run typecheck:scripts`、`npm run smoke:mcp:offline`、`npm test`（80 files / 733 tests）、`git diff --check` を実行して exit 0 を確認した。
+- 対象外のまま残す制約: process 間 lock、共有 storage、HTTP authentication / authorization、version bump、push、npm publish。
