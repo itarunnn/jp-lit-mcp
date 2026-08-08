@@ -25,8 +25,10 @@ describe("jp_lit_update_session_trace", () => {
     const baseDir = await createTempDir();
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitUpdateSessionTraceTool(sessions);
+    const target = await sessions.readCurrent();
 
     const first = await tool({
+      session_id: target.session_id,
       research_goal: "近代日本の労働文化を調べる",
       scope_note: "新聞 DB は未確認",
       source_plans: [
@@ -70,6 +72,7 @@ describe("jp_lit_update_session_trace", () => {
     });
 
     const second = await tool({
+      session_id: target.session_id,
       source_plans: [
         {
           source: "ndl_digital",
@@ -98,6 +101,7 @@ describe("jp_lit_update_session_trace", () => {
 
     await expect(
       tool({
+        session_id: (await sessions.readCurrent()).session_id,
         source_plans: [
           {
             source: "cinii_articles",

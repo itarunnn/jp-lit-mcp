@@ -7,7 +7,19 @@ import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionExporter } from "../src/lib/persistence/exportSession.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js";
+import { createJpLitExportSessionTool as createExplicitJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js";
+
+function createJpLitExportSessionTool(...args: Parameters<typeof createExplicitJpLitExportSessionTool>) {
+  const [sessions] = args;
+  const tool = createExplicitJpLitExportSessionTool(...args);
+  return async (input: unknown) => {
+    const current = await sessions.readCurrent();
+    const payload = input && typeof input === "object" && !Array.isArray(input)
+      ? input as Record<string, unknown>
+      : {};
+    return tool({ session_id: current.session_id, ...payload });
+  };
+}
 
 const tempDirs: string[] = [];
 

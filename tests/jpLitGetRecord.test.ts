@@ -6,16 +6,43 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { InvalidRequestError, NotFoundError } from "../src/lib/errors.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { recordInputSchema } from "../src/lib/schemas.js";
+import { recordInputSchema as explicitRecordInputSchema } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
 import { createRecordService } from "../src/services/recordService.js";
 import type { SourceAdapter } from "../src/sources/types.js";
 import {
-  createCachedRecordLookup,
-  createJpLitGetRecordTool
+  createCachedRecordLookup as createExplicitCachedRecordLookup,
+  createJpLitGetRecordTool as createExplicitJpLitGetRecordTool
 } from "../src/tools/jpLitGetRecord.js";
+import {
+  bindSchemaForLegacyTest,
+  bindToolToCurrentSession
+} from "./helpers/explicitSession.js";
 
 const tempDirs: string[] = [];
+const recordInputSchema = bindSchemaForLegacyTest(explicitRecordInputSchema);
+
+function createCachedRecordLookup(
+  ...args: Parameters<typeof createExplicitCachedRecordLookup>
+) {
+  const [service, cache, suppliedSessions] = args;
+  const sessions = suppliedSessions ?? createSessionStore();
+  return bindToolToCurrentSession(
+    createExplicitCachedRecordLookup(service, cache, sessions),
+    sessions
+  );
+}
+
+function createJpLitGetRecordTool(
+  ...args: Parameters<typeof createExplicitJpLitGetRecordTool>
+) {
+  const [service, cache, suppliedSessions] = args;
+  const sessions = suppliedSessions ?? createSessionStore();
+  return bindToolToCurrentSession(
+    createExplicitJpLitGetRecordTool(service, cache, sessions),
+    sessions
+  );
+}
 
 async function createTempDir(): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), "jp-lit-get-record-"));

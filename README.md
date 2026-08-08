@@ -27,10 +27,12 @@
 
 ## まず知っておく用語
 
-初めて使う場合、次の 2 つだけ押さえれば十分です。
+初めて使う場合、次の用語を押さえれば十分です。
 
 - `MCP`: AI アプリに外部ツールを追加する仕組みです。ここでは、AI に「NDL や CiNii などを検索できる道具」を渡すものだと思ってください。
 - `Skills`: AI に調査の進め方を教えるための手順書です。MCP だけでも検索はできますが、Skills を入れると「最初にどの DB を見るか」「表記ゆれをどう試すか」「候補の強弱をどう説明するか」が安定します。
+- `session_id`: 複数回の検索・判断・注釈を一つの調査案件へまとめる jp-lit のアプリケーション側 ID です。MCP 通信の `Mcp-Session-Id` とは別物です。
+- `cache_key`: 個々の検索結果・取得結果の保存場所を指すキーです。`session_id` は調査ノート、`cache_key` は保存結果を管理します。
 
 通常は、MCP と Skills の両方を入れるのがおすすめです。
 
@@ -302,12 +304,12 @@ DOI や title/author/year が分かる候補は、`jp_lit_enrich_record` で Cro
 例:
 
 ```text
-jp_lit_enrich_record(title="源氏物語研究", authors=["山田太郎"], issued_year="2020")
+jp_lit_enrich_record(session_id=SID, title="源氏物語研究", authors=["山田太郎"], issued_year="2020")
 ```
 
 照合結果の `match_confidence` は本文確認や重要度評価ではありません。日本語人文系では、Crossref / OpenAlex に未収録でも重要な文献があります。
 
-保存済み検索結果の重複クラスタを確認するときは、`jp_lit_refine_results(include_duplicate_clusters=true, include_enrichment=true)` や `jp_lit_export_view(..., duplicate_notes=true)` で、同じ session に残っている `jp_lit_enrich_record` cache を cluster に重ねられます。この場合も新規に Crossref / OpenAlex へ照会せず、既存の照合 metadata を並べるだけです。
+保存済み検索結果の重複クラスタを確認するときは、`jp_lit_refine_results(session_id=SID, include_duplicate_clusters=true, include_enrichment=true)` や `jp_lit_export_view(..., duplicate_notes=true)` で、明示した session に残っている `jp_lit_enrich_record` cache を cluster に重ねられます。この場合も新規に Crossref / OpenAlex へ照会せず、既存の照合 metadata を並べるだけです。
 
 ### 典拠・別名義・件名を確認する
 
@@ -350,6 +352,8 @@ CSL JSON で書き出した採用候補は、Zotero、Pandoc、citeproc 系ツ�
 ### 調査成果物と調査経過を残す
 
 長い調査では、検索結果だけでなく、調査目的、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項、次アクションを session trace として残せます。
+
+新しい調査では最初に `jp_lit_start_session` を呼び、返された `session_id` を検索・取得・照合・注釈・trace・export の各 stateful tool に明示します。同じ調査では同じ ID を使い、並列の別調査では別 ID を使うため、暗黙の「現在のセッション」へ依存しません。
 
 調査後に残るものは、役割が違います。
 

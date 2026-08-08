@@ -328,7 +328,7 @@ report 内では、total は検索元が返した総ヒット数、取得件数�
 - `duplicate_key` と title/author/year の近似一致から候補を出す
 - `search_result_readiness` は検索結果レベルのメタデータ充足度であり、引用確定には詳細レコードや現物確認が必要
 - サブエージェントを使う場合も、対象 `cache_key` / `session_id` と担当範囲を固定する。各担当は検索ログ・採否理由・未確認事項を trace と調査トレース報告に残し、最終採否は主エージェントが統合してユーザーに確認する
-- CSL JSON へ渡す前は、重複候補を見たうえで採用項目だけを `jp_lit_annotate_session` に保存し、`jp_lit_export_session(format="csl-json", profile="selected")` で書き出す
+- CSL JSON へ渡す前は、重複候補を見たうえで採用項目だけを `jp_lit_annotate_session(session_id=SID, ...)` に保存し、`jp_lit_export_session(session_id=SID, format="csl-json", profile="selected")` で書き出す
 
 ## annotation / export
 
@@ -339,7 +339,7 @@ report 内では、total は検索元が返した総ヒット数、取得件数�
   - どの基準で絞ったか
   - 外したものの代表的な理由
   - 次に何を確認すべきか
-- `jp_lit_update_session_trace`: session 全体の調査目的、scope、source plan、未確認事項、次アクション。未確認事項・次アクションが特定候補に紐づく場合は `evidence_refs[]` に `cache_key` / `source_id` / URL を残す
+- `jp_lit_update_session_trace(session_id=SID, ...)`: 明示した session 全体の調査目的、scope、source plan、未確認事項、次アクション。未確認事項・次アクションが特定候補に紐づく場合は `evidence_refs[]` に `cache_key` / `source_id` / URL を残す
 - `jp_lit_annotate_session.trace.agent_label` / `task_scope`: サブエージェントや担当範囲
 - `jp_lit_annotate_session.trace.search_attempt`: その検索で使った source / query、目的、total、取得件数、抽出件数、結果
 - `jp_lit_annotate_session.trace.decisions`: 採用・保留・除外・重複・要追加確認の理由と根拠

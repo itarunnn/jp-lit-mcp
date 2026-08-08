@@ -12,7 +12,7 @@ import {
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import {
-  recordsInputSchema,
+  recordsInputSchema as explicitRecordsInputSchema,
   recordsOutputSchema
 } from "../src/lib/schemas.js";
 import type { RecordItem } from "../src/lib/types.js";
@@ -20,8 +20,13 @@ import { createRecordService } from "../src/services/recordService.js";
 import type { SourceAdapter } from "../src/sources/types.js";
 import { createJpLitGetRecordTool } from "../src/tools/jpLitGetRecord.js";
 import { createJpLitGetRecordsTool } from "../src/tools/jpLitGetRecords.js";
+import {
+  bindSchemaForLegacyTest,
+  bindToolToCurrentSession
+} from "./helpers/explicitSession.js";
 
 const tempDirs: string[] = [];
+const recordsInputSchema = bindSchemaForLegacyTest(explicitRecordsInputSchema);
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-records-"));
@@ -122,8 +127,14 @@ async function createBatchHarness(
     sessions,
     service,
     getRecord,
-    tool: createJpLitGetRecordsTool(service, cache, sessions),
-    singleTool: createJpLitGetRecordTool(service, cache, sessions)
+    tool: bindToolToCurrentSession(
+      createJpLitGetRecordsTool(service, cache, sessions),
+      sessions
+    ),
+    singleTool: bindToolToCurrentSession(
+      createJpLitGetRecordTool(service, cache, sessions),
+      sessions
+    )
   };
 }
 

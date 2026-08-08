@@ -40,7 +40,7 @@ afterEach(async () => {
 });
 
 describe("jp_lit_export_session history", () => {
-  it("uses the current session when session_id is omitted", async () => {
+  it("exports the current session only when its session_id is provided", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
@@ -111,6 +111,7 @@ describe("jp_lit_export_session history", () => {
 
     const exportPath = path.join(baseDir, "exports", "current.md");
     const result = await tool({
+      session_id: currentSession.session_id,
       format: "markdown",
       output_path: exportPath
     });

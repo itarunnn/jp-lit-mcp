@@ -43,11 +43,12 @@ export function createJpLitSearchFulltextTool(
       ...parsed,
       f_ndc: normalizeNdcFilter(parsed.f_ndc)
     };
-    const { force_refresh, ...cacheableInput } = normalizedInput;
+    const { session_id, force_refresh, ...cacheableInput } = normalizedInput;
 
     const result = await runCachedTool<SearchFulltextOutput>({
       tool: "jp_lit_search_fulltext",
       input: cacheableInput as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

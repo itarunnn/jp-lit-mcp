@@ -5,8 +5,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitSearchGuidesCasesTool } from "../src/tools/jpLitSearchGuidesCases.js";
-import { createJpLitSearchGuidesManualsTool } from "../src/tools/jpLitSearchGuidesManuals.js";
+import { createJpLitSearchGuidesCasesTool as createExplicitJpLitSearchGuidesCasesTool } from "../src/tools/jpLitSearchGuidesCases.js";
+import { createJpLitSearchGuidesManualsTool as createExplicitJpLitSearchGuidesManualsTool } from "../src/tools/jpLitSearchGuidesManuals.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitSearchGuidesCasesTool(...args: Parameters<typeof createExplicitJpLitSearchGuidesCasesTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchGuidesCasesTool(...args), sessions);
+}
+
+function createJpLitSearchGuidesManualsTool(...args: Parameters<typeof createExplicitJpLitSearchGuidesManualsTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchGuidesManualsTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

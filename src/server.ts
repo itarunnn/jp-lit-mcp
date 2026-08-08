@@ -602,7 +602,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_refine_results",
     {
-      description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。include_enrichment=true なら保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。cache_key が分かっている結果を再評価するときに使い、cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
+      description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。対象は cache_key / cache_keys / session_id のいずれか1つで明示する。include_enrichment=true なら session_id または enrichment_cache_keys で指定した保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
       inputSchema: refineResultsInputSchema,
       outputSchema: refineResultsOutputSchema,
       annotations: LOCAL_READ_ONLY_ANNOTATIONS
@@ -613,7 +613,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_annotate_session",
     {
-      description: "write: session。現在の調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものや cache は変更せず、採否・保留・弱候補などの選別判断だけを追加する。調査全体の目的・未確認事項・次アクションは jp_lit_update_session_trace、単なる履歴検索には jp_lit_find_sessions / jp_lit_list_sessions を使う",
+      description: "write: session。session_id で明示した調査セッション内で、既存の検索・書誌取得結果に候補ラベルと短いメモを保存する。未選別結果そのものや cache は変更せず、採否・保留・弱候補などの選別判断だけを追加する。調査全体の目的・未確認事項・次アクションは jp_lit_update_session_trace、単なる履歴検索には jp_lit_find_sessions / jp_lit_list_sessions を使う",
       inputSchema: annotateSessionInputSchema,
       outputSchema: annotateSessionOutputSchema,
       annotations: LOCAL_WRITE_ANNOTATIONS
@@ -624,7 +624,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_update_session_trace",
     {
-      description: "write: session trace。現在の調査セッション全体に、調査目的・確認範囲・source 選択理由・未確認事項・次アクションを追記または更新する。検索結果や選択候補そのものではなく、調査経過と判断の台帳を残すための tool。候補単位の採否メモは jp_lit_annotate_session を使う",
+      description: "write: session trace。session_id で明示した調査セッション全体に、調査目的・確認範囲・source 選択理由・未確認事項・次アクションを追記または更新する。検索結果や選択候補そのものではなく、調査経過と判断の台帳を残すための tool。候補単位の採否メモは jp_lit_annotate_session を使う",
       inputSchema: updateSessionTraceInputSchema,
       outputSchema: updateSessionTraceOutputSchema,
       annotations: LOCAL_WRITE_ANNOTATIONS
@@ -646,7 +646,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_export_session",
     {
-      description: "export/write file。現在の調査セッション、または session_id で指定した過去セッションを repo 内の exports/ または output_path に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する。session は読み取るだけで変更しない。cache 一覧や再抽出結果だけを書き出す場合は jp_lit_export_view を使う",
+      description: "export/write file。session_id で明示した調査セッションを repo 内の exports/ または output_path に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する。session は読み取るだけで変更しない。cache 一覧や再抽出結果だけを書き出す場合は jp_lit_export_view を使う",
       inputSchema: exportSessionInputSchema,
       outputSchema: exportSessionOutputSchema,
       annotations: LOCAL_WRITE_ANNOTATIONS

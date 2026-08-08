@@ -273,10 +273,11 @@ Skill を使う場合は、ツール名や source を細かく指定する必要
 
 Skill 併用時は、エージェントが依頼内容に応じて `cinii_articles` / `jstage_articles` / `ndl_articles` / `irdb` / `ndl_catalog` / `cinii_books` などを使い分けます。博士論文・学位論文を明示的に探す場合は `cinii_dissertations` も候補にします。
 
-MCP 単体で明示的に使いたい場合は、`jp_lit_search` に `query` を渡してください。
+MCP 単体で明示的に使いたい場合は、最初に `jp_lit_start_session` で調査用 `session_id` を発行し、`jp_lit_search` を含む stateful tool へ毎回渡してください。以下の `SID` は、その返り値です。
 
 ```text
-jp_lit_search(query="近代日本 労働文化")
+SID = jp_lit_start_session(research_goal="近代日本の労働文化").session_id
+jp_lit_search(session_id=SID, query="近代日本 労働文化")
 ```
 
 source を指定しない横断検索で一部の source がタイムアウト等になっても、他の source が応答すれば成功分の候補を返します。返り値の `source_errors[]` に失敗 source、`timeout` / `http` / `invalid_payload` / `unknown` の分類、再試行方法が入ります。必要な場合はその `source` を明示して検索し直してください。全 source が失敗したときだけ、横断検索全体が error になります。
@@ -288,9 +289,9 @@ source を指定しない横断検索で一部の source がタイムアウト�
 発掘調査報告書や遺跡・出土遺物を探す場合は、まず IRDB で書誌・摘要・公式公開導線を確認し、NDL Search でより広い書誌・所蔵候補を確認します。
 
 ```text
-jp_lit_search(source="irdb", query="栃原岩陰遺跡発掘調査報告書")
-jp_lit_get_record(source="irdb", source_id="/01144/0004756406")
-jp_lit_search(source="ndl_search", query="栃原岩陰遺跡発掘調査報告書")
+jp_lit_search(session_id=SID, source="irdb", query="栃原岩陰遺跡発掘調査報告書")
+jp_lit_get_record(session_id=SID, source="irdb", source_id="/01144/0004756406")
+jp_lit_search(session_id=SID, source="ndl_search", query="栃原岩陰遺跡発掘調査報告書")
 ```
 
 - IRDB の結果は `summary`、`subjects`、DOI、公式 source URL の確認に使います。
@@ -673,26 +674,29 @@ jp_lit_export_session(format="csl-json", profile="selected")
 過去セッション検索が必要な場合は、主題やタイトルを覚えているなら `jp_lit_find_sessions` を呼び、必要に応じて `jp_lit_export_session(session_id=...)` を続けて使います。何を調べたかをまず棚卸ししたい場合は `jp_lit_list_sessions` で過去セッションを一覧し、trace や採用候補のあるセッションから再開候補を選びます。
 
 ```text
+# 最初に調査用IDを発行し、以後の stateful tool に同じ SID を明示する
+SID = jp_lit_start_session(research_goal="調査テーマ").session_id
+
 # 検索結果に候補ラベルとメモを付ける
-jp_lit_annotate_session(tool="jp_lit_search", cache_key="...", selected_items=[...])
+jp_lit_annotate_session(session_id=SID, tool="jp_lit_search", cache_key="...", selected_items=[...])
 
 # 調査目的、source 選択、未確認事項、次アクションをセッションに残す
-jp_lit_update_session_trace(research_goal="...", source_plans=[...], open_questions=[...], next_actions=[...])
+jp_lit_update_session_trace(session_id=SID, research_goal="...", source_plans=[...], open_questions=[...], next_actions=[...])
 
 # 現在のセッションを履歴に残し、新しい調査セッションを開始する
 jp_lit_start_session(research_goal="次の調査テーマ", scope_note="対象期間は明治期")
 
 # 調査結果を exports/ に書き出す（既定は Markdown / full_log）
-jp_lit_export_session(format="markdown", profile="full_log", include_unselected=true)
+jp_lit_export_session(session_id=SID, format="markdown", profile="full_log", include_unselected=true)
 
 # 採用候補だけを書き出す
-jp_lit_export_session(format="markdown", profile="selected")
+jp_lit_export_session(session_id=SID, format="markdown", profile="selected")
 
 # 採用候補を文献管理・引用処理向けの CSL JSON で書き出す
-jp_lit_export_session(format="csl-json", profile="selected")
+jp_lit_export_session(session_id=SID, format="csl-json", profile="selected")
 
 # 候補から外したものだけを書き出す
-jp_lit_export_session(format="json", profile="unselected")
+jp_lit_export_session(session_id=SID, format="json", profile="unselected")
 
 # 過去セッションをキーワードで探す
 jp_lit_find_sessions(query="明治期 俳句雑誌", limit=10)
@@ -707,7 +711,7 @@ jp_lit_export_session(session_id="2026-05-01-120000-a1b2c3d4", format="markdown"
 jp_lit_export_view(view="refined_results", format="markdown", output_path="exports/refined-results.md")
 ```
 
-`jp_lit_update_session_trace` は、調査目的、scope、source 選択理由、未確認事項、次アクションをセッション全体に保存します。未確認事項や次アクションが特定候補に紐づく場合は、`open_questions[].evidence_refs[]` / `next_actions[].evidence_refs[]` に `cache_key`、`source_id`、URL、短い根拠メモを残せます。`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には検索全体の選別理由を入れ、`trace.agent_label` / `trace.task_scope` にはサブエージェントや担当範囲、`trace.search_attempt` / `trace.decisions` / `trace.evidence_scope` には検索試行・採否理由・本文確認範囲を残せます。新しい調査へ切り替えるときは `jp_lit_start_session` を呼び、旧currentを履歴に残したまま新しいセッションを開始します。新IDは `YYYY-MM-DD-HHMMSS-<8桁hex>` で、旧 `YYYY-MM-DD-HHMMSS` も過去セッション指定時に利用できます。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
+`jp_lit_update_session_trace` は、明示した調査セッション全体に調査目的、scope、source 選択理由、未確認事項、次アクションを保存します。未確認事項や次アクションが特定候補に紐づく場合は、`open_questions[].evidence_refs[]` / `next_actions[].evidence_refs[]` に `cache_key`、`source_id`、URL、短い根拠メモを残せます。`jp_lit_annotate_session` は、過去に呼んだ検索・書誌取得の結果に `confirmed`（確認済み）/ `strong_candidate`（有力候補）/ `weak_candidate`（弱い候補）のラベルと短いメモを付けます。`selected_items.note` には個別候補の短い理由、`notes` には検索全体の選別理由を入れ、`trace.agent_label` / `trace.task_scope` にはサブエージェントや担当範囲、`trace.search_attempt` / `trace.decisions` / `trace.evidence_scope` には検索試行・採否理由・本文確認範囲を残せます。新しい調査へ切り替えるときは `jp_lit_start_session` を呼び、返された `session_id` を以後の stateful tool へ毎回渡します。新IDは `YYYY-MM-DD-HHMMSS-<8桁hex>` で、旧 `YYYY-MM-DD-HHMMSS` も過去セッション指定時に利用できます。`jp_lit_export_session` と `jp_lit_export_view` は、その内部保存を元に `exports/` 以下へ人間向けビューを書き出します。
 
 `format="csl-json"` は、Zotero、citeproc、Pandoc 系ツール、他の文献管理連携へ渡すための中間形式です。RIS / BibTeX は直接出力せず、必要な場合は Zotero や変換ツール側で変換する方針です。CSL JSON には調査経過を混ぜず、`profile="selected"` を使い、未選別の検索結果をまとめて入れない運用をおすすめします。CSL JSON の `profile="full_log"` は未採用候補を混ぜず、未採用候補だけを確認したい場合は `profile="unselected"` を使います。
 

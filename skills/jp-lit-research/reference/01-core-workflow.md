@@ -11,11 +11,20 @@
 1. 依頼を intent に分類する
 2. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う。NDL リサーチ・ナビは Web 検索で該当ページを探し、固有名詞 query が不発なら抽象度を上げた調べ方 query を試す
 3. `ndl_search` + `japan_search` + 調査前情報収集で示唆された source を初手実行 source として、検索語の案を作る
-4. 検索方針をユーザーに提示して確認を取り、`jp_lit_update_session_trace` に調査目的と source plan を残す
-5. 最小限の source / query で検索する
-6. 結果を読み、検索試行・採否理由・本文確認範囲を `jp_lit_annotate_session.trace` に残す
-7. 必要なら query / source を変えて再検索する
-8. 選別過程を明示して報告する
+4. 検索方針をユーザーに提示して確認を取る
+5. `jp_lit_start_session` を呼び、返された調査用 `session_id` を保持する
+6. 同じ `session_id` を `jp_lit_update_session_trace` に渡して調査目的と source plan を残す
+7. 同じ `session_id` を明示して最小限の source / query で検索する
+8. 結果を読み、同じ `session_id` を `jp_lit_annotate_session.trace` に渡して検索試行・採否理由・本文確認範囲を残す
+9. 必要なら同じ `session_id` で query / source を変えて再検索する
+10. 選別過程を明示して報告する
+
+## 明示的な調査セッション
+
+- `session_id` は複数回の tool call を一つの調査案件へまとめるアプリケーション側 handle であり、MCP transport の接続 ID ではない
+- 検索・取得・照合・典拠補助などの cached tool と、annotation・trace・session export には対象の `session_id` を毎回渡す
+- `cache_key` は個々の検索結果・取得結果を指す。同じ cache を複数セッションから再利用しても、利用記録は明示された各セッションへ残る
+- `current.json` はローカル互換用 mirror であり、tool 呼び出し先を暗黙に選ぶ根拠として使わない
 
 ## 検索前確認と継続調査
 
@@ -37,6 +46,7 @@
 
 - 「今の検索を並び替えて」「この条件で絞って」系の依頼は、まず `jp_lit_refine_results` を使う
 - `jp_lit_refine_results` はローカルキャッシュ済みの `jp_lit_search` 結果を再処理するため、upstream 再検索より速く、追加ノイズも増やしにくい
+- 対象は `cache_key`、`cache_keys`、`session_id` のいずれか1つだけで明示する。`include_enrichment=true` では、対象 `session_id` または `enrichment_cache_keys` も明示する
 - `jp_lit_refine_results` で足りない場合のみ、query/source を変えた再検索へ進む
 - cached tool の `cache.hit=true` は保存済み結果の再利用を意味する。返答では `cache.saved_at` と、上流 API へ再検索していないことを明示する
 - 最新データが必要な場合だけ `force_refresh=true` を使う。通常の継続調査・再整理では明示リフレッシュしない

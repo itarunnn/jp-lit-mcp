@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-07-30 時点の状態:
+2026-08-08 時点の状態:
 
-- 公開ツール 29 種・対応 source 20 種・テスト 709 件すべて通過
+- 公開ツール 29 種・対応 source 20 種・テスト 733 件すべて通過
 - `npm test` / `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -19,6 +19,7 @@
 - 同じ source の選別済み候補1〜10件を、順序を保った部分成功と単件 cache/session 共有で詳細取得する `jp_lit_get_records` を実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、明示的な調査セッション開始（`jp_lit_start_session`）、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
+- 検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は、調査案件を指す `session_id` を必須入力として明示 routing する。`session_id` は MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` とは別で、`current.json` はローカル互換用 mirror に限定する
 - 過去セッション一覧（`jp_lit_list_sessions`）、過去セッション検索（`jp_lit_find_sessions`）、`session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
 - Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools（`jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`）を追加済み

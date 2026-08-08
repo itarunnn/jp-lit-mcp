@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitSearchKakenProjectsTool } from "../src/tools/jpLitSearchKakenProjects.js";
+import { createJpLitSearchKakenProjectsTool as createExplicitJpLitSearchKakenProjectsTool } from "../src/tools/jpLitSearchKakenProjects.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitSearchKakenProjectsTool(...args: Parameters<typeof createExplicitJpLitSearchKakenProjectsTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchKakenProjectsTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

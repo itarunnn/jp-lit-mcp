@@ -47,12 +47,13 @@ describe("J-STAGE live pagination smoke", () => {
       });
 
     await expect(
-      assertJstagePagination({ callTool }, "癌")
+      assertJstagePagination({ callTool }, "癌", "test-session")
     ).resolves.toBeUndefined();
 
     expect(callTool).toHaveBeenNthCalledWith(1, {
       name: "jp_lit_search",
       arguments: {
+        session_id: "test-session",
         query: "癌",
         source: "jstage_articles",
         limit: 1,
@@ -62,6 +63,7 @@ describe("J-STAGE live pagination smoke", () => {
     expect(callTool).toHaveBeenNthCalledWith(2, {
       name: "jp_lit_search",
       arguments: {
+        session_id: "test-session",
         query: "癌",
         source: "jstage_articles",
         limit: 1,
@@ -77,7 +79,7 @@ describe("J-STAGE live pagination smoke", () => {
         structuredContent: { items: [{ source_id: "same-id" }] }
       });
 
-    await expect(assertJstagePagination({ callTool }, "癌")).rejects.toThrow(
+    await expect(assertJstagePagination({ callTool }, "癌", "test-session")).rejects.toThrow(
       /same-id/
     );
   });
@@ -90,7 +92,7 @@ describe("J-STAGE live pagination smoke", () => {
         structuredContent: { items: [{ source_id: "page-2-id" }] }
       });
 
-    await expect(assertJstagePagination({ callTool }, "癌")).rejects.toThrow(
+    await expect(assertJstagePagination({ callTool }, "癌", "test-session")).rejects.toThrow(
       /page 1.*source_id/i
     );
   });

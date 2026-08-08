@@ -21,7 +21,9 @@ interface EnrichRecordToolOptions {
   openalexKeyPresent?: boolean;
 }
 
-function normalizeCacheableInput(input: Omit<EnrichRecordInput, "force_refresh">) {
+function normalizeCacheableInput(
+  input: Omit<EnrichRecordInput, "force_refresh" | "session_id">
+) {
   return {
     doi: normalizeDoi(input.doi) ?? null,
     title: input.title?.trim() || null,
@@ -50,12 +52,13 @@ export function createJpLitEnrichRecordTool(
 ) {
   return async (input: unknown) => {
     const parsed = enrichRecordInputSchema.parse(input);
-    const { force_refresh, ...rawCacheableInput } = parsed;
+    const { session_id, force_refresh, ...rawCacheableInput } = parsed;
     const cacheableInput = normalizeCacheableInput(rawCacheableInput);
     const cacheInput = addProviderCacheScope(cacheableInput, options);
     const result = await runCachedTool<EnrichRecordOutput>({
       tool: "jp_lit_enrich_record",
       input: cacheInput,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

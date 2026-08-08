@@ -12,7 +12,10 @@ const CAUTION =
   "KAKEN は研究課題・報告書の入口です。成果リスト中の論文・図書は、CiNii / J-STAGE / IRDB / NDL などで文献として確認してください。";
 
 type Fetcher = typeof fetchText;
-type KakenSearchInput = Omit<SearchKakenProjectsInput, "force_refresh">;
+type KakenSearchInput = Omit<
+  SearchKakenProjectsInput,
+  "force_refresh" | "session_id"
+>;
 type KakenProject = SearchKakenProjectsOutput["items"][number];
 type KakenOutput = KakenProject["outputs_preview"][number];
 

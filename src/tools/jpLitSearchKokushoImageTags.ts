@@ -31,11 +31,12 @@ export function createJpLitSearchKokushoImageTagsTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchKokushoImageTagsInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
 
     const result = await runCachedTool<SearchKokushoImageTagsOutput>({
       tool: "jp_lit_search_kokusho_image_tags",
       input: cacheableInput,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitResolveAuthorityTool } from "../src/tools/jpLitResolveAuthority.js";
+import { createJpLitResolveAuthorityTool as createExplicitJpLitResolveAuthorityTool } from "../src/tools/jpLitResolveAuthority.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitResolveAuthorityTool(...args: Parameters<typeof createExplicitJpLitResolveAuthorityTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitResolveAuthorityTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

@@ -8,7 +8,8 @@ import type { SessionStore } from "../lib/persistence/sessionStore.js";
 export function createJpLitUpdateSessionTraceTool(sessionStore: SessionStore) {
   return async (input: unknown) => {
     const parsed = updateSessionTraceInputSchema.parse(input);
-    const session = await sessionStore.updateTrace(parsed);
+    const { session_id, ...trace } = parsed;
+    const session = await sessionStore.updateTrace(trace, session_id);
 
     const structuredContent: UpdateSessionTraceOutput =
       updateSessionTraceOutputSchema.parse({

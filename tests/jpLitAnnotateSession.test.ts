@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 describe("jp_lit_annotate_session", () => {
-  it("stores selected items in the current session", async () => {
+  it("stores selected items in the explicitly selected session", async () => {
     const baseDir = await createTempDir();
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitAnnotateSessionTool(sessions);
@@ -43,7 +43,9 @@ describe("jp_lit_annotate_session", () => {
       notes: []
     });
 
+    const target = await sessions.readCurrent();
     const result = await tool({
+      session_id: target.session_id,
       tool: "jp_lit_search",
       cache_key: fixtureCacheKey("sha256-a"),
       selected_items: [
@@ -60,7 +62,7 @@ describe("jp_lit_annotate_session", () => {
 
     expect(result.structuredContent.annotated_count).toBe(1);
 
-    const session = await sessions.readCurrent();
+    const session = await sessions.readById(target.session_id);
     expect(session.entries[0]?.selected_items[0]?.label).toBe("strong_candidate");
   });
 
@@ -83,6 +85,7 @@ describe("jp_lit_annotate_session", () => {
 
     await expect(
       tool({
+        session_id: (await sessions.readCurrent()).session_id,
         tool: "jp_lit_search",
         cache_key: fixtureCacheKey("sha256-a"),
         selected_items: [],
@@ -101,7 +104,9 @@ describe("jp_lit_annotate_session", () => {
       })
     ).rejects.toThrow();
 
+    const target = await sessions.readCurrent();
     const result = await tool({
+      session_id: target.session_id,
       tool: "jp_lit_search",
       cache_key: fixtureCacheKey("sha256-a"),
       selected_items: [],
@@ -130,7 +135,7 @@ describe("jp_lit_annotate_session", () => {
       }
     });
 
-    const session = await sessions.readCurrent();
+    const session = await sessions.readById(target.session_id);
 
     expect(result.structuredContent.annotated_count).toBe(0);
     expect(session.entries[0]?.trace?.agent_label).toBe("Japan Search 担当");

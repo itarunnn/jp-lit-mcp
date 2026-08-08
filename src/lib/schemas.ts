@@ -1069,9 +1069,9 @@ const duplicateClusterSummarySchema = z.object({
 });
 
 export const refineResultsInputSchema = z.object({
-  cache_key: cacheKeyInputFieldSchema.optional().describe("再抽出する単一の jp_lit_search cache_key。cache_keys と同時指定しない。"),
-  cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("集合演算する複数の jp_lit_search cache_key。"),
-  session_id: sessionIdInputFieldSchema.optional().describe("セッションに紐づく検索 cache を対象にする場合のセッションID。"),
+  cache_key: cacheKeyInputFieldSchema.optional().describe("再抽出する単一の jp_lit_search cache_key。cache_keys / session_id と同時指定しない。"),
+  cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("集合演算する複数の jp_lit_search cache_key。cache_key / session_id と同時指定しない。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("セッションに紐づく検索 cache を対象にする場合のセッションID。cache_key / cache_keys と同時指定しない。"),
   combine: z.enum(["union", "intersection", "minus"]).default("union").describe("複数 cache の集合演算。union は和集合、intersection は積集合、minus は先頭から後続を除外する。"),
   key_by: z
     .enum(["source_record", "duplicate_key", "title_author_year"])
@@ -1083,11 +1083,32 @@ export const refineResultsInputSchema = z.object({
   offset: z.number().int().nonnegative().default(0).describe("返す item の offset。0 始まり。"),
   include_duplicate_clusters: z.boolean().default(false).describe("true の場合は重複候補クラスタを追加で返す。"),
   include_enrichment: z.boolean().default(false).describe("true の場合は保存済み jp_lit_enrich_record cache を読み、重複クラスタに外部書誌照合 metadata を付与する。外部 API は呼ばない。"),
-  enrichment_cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("cluster enrichment に使う jp_lit_enrich_record cache_key。未指定なら対象 session の jp_lit_enrich_record 履歴を使う。"),
+  enrichment_cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("cluster enrichment に使う jp_lit_enrich_record cache_key。include_enrichment=true で base selector が cache_key / cache_keys の場合は必須。"),
   cluster_limit: z.number().int().positive().default(20).describe("返す重複クラスタの最大件数。"),
   cluster_offset: z.number().int().nonnegative().default(0).describe("重複クラスタ一覧の offset。0 始まり。"),
   cluster_member_limit: z.number().int().positive().default(5).describe("各重複クラスタで preview する member の最大件数。"),
   filters: refineResultsFiltersSchema.optional().describe("保存済み結果に対するローカル filter。upstream 再検索は行わない。")
+}).superRefine((input, context) => {
+  const selectors = [input.cache_key, input.cache_keys, input.session_id]
+    .filter((value) => value !== undefined);
+  if (selectors.length !== 1) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["session_id"],
+      message: "cache_key、cache_keys、session_id のいずれか1つだけを指定してください"
+    });
+  }
+  if (
+    input.include_enrichment
+    && !input.session_id
+    && (!input.enrichment_cache_keys || input.enrichment_cache_keys.length === 0)
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["enrichment_cache_keys"],
+      message: "include_enrichment=true では session_id または enrichment_cache_keys が必要です"
+    });
+  }
 });
 
 export const refineResultsOutputSchema = z.object({
@@ -1129,7 +1150,7 @@ export const exportViewInputSchema = z.discriminatedUnion("view", [
   }),
   z.object({
     view: z.literal("refined_results").describe("書き出すビュー種別。refined_results は jp_lit_refine_results 相当の再抽出結果。"),
-    params: refineResultsInputSchema.default({}).describe("refined_results に渡す再抽出条件。"),
+    params: refineResultsInputSchema.describe("refined_results に渡す明示的な再抽出条件。"),
     format: z.enum(["markdown", "json"]).default("markdown").describe("出力形式。markdown は人間向け、json は構造化データ。"),
     export_all: z.boolean().default(false).describe("true の場合は limit/offset を超えて対象結果を全件 export する。"),
     duplicate_notes: z.boolean().default(false).describe("true の場合は重複候補クラスタの確認ノートを出力に含める。"),

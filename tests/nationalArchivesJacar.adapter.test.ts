@@ -1,12 +1,15 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { searchInputSchema } from "../src/lib/schemas.js";
+import { searchInputSchema as explicitSearchInputSchema } from "../src/lib/schemas.js";
 import { validateSourceId } from "../src/lib/sourceId.js";
 import { createSearchService } from "../src/services/searchService.js";
 import { resolveAdapterOptionsFromEnv } from "../src/server.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
+import { bindSchemaForLegacyTest } from "./helpers/explicitSession.js";
+
+const searchInputSchema = bindSchemaForLegacyTest(explicitSearchInputSchema);
 
 function readFixture(dir: "national-archives" | "jacar", name: string) {
   return readFileSync(new URL(`./fixtures/${dir}/${name}`, import.meta.url), "utf-8");

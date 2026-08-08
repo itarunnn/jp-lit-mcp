@@ -117,7 +117,8 @@ export function resolveLiveSmokeQuery(source: string, override?: string) {
 
 export async function assertJstagePagination(
   client: Pick<Client, "callTool">,
-  query: string
+  query: string,
+  sessionId: string
 ) {
   const sourceIds: string[] = [];
 
@@ -125,6 +126,7 @@ export async function assertJstagePagination(
     const result = await client.callTool({
       name: "jp_lit_search",
       arguments: {
+        session_id: sessionId,
         query,
         source: "jstage_articles",
         limit: 1,
@@ -446,17 +448,18 @@ interface LocalPersistenceSmokeSummary {
 async function runLocalPersistenceSmoke(
   client: Client,
   options: {
+    sessionId: string;
     search?: { source: string; query: string };
     expectCacheHit?: boolean;
     batchRecordSource?: string;
     batchRecordIds?: readonly string[];
-  } = {}
+  }
 ): Promise<LocalPersistenceSmokeSummary> {
   const localSearch = options.search ?? resolveLocalPersistenceSmokeSearch();
   const searchArgs = buildLocalSearchArgs(localSearch);
   const searchResult = await client.callTool({
     name: "jp_lit_search",
-    arguments: searchArgs
+    arguments: { session_id: options.sessionId, ...searchArgs }
   });
   const searchData = searchResult.structuredContent as
     | {
@@ -482,6 +485,7 @@ async function runLocalPersistenceSmoke(
     const batchResult = await client.callTool({
       name: "jp_lit_get_records",
       arguments: {
+        session_id: options.sessionId,
         source: options.batchRecordSource,
         source_ids: [...options.batchRecordIds]
       }
@@ -519,6 +523,7 @@ async function runLocalPersistenceSmoke(
   const sessionRecord = await client.callTool({
     name: "jp_lit_annotate_session",
     arguments: {
+      session_id: options.sessionId,
       tool: "jp_lit_search",
       cache_key: cacheKey,
       selected_items: [
@@ -549,6 +554,7 @@ async function runLocalPersistenceSmoke(
   const traceResult = await client.callTool({
     name: "jp_lit_update_session_trace",
     arguments: {
+      session_id: options.sessionId,
       research_goal: "smoke trace",
       source_plans: [
         {
@@ -610,6 +616,7 @@ async function runLocalPersistenceSmoke(
   const exportResult = await client.callTool({
     name: "jp_lit_export_session",
     arguments: {
+      session_id: options.sessionId,
       format: "markdown",
       output_path: path.join("exports", "smoke-session.md")
     }
@@ -680,10 +687,10 @@ async function runLocalPersistenceSmoke(
   };
 }
 
-async function runOcrSmoke(client: Client, sourceId: string, pid: string) {
+async function runOcrSmoke(client: Client, sessionId: string, sourceId: string, pid: string) {
   const coordResult = await client.callTool({
     name: "jp_lit_get_text_coordinates",
-    arguments: { source: "ndl_digital", source_id: sourceId, page: 1 }
+    arguments: { session_id: sessionId, source: "ndl_digital", source_id: sourceId, page: 1 }
   });
 
   const coordData = coordResult.structuredContent as
@@ -702,7 +709,7 @@ async function runOcrSmoke(client: Client, sourceId: string, pid: string) {
 
   const fulltextResult = await client.callTool({
     name: "jp_lit_get_fulltext",
-    arguments: { source: "ndl_digital", source_id: sourceId }
+    arguments: { session_id: sessionId, source: "ndl_digital", source_id: sourceId }
   });
 
   const fulltextData = fulltextResult.structuredContent as
@@ -720,7 +727,7 @@ async function runOcrSmoke(client: Client, sourceId: string, pid: string) {
   );
 }
 
-async function runOcrFallbackSmoke(client: Client, source: string) {
+async function runOcrFallbackSmoke(client: Client, sessionId: string, source: string) {
   const keyword = resolveOcrFallbackKeyword(
     source,
     process.env.SMOKE_LIVE_OCR_KEYWORD
@@ -728,6 +735,7 @@ async function runOcrFallbackSmoke(client: Client, source: string) {
   const fulltextSearchResult = await client.callTool({
     name: "jp_lit_search_fulltext",
     arguments: {
+      session_id: sessionId,
       keyword,
       size: 1,
       from: 0
@@ -751,6 +759,7 @@ async function runOcrFallbackSmoke(client: Client, source: string) {
   const searchPagesResult = await client.callTool({
     name: "jp_lit_search_pages",
     arguments: {
+      session_id: sessionId,
       source: "ndl_digital",
       pid,
       keyword,
@@ -773,10 +782,10 @@ async function runOcrFallbackSmoke(client: Client, source: string) {
     `jp_lit_search_pages passed: pid=${pid} total=${searchPagesData.total}`
   );
 
-  await runOcrSmoke(client, pid, pid);
+  await runOcrSmoke(client, sessionId, pid, pid);
 }
 
-async function runIllustrationSmoke(client: Client, source: string) {
+async function runIllustrationSmoke(client: Client, sessionId: string, source: string) {
   const keyword = resolveIllustrationFallbackKeyword(
     source,
     process.env.SMOKE_LIVE_ILLUSTRATION_KEYWORD
@@ -784,6 +793,7 @@ async function runIllustrationSmoke(client: Client, source: string) {
   const result = await client.callTool({
     name: "jp_lit_search_illustrations",
     arguments: {
+      session_id: sessionId,
       keyword,
       size: 1,
       from: 0
@@ -826,10 +836,11 @@ function isSkippableExtraToolError(result: { isError?: boolean; content?: Array<
   );
 }
 
-async function runKokushoFulltextSmoke(client: Client): Promise<LiveSmokeStatus> {
+async function runKokushoFulltextSmoke(client: Client, sessionId: string): Promise<LiveSmokeStatus> {
   const result = await client.callTool({
     name: "jp_lit_search_kokusho_fulltext",
     arguments: {
+      session_id: sessionId,
       keyword: process.env.SMOKE_LIVE_KOKUSHO_FULLTEXT_QUERY ?? "春",
       limit: 1,
       page: 1
@@ -852,10 +863,11 @@ async function runKokushoFulltextSmoke(client: Client): Promise<LiveSmokeStatus>
   return { status: "passed", note: null };
 }
 
-async function runKokushoImageTagsSmoke(client: Client): Promise<LiveSmokeStatus> {
+async function runKokushoImageTagsSmoke(client: Client, sessionId: string): Promise<LiveSmokeStatus> {
   const result = await client.callTool({
     name: "jp_lit_search_kokusho_image_tags",
     arguments: {
+      session_id: sessionId,
       keyword: process.env.SMOKE_LIVE_KOKUSHO_IMAGE_TAG_QUERY ?? "桜",
       limit: 1,
       page: 1
@@ -878,11 +890,12 @@ async function runKokushoImageTagsSmoke(client: Client): Promise<LiveSmokeStatus
   return { status: "passed", note: null };
 }
 
-async function runKakenProjectsSmoke(client: Client): Promise<LiveSmokeStatus> {
+async function runKakenProjectsSmoke(client: Client, sessionId: string): Promise<LiveSmokeStatus> {
   const query = process.env.SMOKE_LIVE_KAKEN_QUERY ?? "19K20626";
   const result = await client.callTool({
     name: "jp_lit_search_kaken_projects",
     arguments: {
+      session_id: sessionId,
       query,
       limit: 1,
       page: 1,
@@ -908,16 +921,16 @@ async function runKakenProjectsSmoke(client: Client): Promise<LiveSmokeStatus> {
   return { status: "passed", note: null };
 }
 
-async function runLiveExtraTools(client: Client): Promise<LiveSmokeStatus> {
+async function runLiveExtraTools(client: Client, sessionId: string): Promise<LiveSmokeStatus> {
   const extraTools = resolveLiveSmokeExtraTools(process.env.SMOKE_LIVE_EXTRA_TOOLS);
   for (const tool of extraTools) {
     let outcome: LiveSmokeStatus;
     if (tool === "jp_lit_search_kaken_projects") {
-      outcome = await runKakenProjectsSmoke(client);
+      outcome = await runKakenProjectsSmoke(client, sessionId);
     } else if (tool === "jp_lit_search_kokusho_fulltext") {
-      outcome = await runKokushoFulltextSmoke(client);
+      outcome = await runKokushoFulltextSmoke(client, sessionId);
     } else if (tool === "jp_lit_search_kokusho_image_tags") {
-      outcome = await runKokushoImageTagsSmoke(client);
+      outcome = await runKokushoImageTagsSmoke(client, sessionId);
     } else {
       throw new Error(`Unsupported live smoke extra tool: ${tool}`);
     }
@@ -935,7 +948,7 @@ type LiveSmokeStatus =
   | { status: "passed"; note?: string | null }
   | { status: "skipped"; note: string };
 
-async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
+async function runLiveSmoke(client: Client, sessionId: string): Promise<LiveSmokeStatus> {
   const liveSource = process.env.SMOKE_LIVE_SOURCE ?? "ndl_catalog";
   const liveQuery = resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY);
   const liveSortBy = process.env.SMOKE_LIVE_SORT_BY;
@@ -944,6 +957,7 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
   const searchResult = await client.callTool({
     name: "jp_lit_search",
     arguments: {
+      session_id: sessionId,
       query: liveQuery,
       source: liveSource,
       limit: 3,
@@ -1005,6 +1019,7 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
   const recordResult = await client.callTool({
     name: "jp_lit_get_records",
     arguments: {
+      session_id: sessionId,
       source: batchSource,
       source_ids: candidateItems.map((item) => item.source_id!)
     }
@@ -1079,15 +1094,15 @@ async function runLiveSmoke(client: Client): Promise<LiveSmokeStatus> {
 
     if (nextDl?.available && nextDl.pid) {
       console.log(`next_digital_library available: pid=${nextDl.pid}`);
-      await runOcrSmoke(client, recordData.source_id, nextDl.pid);
+      await runOcrSmoke(client, sessionId, recordData.source_id, nextDl.pid);
     } else {
       console.log(
         `next_digital_library not available for this record — OCR smoke skipped`
       );
-      await runOcrFallbackSmoke(client, liveSource);
+      await runOcrFallbackSmoke(client, sessionId, liveSource);
     }
 
-    await runIllustrationSmoke(client, liveSource);
+    await runIllustrationSmoke(client, sessionId, liveSource);
   }
 
   return { status: "passed", note: null };
@@ -1233,16 +1248,31 @@ async function mainSinglePass(
 
         console.log("MCP smoke check passed.");
         console.log(toolNames.join(", "));
+        const initialSession = await client.callTool({
+          name: "jp_lit_start_session",
+          arguments: {
+            research_goal: options.offline
+              ? "deterministic offline smoke"
+              : "MCP smoke"
+          }
+        });
+        const sessionId = (
+          initialSession.structuredContent as { session_id?: string } | undefined
+        )?.session_id;
+        if (!sessionId) {
+          throw new Error("MCP smoke could not start an explicit research session.");
+        }
         const local = await runLocalPersistenceSmoke(
           client,
           options.offline
             ? {
+                sessionId,
                 search: OFFLINE_LOCAL_SEARCH,
                 expectCacheHit: true,
                 batchRecordSource: OFFLINE_RECORD_SOURCE,
                 batchRecordIds: OFFLINE_RECORD_IDS
               }
-            : {}
+            : { sessionId }
         );
         console.log(
           options.offline
@@ -1258,15 +1288,16 @@ async function mainSinglePass(
           ) {
             await assertJstagePagination(
               client,
-              resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY)
+              resolveLiveSmokeQuery(liveSource, process.env.SMOKE_LIVE_QUERY),
+              sessionId
             );
           }
 
-          const liveOutcome = await runLiveSmoke(client);
+          const liveOutcome = await runLiveSmoke(client, sessionId);
           if (liveOutcome.status === "skipped") {
             return { ...liveOutcome, local };
           }
-          return { ...(await runLiveExtraTools(client)), local };
+          return { ...(await runLiveExtraTools(client, sessionId)), local };
         }
 
         return { status: "passed", note: null, local };

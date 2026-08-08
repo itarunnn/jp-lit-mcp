@@ -104,6 +104,7 @@ export function createJpLitGetRecordsTool(
       async (sourceId) => {
         try {
           const record = await lookup({
+            session_id: parsed.session_id,
             source: parsed.source,
             source_id: sourceId,
             force_refresh: parsed.force_refresh

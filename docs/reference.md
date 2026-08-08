@@ -569,6 +569,8 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 検索結果や詳細取得結果はキャッシュに保存され、候補の選別結果はセッションに保存できます。重い OCR / 全文 / 図版 payload は session 側に重複保存せず、cache key 参照で扱います。
 
+ここでいう `session_id` は調査案件を指す jp-lit のアプリケーション側 ID で、HTTP transport の `Mcp-Session-Id` とは別物です。新しい調査では `jp_lit_start_session` の返り値を保持し、検索・取得・照合・典拠補助などの cached tool と `jp_lit_annotate_session` / `jp_lit_update_session_trace` / `jp_lit_export_session` へ毎回明示します。`current.json` はローカル互換用 mirror であり、tool の暗黙 routing には使いません。
+
 #### `jp_lit_start_session`
 
 現在のセッションを履歴として保持したまま、新しい調査セッションを開始します。新しいセッションIDは `YYYY-MM-DD-HHMMSS-<8桁hex>` 形式です。既存データとの互換性のため、過去セッションを指定する引数では旧 `YYYY-MM-DD-HHMMSS` 形式も受理します。
@@ -586,6 +588,7 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 | 引数 | 型 | 説明 |
 | ---- | -- | ---- |
+| `session_id` | string | 保存先の調査セッション。必須 |
 | `tool` | string | 対象ツール名 |
 | `cache_key` | string | 対象キャッシュキー |
 | `selected_items[]` | array | 採用候補 |
@@ -603,6 +606,7 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 | 引数 | 型 | 説明 |
 | ---- | -- | ---- |
+| `session_id` | string | 更新先の調査セッション。必須 |
 | `research_goal` | string | 調査目的 |
 | `scope_note` | string | 調査範囲や制約 |
 | `source_plans[]` | array | source 選択ログ。`source`、`status`、`reason`、`expected_contribution` |
@@ -613,11 +617,11 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 
 #### `jp_lit_export_session`
 
-現在の調査セッション、または `session_id` で指定した過去セッションを `exports/` に書き出します。
+`session_id` で明示した調査セッションを `exports/` に書き出します。
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
-| `session_id` | string | 現在のセッション | 新形式 `YYYY-MM-DD-HHMMSS-<8桁hex>`。旧 `YYYY-MM-DD-HHMMSS` も受理 |
+| `session_id` | string | 必須 | 新形式 `YYYY-MM-DD-HHMMSS-<8桁hex>`。旧 `YYYY-MM-DD-HHMMSS` も受理 |
 | `format` | string | `markdown` | `markdown` / `json` / `csl-json` |
 | `profile` | string | `full_log` | `full_log` / `selected` / `unselected` |
 | `output_path` | string | 自動 | 出力先 |
@@ -917,9 +921,9 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
-| `cache_key` | string | なし | 単一の対象キャッシュ |
-| `cache_keys` | string[] | なし | 複数キャッシュを明示指定 |
-| `session_id` | string | なし | 指定セッション内の `jp_lit_search` 結果をまとめて対象化 |
+| `cache_key` | string | 選択必須 | 単一の対象キャッシュ |
+| `cache_keys` | string[] | 選択必須 | 複数キャッシュを明示指定 |
+| `session_id` | string | 選択必須 | 指定セッション内の `jp_lit_search` 結果をまとめて対象化 |
 | `combine` | string | `union` | `union` / `intersection` / `minus` |
 | `key_by` | string | `source_record` | 集合演算キー。`source_record` / `duplicate_key` / `title_author_year` |
 | `sort_by` | string | なし | `issued_at` / `title` |
@@ -928,13 +932,14 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 | `offset` | number | 0 | 先頭スキップ件数 |
 | `include_duplicate_clusters` | boolean | false | 重複候補クラスタを返す |
 | `include_enrichment` | boolean | false | 保存済み `jp_lit_enrich_record` cache があれば、重複クラスタに外部書誌照合 metadata を付与する。外部 API は呼ばない |
-| `enrichment_cache_keys` | string[] | なし | enrichment に使う `jp_lit_enrich_record` cache_key。未指定時は対象 session の照合履歴を使う |
+| `enrichment_cache_keys` | string[] | 条件付き | enrichment に使う `jp_lit_enrich_record` cache_key。`include_enrichment=true` かつ base selector が `cache_key` / `cache_keys` の場合は必須 |
 | `cluster_limit` | number | 20 | 返すクラスタ数 |
 | `cluster_offset` | number | 0 | クラスタの先頭スキップ件数 |
 | `cluster_member_limit` | number | 5 | 各クラスタで返す member preview 件数 |
 | `filters` | object | なし | `source` / `issued_from` / `issued_to` / `online` / `digital_collection` / `title_contains` / `author_contains` |
 
 `combine=minus` は「先頭集合 - 後続集合」の差集合です。
+`cache_key` / `cache_keys` / `session_id` は、暗黙の current fallback を避けるため、いずれか1つだけを指定します。
 既定では、整理後の結果を会話で扱いやすくするため先頭 30 件だけ返します。全体件数は `total_after` で把握し、全件が必要な場合は `limit` を増やすか `jp_lit_export_view(view="refined_results", ...)` で書き出してください。
 
 重複クラスタは通常の再整理では返しません。必要なときだけ `include_duplicate_clusters=true` を指定します。クラスタは自動削除ではなく、`duplicate_key` と title/author/year の近似一致から候補を示すものです。`search_result_readiness` は検索結果レベルのメタデータ充足度であり、引用確定には `jp_lit_get_record` や現物確認が必要です。

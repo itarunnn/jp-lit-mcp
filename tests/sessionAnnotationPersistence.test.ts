@@ -41,11 +41,13 @@ function ciniiResponse() {
 
 async function readExportedSession(
   client: Client,
+  sessionId: string,
   outputPath: string
 ) {
   const result = await client.callTool({
     name: "jp_lit_export_session",
     arguments: {
+      session_id: sessionId,
       format: "json",
       output_path: outputPath,
       profile: "full_log"
@@ -90,7 +92,15 @@ describe("cached tool session annotation persistence", () => {
     try {
       await server.connect(serverTransport);
       await client.connect(clientTransport);
+      const started = await client.callTool({
+        name: "jp_lit_start_session",
+        arguments: { research_goal: "annotation persistence test" }
+      });
+      const sessionId = (
+        started.structuredContent as { session_id: string }
+      ).session_id;
       const searchArguments = {
+        session_id: sessionId,
         query: "annotation retention",
         source: "cinii_articles"
       } as const;
@@ -107,6 +117,7 @@ describe("cached tool session annotation persistence", () => {
       await client.callTool({
         name: "jp_lit_annotate_session",
         arguments: {
+          session_id: sessionId,
           tool: "jp_lit_search",
           cache_key: cacheKey,
           selected_items: [
@@ -146,6 +157,7 @@ describe("cached tool session annotation persistence", () => {
       ).toBe(true);
       const afterCacheHit = await readExportedSession(
         client,
+        sessionId,
         "exports/after-cache-hit.json"
       );
       expect(afterCacheHit.entries).toHaveLength(1);
@@ -170,6 +182,7 @@ describe("cached tool session annotation persistence", () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
       const afterRefresh = await readExportedSession(
         client,
+        sessionId,
         "exports/after-refresh.json"
       );
       expect(afterRefresh.entries).toHaveLength(1);

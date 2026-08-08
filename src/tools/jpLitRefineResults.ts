@@ -251,28 +251,6 @@ function enrichClusters(
   });
 }
 
-function resolveLatestCacheKey(
-  entries: Awaited<ReturnType<SessionStore["readCurrent"]>>["entries"],
-) {
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const entry = entries[index];
-    if (entry?.tool === "jp_lit_search") {
-      return entry.cache_key;
-    }
-  }
-
-  throw new Error("現在セッションに jp_lit_search の結果がありません");
-}
-
-function findCacheKeyInEntries(
-  entries: Awaited<ReturnType<SessionStore["readCurrent"]>>["entries"],
-  cacheKey: string
-) {
-  return entries.some(
-    (entry) => entry.tool === "jp_lit_search" && entry.cache_key === cacheKey
-  );
-}
-
 async function resolveBaseCacheKeys(input: RefineInput, sessions: SessionStore) {
   if (input.cache_keys && input.cache_keys.length > 0) {
     return Array.from(new Set(input.cache_keys));
@@ -297,8 +275,7 @@ async function resolveBaseCacheKeys(input: RefineInput, sessions: SessionStore) 
     return [input.cache_key];
   }
 
-  const current = await sessions.readCurrent();
-  return [resolveLatestCacheKey(current.entries)];
+  return [input.cache_key!];
 }
 
 function collectEnrichmentCacheKeys(session: SessionDocument) {
@@ -319,9 +296,7 @@ async function resolveEnrichmentCacheKeys(input: RefineInput, sessions: SessionS
     };
   }
 
-  const session = input.session_id
-    ? await sessions.readById(input.session_id)
-    : await sessions.readCurrent();
+  const session = await sessions.readById(input.session_id!);
 
   return {
     explicit: false,

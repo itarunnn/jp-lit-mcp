@@ -6,7 +6,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitSearchKokushoImageTagsTool } from "../src/tools/jpLitSearchKokushoImageTags.js";
+import { createJpLitSearchKokushoImageTagsTool as createExplicitJpLitSearchKokushoImageTagsTool } from "../src/tools/jpLitSearchKokushoImageTags.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitSearchKokushoImageTagsTool(...args: Parameters<typeof createExplicitJpLitSearchKokushoImageTagsTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchKokushoImageTagsTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

@@ -32,14 +32,17 @@ interface SparqlResponse {
   };
 }
 
-type ResolveAuthorityQueryInput = Omit<ResolveAuthorityInput, "force_refresh">;
+type ResolveAuthorityQueryInput = Omit<
+  ResolveAuthorityInput,
+  "force_refresh" | "session_id"
+>;
 type AuthorityTermsByClassificationQueryInput = Omit<
   AuthorityTermsByClassificationInput,
-  "force_refresh"
+  "force_refresh" | "session_id"
 >;
 type SuggestClassificationCodesQueryInput = Omit<
   SuggestClassificationCodesInput,
-  "force_refresh"
+  "force_refresh" | "session_id"
 >;
 
 const CLASS_CODE_URI_PATTERN =

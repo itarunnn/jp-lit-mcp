@@ -12,9 +12,7 @@ export function createJpLitExportSessionTool(
 ) {
   return async (input: unknown) => {
     const parsed = exportSessionInputSchema.parse(input);
-    const session = parsed.session_id
-      ? await sessionStore.readById(parsed.session_id)
-      : await sessionStore.readCurrent();
+    const session = await sessionStore.readById(parsed.session_id);
     const exported = await exporter.exportSession({
       session,
       format: parsed.format,

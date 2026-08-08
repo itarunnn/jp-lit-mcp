@@ -7,8 +7,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getCacheRoot, getSessionsRoot } from "../src/lib/persistence/paths.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
-import { createJpLitSearchFulltextTool } from "../src/tools/jpLitSearchFulltext.js";
+import { createJpLitGetFulltextTool as createExplicitJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
+import { createJpLitSearchFulltextTool as createExplicitJpLitSearchFulltextTool } from "../src/tools/jpLitSearchFulltext.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitGetFulltextTool(...args: Parameters<typeof createExplicitJpLitGetFulltextTool>) {
+  const sessions = args[3] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitGetFulltextTool(...args), sessions);
+}
+
+function createJpLitSearchFulltextTool(...args: Parameters<typeof createExplicitJpLitSearchFulltextTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchFulltextTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

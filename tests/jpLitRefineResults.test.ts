@@ -215,14 +215,14 @@ afterEach(async () => {
 });
 
 describe("jp_lit_refine_results", () => {
-  it("直近の jp_lit_search 結果を issued_at で昇順ソートする", async () => {
+  it("session_id で選んだ jp_lit_search 結果を issued_at で昇順ソートする", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
     const cacheKey = fixtureCacheKey("latest-key");
 
-    await sessions.appendEntry(createSearchEntry(cacheKey));
+    const session = await sessions.appendEntry(createSearchEntry(cacheKey));
     await cache.write("jp_lit_search", {
       version: 1,
       tool: "jp_lit_search",
@@ -244,6 +244,7 @@ describe("jp_lit_refine_results", () => {
     });
 
     const result = await tool({
+      session_id: session.session_id,
       sort_by: "issued_at",
       sort_order: "asc"
     });
@@ -610,9 +611,10 @@ describe("jp_lit_refine_results", () => {
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
     const tool = createJpLitRefineResultsTool(cache, sessions);
+    const session = await sessions.readCurrent();
 
-    await expect(tool({})).rejects.toThrow(
-      "現在セッションに jp_lit_search の結果がありません"
+    await expect(tool({ session_id: session.session_id })).rejects.toThrow(
+      `session_id=${session.session_id} に jp_lit_search の結果がありません`
     );
   });
 
@@ -648,6 +650,7 @@ describe("jp_lit_refine_results", () => {
     });
 
     const result = await tool({
+      cache_key: cacheKey,
       sort_by: "issued_at",
       sort_order: "asc"
     });
@@ -786,7 +789,8 @@ describe("jp_lit_refine_results", () => {
     const clustered = await tool({
       cache_key: searchCacheKey,
       include_duplicate_clusters: true,
-      include_enrichment: true
+      include_enrichment: true,
+      enrichment_cache_keys: [enrichCacheKey]
     });
 
     const enrichment = clustered.structuredContent.clusters?.[0]?.enrichment;
@@ -853,7 +857,8 @@ describe("jp_lit_refine_results", () => {
     const clustered = await tool({
       cache_key: searchCacheKey,
       include_duplicate_clusters: true,
-      include_enrichment: true
+      include_enrichment: true,
+      enrichment_cache_keys: [enrichCacheKey]
     });
 
     const enrichment = clustered.structuredContent.clusters?.[0]?.enrichment;
@@ -915,7 +920,8 @@ describe("jp_lit_refine_results", () => {
     const clustered = await tool({
       cache_key: searchCacheKey,
       include_duplicate_clusters: true,
-      include_enrichment: true
+      include_enrichment: true,
+      enrichment_cache_keys: [enrichCacheKey]
     });
 
     expect(clustered.structuredContent.clusters?.[0]?.enrichment?.identifiers.doi)
@@ -976,6 +982,7 @@ describe("jp_lit_refine_results", () => {
       cache_key: searchCacheKey,
       include_duplicate_clusters: true,
       include_enrichment: true,
+      enrichment_cache_keys: [enrichCacheKey],
       cluster_member_limit: 1
     });
 

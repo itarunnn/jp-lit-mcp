@@ -11,6 +11,7 @@ import {
   guidesCasesInputSchema,
   guidesManualsInputSchema,
   recordInputSchema,
+  refineResultsInputSchema,
   recordsInputSchema,
   resolveAuthorityInputSchema,
   searchFulltextInputSchema,
@@ -135,5 +136,27 @@ describe("explicit research session schemas", () => {
   it.each(cases)("requires session_id for $name", ({ schema, input }) => {
     expect(schema.safeParse(input).success).toBe(false);
     expect(schema.safeParse({ ...input, session_id: SESSION_ID }).success).toBe(true);
+  });
+
+  it("requires exactly one explicit selector for jp_lit_refine_results", () => {
+    expect(refineResultsInputSchema.safeParse({}).success).toBe(false);
+    expect(refineResultsInputSchema.safeParse({ cache_key: CACHE_KEY }).success).toBe(true);
+    expect(refineResultsInputSchema.safeParse({ session_id: SESSION_ID }).success).toBe(true);
+    expect(refineResultsInputSchema.safeParse({
+      cache_key: CACHE_KEY,
+      session_id: SESSION_ID
+    }).success).toBe(false);
+  });
+
+  it("requires an explicit enrichment selector when enrichment is enabled", () => {
+    expect(refineResultsInputSchema.safeParse({
+      cache_key: CACHE_KEY,
+      include_enrichment: true
+    }).success).toBe(false);
+    expect(refineResultsInputSchema.safeParse({
+      cache_key: CACHE_KEY,
+      include_enrichment: true,
+      enrichment_cache_keys: [createCacheKey("jp_lit_enrich_record", { title: "遊び" })]
+    }).success).toBe(true);
   });
 });

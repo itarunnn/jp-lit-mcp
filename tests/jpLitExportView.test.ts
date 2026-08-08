@@ -409,7 +409,8 @@ describe("jp_lit_export_view", () => {
       view: "refined_results",
       params: {
         cache_key: fixtureCacheKey("ev-fixture"),
-        include_enrichment: true
+        include_enrichment: true,
+        enrichment_cache_keys: [enrichCacheKey]
       },
       duplicate_notes: true,
       format: "markdown",

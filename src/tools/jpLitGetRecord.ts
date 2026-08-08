@@ -16,10 +16,11 @@ export function createCachedRecordLookup(
   sessions: SessionStore = createSessionStore()
 ) {
   return async (input: RecordInput): Promise<RecordOutput> => {
-    const { force_refresh, ...cacheableInput } = input;
+    const { session_id, force_refresh, ...cacheableInput } = input;
     const result = await runCachedTool<RecordOutput>({
       tool: "jp_lit_get_record",
       input: cacheableInput as unknown as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

@@ -18,10 +18,11 @@ export function createJpLitFindAuthorityTermsByClassificationTool(
 ) {
   return async (input: unknown) => {
     const parsed = authorityTermsByClassificationInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
     const result = await runCachedTool<AuthorityTermsByClassificationOutput>({
       tool: "jp_lit_find_authority_terms_by_classification",
       input: cacheableInput as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

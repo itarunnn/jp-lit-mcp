@@ -4,7 +4,13 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
+import { createJpLitGetFulltextTool as createExplicitJpLitGetFulltextTool } from "../src/tools/jpLitGetFulltext.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitGetFulltextTool(...args: Parameters<typeof createExplicitJpLitGetFulltextTool>) {
+  const sessions = args[3] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitGetFulltextTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

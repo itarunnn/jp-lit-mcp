@@ -13,14 +13,30 @@ import {
 } from "../src/lib/http.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { searchInputSchema } from "../src/lib/schemas.js";
+import { searchInputSchema as explicitSearchInputSchema } from "../src/lib/schemas.js";
 import { createSearchService } from "../src/services/searchService.js";
 import { createServer, resolveAdapterOptionsFromEnv } from "../src/server.js";
-import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
+import { createJpLitSearchTool as createExplicitJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { SourceAdapter } from "../src/sources/types.js";
+import {
+  bindSchemaForLegacyTest,
+  bindToolToCurrentSession
+} from "./helpers/explicitSession.js";
 
 const tempDirs: string[] = [];
+const searchInputSchema = bindSchemaForLegacyTest(explicitSearchInputSchema);
+
+function createJpLitSearchTool(
+  ...args: Parameters<typeof createExplicitJpLitSearchTool>
+) {
+  const [service, cache, suppliedSessions, options] = args;
+  const sessions = suppliedSessions ?? createSessionStore();
+  return bindToolToCurrentSession(
+    createExplicitJpLitSearchTool(service, cache, sessions, options),
+    sessions
+  );
+}
 
 const CROSS_SOURCE_NAMES = [
   "ndl_catalog",
@@ -113,9 +129,18 @@ async function callCiniiSearchThroughServer(env: {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
 
+    const started = await client.callTool({
+      name: "jp_lit_start_session",
+      arguments: { research_goal: "server wiring test" }
+    });
+    const sessionId = (
+      started.structuredContent as { session_id: string }
+    ).session_id;
+
     const result = await client.callTool({
       name: "jp_lit_search",
       arguments: {
+        session_id: sessionId,
         query: "server wiring",
         source: "cinii_articles",
         force_refresh: true

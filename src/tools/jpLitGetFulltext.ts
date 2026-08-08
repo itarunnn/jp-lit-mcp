@@ -60,10 +60,11 @@ export function createJpLitGetFulltextTool(
       throw new InvalidRequestError("source_id または pid のいずれかは必須です");
     }
     const validatedInput = parsed.pid ? { ...parsed, pid: validateNdlPid(parsed.pid) } : parsed;
-    const { force_refresh, ...cacheableInput } = validatedInput;
+    const { session_id, force_refresh, ...cacheableInput } = validatedInput;
     const result = await runCachedTool<FulltextOutput>({
       tool: "jp_lit_get_fulltext",
       input: cacheableInput as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

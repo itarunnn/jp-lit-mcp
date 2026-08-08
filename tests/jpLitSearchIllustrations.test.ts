@@ -4,7 +4,13 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitSearchIllustrationsTool } from "../src/tools/jpLitSearchIllustrations.js";
+import { createJpLitSearchIllustrationsTool as createExplicitJpLitSearchIllustrationsTool } from "../src/tools/jpLitSearchIllustrations.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitSearchIllustrationsTool(...args: Parameters<typeof createExplicitJpLitSearchIllustrationsTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSearchIllustrationsTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

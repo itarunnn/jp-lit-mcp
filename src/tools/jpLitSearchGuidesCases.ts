@@ -18,11 +18,12 @@ export function createJpLitSearchGuidesCasesTool(
 ) {
   return async (input: unknown) => {
     const parsed = guidesCasesInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
 
     const result = await runCachedTool<GuidesCasesOutput>({
       tool: "jp_lit_search_guides_cases",
       input: cacheableInput as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

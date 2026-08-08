@@ -85,6 +85,10 @@ describe("jp-lit-research skill guide", () => {
     expect(workflowCore).toContain("対話的な探索ループ");
     expect(workflowCore).toContain("cache_key");
     expect(workflowCore).toContain("session_id");
+    expect(skill).toContain("Mcp-Session-Id");
+    expect(skill).toContain("cache_key");
+    expect(workflowCore).toContain("同じ `session_id`");
+    expect(workflowCore).toContain("jp_lit_start_session");
     expect(workflowCore).toContain("jp_lit_update_session_trace");
     expect(workflowCore).toContain("single writer");
     expect(workflowCore).toContain("サブエージェント分担をデフォルト寄りに検討");
@@ -315,6 +319,7 @@ describe("jp-lit-research skill guide", () => {
     expect(workflowCore).toContain("current report");
     expect(workflowCore).toContain("変更履歴");
     expect(evidence).toContain("## 調査トレース報告");
+    expect(evidence).toContain("jp_lit_export_session(session_id=");
 
     for (const required of [
       "担当範囲",
@@ -706,6 +711,6 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(reference).toContain("独立して確認してください");
     expect(projectStatus).toContain("公開ツール 29 種");
-    expect(projectStatus).toContain("テスト 709 件");
+    expect(projectStatus).toContain("テスト 733 件");
   });
 });

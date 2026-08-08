@@ -31,11 +31,12 @@ export function createJpLitSearchKokushoFulltextTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchKokushoFulltextInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
 
     const result = await runCachedTool<SearchKokushoFulltextOutput>({
       tool: "jp_lit_search_kokusho_fulltext",
       input: cacheableInput,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

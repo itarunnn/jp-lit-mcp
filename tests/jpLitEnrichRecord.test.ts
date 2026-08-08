@@ -7,10 +7,22 @@ import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { createExternalWorkEnricher } from "../src/sources/externalWork/enrichRecord.js";
 import { createOpenAlexClient } from "../src/sources/externalWork/openalexClient.js";
-import { createJpLitEnrichRecordTool } from "../src/tools/jpLitEnrichRecord.js";
+import { createJpLitEnrichRecordTool as createExplicitJpLitEnrichRecordTool } from "../src/tools/jpLitEnrichRecord.js";
 import type { ExternalLookupResult } from "../src/sources/externalWork/types.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
 
 const tempDirs: string[] = [];
+
+function createJpLitEnrichRecordTool(
+  ...args: Parameters<typeof createExplicitJpLitEnrichRecordTool>
+) {
+  const [service, cache, suppliedSessions, options] = args;
+  const sessions = suppliedSessions ?? createSessionStore();
+  return bindToolToCurrentSession(
+    createExplicitJpLitEnrichRecordTool(service, cache, sessions, options),
+    sessions
+  );
+}
 
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-enrich-record-"));

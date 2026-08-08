@@ -4,7 +4,13 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitGetTextCoordinatesTool } from "../src/tools/jpLitGetTextCoordinates.js";
+import { createJpLitGetTextCoordinatesTool as createExplicitJpLitGetTextCoordinatesTool } from "../src/tools/jpLitGetTextCoordinates.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitGetTextCoordinatesTool(...args: Parameters<typeof createExplicitJpLitGetTextCoordinatesTool>) {
+  const sessions = args[3] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitGetTextCoordinatesTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

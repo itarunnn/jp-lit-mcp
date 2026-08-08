@@ -26,10 +26,11 @@ export function createJpLitSearchTool(
 ) {
   return async (input: unknown) => {
     const parsed = searchInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
     const { structuredContent, cacheHit, cacheKey, savedAt } = await runCachedTool<SearchOutput>({
       tool: "jp_lit_search",
       input: cacheableInput as unknown as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,

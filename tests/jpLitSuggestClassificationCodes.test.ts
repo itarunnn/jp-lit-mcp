@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import { createJpLitSuggestClassificationCodesTool } from "../src/tools/jpLitSuggestClassificationCodes.js";
+import { createJpLitSuggestClassificationCodesTool as createExplicitJpLitSuggestClassificationCodesTool } from "../src/tools/jpLitSuggestClassificationCodes.js";
+import { bindToolToCurrentSession } from "./helpers/explicitSession.js";
+
+function createJpLitSuggestClassificationCodesTool(...args: Parameters<typeof createExplicitJpLitSuggestClassificationCodesTool>) {
+  const sessions = args[2] ?? createSessionStore();
+  return bindToolToCurrentSession(createExplicitJpLitSuggestClassificationCodesTool(...args), sessions);
+}
 
 const tempDirs: string[] = [];
 

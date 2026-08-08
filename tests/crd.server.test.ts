@@ -64,9 +64,16 @@ describe("CRD tools via createServer", () => {
       await server.connect(serverTransport);
       await client.connect(clientTransport);
 
+      const started = await client.callTool({
+        name: "jp_lit_start_session",
+        arguments: { research_goal: "CRD server test" }
+      });
+      const sessionId = (started.structuredContent as { session_id: string }).session_id;
+
       const result = await client.callTool({
         name: "jp_lit_search_guides_manuals",
         arguments: {
+          session_id: sessionId,
           query: "常陸国風土記",
           limit: 1,
           page: 1

@@ -18,10 +18,11 @@ export function createJpLitResolveAuthorityTool(
 ) {
   return async (input: unknown) => {
     const parsed = resolveAuthorityInputSchema.parse(input);
-    const { force_refresh, ...cacheableInput } = parsed;
+    const { session_id, force_refresh, ...cacheableInput } = parsed;
     const result = await runCachedTool<ResolveAuthorityOutput>({
       tool: "jp_lit_resolve_authority",
       input: cacheableInput as Record<string, unknown>,
+      sessionId: session_id,
       cache,
       sessions,
       bypassCache: force_refresh,
