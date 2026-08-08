@@ -23,9 +23,15 @@ import type {
 
 export interface SessionStore {
   startSession(input: StartSessionInput): Promise<SessionDocument>;
-  appendEntry(entry: SessionEntry): Promise<SessionDocument>;
-  annotateEntry(input: SessionAnnotationInput): Promise<SessionDocument>;
-  updateTrace(input: SessionTraceUpdateInput): Promise<SessionDocument>;
+  appendEntry(entry: SessionEntry, sessionId?: string): Promise<SessionDocument>;
+  annotateEntry(
+    input: SessionAnnotationInput,
+    sessionId?: string
+  ): Promise<SessionDocument>;
+  updateTrace(
+    input: SessionTraceUpdateInput,
+    sessionId?: string
+  ): Promise<SessionDocument>;
   listAll(): Promise<SessionDocument[]>;
   readById(sessionId: string): Promise<SessionDocument>;
   readCurrent(): Promise<SessionDocument>;
@@ -180,10 +186,12 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     await mkdir(getSessionsRoot(baseDir), { recursive: true });
   }
 
-  async function persist(session: SessionDocument) {
+  async function persist(session: SessionDocument, mirrorCurrent = true) {
     await ensureDirectory();
     await writeSessionFile(archiveSessionPath(baseDir, session.session_id), session);
-    await writeSessionFile(currentSessionPath(baseDir), session);
+    if (mirrorCurrent) {
+      await writeSessionFile(currentSessionPath(baseDir), session);
+    }
   }
 
   async function readCurrentUnlocked() {
@@ -266,6 +274,22 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     );
   }
 
+  async function loadMutationTarget(sessionId?: string) {
+    if (!sessionId) {
+      return {
+        session: await readCurrentUnlocked(),
+        mirrorCurrent: true
+      };
+    }
+
+    const session = await readById(sessionId);
+    const current = await readCurrentForStartUnlocked();
+    return {
+      session,
+      mirrorCurrent: current?.session_id === session.session_id
+    };
+  }
+
   async function listAll() {
     await ensureDirectory();
     const roots = [getSessionsRoot(baseDir), getLegacySessionsRoot(baseDir)];
@@ -330,9 +354,9 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
       });
     },
 
-    appendEntry(entry) {
+    appendEntry(entry, sessionId) {
       return serializeMutation(async () => {
-        const session = await readCurrentUnlocked();
+        const { session, mirrorCurrent } = await loadMutationTarget(sessionId);
         const existingIndex = session.entries.findIndex(
           (candidate) =>
             candidate.tool === entry.tool &&
@@ -362,14 +386,14 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
           entries
         };
 
-        await persist(next);
+        await persist(next, mirrorCurrent);
         return next;
       });
     },
 
-    updateTrace(input) {
+    updateTrace(input, sessionId) {
       return serializeMutation(async () => {
-        const session = await readCurrentUnlocked();
+        const { session, mirrorCurrent } = await loadMutationTarget(sessionId);
         const timestamp = nowIso();
         const currentTrace = normalizeSessionTrace(session.trace);
         const nextTrace: SessionTrace = {
@@ -409,14 +433,14 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
           ...(hasSessionTraceContent(nextTrace) ? { trace: nextTrace } : {})
         };
 
-        await persist(next);
+        await persist(next, mirrorCurrent);
         return next;
       });
     },
 
-    annotateEntry(input) {
+    annotateEntry(input, sessionId) {
       return serializeMutation(async () => {
-        const session = await readCurrentUnlocked();
+        const { session, mirrorCurrent } = await loadMutationTarget(sessionId);
         const timestamp = nowIso();
         let matched = false;
         const nextEntries = session.entries.map((entry) => {
@@ -474,7 +498,7 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
           entries: nextEntries
         };
 
-        await persist(next);
+        await persist(next, mirrorCurrent);
         return next;
       });
     }

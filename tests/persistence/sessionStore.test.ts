@@ -87,6 +87,29 @@ describe("session store", () => {
     );
   });
 
+  it("routes explicit mutations without switching the current session", async () => {
+    const baseDir = await createTempDir();
+    const store = createSessionStore(baseDir);
+    const first = await store.startSession({ research_goal: "first" });
+    const second = await store.startSession({ research_goal: "second" });
+
+    await store.appendEntry(entryA, first.session_id);
+    await store.updateTrace({ scope_note: "first-only" }, first.session_id);
+
+    expect(await store.readById(first.session_id)).toMatchObject({
+      entries: [entryA],
+      trace: {
+        research_goal: "first",
+        scope_note: "first-only"
+      }
+    });
+    expect(await store.readCurrent()).toMatchObject({
+      session_id: second.session_id,
+      entries: [],
+      trace: { research_goal: "second" }
+    });
+  });
+
   it("orders a concurrent start before a following append without losing either session", async () => {
     const baseDir = await createTempDir();
     const store = createSessionStore(baseDir);
