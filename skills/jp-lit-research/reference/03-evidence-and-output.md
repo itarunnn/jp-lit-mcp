@@ -74,6 +74,8 @@
 
 Web調査は通常、文献候補を作る主経路ではなく補助確認である。ユーザーが「Webで書評を探して」など明示した場合、またはDB上で専門的書評・批判・応答の存在が示唆された場合を除き、Webを広く巡回して候補集合を作らない。Webを使った場合は、何を確認したのかを `出版社・団体の性格`、`著者属性`、`本文入口`、`専門的反応` のように分けて書く。
 
+刊行直後の反応、論争、イベント、未発表資料への言及を速報Web検索で見つけた場合、`agent_web` / `ephemeral` は調査経路の証拠として扱う。bibliographic evidence、要旨、目次、fulltext evidenceの代わりにはしない。通常は、正式 source で確認するための `next_actions[].evidence_refs`、または確認事項を残す `open_questions[].evidence_refs` に置く。投稿だけを根拠に候補を採用せず、候補判断へ結び付ける場合も `needs_followup` とする。詳細は `04-ephemeral-web-discovery.md` を読む。
+
 Amazon レビュー、読書メーター、匿名レビュー、SNS 短文、検索スニペットは、原則として探索ヒントに留める。学術的評価・内容把握・立場分類の根拠にしない。使う場合は `根拠: 読者レビュー` のように明示する。
 
 学会誌・研究会誌・紀要・専門誌の書評、リプライ、書評論文、紹介、批判的検討は、タイトルに「書評」「紹介」が含まれていても機械的に落とさない。対象文献が主題の中心文献である場合、または論争の受容・批判・論点整理を含む可能性がある場合は、少なくとも `保留・弱い除外候補` に残し、内容次第で `主要候補` に上げる。媒体・著者・本文・注の確認で内容が薄いと分かった場合だけ除外する。
@@ -340,6 +342,7 @@ report 内では、total は検索元が返した総ヒット数、取得件数�
   - 外したものの代表的な理由
   - 次に何を確認すべきか
 - `jp_lit_update_session_trace(session_id=SID, ...)`: 明示した session 全体の調査目的、scope、source plan、未確認事項、次アクション。未確認事項・次アクションが特定候補に紐づく場合は `evidence_refs[]` に `cache_key` / `source_id` / URL を残す
+- 速報Web発見は `evidence_refs[]` の `evidence_type=agent_web` / `stability=ephemeral` として保存し、投稿の確認時刻と親trace要素の保存時刻を分ける
 - `jp_lit_annotate_session.trace.agent_label` / `task_scope`: サブエージェントや担当範囲
 - `jp_lit_annotate_session.trace.search_attempt`: その検索で使った source / query、目的、total、取得件数、抽出件数、結果
 - `jp_lit_annotate_session.trace.decisions`: 採用・保留・除外・重複・要追加確認の理由と根拠
@@ -356,4 +359,5 @@ report 内では、total は検索元が返した総ヒット数、取得件数�
 
 - `01-core-workflow.md`
 - `02-source-and-query.md`
+- `04-ephemeral-web-discovery.md`
 - 旧詳細資料: `heuristics/evidence-grading.md`, `heuristics/db-characteristics.md`, `heuristics/clarifying-questions.md`

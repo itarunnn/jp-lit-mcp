@@ -656,6 +656,42 @@ describe("jp-lit-research skill guide", () => {
     expect(workflow).toContain("ブラウザ利用許可を意味しない");
   });
 
+  it("routes ephemeral Web discoveries through the existing Web evidence lane", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const runbookPath =
+      "skills/jp-lit-research/reference/04-ephemeral-web-discovery.md";
+
+    if (!existsSync(runbookPath)) {
+      expect(existsSync(runbookPath)).toBe(true);
+      return;
+    }
+
+    const runbook = readFileSync(runbookPath, "utf8");
+
+    expect(skill).toContain("reference/04-ephemeral-web-discovery.md");
+    expect(skill).toContain("既存Web補助確認の速報Web分岐");
+    expect(runbook).toContain("`agent_web`");
+    expect(runbook).toContain("`ephemeral`");
+    for (const field of [
+      "投稿URL",
+      "投稿日時",
+      "投稿者",
+      "検索語",
+      "確認日時",
+      "リンク先"
+    ]) {
+      expect(runbook).toContain(field);
+    }
+    for (const verificationSource of ["出版社", "雑誌", "NDL", "CiNii"]) {
+      expect(runbook).toContain(verificationSource);
+    }
+    expect(runbook).toContain("書誌的事実・真偽・学術的評価の確証にしない");
+    expect(runbook).toContain("新しいMCPツール");
+    expect(runbook).toContain("Yahoo専用adapter");
+    expect(runbook).toContain("スクレイピング");
+    expect(runbook).toContain("継続監視");
+  });
+
   it("documents the batch record detail contract in public guides", () => {
     const readme = readFileSync("README.md", "utf8");
     const usageGuide = readFileSync("docs/usage-guide.md", "utf8");
