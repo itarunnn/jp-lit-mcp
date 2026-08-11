@@ -35,6 +35,62 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   version: string;
 };
 
+type JsonSchemaBranch = {
+  type?: string;
+  properties?: Record<string, JsonSchemaBranch>;
+  required?: string[];
+  additionalProperties?: boolean;
+  anyOf?: JsonSchemaBranch[];
+  const?: unknown;
+};
+
+function expectEvidenceRefUnion(schema: unknown) {
+  const branches = (schema as JsonSchemaBranch | undefined)?.anyOf;
+  expect(branches).toHaveLength(2);
+
+  const agentWeb = branches?.find(
+    (branch) => branch.properties?.evidence_type?.const === "agent_web"
+  );
+  const legacy = branches?.find((branch) => branch.properties?.tool);
+
+  expect(legacy).toMatchObject({
+    type: "object",
+    properties: {
+      tool: { type: "string" },
+      cache_key: { type: "string" },
+      source_id: { type: "string" },
+      quote_or_summary: { type: "string" }
+    },
+    additionalProperties: false
+  });
+  expect(agentWeb).toMatchObject({
+    type: "object",
+    properties: {
+      evidence_type: { const: "agent_web" },
+      stability: { const: "ephemeral" },
+      discovery_source: { type: "string" },
+      query: { type: "string" },
+      url: { type: "string", format: "uri" },
+      author: { type: "string" },
+      published_at: { type: "string", format: "date-time" },
+      checked_at: { type: "string", format: "date-time" },
+      linked_urls: { type: "array", minItems: 1 }
+    },
+    required: expect.arrayContaining([
+      "evidence_type",
+      "stability",
+      "discovery_source",
+      "query",
+      "url",
+      "author",
+      "published_at",
+      "checked_at",
+      "linked_urls"
+    ]),
+    additionalProperties: false
+  });
+}
+
 describe("J-STAGE live pagination smoke", () => {
   it("page 1/2 を limit=1 で呼び、異なる先頭 source_id を確認する", async () => {
     const callTool = vi
@@ -407,26 +463,8 @@ describe("smoke-mcp tool manifest", () => {
       const scopeEvidenceRefItems =
         traceProperties?.properties?.evidence_scope?.items?.properties?.evidence_refs?.items;
 
-      expect(decisionEvidenceRefItems).toMatchObject({
-        type: "object",
-        properties: {
-          tool: { type: "string" },
-          cache_key: { type: "string" },
-          source_id: { type: "string" },
-          quote_or_summary: { type: "string" }
-        },
-        additionalProperties: false
-      });
-      expect(scopeEvidenceRefItems).toMatchObject({
-        type: "object",
-        properties: {
-          tool: { type: "string" },
-          cache_key: { type: "string" },
-          source_id: { type: "string" },
-          quote_or_summary: { type: "string" }
-        },
-        additionalProperties: false
-      });
+      expectEvidenceRefUnion(decisionEvidenceRefItems);
+      expectEvidenceRefUnion(scopeEvidenceRefItems);
     } finally {
       await client.close();
       await server.close();
@@ -490,16 +528,7 @@ describe("smoke-mcp tool manifest", () => {
         openQuestionEvidenceRefs,
         nextActionEvidenceRefs
       ]) {
-        expect(evidenceRefItems).toMatchObject({
-          type: "object",
-          properties: {
-            tool: { type: "string" },
-            cache_key: { type: "string" },
-            source_id: { type: "string" },
-            quote_or_summary: { type: "string" }
-          },
-          additionalProperties: false
-        });
+        expectEvidenceRefUnion(evidenceRefItems);
       }
     } finally {
       await client.close();

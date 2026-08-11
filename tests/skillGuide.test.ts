@@ -747,6 +747,6 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(reference).toContain("独立して確認してください");
     expect(projectStatus).toContain("公開ツール 29 種");
-    expect(projectStatus).toContain("テスト 740 件");
+    expect(projectStatus).toContain("テスト 741 件");
   });
 });
