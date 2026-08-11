@@ -115,7 +115,7 @@ export interface LegacyEvidenceRef extends EvidenceRefLocator {
   evidence_type?: never;
 }
 
-export interface AgentWebEvidenceRef extends EvidenceRefLocator {
+export interface AgentWebEvidenceRef {
   evidence_type: "agent_web";
   stability: "ephemeral";
   discovery_source: string;
@@ -125,6 +125,7 @@ export interface AgentWebEvidenceRef extends EvidenceRefLocator {
   published_at: string;
   checked_at: string;
   linked_urls: string[];
+  quote_or_summary?: string;
 }
 
 export type EvidenceRef = LegacyEvidenceRef | AgentWebEvidenceRef;
