@@ -276,8 +276,16 @@ describe("jp_lit_export_session", () => {
           source: "ndl_digital",
           evidence_refs: [
             {
-              source: "ndl_catalog",
-              source_id: "T1"
+              evidence_type: "agent_web",
+              stability: "ephemeral",
+              discovery_source: "Yahoo!リアルタイム検索",
+              query: "河野有理 McMullen Nakai",
+              url: "https://search.yahoo.co.jp/realtime/example-post",
+              author: "河野有理",
+              published_at: "2026-08-10T09:00:00+09:00",
+              checked_at: "2026-08-10T10:00:00+09:00",
+              linked_urls: ["https://example.org/review"],
+              quote_or_summary: "書評と掲載誌情報へ進む発見経路"
             }
           ]
         }
@@ -361,6 +369,16 @@ describe("jp_lit_export_session", () => {
     expect(written).toContain("ndl_catalog/T1");
     expect(written).toContain("## Next Actions");
     expect(written).toContain("本文確認");
+    expect(written).toContain("agent_web / ephemeral");
+    expect(written).toContain("Yahoo!リアルタイム検索");
+    expect(written).toContain("河野有理 McMullen Nakai");
+    expect(written).toContain("河野有理");
+    expect(written).toContain("2026-08-10T09:00:00+09:00");
+    expect(written).toContain("2026-08-10T10:00:00+09:00");
+    expect(written).toContain(
+      "https://search.yahoo.co.jp/realtime/example-post"
+    );
+    expect(written).toContain("https://example.org/review");
     expect(written).toContain("### Agent Scope");
     expect(written).toContain("NDL/CiNii 担当");
     expect(written).toContain("書誌と本文入口の確認");

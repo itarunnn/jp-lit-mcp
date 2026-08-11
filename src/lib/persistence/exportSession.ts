@@ -3,7 +3,7 @@ import path from "node:path";
 import { resolveExportTarget, writeExportFile } from "./exportPath.js";
 import { getExportsRoot } from "./paths.js";
 import type { FileCache } from "./fileCache.js";
-import type { CacheEnvelope, SessionDocument } from "./types.js";
+import type { CacheEnvelope, EvidenceRef, SessionDocument } from "./types.js";
 import {
   extractCslSourceItems,
   findCslSourceItem,
@@ -128,20 +128,29 @@ function renderTraceTarget(target: {
   return parts.length > 0 ? parts.join(" | ") : "(target unspecified)";
 }
 
-function renderEvidenceRefs(refs: Array<{
-  tool?: string;
-  cache_key?: string;
-  source?: string;
-  source_id?: string;
-  url?: string;
-  quote_or_summary?: string;
-}>) {
+function renderEvidenceRefs(refs: EvidenceRef[]) {
   if (refs.length === 0) {
     return "none";
   }
 
   return refs
     .map((ref) => {
+      if (ref.evidence_type === "agent_web") {
+        return [
+          `${ref.evidence_type} / ${ref.stability}`,
+          ref.discovery_source,
+          `query: ${ref.query}`,
+          `author: ${ref.author}`,
+          `published_at: ${ref.published_at}`,
+          `checked_at: ${ref.checked_at}`,
+          `post: ${ref.url}`,
+          `linked: ${ref.linked_urls.join(", ")}`,
+          ref.quote_or_summary
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join(" | ");
+      }
+
       const parts = [
         ref.tool && ref.cache_key ? `${ref.tool}/${ref.cache_key}` : ref.tool ?? ref.cache_key,
         ref.source && ref.source_id ? `${ref.source}/${ref.source_id}` : ref.source,
