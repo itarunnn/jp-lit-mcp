@@ -613,6 +613,23 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 | `open_questions[]` | array | 未確認事項。必要に応じて `evidence_refs[]` に `cache_key` / `source_id` / URL を残す |
 | `next_actions[]` | array | 次に見るべき source や作業。必要に応じて `evidence_refs[]` に根拠参照を残す |
 
+`evidence_refs[]` は従来の tool / cache / source / URL 参照に加え、速報Webで見つけた投稿を調査の発端として記録できます。速報Web形式では次をすべて指定します。
+
+| field | 型 | 説明 |
+| ---- | -- | ---- |
+| `evidence_type` | string | 固定値 `agent_web` |
+| `stability` | string | 固定値 `ephemeral`。消失・変更しうる発見記録 |
+| `discovery_source` | string | 発見に使った検索サービス名 |
+| `query` | string | 実際に使った検索語 |
+| `url` | URL | 発見した投稿のURL |
+| `author` | string | 画面上で確認した投稿者名またはアカウント表記 |
+| `published_at` | ISO 8601 | 画面上で確認した投稿日時。offset必須 |
+| `checked_at` | ISO 8601 | 投稿を確認した日時。offset必須 |
+| `linked_urls[]` | URL[] | 投稿から到達したリンク先。1件以上 |
+| `quote_or_summary` | string | 発見理由の短い要約（任意） |
+
+`checked_at` はWeb投稿の観察時刻です。親の `open_questions[].created_at` / `next_actions[].created_at` はsessionへ保存した時刻で、storeが付与します。速報Web投稿は書誌的事実・真偽・学術的評価の確証ではありません。投稿から見つけた情報は、出版社、雑誌、NDL、CiNii等の正式 sourceで別に確認してください。従来形式の `evidence_refs[]` は変更せず利用できます。
+
 返り値の `source_plan_count` / `open_question_count` / `next_action_count` は、今回追加した件数ではなく、更新後の合計件数です。
 
 #### `jp_lit_export_session`

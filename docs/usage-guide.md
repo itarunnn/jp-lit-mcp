@@ -133,6 +133,32 @@ Skill を確実に起動したい場合は、依頼の先頭に `文献DBで` �
 
 文献DBモードでは、Web は主経路ではなく補助確認です。出版社・団体の性格、著者属性、本文や公式 PDF の所在、DB で示唆された専門的書評・批判・応答の追跡などに使い、`根拠: Web補助確認` のように DB 書誌・要旨・目次・本文確認とは分けて記録します。ユーザーが明示した場合を除き、Web検索だけで候補集合を作ったり、一般的な検索結果や紹介文を学術的評価の根拠にしたりしません。
 
+刊行直後の反応、論争、イベント、未発表資料への言及は、Yahoo!リアルタイム検索などの速報Web検索が調査の発端になることがあります。これは既存のWeb補助確認の一部です。投稿URL、投稿日時、投稿者、検索語、確認日時、リンク先を `evidence_type: agent_web` / `stability: ephemeral` として同じ調査 `session_id` の `next_actions[].evidence_refs[]` または `open_questions[].evidence_refs[]` に残します。投稿自体を典拠にはせず、出版社、雑誌、NDL、CiNii等で正式に確認します。
+
+たとえば、Yahoo!リアルタイム検索で研究者の投稿から書評と雑誌掲載情報を見つけた場合、投稿は「書評と掲載情報へ進んだ発見経路」として保存します。その後、書評本文や掲載誌の公式ページ、NDL・CiNiiの書誌を別々に確認し、最終回答でも `速報Webで発見` と `正式 sourceで確認` を分けます。正式確認できなかった情報は候補または未確認事項に留めます。
+
+```json
+{
+  "action": "リンク先の書評と掲載情報を正式 source で確認する",
+  "reason": "速報Web投稿は調査の発端であり確証ではないため",
+  "priority": "high",
+  "evidence_refs": [
+    {
+      "evidence_type": "agent_web",
+      "stability": "ephemeral",
+      "discovery_source": "Yahoo!リアルタイム検索",
+      "query": "河野有理 McMullen Nakai",
+      "url": "https://search.yahoo.co.jp/realtime/example-post",
+      "author": "河野有理",
+      "published_at": "2026-08-10T09:00:00+09:00",
+      "checked_at": "2026-08-10T10:00:00+09:00",
+      "linked_urls": ["https://example.org/review"],
+      "quote_or_summary": "書評と掲載誌情報へ進む発見経路"
+    }
+  ]
+}
+```
+
 個人 Web、ブログ、note などを補助確認として使う場合は、最低限、プロフィール、所属・肩書、専門分野、researchmap / KAKEN / CiNii / ORCID / 大学ページ等へのリンク、記事内の出典やページ番号を確認します。プロフィール未確認なら、探索上の手がかりに留め、`次: 発信者プロフィール確認` のように残します。
 
 Amazon レビュー、読書メーター、匿名レビュー、SNS 短文、検索スニペットは、原則として探索ヒントです。学術的評価・内容把握・立場分類の根拠にはしません。使う場合は `根拠: 読者レビュー` のように明示します。

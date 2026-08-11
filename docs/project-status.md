@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-08-09 時点の状態:
+2026-08-11 時点の状態:
 
-- 公開ツール 29 種・対応 source 20 種・テスト 733 件すべて通過
+- 公開ツール 29 種・対応 source 20 種・テスト 740 件すべて通過
 - `npm test` / `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は通過済み
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -29,9 +29,11 @@
 - `jp_lit_refine_results` は、保存済み `jp_lit_enrich_record` cache を任意で重複クラスタへ重ね、DOI・provider status・match confidence を表示できる。これは外部 API の再照会ではなく、本文確認や重要度評価でもない
 - `cinii_dissertations` を CiNii Research 統合後の博士論文・学位論文 source として追加済み。既定横断には含めず、学位論文を探す意図があるときに明示指定する
 - Skill の調査行動に関する feedback を受け取るための issue templates と feedback guide を整備済み
+- 既存Web補助確認に、速報性が高く消えやすい投稿を `agent_web` / `ephemeral` evidenceとして同じ調査 `session_id` へ保存する契約を追加。投稿は調査の発端として扱い、出版社・雑誌・NDL・CiNii等で正式確認する。新しいMCP tool、Yahoo専用adapter、スクレイパーは追加していない
 
 ## 最近の更新
 
+- `未リリース`: 既存 `EvidenceRef` を後方互換のまま拡張し、速報Web投稿の検索サービス、検索語、投稿URL、投稿者、投稿日時、確認日時、リンク先を構造化保存・Markdown exportできるようにした。Skillでは既存Web補助確認の条件付き分岐としてrunbookへ案内し、投稿だけで書誌的事実・真偽・学術的評価を確定しない境界を追加した。公開ツール数とsource数は変更なし
 - `0.11.0`: jp-lit の `session_id` を MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` と分離し、調査案件を指す明示的なアプリケーション側 handle として確定した。検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は `session_id` 必須となり、同じ cache を複数セッションで共有しながら利用記録を指定先へ分離する。非 current session の更新で `current.json` を切り替えず、`jp_lit_refine_results` は `cache_key` / `cache_keys` / `session_id` のいずれか1つを必須 selector として暗黙の current fallback を削除した。Skill、README、reference、offline smoke も明示 handle workflow へ移行した
 - `0.10.0`: 検索後に選別した同じ source の1〜10件をまとめて詳細取得する `jp_lit_get_records` を追加。入力順を保つ部分成功、重複 ID の外部照会抑制、`jp_lit_get_record` と共通の単件 cache / session を実装した。これは上流の全件収集 API ではなく、生の検索結果全件を自動詳細化しない。`ndl_digital` 候補では、OCR やブラウザ確認の前に `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を候補ごとに確認する既定手順を Skill とガイドへ追加した。デジコレ本体の公式検索画面を Browser / Chrome で操作する場合は、利用可能なブラウザとアクセス範囲を説明してユーザーの明示確認を得てから実行し、ログイン済み Chrome はその閲覧権限内だけで利用する。公開 API のないデジコレ本体全文検索をブラウザで補う利点と、再現性・自動化・網羅性の制約を明記した
 - `0.9.1`: 発掘調査報告書・遺跡・埋蔵文化財・出土遺物は、明示指定した `irdb` を最初に使い、`ndl_search` で広域の書誌・所蔵候補を確認し、NDL 所蔵だけが必要な場合に `ndl_catalog` を使う routing を追加。全国文化財総覧の一部レコードを既存 IRDB / NDL Search 連携メタデータから間接 discovery する境界であり、全国の発掘調査報告書を完全収録するという主張ではない。IRDB search / detail では安全な HTTP(S) provenance URL、DOI・HDL・URI、複数ファイル URL、全国文化財総覧 record metadata を保持し、NDL Search では空の abstract が description fallback を妨げないようにした。全国文化財総覧本体の OAI-PMH harvest、endpoint 呼び出し、リンク先 PDF・画像・Excel・報告書本文の取得は実装していない。MCP SDK と XML parser を修正版へ更新し、production / development dependency の audit 0件を確認した
