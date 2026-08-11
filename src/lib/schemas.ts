@@ -609,7 +609,7 @@ const searchAttemptSchema = z.object({
 }).strict();
 
 function createEvidenceRefSchema() {
-  return z.object({
+  const legacyEvidenceRefSchema = z.object({
     tool: z.string().trim().min(1).optional().describe("根拠を得た tool 名。例: jp_lit_search。"),
     cache_key: z.string().trim().min(1).optional().describe("根拠を含む保存済み実行結果の cache_key。"),
     source: optionalSourceInputFieldSchema,
@@ -617,6 +617,21 @@ function createEvidenceRefSchema() {
     url: z.string().trim().min(1).optional().describe("根拠確認に使った公式 URL。"),
     quote_or_summary: z.string().trim().min(1).optional().describe("根拠箇所の短い引用または要約。")
   }).strict();
+
+  const agentWebEvidenceRefSchema = z.object({
+    evidence_type: z.literal("agent_web").describe("速報Web発見の証拠種別。"),
+    stability: z.literal("ephemeral").describe("消失・変更しうる一時的な発見記録。"),
+    discovery_source: z.string().trim().min(1).describe("発見に使ったWeb検索サービス名。"),
+    query: z.string().trim().min(1).describe("発見時に実際に使った検索語。"),
+    url: z.string().url().describe("発見した投稿のURL。"),
+    author: z.string().trim().min(1).describe("画面上で確認した投稿者名またはアカウント表記。"),
+    published_at: z.string().datetime({ offset: true }).describe("画面上で確認した投稿日時。ISO 8601。"),
+    checked_at: z.string().datetime({ offset: true }).describe("エージェントが投稿を確認した日時。ISO 8601。"),
+    linked_urls: z.array(z.string().url()).min(1).describe("投稿から到達したリンク先URL。"),
+    quote_or_summary: z.string().trim().min(1).optional().describe("発見理由の短い要約。")
+  }).strict();
+
+  return z.union([agentWebEvidenceRefSchema, legacyEvidenceRefSchema]);
 }
 
 const traceTargetSchema = z.object({

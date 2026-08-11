@@ -102,7 +102,7 @@ export interface SearchAttempt {
   next_step?: string;
 }
 
-export interface EvidenceRef {
+interface EvidenceRefLocator {
   tool?: string;
   cache_key?: string;
   source?: string;
@@ -110,6 +110,24 @@ export interface EvidenceRef {
   url?: string;
   quote_or_summary?: string;
 }
+
+export interface LegacyEvidenceRef extends EvidenceRefLocator {
+  evidence_type?: never;
+}
+
+export interface AgentWebEvidenceRef extends EvidenceRefLocator {
+  evidence_type: "agent_web";
+  stability: "ephemeral";
+  discovery_source: string;
+  query: string;
+  url: string;
+  author: string;
+  published_at: string;
+  checked_at: string;
+  linked_urls: string[];
+}
+
+export type EvidenceRef = LegacyEvidenceRef | AgentWebEvidenceRef;
 
 export interface DecisionEntry {
   kind: DecisionKind;

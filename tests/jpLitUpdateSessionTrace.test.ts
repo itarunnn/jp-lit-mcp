@@ -8,6 +8,19 @@ import { createJpLitUpdateSessionTraceTool } from "../src/tools/jpLitUpdateSessi
 
 const tempDirs: string[] = [];
 
+const agentWebEvidence = {
+  evidence_type: "agent_web" as const,
+  stability: "ephemeral" as const,
+  discovery_source: "Yahoo!リアルタイム検索",
+  query: "河野有理 McMullen Nakai",
+  url: "https://search.yahoo.co.jp/realtime/example-post",
+  author: "河野有理",
+  published_at: "2026-08-10T09:00:00+09:00",
+  checked_at: "2026-08-10T10:00:00+09:00",
+  linked_urls: ["https://example.org/review"],
+  quote_or_summary: "書評と掲載誌情報へ進む発見経路"
+};
+
 async function createTempDir() {
   const dir = await mkdtemp(path.join(os.tmpdir(), "jp-lit-trace-"));
   tempDirs.push(dir);
@@ -21,6 +34,83 @@ afterEach(async () => {
 });
 
 describe("jp_lit_update_session_trace", () => {
+  it("records a complete ephemeral web discovery as the origin of a next action", async () => {
+    const baseDir = await createTempDir();
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitUpdateSessionTraceTool(sessions);
+    const target = await sessions.readCurrent();
+
+    await tool({
+      session_id: target.session_id,
+      next_actions: [
+        {
+          action: "リンク先の書評と掲載情報を正式 source で確認する",
+          reason: "速報 Web 投稿は調査の発端であり確証ではないため",
+          priority: "high",
+          evidence_refs: [agentWebEvidence]
+        }
+      ]
+    });
+
+    const session = await sessions.readCurrent();
+
+    expect(session.trace?.next_actions[0]?.evidence_refs?.[0]).toEqual(
+      agentWebEvidence
+    );
+  });
+
+  it.each([
+    ["missing author", { author: undefined }],
+    ["wrong stability", { stability: "stable" }],
+    ["invalid published_at", { published_at: "yesterday" }],
+    ["invalid post url", { url: "not-a-url" }],
+    ["empty linked_urls", { linked_urls: [] }]
+  ])("rejects incomplete agent_web evidence: %s", async (_name, patch) => {
+    const baseDir = await createTempDir();
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitUpdateSessionTraceTool(sessions);
+
+    await expect(
+      tool({
+        session_id: (await sessions.readCurrent()).session_id,
+        next_actions: [
+          {
+            action: "正式 source で確認する",
+            reason: "速報 Web 投稿だけでは確証にならないため",
+            priority: "high",
+            evidence_refs: [{ ...agentWebEvidence, ...patch }]
+          }
+        ]
+      })
+    ).rejects.toThrow();
+  });
+
+  it("continues to accept legacy evidence references", async () => {
+    const baseDir = await createTempDir();
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitUpdateSessionTraceTool(sessions);
+    const target = await sessions.readCurrent();
+    const evidence = {
+      url: "https://example.org/official",
+      quote_or_summary: "公式確認先"
+    };
+
+    await tool({
+      session_id: target.session_id,
+      next_actions: [
+        {
+          action: "公式確認先を読む",
+          reason: "従来形式の根拠参照を維持するため",
+          priority: "medium",
+          evidence_refs: [evidence]
+        }
+      ]
+    });
+
+    const session = await sessions.readCurrent();
+    expect(session.trace?.next_actions[0]?.evidence_refs?.[0]).toEqual(evidence);
+  });
+
   it("appends session-level research trace and returns total counts", async () => {
     const baseDir = await createTempDir();
     const sessions = createSessionStore(baseDir);
