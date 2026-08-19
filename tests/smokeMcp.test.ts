@@ -161,6 +161,7 @@ describe("deterministic offline smoke", () => {
       local: {
         title: OFFLINE_SEARCH_FIXTURE_TITLE,
         cacheHit: true,
+        pidRecordCacheHit: true,
         annotatedCount: 1,
         tracedSessionFound: true,
         exportContainsSelection: true,
@@ -418,6 +419,32 @@ describe("smoke-mcp tool manifest", () => {
         expect.arrayContaining(["source_id", "status", "error"])
       );
       expect(CACHED_TOOL_NAMES).not.toContain("jp_lit_get_records");
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it("publishes NDL PID inputs for single and batch record detail", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-ndl-pid-schema-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const { tools } = await client.listTools();
+      const recordTool = tools.find((tool) => tool.name === "jp_lit_get_record");
+      const recordsTool = tools.find((tool) => tool.name === "jp_lit_get_records");
+
+      expect(recordTool?.inputSchema.properties).toHaveProperty("pid");
+      expect(recordsTool?.inputSchema.properties).toHaveProperty("pids");
+      expect(recordTool?.description).toMatch(/source_id.*pid|pid.*source_id/i);
+      expect(recordsTool?.description).toMatch(/source_ids.*pids|pids.*source_ids/i);
+      expect(recordsTool?.description).toMatch(/1.?10/);
     } finally {
       await client.close();
       await server.close();

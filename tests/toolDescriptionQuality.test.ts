@@ -223,6 +223,18 @@ describe("tool definition quality", () => {
     }
   });
 
+  it("NDL record detail の description は PID と source ID の選択境界を伝える", async () => {
+    const tools = await listPublishedTools();
+    const recordDescription =
+      tools.find((tool) => tool.name === "jp_lit_get_record")?.description ?? "";
+    const recordsDescription =
+      tools.find((tool) => tool.name === "jp_lit_get_records")?.description ?? "";
+
+    expect(recordDescription).toMatch(/source_id.*pid|pid.*source_id/i);
+    expect(recordsDescription).toMatch(/source_ids.*pids|pids.*source_ids/i);
+    expect(recordsDescription).toMatch(/1.?10/);
+  });
+
   it("公開 tool の top-level input property description coverage は 90% 以上", async () => {
     const tools = await listPublishedTools();
     let total = 0;

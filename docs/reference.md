@@ -276,10 +276,11 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
 | `source` | source | 必須 | 取得元 source |
-| `source_id` | string | 必須 | 検索結果の `source_id` |
+| `source_id` | string | 条件付き必須 | 検索結果の `source_id`。`pid` と排他的 |
+| `pid` | string | 条件付き必須 | `source=ndl_digital` のデジコレ PID。`source_id` と排他的 |
 | `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再取得 |
 
-`source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。個人送信対象・図書館送信対象・館内限定など、MCP では自動全文取得できないが公式画面で手動閲覧できる可能性がある場合は、`content_access.manual_viewing` に手動閲覧導線が入ります。
+`source_id` と `pid` はどちらか一方だけを指定します。`pid` は数字だけを受け付け、`source=ndl_digital` 以外では入力検証で拒否されます。`source=ndl_digital` の場合、`source_metadata.next_digital_library` に OCR 系ツールの利用可否が入ります。個人送信対象・図書館送信対象・館内限定など、MCP では自動全文取得できないが公式画面で手動閲覧できる可能性がある場合は、`content_access.manual_viewing` に手動閲覧導線が入ります。
 
 `source=national_archives` / `source=jacar` の場合、目録メタデータ、公式レコード URL、画像数や利用制限などを返します。`source_id` は `national_archives` が数値 ID、`jacar` がレファレンスコードです。画像ファイル本体、IIIF manifest、OCR 本文、ページ単位検索は初期スコープ外です。403 が返る場合は VPN やネットワーク制限の可能性があります。
 
@@ -297,9 +298,12 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
-| `source` | source | 必須 | 全 `source_ids` に共通する取得元 source |
-| `source_ids` | string[] | 必須 | 1〜10件。各 ID を trim し、重複は最初の出現だけを処理 |
+| `source` | source | 必須 | 全 `source_ids` または `pids` に共通する取得元 source |
+| `source_ids` | string[] | 条件付き必須 | 1〜10件。各 ID を trim し、重複は最初の出現だけを処理。`pids` と排他的 |
+| `pids` | string[] | 条件付き必須 | `source=ndl_digital` のデジコレ PID を1〜10件。`source_ids` と排他的 |
 | `force_refresh` | boolean | `false` | `true` で全一意 ID の単件 cache を無視して upstream 再取得 |
+
+`source_ids` と `pids` はどちらか一方だけを指定します。`pids` は数字だけの PID を1〜10件受け付け、`source=ndl_digital` 以外では入力検証で拒否されます。
 
 出力 schema:
 

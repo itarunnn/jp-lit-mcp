@@ -9,6 +9,7 @@ import { createServer } from "../src/server.js";
 import { createCacheKey, normalizeCacheInput } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { getExportsRoot, getPersistenceRoot } from "../src/lib/persistence/paths.js";
+import type { RecordsOutput } from "../src/lib/schemas.js";
 import type { RecordItem, SearchItem } from "../src/lib/types.js";
 
 export const EXPECTED_TOOL_NAMES = [
@@ -71,6 +72,8 @@ const OFFLINE_RECORD_IDS = [
   "1971993809689508364",
   "1971993809689508365"
 ] as const;
+const OFFLINE_NDL_PID = "1794357";
+const OFFLINE_NDL_SOURCE_ID = `R100000039-I${OFFLINE_NDL_PID}`;
 
 export const SUPPORTED_LIVE_EXTRA_TOOLS = [
   "jp_lit_search_kaken_projects",
@@ -413,6 +416,25 @@ async function seedOfflineRecordCaches(baseDir: string) {
       });
     })
   );
+
+  const ndlInput = normalizeCacheInput({
+    source: "ndl_digital",
+    source_id: OFFLINE_NDL_SOURCE_ID
+  });
+  await cache.write("jp_lit_get_record", {
+    version: 1,
+    tool: "jp_lit_get_record",
+    cache_key: createCacheKey("jp_lit_get_record", ndlInput),
+    saved_at: "2000-01-01T00:00:00.000Z",
+    input: ndlInput,
+    structured_content: {
+      ...createOfflineRecordItem(OFFLINE_NDL_SOURCE_ID),
+      source: "ndl_digital",
+      source_metadata: {
+        next_digital_library: { pid: OFFLINE_NDL_PID, available: false }
+      }
+    }
+  });
 }
 
 export async function withNetworkDenied<T>(operation: () => Promise<T>): Promise<T> {
@@ -437,6 +459,7 @@ export async function withNetworkDenied<T>(operation: () => Promise<T>): Promise
 interface LocalPersistenceSmokeSummary {
   title: string;
   cacheHit: boolean;
+  pidRecordCacheHit: boolean;
   annotatedCount: number;
   tracedSessionFound: boolean;
   exportContainsSelection: boolean;
@@ -453,6 +476,7 @@ async function runLocalPersistenceSmoke(
     expectCacheHit?: boolean;
     batchRecordSource?: string;
     batchRecordIds?: readonly string[];
+    offlinePid?: string;
   }
 ): Promise<LocalPersistenceSmokeSummary> {
   const localSearch = options.search ?? resolveLocalPersistenceSmokeSearch();
@@ -478,6 +502,42 @@ async function runLocalPersistenceSmoke(
   }
   if (options.expectCacheHit && searchData?.cache?.hit !== true) {
     throw new Error("Offline smoke did not use the seeded search fixture.");
+  }
+
+  let pidRecordCacheHit = false;
+  if (options.offlinePid) {
+    const byPid = await client.callTool({
+      name: "jp_lit_get_record",
+      arguments: {
+        session_id: options.sessionId,
+        source: "ndl_digital",
+        pid: options.offlinePid
+      }
+    });
+    const byPidData = byPid.structuredContent as
+      | { source_id?: string; cache?: { hit?: boolean } }
+      | undefined;
+    const canonicalSourceId = `R100000039-I${options.offlinePid}`;
+    if (
+      byPidData?.source_id !== canonicalSourceId ||
+      byPidData.cache?.hit !== true
+    ) {
+      throw new Error("PID lookup did not resolve to a cached canonical record.");
+    }
+
+    const byCanonicalId = await client.callTool({
+      name: "jp_lit_get_records",
+      arguments: {
+        session_id: options.sessionId,
+        source: "ndl_digital",
+        source_ids: [canonicalSourceId]
+      }
+    });
+    const batchItem = (byCanonicalId.structuredContent as RecordsOutput).items[0];
+    if (batchItem?.status !== "ok" || batchItem.record.cache?.hit !== true) {
+      throw new Error("PID lookup did not share the canonical record cache.");
+    }
+    pidRecordCacheHit = true;
   }
 
   let batchRecordCount = 0;
@@ -678,6 +738,7 @@ async function runLocalPersistenceSmoke(
   return {
     title: firstItem.title,
     cacheHit: searchData?.cache?.hit === true,
+    pidRecordCacheHit,
     annotatedCount,
     tracedSessionFound: true,
     exportContainsSelection: true,
@@ -1270,7 +1331,8 @@ async function mainSinglePass(
                 search: OFFLINE_LOCAL_SEARCH,
                 expectCacheHit: true,
                 batchRecordSource: OFFLINE_RECORD_SOURCE,
-                batchRecordIds: OFFLINE_RECORD_IDS
+                batchRecordIds: OFFLINE_RECORD_IDS,
+                offlinePid: OFFLINE_NDL_PID
               }
             : { sessionId }
         );
