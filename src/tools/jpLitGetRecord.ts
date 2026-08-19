@@ -6,6 +6,7 @@ import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { withToolCache } from "../lib/toolCache.js";
 import { recordInputSchema, recordOutputSchema } from "../lib/schemas.js";
 import type { RecordInput, RecordOutput } from "../lib/schemas.js";
+import { ndlPidToDigitalSourceId, validateSourceId } from "../lib/sourceId.js";
 import type { createRecordService } from "../services/recordService.js";
 
 type RecordService = ReturnType<typeof createRecordService>;
@@ -16,7 +17,11 @@ export function createCachedRecordLookup(
   sessions: SessionStore = createSessionStore()
 ) {
   return async (input: RecordInput): Promise<RecordOutput> => {
-    const { session_id, force_refresh, ...cacheableInput } = input;
+    const sourceId = input.pid
+      ? ndlPidToDigitalSourceId(input.pid)
+      : validateSourceId(input.source, input.source_id!);
+    const { session_id, force_refresh } = input;
+    const cacheableInput = { source: input.source, source_id: sourceId };
     const result = await runCachedTool<RecordOutput>({
       tool: "jp_lit_get_record",
       input: cacheableInput as unknown as Record<string, unknown>,
@@ -27,7 +32,7 @@ export function createCachedRecordLookup(
       live: async () => {
         const record = await recordService.getRecord({
           source: input.source,
-          sourceId: input.source_id
+          sourceId
         });
 
         return recordOutputSchema.parse(record);

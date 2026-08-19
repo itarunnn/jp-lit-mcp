@@ -152,6 +152,37 @@ describe("jp_lit_get_records schemas", () => {
     });
   });
 
+  it("ndl_digital は source_ids の代わりに1〜10件の pids を受け付ける", () => {
+    expect(
+      recordsInputSchema.parse({
+        source: "ndl_digital",
+        pids: [" 1794357 ", "12237105"]
+      })
+    ).toEqual({
+      source: "ndl_digital",
+      pids: ["1794357", "12237105"],
+      force_refresh: false
+    });
+  });
+
+  it.each([
+    { source: "ndl_digital" },
+    {
+      source: "ndl_digital",
+      source_ids: ["R100000039-I1794357"],
+      pids: ["1794357"]
+    },
+    { source: "ndl_digital", pids: [] },
+    { source: "ndl_digital", pids: ["not-a-pid"] },
+    { source: "ndl_catalog", pids: ["1794357"] },
+    {
+      source: "ndl_digital",
+      pids: Array.from({ length: 11 }, (_, i) => String(i + 1))
+    }
+  ])("source_ids / pids の排他・形式・件数を検証する: %o", (input) => {
+    expect(recordsInputSchema.safeParse(input).success).toBe(false);
+  });
+
   it("空配列、空ID、11件を拒否する", () => {
     expect(
       recordsInputSchema.safeParse({
@@ -304,6 +335,61 @@ describe("jp_lit_get_records schemas", () => {
 });
 
 describe("jp_lit_get_records tool", () => {
+  it("pid を canonical NDL digital source_id に変換して単件取得する", async () => {
+    const { singleTool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+
+    const result = await singleTool({
+      source: "ndl_digital",
+      pid: "1794357"
+    });
+
+    expect(getRecord).toHaveBeenCalledWith("R100000039-I1794357");
+    expect(result.structuredContent.source_id).toBe("R100000039-I1794357");
+  });
+
+  it("pids を正規化してから重複除去し入力順で返す", async () => {
+    const { tool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+
+    const result = await tool({
+      source: "ndl_digital",
+      pids: ["1794357", "12237105", "1794357"]
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      requested_count: 3,
+      unique_count: 2,
+      success_count: 2
+    });
+    expect(result.structuredContent.items.map((item) => item.source_id)).toEqual([
+      "R100000039-I1794357",
+      "R100000039-I12237105"
+    ]);
+    expect(getRecord).toHaveBeenCalledTimes(2);
+  });
+
+  it("pid と canonical source_id は同じ単件 cache を共有する", async () => {
+    const { singleTool, getRecord } = await createBatchHarness(
+      async (sourceId) => createRecordItem(sourceId)
+    );
+
+    const byPid = await singleTool({ source: "ndl_digital", pid: "1794357" });
+    const bySourceId = await singleTool({
+      source: "ndl_digital",
+      source_id: "R100000039-I1794357"
+    });
+
+    expect(byPid.structuredContent.cache?.hit).toBe(false);
+    expect(bySourceId.structuredContent.cache).toMatchObject({
+      hit: true,
+      cache_key: byPid.structuredContent.cache?.cache_key
+    });
+    expect(getRecord).toHaveBeenCalledTimes(1);
+  });
+
   it("重複を除いた入力順で成功と部分失敗を返す", async () => {
     const { tool, getRecord } = await createBatchHarness(async (sourceId) => {
       if (sourceId === "R100000039-I9999999") {

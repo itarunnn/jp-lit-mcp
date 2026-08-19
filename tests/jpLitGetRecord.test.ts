@@ -110,6 +110,29 @@ describe("createRecordService", () => {
     });
   });
 
+  it("ndl_digital は source_id の代わりに pid を受け付ける", () => {
+    expect(
+      recordInputSchema.parse({ source: "ndl_digital", pid: " 1794357 " })
+    ).toEqual({
+      source: "ndl_digital",
+      pid: "1794357",
+      force_refresh: false
+    });
+  });
+
+  it.each([
+    { source: "ndl_digital" },
+    {
+      source: "ndl_digital",
+      source_id: "R100000039-I1794357",
+      pid: "1794357"
+    },
+    { source: "ndl_digital", pid: "abc" },
+    { source: "ndl_catalog", pid: "1794357" }
+  ])("source_id / pid の排他・形式・source制約を検証する: %o", (input) => {
+    expect(recordInputSchema.safeParse(input).success).toBe(false);
+  });
+
   it("record 入力スキーマで空の source_id を拒否する", () => {
     const parsed = recordInputSchema.safeParse({
       source: "ndl_digital",

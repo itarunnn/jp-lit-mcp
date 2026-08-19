@@ -90,3 +90,7 @@ export function validateNdlPid(pid: string): string {
 
   return trimmed;
 }
+
+export function ndlPidToDigitalSourceId(pid: string): string {
+  return `R100000039-I${validateNdlPid(pid)}`;
+}

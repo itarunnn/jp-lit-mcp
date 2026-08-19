@@ -370,6 +370,7 @@ describe("smoke-mcp tool manifest", () => {
       expect(tool?.inputSchema.properties).toMatchObject({
         source: { type: "string" },
         source_ids: { type: "array", maxItems: 10, minItems: 1 },
+        pids: { type: "array", maxItems: 10, minItems: 1 },
         force_refresh: { type: "boolean" }
       });
       const outputSchema = tool?.outputSchema as

@@ -13,6 +13,7 @@ import {
   recordsOutputSchema
 } from "../lib/schemas.js";
 import type { RecordBatchErrorCategory } from "../lib/schemas.js";
+import { ndlPidToDigitalSourceId } from "../lib/sourceId.js";
 import type { createRecordService } from "../services/recordService.js";
 import { createCachedRecordLookup } from "./jpLitGetRecord.js";
 
@@ -97,7 +98,11 @@ export function createJpLitGetRecordsTool(
 
   return async (input: unknown) => {
     const parsed = recordsInputSchema.parse(input);
-    const sourceIds = Array.from(new Set(parsed.source_ids));
+    const requestedIds = parsed.pids ?? parsed.source_ids!;
+    const normalizedIds = parsed.pids
+      ? parsed.pids.map(ndlPidToDigitalSourceId)
+      : parsed.source_ids!;
+    const sourceIds = Array.from(new Set(normalizedIds));
     const items = await mapWithConcurrency(
       sourceIds,
       RECORD_BATCH_CONCURRENCY,
@@ -126,7 +131,7 @@ export function createJpLitGetRecordsTool(
     const successCount = items.filter((item) => item.status === "ok").length;
     const structuredContent = recordsOutputSchema.parse({
       source: parsed.source,
-      requested_count: parsed.source_ids.length,
+      requested_count: requestedIds.length,
       unique_count: sourceIds.length,
       success_count: successCount,
       error_count: items.length - successCount,

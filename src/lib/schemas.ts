@@ -303,12 +303,42 @@ export const searchInputSchema = searchInputToolSchema
     }
   });
 
-export const recordInputSchema = z.object({
-  session_id: sessionIdInputFieldSchema,
-  source: sourceInputFieldSchema,
-  source_id: z.string().trim().min(1).describe("source 内のレコードID。jp_lit_search の items[].source_id を指定する。"),
-  force_refresh: forceRefreshFieldSchema
-});
+const ndlPidInputFieldSchema = z
+  .string()
+  .trim()
+  .regex(/^\d+$/, "pid は数字のみを指定してください");
+
+export const recordInputToolSchema = z
+  .object({
+    session_id: sessionIdInputFieldSchema,
+    source: sourceInputFieldSchema,
+    source_id: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe("source 内のレコードID。jp_lit_search の items[].source_id を指定する。"),
+    pid: ndlPidInputFieldSchema.optional(),
+    force_refresh: forceRefreshFieldSchema
+  });
+
+export const recordInputSchema = recordInputToolSchema
+  .superRefine((data, ctx) => {
+    if ((data.source_id ? 1 : 0) + (data.pid ? 1 : 0) !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["source_id"],
+        message: "source_id または pid のどちらか1つを指定してください"
+      });
+    }
+    if (data.pid && data.source !== "ndl_digital") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["pid"],
+        message: "pid は source=ndl_digital のときだけ指定できます"
+      });
+    }
+  });
 
 const recordSourceIdsInputSchema = z
   .array(z.string().trim().min(1))
@@ -318,12 +348,38 @@ const recordSourceIdsInputSchema = z
     "同じ source から詳細取得する source_id の配列。1〜10件。trim 後の重複は最初の1件だけ処理する。"
   );
 
-export const recordsInputSchema = z.object({
-  session_id: sessionIdInputFieldSchema,
-  source: sourceInputFieldSchema,
-  source_ids: recordSourceIdsInputSchema,
-  force_refresh: forceRefreshFieldSchema
-});
+const recordPidsInputSchema = z
+  .array(ndlPidInputFieldSchema)
+  .min(1)
+  .max(10)
+  .describe("デジコレPIDの配列。source=ndl_digital の場合だけ1〜10件を指定する。");
+
+export const recordsInputToolSchema = z
+  .object({
+    session_id: sessionIdInputFieldSchema,
+    source: sourceInputFieldSchema,
+    source_ids: recordSourceIdsInputSchema.optional(),
+    pids: recordPidsInputSchema.optional(),
+    force_refresh: forceRefreshFieldSchema
+  });
+
+export const recordsInputSchema = recordsInputToolSchema
+  .superRefine((data, ctx) => {
+    if ((data.source_ids ? 1 : 0) + (data.pids ? 1 : 0) !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["source_ids"],
+        message: "source_ids または pids のどちらか1つを指定してください"
+      });
+    }
+    if (data.pids && data.source !== "ndl_digital") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["pids"],
+        message: "pids は source=ndl_digital のときだけ指定できます"
+      });
+    }
+  });
 
 const externalProviderSchema = z.enum(["crossref", "openalex"]);
 const externalProviderStatusSchema = z.enum(["ok", "not_found", "skipped", "error"]);
