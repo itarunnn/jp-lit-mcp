@@ -1,9 +1,11 @@
 # 実装状況
 
-2026-08-11 時点の状態:
+2026-08-20 時点の状態:
 
-- 公開ツール 29 種・対応 source 20 種・テスト 741 件すべて通過
-- `npm test` / `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は通過済み
+- 公開ツール 29 種・対応 source 20 種は不変。fresh `npm test` は 80 files / 758 tests 通過
+- `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
+- `ndl_digital` の詳細取得は、既知のデジコレ PID を1件なら `pid`、2〜10件なら `pids` として直接受け付け、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
+- PID 詳細取得では、`content_access.manual_viewing`（公式画面での手動閲覧導線）と `source_metadata.next_digital_library.available`（MCP の OCR 系 tool 利用可否）を独立して返す。本文・画像の自動取得可否や手動閲覧の現在性を、どちらか一方から推定しない
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
 - GitHub リポジトリ公開済み: `https://github.com/itarunnn/jp-lit-mcp`
