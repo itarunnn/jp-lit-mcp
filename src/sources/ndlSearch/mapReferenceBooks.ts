@@ -60,9 +60,12 @@ function hasIntroduction(meta: JsonRecord | null, introduction: string | null): 
   );
 }
 
-function mapReferenceBookEntry(entry: unknown): SearchItem {
+function mapReferenceBookEntry(entry: unknown): SearchItem | null {
   const record = asRecord(entry) ?? {};
   const meta = asRecord(record.meta);
+  if (readMetaValue(meta, "t09800") !== "SANKO") {
+    return null;
+  }
   const introduction = readMetaValue(meta, "t09812");
   const base = mapNdlSearchSearchEntry({
     id: readNdlSearchString(record.id),
@@ -81,7 +84,7 @@ function mapReferenceBookEntry(entry: unknown): SearchItem {
   return {
     ...base,
     source_metadata: {
-      reference_book: readMetaValue(meta, "t09800") === "SANKO",
+      reference_book: true,
       reference_ndc: readMetaList(meta, "k09810"),
       introduction,
       has_introduction: hasIntroduction(meta, introduction)
@@ -116,12 +119,16 @@ function readFacets(value: unknown): SearchFacets | undefined {
 export function mapNdlReferenceBooksSearchResponse(payload: unknown): SearchResult {
   const record = asRecord(payload) ?? {};
   const entries = Array.isArray(record.list) ? record.list : [];
-  const hit = Number(readNdlSearchString(record.hit));
-  const items = entries.map((entry) => mapReferenceBookEntry(entry));
+  const hitValue = readNdlSearchString(record.hit);
+  const hit = hitValue === null ? null : Number(hitValue);
+  const items = entries.flatMap((entry) => {
+    const item = mapReferenceBookEntry(entry);
+    return item ? [item] : [];
+  });
   const facets = readFacets(record.facets);
 
   return {
-    total: Number.isFinite(hit) ? hit : items.length,
+    total: hit !== null && Number.isFinite(hit) ? hit : items.length,
     items,
     ...(facets ? { facets } : {})
   };

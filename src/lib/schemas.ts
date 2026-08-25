@@ -281,7 +281,13 @@ export const searchInputSchema = searchInputToolSchema
         path: ["filters", "jdcat"]
       });
     }
-    if (
+    if (data.filters?.ndl !== undefined && data.source === "ndl_reference_books") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "filters.ndl は source=ndl_reference_books では未対応です",
+        path: ["filters", "ndl"]
+      });
+    } else if (
       data.filters?.ndl !== undefined &&
       data.source !== "ndl_search" &&
       data.source !== "ndl_catalog" &&

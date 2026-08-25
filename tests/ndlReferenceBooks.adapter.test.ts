@@ -10,7 +10,11 @@ function readFixture(name: string): unknown {
   );
 }
 
-function referenceBookDetailPayload(referenceBook: boolean): unknown {
+function referenceBookDetailPayload(
+  referenceBook: boolean,
+  introduction: string | null = "第4版(1985年刊)と同内容。",
+  introductionFlag = "1"
+): unknown {
   return {
     list: [
       {
@@ -24,8 +28,8 @@ function referenceBookDetailPayload(referenceBook: boolean): unknown {
           t06500: [{ v: "哲学" }],
           ...(referenceBook ? { t09800: [{ v: "SANKO" }] } : {}),
           k09810: [{ v: "103.3" }],
-          t09812: [{ v: "第4版(1985年刊)と同内容。" }],
-          t09815: [{ s: "1" }]
+          ...(introduction ? { t09812: [{ v: introduction }] } : {}),
+          t09815: [{ s: introductionFlag }]
         },
         items: []
       }
@@ -79,6 +83,58 @@ describe("NDL 参考図書紹介 mapper", () => {
       "classification"
     );
   });
+
+  it("t09800=SANKOでない検索entryを参考図書結果から除外する", async () => {
+    const { mapNdlReferenceBooksSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapReferenceBooks.js"
+    );
+
+    const result = mapNdlReferenceBooksSearchResponse({
+      hit: 2,
+      list: [
+        {
+          id: "R100000002-I000002972211",
+          meta: {
+            t02450: [{ v: "哲学辞典" }],
+            t09800: [{ v: "SANKO" }],
+            k09810: [{ v: "103.3" }]
+          }
+        },
+        {
+          id: "R100000002-I000009999999",
+          meta: { t02450: [{ v: "一般書誌" }] }
+        }
+      ]
+    });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        source_id: "R100000002-I000002972211",
+        source_metadata: expect.objectContaining({ reference_book: true })
+      })
+    ]);
+  });
+
+  it("hitが欠落した検索payloadでは抽出後items数をtotalに使う", async () => {
+    const { mapNdlReferenceBooksSearchResponse } = await import(
+      "../src/sources/ndlSearch/mapReferenceBooks.js"
+    );
+
+    const result = mapNdlReferenceBooksSearchResponse({
+      list: [
+        {
+          id: "R100000002-I000002972211",
+          meta: {
+            t02450: [{ v: "哲学辞典" }],
+            t09800: [{ v: "SANKO" }],
+            k09810: [{ v: "103.3" }]
+          }
+        }
+      ]
+    });
+
+    expect(result.total).toBe(1);
+  });
 });
 
 afterEach(() => {
@@ -131,6 +187,54 @@ describe("createNdlReferenceBooksAdapter", () => {
 
     expect(record).toMatchObject({
       source: "ndl_reference_books",
+      summary: "第4版(1985年刊)と同内容。",
+      source_metadata: {
+        reference_book: true,
+        reference_ndc: ["103.3"],
+        introduction: "第4版(1985年刊)と同内容。",
+        has_introduction: true
+      }
+    });
+  });
+
+  it("紹介文なしでもt09815.s=1ならhas_introductionを保持する", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      jsonResponse(referenceBookDetailPayload(true, null, "1"))
+    ));
+    const { createNdlReferenceBooksAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlReferenceBooksAdapter({
+      recordBaseUrl: "https://example.test/api/bib/external/search"
+    });
+
+    const record = await adapter.getRecord("R100000002-I000002972211");
+
+    expect(record).toMatchObject({
+      summary: null,
+      source_metadata: {
+        reference_book: true,
+        introduction: null,
+        has_introduction: true
+      }
+    });
+  });
+
+  it("通常のNDL sourceのdetailにも参考図書metadataを保持する", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      jsonResponse(referenceBookDetailPayload(true))
+    ));
+    const { createNdlSearchAdapter } = await import(
+      "../src/sources/ndlSearch/adapter.js"
+    );
+    const adapter = createNdlSearchAdapter({
+      recordBaseUrl: "https://example.test/api/bib/external/search"
+    });
+
+    const record = await adapter.getRecord("R100000002-I000002972211");
+
+    expect(record).toMatchObject({
+      source: "ndl_search",
       summary: "第4版(1985年刊)と同内容。",
       source_metadata: {
         reference_book: true,

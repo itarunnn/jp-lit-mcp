@@ -332,6 +332,27 @@ describe("createSearchService", () => {
     expect(referenceBooks.source).toBe("ndl_reference_books");
   });
 
+  it("source=ndl_reference_booksではfilters.ndl未対応を明示する", () => {
+    const result = searchInputSchema.safeParse({
+      query: "哲学",
+      source: "ndl_reference_books",
+      filters: { ndl: { ndc: "103" } }
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error("filters.ndl must be rejected for ndl_reference_books");
+    }
+    expect(result.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ["filters", "ndl"],
+          message: "filters.ndl は source=ndl_reference_books では未対応です"
+        })
+      ])
+    );
+  });
+
   it("source 指定ありで単一 source 検索を返す", async () => {
     const ndlSearchAdapter: SourceAdapter = {
       source: "ndl_search",
