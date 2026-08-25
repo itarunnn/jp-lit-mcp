@@ -8,6 +8,7 @@ import type { RecordItem, SearchItem, SourceName } from "../../lib/types.js";
 import type { NdlSearchFilters, SourceAdapter } from "../types.js";
 import { mapCiniiRecordResponseForSource } from "../ciniiResearch/mapRecord.js";
 import { mapNdlSearchRecordResponse } from "./mapRecord.js";
+import { mapNdlReferenceBooksSearchResponse } from "./mapReferenceBooks.js";
 import { mapNdlSearchSearchResponse } from "./mapSearch.js";
 import { projectNdlSearchDetailXml } from "./projectOpenSearch.js";
 import { projectNdlSruSearchResponse } from "./parseSru.js";
@@ -22,6 +23,7 @@ const DEFAULT_RECORD_BASE_URL =
 interface NdlSearchAdapterOptions {
   source?:
     | "ndl_search"
+    | "ndl_reference_books"
     | "ndl_catalog"
     | "ndl_articles"
     | "ndl_articles_online";
@@ -202,6 +204,24 @@ export function createNdlSearchAdapter(
   return {
     source,
     async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
+      if (source === "ndl_reference_books") {
+        const url = new URL(recordBaseUrl);
+        url.searchParams.set("cs", "sanko");
+        url.searchParams.set("keyword", query);
+        url.searchParams.set("size", String(limit));
+        url.searchParams.set("from", String((page - 1) * limit));
+
+        const result = mapNdlReferenceBooksSearchResponse(
+          await fetchNdlSearchPayload(url.toString())
+        );
+
+        return {
+          total: result.total,
+          items: result.items.map((item) => withSource(item, source)),
+          facets: result.facets
+        };
+      }
+
       const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
       url.searchParams.set("operation", "searchRetrieve");
       url.searchParams.set("version", "1.2");
@@ -270,6 +290,10 @@ export function createNdlSearchAdapter(
           return null;
         }
 
+        if (source === "ndl_reference_books" && record.source_metadata.reference_book !== true) {
+          return null;
+        }
+
         return withSource(record, source);
       } catch (error) {
         if (error instanceof UpstreamHttpError && error.status === 404) {
@@ -309,5 +333,14 @@ export function createNdlArticlesOnlineAdapter(
     ...options,
     source: "ndl_articles_online",
     providerId: "zassaku-online"
+  });
+}
+
+export function createNdlReferenceBooksAdapter(
+  options: Omit<NdlSearchAdapterOptions, "source" | "providerId"> = {}
+): SourceAdapter {
+  return createNdlSearchAdapter({
+    ...options,
+    source: "ndl_reference_books"
   });
 }

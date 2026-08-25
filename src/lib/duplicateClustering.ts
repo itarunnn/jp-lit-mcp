@@ -153,7 +153,8 @@ function sourceRank(source: ClusterItem["source"]) {
     teikoku_minutes: 17,
     nijl_articles: 18,
     kokusho: 19,
-    ninjal_bibliography: 20
+    ninjal_bibliography: 20,
+    ndl_reference_books: 21
   };
   return ranks[source];
 }

@@ -71,6 +71,16 @@ function readMetaList(meta: JsonRecord | null, key: string): string[] {
   );
 }
 
+function hasIntroduction(meta: JsonRecord | null, introduction: string | null): boolean {
+  if (introduction) {
+    return true;
+  }
+
+  return readMetaEntries(meta?.t09815).some(
+    (entry) => readNdlSearchString(entry.s) === "1"
+  );
+}
+
 function readClassification(normalized: JsonRecord): {
   ndc: string[];
   ndlc: string[];
@@ -285,6 +295,9 @@ function normalizeRecordPayload(record: JsonRecord): {
   const accessNote = readMetaValue(itemMeta, "k39020");
   const transmissionLabels = readMetaList(itemMeta, "k39021");
   const providerName = readMetaValue(itemMeta, "k80404");
+  const referenceBook = readMetaValue(topMeta, "t09800") === "SANKO";
+  const referenceNdc = readMetaList(topMeta, "k09810");
+  const introduction = readMetaValue(topMeta, "t09812");
   const digitalCollection =
     readMetaValue(itemMeta, "k39022") !== null ||
     viewerUrl !== null ||
@@ -327,7 +340,7 @@ function normalizeRecordPayload(record: JsonRecord): {
       materialType: readMetaValue(topMeta, "k09022"),
       identifiers,
       tableOfContents: aggregateToc(allItemMetas),
-      summary: aggregateSummary(allItemMetas),
+      summary: introduction ?? aggregateSummary(allItemMetas),
       hasPageImages: viewerUrl !== null,
       hasTextCoordinates: false,
       viewerUrl,
@@ -338,7 +351,15 @@ function normalizeRecordPayload(record: JsonRecord): {
         viewerUrl
       ),
       providerId: null,
-      providerName
+      providerName,
+      ...(referenceBook
+        ? {
+            referenceBook,
+            referenceNdc,
+            introduction,
+            hasIntroduction: hasIntroduction(topMeta, introduction)
+          }
+        : {})
     },
     raw: record
   };
@@ -399,7 +420,15 @@ export function mapNdlSearchRecordResponse(payload: unknown): RecordItem | null 
         normalized.providerName ?? normalized.provider_name ?? normalized.provider
       ),
       raw_url: readNdlSearchString(normalized.rawUrl ?? normalized.raw_url),
-      classification
+      classification,
+      ...(normalized.referenceBook === true
+        ? {
+            reference_book: true,
+            reference_ndc: readNdlSearchStringList(normalized.referenceNdc),
+            introduction: readNdlSearchString(normalized.introduction),
+            has_introduction: normalized.hasIntroduction === true
+          }
+        : {})
     },
     raw
   };

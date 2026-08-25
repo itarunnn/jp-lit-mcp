@@ -89,6 +89,34 @@ describe("buildDuplicateClusters", () => {
     )).toBe(true);
   });
 
+  it("keeps an existing catalog-search representative ahead of an explicit reference-books result", () => {
+    const result = buildDuplicateClusters(
+      [
+        item({
+          source: "ndl_reference_books",
+          source_id: "R100000002-I000002972211",
+          title: "哲学辞典",
+          authors: [{ name: "哲学辞典編集委員会", role: "author" }],
+          issued_at: "1985",
+          issued_at_label: "1985",
+          issued_at_precision: "year"
+        }),
+        item({
+          source: "ndl_search",
+          source_id: "R100000002-I000002972211",
+          title: "哲学辞典",
+          authors: [{ name: "哲学辞典編集委員会", role: "author" }],
+          issued_at: "1985",
+          issued_at_label: "1985",
+          issued_at_precision: "year"
+        })
+      ],
+      { clusterLimit: 10, clusterOffset: 0 }
+    );
+
+    expect(result.clusters[0]?.representative.source).toBe("ndl_search");
+  });
+
   it("does not cluster repeated appearances of the same source record", () => {
     const first = item({ source: "ndl_catalog", source_id: "same-id" });
     const result = buildDuplicateClusters([first, { ...first }], {

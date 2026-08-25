@@ -85,6 +85,7 @@ import {
   createNdlArticlesAdapter,
   createNdlArticlesOnlineAdapter,
   createNdlCatalogAdapter,
+  createNdlReferenceBooksAdapter,
   createNdlSearchAdapter
 } from "./sources/ndlSearch/adapter.js";
 import { createKokkaiAdapter, createTeikokuAdapter } from "./sources/kokkai/adapter.js";
@@ -411,6 +412,7 @@ export function createServer(env: ServerEnv = process.env) {
   const kokushoClient = createKokushoClient(adapterOptions.kokusho);
   const adapters = [
     createNdlSearchAdapter(adapterOptions.ndlSearch),
+    createNdlReferenceBooksAdapter(adapterOptions.ndlSearch),
     createNdlCatalogAdapter(adapterOptions.ndlSearch),
     createNdlDigitalAdapter(adapterOptions.ndlDigital),
     createNdlArticlesAdapter(adapterOptions.ndlSearch),

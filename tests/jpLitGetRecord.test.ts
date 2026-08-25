@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InvalidRequestError, NotFoundError } from "../src/lib/errors.js";
+import { validateSourceId } from "../src/lib/sourceId.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { recordInputSchema as explicitRecordInputSchema } from "../src/lib/schemas.js";
@@ -229,7 +230,7 @@ describe("createRecordService", () => {
     expect(parsed.source).toBe("japan_search");
   });
 
-  it("record 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
+  it("record 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online / ndl_reference_books source を受け付ける", () => {
     const catalog = recordInputSchema.parse({
       source: "ndl_catalog",
       source_id: "R100000002-I000000001"
@@ -242,10 +243,30 @@ describe("createRecordService", () => {
       source: "ndl_articles_online",
       source_id: "R000000004-I000000002"
     });
+    const referenceBooks = recordInputSchema.parse({
+      source: "ndl_reference_books",
+      source_id: "R100000002-I000002972211"
+    });
 
     expect(catalog.source).toBe("ndl_catalog");
     expect(articles.source).toBe("ndl_articles");
     expect(articlesOnline.source).toBe("ndl_articles_online");
+    expect(referenceBooks.source).toBe("ndl_reference_books");
+  });
+
+  it("ndl_reference_books はNDL書誌source_idだけを受け付ける", () => {
+    expect(
+      validateSourceId(
+        "ndl_reference_books",
+        "R100000002-I000002972211"
+      )
+    ).toBe("R100000002-I000002972211");
+    expect(() =>
+      validateSourceId(
+        "ndl_reference_books",
+        "https://example.test/not-a-record"
+      )
+    ).toThrow(InvalidRequestError);
   });
 
   it("service 層で NDL Search が返す小文字サフィックス付き source_id を受け付ける", async () => {

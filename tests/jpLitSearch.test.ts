@@ -308,7 +308,7 @@ describe("createSearchService", () => {
     expect(parsed.source).toBe("japan_search");
   });
 
-  it("search 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online source を受け付ける", () => {
+  it("search 入力スキーマで ndl_catalog / ndl_articles / ndl_articles_online / ndl_reference_books source を受け付ける", () => {
     const catalog = searchInputSchema.parse({
       query: "夏目漱石",
       source: "ndl_catalog"
@@ -321,10 +321,15 @@ describe("createSearchService", () => {
       query: "夏目漱石",
       source: "ndl_articles_online"
     });
+    const referenceBooks = searchInputSchema.parse({
+      query: "哲学",
+      source: "ndl_reference_books"
+    });
 
     expect(catalog.source).toBe("ndl_catalog");
     expect(articles.source).toBe("ndl_articles");
     expect(articlesOnline.source).toBe("ndl_articles_online");
+    expect(referenceBooks.source).toBe("ndl_reference_books");
   });
 
   it("source 指定ありで単一 source 検索を返す", async () => {
@@ -1066,6 +1071,57 @@ describe("createSearchService", () => {
     } finally {
       await client.close();
       await server.close();
+    }
+  });
+
+  it("createServer は ndl_reference_books を単一source検索へ登録する", async () => {
+    const baseDir = await createTempDir();
+    const originalCwd = process.cwd();
+    process.chdir(baseDir);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ hit: 1, list: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const server = createServer({
+      NDL_SEARCH_BASE_URL: "https://ndl.example.test/api/bib/external/search"
+    });
+    const client = new Client({
+      name: "jp-lit-reference-books-server-test-client",
+      version: "1.0.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const started = await client.callTool({
+        name: "jp_lit_start_session",
+        arguments: { research_goal: "reference books server wiring test" }
+      });
+      const sessionId = (started.structuredContent as { session_id: string }).session_id;
+      const result = await client.callTool({
+        name: "jp_lit_search",
+        arguments: {
+          session_id: sessionId,
+          query: "哲学",
+          source: "ndl_reference_books",
+          force_refresh: true
+        }
+      });
+
+      expect((result.structuredContent as { source: string }).source).toBe(
+        "ndl_reference_books"
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await client.close();
+      await server.close();
+      vi.unstubAllGlobals();
+      process.chdir(originalCwd);
+      await rm(baseDir, { recursive: true, force: true });
     }
   });
 

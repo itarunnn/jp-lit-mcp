@@ -1,5 +1,6 @@
 export type SourceName =
   | "ndl_search"
+  | "ndl_reference_books"
   | "ndl_catalog"
   | "ndl_digital"
   | "ndl_articles"

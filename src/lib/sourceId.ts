@@ -29,6 +29,7 @@ export function validateSourceId(source: SourceName, sourceId: string): string {
 
   switch (source) {
     case "ndl_search":
+    case "ndl_reference_books":
     case "ndl_catalog":
     case "ndl_digital":
     case "ndl_articles_online":
