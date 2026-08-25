@@ -99,7 +99,7 @@ jp_lit_search_kokusho_fulltext(keyword="〇〇", limit=20)
 ## 候補詳細化: 検索結果から OCR・閲覧判断へ
 
 - 検索結果から、提示・OCR・閲覧判断に使う候補へ先に絞る。生の検索結果全件を自動詳細化しない。
-- 1件なら `jp_lit_get_record`、2〜10件なら `jp_lit_get_records` を使う。10件を超える場合は絞り込み、または理由を説明できる小さな chunk に分ける。
+- `pids` は1〜10件を受け付けるが、1件なら `jp_lit_get_record`、2〜10件なら `jp_lit_get_records` を使う。10件を超える場合は絞り込み、または理由を説明できる小さな chunk に分ける。
 - デジコレ PID が既知なら title を再検索せず、1件は `jp_lit_get_record` の `pid`、2〜10件は `jp_lit_get_records` の `pids` で現在の `manual_viewing` と `next_digital_library.available` を確認する。PID一覧全件の自動詳細化はしない。
 - `content_access.manual_viewing.access_type` と `source_metadata.next_digital_library.available` は独立して読む。`available=false` だけでアクセス制限の原因を断定しない。
 - metadata の batch は MCP での詳細確認であり、デジコレ公式画面のブラウザ利用許可を意味しない。公式画面は既存の明示的な許可を得た場合だけ使う。

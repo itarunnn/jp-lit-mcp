@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { sourceSchema } from "../src/lib/schemas.js";
+
 describe("README public onboarding", () => {
   it("links to install guides", () => {
     const readme = readFileSync("README.md", "utf8");
@@ -102,6 +104,32 @@ describe("README public onboarding", () => {
     expect(projectStatus).toContain("nijl_articles");
     expect(projectStatus).toContain("kokusho");
     expect(projectStatus).toContain("ninjal_bibliography");
+  });
+
+  it("keeps every public source discoverable in the technical reference", () => {
+    const reference = readFileSync("docs/reference.md", "utf8");
+    const sourceTable = reference.slice(
+      reference.indexOf("## Source 一覧"),
+      reference.indexOf("## 共通スキーマ")
+    );
+    const documentedSources = new Set(
+      [...sourceTable.matchAll(/^\| `([^`]+)` \|/gm)].map((match) => match[1])
+    );
+
+    for (const source of sourceSchema.options) {
+      expect.soft(documentedSources, source).toContain(source);
+    }
+  });
+
+  it("lists the reference-book source in README's primary source guide", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const mainSources = readme.slice(
+      readme.indexOf("## 主な対応先"),
+      readme.indexOf("## ドキュメント")
+    );
+
+    expect(mainSources).toContain("`ndl_reference_books`");
+    expect(mainSources).toMatch(/参考図書紹介.*既定横断外/);
   });
 
   it("documents regional public library research as a Skill-guided route", () => {

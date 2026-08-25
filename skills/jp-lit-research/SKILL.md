@@ -57,7 +57,7 @@ description: >-
 - デジコレ公式画面のブラウザ操作は既定では行わない。公式画面の確認が調査範囲に有効なら、調査計画の提示時に未ログイン検索を実行してよいか確認する。
 - ログイン済み Chrome の利用は未ログイン検索とは別の権限とし、利用者が明示的に許可した場合だけ行う。内蔵 Browser から Chrome へ、または未ログイン検索からログイン済み閲覧へ無断で切り替えない。
 - デジコレ本体の網羅性を確認するかどうかは MCP の検索件数で決めない。許可を得て公式画面を確認した場合も、MCP の次世代デジタルライブラリー API 範囲と公式画面範囲を分けて報告する。
-- 選別済みの `ndl_digital` 候補は、OCR・閲覧経路・ブラウザ確認を判断する前に詳細化する。デジコレ PID が既知なら title を再検索せず、1件は `jp_lit_get_record` の `pid`、2〜10件は `jp_lit_get_records` の `pids` で現在の `manual_viewing` と `next_digital_library.available` を確認する。PID一覧全件の自動詳細化はしない。
+- 選別済みの `ndl_digital` 候補は、OCR・閲覧経路・ブラウザ確認を判断する前に詳細化する。デジコレ PID が既知なら title を再検索しない。`pids` は1〜10件を受け付けるが、1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` で現在の `manual_viewing` と `next_digital_library.available` を確認する。PID一覧全件の自動詳細化はしない。
 
 ## 本文確認ラベル
 

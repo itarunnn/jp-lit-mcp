@@ -662,6 +662,7 @@ describe("jp-lit-research skill guide", () => {
     expect(skill).toContain("選別済みの `ndl_digital` 候補");
     expect(combined).toContain("1件なら `jp_lit_get_record`");
     expect(combined).toContain("2〜10件なら `jp_lit_get_records`");
+    expect(combined).toContain("`pids` は1〜10件を受け付ける");
     expect(workflow).toContain("生の検索結果全件を自動詳細化しない");
     expect(workflow).toContain(
       "10件を超える場合は絞り込み、または理由を説明できる小さな chunk"
@@ -719,7 +720,9 @@ describe("jp-lit-research skill guide", () => {
 
     expect(readme).toContain("jp_lit_get_records");
     expect(readme).toContain("同じ source の1〜10件");
+    expect(readme).toContain("`pids` は1〜10件を受け付けます");
     expect(usageGuide).toContain("2〜10件なら");
+    expect(usageGuide).toContain("`pids` は1〜10件を受け付けます");
     expect(usageGuide).toContain("ブラウザは起動しない");
     expect(reference).toContain("同じ source の1〜10件");
     expect(reference).toContain("重複除去後の入力順");
@@ -728,6 +731,7 @@ describe("jp-lit-research skill guide", () => {
     expect(reference).toContain(
       "success_count + error_count = unique_count"
     );
+    expect(projectStatus).toContain("`pids` は1〜10件を受け付ける");
     for (const category of [
       "not_found",
       "invalid_request",
@@ -766,6 +770,6 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(reference).toContain("独立して確認してください");
     expect(projectStatus).toContain("公開ツール 29 種");
-    expect(projectStatus).toContain("81 files / 772 tests");
+    expect(projectStatus).toContain("81 files / 774 tests");
   });
 });

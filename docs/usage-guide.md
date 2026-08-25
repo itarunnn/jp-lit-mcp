@@ -418,7 +418,7 @@ jp_lit_enrich_record(
 
 ### 検索後に複数候補の詳細を確認したい
 
-検索結果から詳細確認する候補を選び、1件なら `jp_lit_get_record`、同じ source の2〜10件なら `jp_lit_get_records` を使います。最大10件までで、生の検索結果全件を自動的に詳細化するための tool ではありません。
+検索結果から詳細確認する候補を選び、1件なら `jp_lit_get_record`、同じ source の2〜10件なら `jp_lit_get_records` を使います。`pids` は1〜10件を受け付けますが、1件では単件 tool を優先します。最大10件までで、生の検索結果全件を自動的に詳細化するための tool ではありません。
 
 `source="ndl_digital"` では、1件は `source_id` または `pid`、2〜10件は `source_ids` または `pids` のどちらか一方だけを指定します。PID は canonical な `R100000039-I<PID>` source ID として処理されるため、PID で先に取得したレコードと canonical source ID の batch は単件 cache を共有します。
 

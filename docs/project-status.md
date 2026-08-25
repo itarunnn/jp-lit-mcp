@@ -2,10 +2,10 @@
 
 2026-08-25 時点の状態:
 
-- 公開ツール 29 種は不変。対応 source 21 種（`ndl_reference_books` を含む）。fresh `npm test` は 81 files / 772 tests 通過
+- 公開ツール 29 種は不変。対応 source 21 種（`ndl_reference_books` を含む）。fresh `npm test` は 81 files / 774 tests 通過
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
 - 2026-08-25 10:04 JST に `ndl_reference_books` を adapter 直結（cache bypass、`force_refresh=true` 相当）で live 確認した。`query="哲学"`、`limit=2`、`page=1` の検索は1回だけ成功し、total 197、取得2件、抽出2件で、全件が `source_metadata.reference_book=true`、`reference_ndc=["103.3"]` だった。紹介文あり候補は1件だけ選び、detailも1回だけ成功した（`R100000002-I000002972211`、`summary` / `introduction` = 「第4版(1985年刊)と同内容。」、公式 URL: `https://ndlsearch.ndl.go.jp/books/R100000002-I000002972211`）。この確認は候補メタデータと詳細経路に限り、本文・現物・所蔵・閲覧可否は未確認である。
-- `ndl_digital` の詳細取得は、既知のデジコレ PID を1件なら `pid`、2〜10件なら `pids` として直接受け付け、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
+- `ndl_digital` の詳細取得では `pids` は1〜10件を受け付ける。運用上は1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使い、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
 - PID 詳細取得では、`content_access.manual_viewing`（公式画面での手動閲覧導線）と `source_metadata.next_digital_library.available`（MCP の OCR 系 tool 利用可否）を独立して返す。本文・画像の自動取得可否や手動閲覧の現在性を、どちらか一方から推定しない
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
 - live smoke matrix は `jdcat` の上流メンテ時を除き通過実績あり。`nijl_articles` / `kokusho` / `ninjal_bibliography` の明示 live smoke も 2026-05-11 に通過
@@ -37,7 +37,7 @@
 
 ## 最近の更新
 
-- 未リリース: `ndl_reference_books` を追加し、参考図書・レファ本・事典・辞典・書誌・索引・年鑑の自然言語 routing を `jp_lit_search` と `jp-lit-research` に追加。検索結果・detail の `source_metadata.reference_book` / `reference_ndc` / `introduction` / `has_introduction` を公開し、紹介文なしのレコードを区別する。NDL オープンデータセットの runtime 一括取り込みは行わず、公開検索エンドポイントを都度使う候補探索に限定する
+- `0.13.0`: `ndl_digital` の既知 PID を `jp_lit_get_record` / `jp_lit_get_records` へ直接渡せるようにし、canonical source ID と単件 cache を共有した。`ndl_reference_books` を追加し、参考図書・レファ本・事典・辞典・書誌・索引・年鑑の自然言語 routing を `jp_lit_search` と `jp-lit-research` に追加。検索結果・detail の `source_metadata.reference_book` / `reference_ndc` / `introduction` / `has_introduction` を公開し、紹介文なしのレコードを区別する。NDL オープンデータセットの runtime 一括取り込みは行わず、公開検索エンドポイントを都度使う候補探索に限定する
 - `0.12.0`: 既存 `EvidenceRef` を後方互換のまま拡張し、速報Web投稿の検索サービス、検索語、投稿URL、投稿者、投稿日時、確認日時、リンク先を構造化保存・Markdown exportできるようにした。Skillでは既存Web補助確認の条件付き分岐としてrunbookへ案内し、投稿だけで書誌的事実・真偽・学術的評価を確定しない境界を追加した。公開ツール数とsource数は変更なし
 - `0.11.0`: jp-lit の `session_id` を MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` と分離し、調査案件を指す明示的なアプリケーション側 handle として確定した。検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は `session_id` 必須となり、同じ cache を複数セッションで共有しながら利用記録を指定先へ分離する。非 current session の更新で `current.json` を切り替えず、`jp_lit_refine_results` は `cache_key` / `cache_keys` / `session_id` のいずれか1つを必須 selector として暗黙の current fallback を削除した。Skill、README、reference、offline smoke も明示 handle workflow へ移行した
 - `0.10.0`: 検索後に選別した同じ source の1〜10件をまとめて詳細取得する `jp_lit_get_records` を追加。入力順を保つ部分成功、重複 ID の外部照会抑制、`jp_lit_get_record` と共通の単件 cache / session を実装した。これは上流の全件収集 API ではなく、生の検索結果全件を自動詳細化しない。`ndl_digital` 候補では、OCR やブラウザ確認の前に `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を候補ごとに確認する既定手順を Skill とガイドへ追加した。デジコレ本体の公式検索画面を Browser / Chrome で操作する場合は、利用可能なブラウザとアクセス範囲を説明してユーザーの明示確認を得てから実行し、ログイン済み Chrome はその閲覧権限内だけで利用する。公開 API のないデジコレ本体全文検索をブラウザで補う利点と、再現性・自動化・網羅性の制約を明記した

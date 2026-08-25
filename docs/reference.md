@@ -27,7 +27,7 @@ jstage_articles
 nihu_bridge
 ```
 
-`ndl_search` / `cinii_dissertations` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` / `national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography` は、目的がはっきりしているときに `source` を明示して使います。`cinii_dissertations` は博士論文・学位論文、`national_archives` / `jacar` は公文書・外交・軍事・旧外地資料などの下位導線です。`nijl_articles` は国文学論文・国文研論文、`kokusho` は国書・古典籍、`ninjal_bibliography` は日本語研究・日本語教育文献を探すための専門 DB です。通常の文献探索の既定横断には含めません。
+`ndl_search` / `ndl_reference_books` / `cinii_dissertations` / `irdb` / `jdcat` / `japan_search` / `kokkai_minutes` / `teikoku_minutes` / `national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography` は、目的がはっきりしているときに `source` を明示して使います。`ndl_reference_books` は参考図書紹介の候補探索、`cinii_dissertations` は博士論文・学位論文、`national_archives` / `jacar` は公文書・外交・軍事・旧外地資料などの下位導線です。`nijl_articles` は国文学論文・国文研論文、`kokusho` は国書・古典籍、`ninjal_bibliography` は日本語研究・日本語教育文献を探すための専門 DB です。通常の文献探索の既定横断には含めません。
 
 ### データ量を抑える設計
 
@@ -46,6 +46,7 @@ nihu_bridge
 | `ndl_articles` | NDL Search SRU | NDL detail JSON | yes | 雑誌記事索引。詳細取得は CiNii CRID フォールバックあり |
 | `ndl_articles_online` | NDL Search SRU | none | yes | オンライン採録記事の検索のみ。詳細取得は常に `null` |
 | `ndl_search` | NDL Search SRU | NDL detail JSON | no | NDL Search 参加機関 100 以上の広域検索。存在確認・初動調査向き |
+| `ndl_reference_books` | NDL「参考図書紹介」検索 endpoint | NDL detail JSON | no | 参考図書・事典・辞典・書誌・索引・年鑑の候補探索。紹介文・参考NDCを返す。所蔵・閲覧可否は別確認 |
 | `cinii_articles` | CiNii OpenSearch | CiNii JSON-LD | yes | 論文・記事。sort は `issued_date` のみ |
 | `cinii_dissertations` | CiNii Research OpenSearch | CiNii JSON-LD | no | 博士論文・学位論文。CiNii Dissertations 統合後の CiNii Research 経由。既定横断には含めない |
 | `cinii_books` | CiNii OpenSearch | CiNii JSON-LD + holdings | yes | 大学図書館等の図書・雑誌所蔵。`holdings[]` を返す場合あり |

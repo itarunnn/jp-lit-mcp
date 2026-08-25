@@ -259,7 +259,7 @@ J-STAGE など一部 source では、API がアブストラクトを返さない
 
 `jp-lit-research` では、デジコレ公式画面のブラウザ操作は明示的に許可された場合だけ行います。既定は MCP のみです。未ログイン検索とログイン済み Chrome の利用は別の権限であり、前者の許可から後者を推定しません。回答では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分けて書きます。
 
-`ndl_digital` の検索後は、選別済み候補の `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を `jp_lit_get_records` で候補ごとに独立して確認できます。手動閲覧導線と MCP の OCR 利用可否を分けて判断してから、OCR または許可済みのブラウザ確認へ進みます。デジコレ PID が既知なら、`source_id` の代わりに1件は `pid`、2〜10件は `pids` を指定できます。
+`ndl_digital` の検索後は、選別済み候補の `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を `jp_lit_get_records` で候補ごとに独立して確認できます。手動閲覧導線と MCP の OCR 利用可否を分けて判断してから、OCR または許可済みのブラウザ確認へ進みます。デジコレ PID が既知なら、`pids` は1〜10件を受け付けますが、1件だけなら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使うのが基本です。
 
 ```text
 jp_lit_get_record(session_id=SID, source=ndl_digital, pid="1794357")
@@ -420,6 +420,7 @@ Skill を使わない場合は `文献DBで` / `文献検証で` などの Skill
 
 - `ndl_catalog`: 国立国会図書館の書誌・所蔵情報を調べる入口
 - `ndl_digital`: 国立国会図書館デジタルコレクション
+- `ndl_reference_books`: NDL「参考図書紹介」。既定横断外の候補探索専用で、所蔵・閲覧可否は [参考図書・事典・索引から調べる](#参考図書事典索引から調べる) の後段で別確認
 - `cinii_articles` / `cinii_dissertations` / `cinii_books`: 論文、博士論文・学位論文、大学図書館の本・雑誌
 - `jstage_articles`: 学会誌・研究論文
 - `irdb`: 大学の機関リポジトリ
