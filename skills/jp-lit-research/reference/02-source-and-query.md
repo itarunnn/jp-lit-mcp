@@ -48,12 +48,26 @@
 
 - `ndl_search` は NDL Search 参加機関を広く見る初動向き source
 - `japan_search` は昭和館・地域/文化資源系・雑誌目次など、既定横断から漏れる入口を拾う
-- リサーチ・ナビやレファ協が示す専門 DB は、当該分野では基礎候補より有効な入口になりうる。参考図書 / 索引は次アクションとして扱う
+- リサーチ・ナビやレファ協が示す専門 DB は、当該分野では基礎候補より有効な入口になりうる。参考図書 / 索引が示唆された場合は、下の参考図書導線を追加する
 - `source` 未指定の既定横断は `japan_search` と `ndl_search` を含まない
 
 `source` 未指定のラウンドロビン検索は、8 source を同じ query で比較する強い理由があるときだけ使う。例: 文献系 source の同時スキャン、`nihu_bridge` を含む文献系ミックス検索、個別 source 分解前の補助確認。
 
 人物名単独、回想記事、雑誌目次、一般誌、地域アーカイブ、昭和館、文化資源の可能性がある場合は、ラウンドロビンより先に `ndl_search` と `japan_search` を明示指定する。
+
+### 参考図書・レファ本の導線
+
+レファ協・NDL リサーチ・ナビで、参考図書・レファ本・事典・辞典・書誌・索引・年鑑が有効と示唆された場合は、基礎候補の `ndl_search` + `japan_search` を維持したうえで、次の順に進める。
+
+```text
+レファ協 / リサーチ・ナビ
+  → jp_lit_search(source=ndl_reference_books, query=主題語)
+  → source_metadata.reference_ndc / introduction / has_introduction で候補を選別
+  → jp_lit_get_record または jp_lit_get_records で詳細確認
+  → cinii_books / カーリル / 各館 OPAC で所蔵・閲覧条件を別確認
+```
+
+`ndl_reference_books` は既定横断外の明示指定 source である。候補一覧の `availability` や紹介文だけから本文、デジタル画像、所蔵、閲覧可否を推定しない。`sort_by`、`sort_order`、`issued_from`、`issued_to`、`filters.ndl` はこの source では未対応であり、紹介文がないレコードもある。参考図書紹介の候補探索であって、NDL オープンデータセットを runtime に一括取り込みする導線ではない。
 
 地方人物・地方紙・地方雑誌・郷土資料が主題の場合は、`ndl_search` / `japan_search` / レファ協 / リサーチ・ナビで地域候補を作り、カーリル MCP の `search_libraries` で地域名・館種・ネットワーク名・専門資料機関名を検索して候補館の `systemid` を得てから、`search_books` / 地域公共図書館 OPAC へ進む。人名はまず出身地・居住地・活動地・郷土人物としての地域を割り、地域から図書館へ進める。県立図書館を基準点として外さない。優先する館は、該当都道府県立図書館、該当市区町村中央館、県内/広域の図書館ネットワーク、発行地・活動地に対応する中央館、郷土資料室・分館、隣接自治体や旧郡域の館、専門図書館・資料室。Web 検索はパスファインダー、新聞・雑誌所蔵一覧、郷土資料ページ、カーリルで見つからない文学館・記念館・資料館・資料室、閲覧条件の補助確認に使う。地方紙・地方雑誌は記事名ではなく媒体名・巻号で OPAC 所蔵を確認する。
 
@@ -143,6 +157,7 @@ researchmap で見つけた項目は、文献確定ではなく追加探索の�
 - `jp_lit_search` は 1 回最大 100 件
 - source 未指定の横断検索は `page=1` のみ対応。初手では原則使わず、強い理由がある場合に限る
 - `nijl_articles` / `kokusho` / `ninjal_bibliography` は専門 DB の明示指定 source。既定横断には含めない
+- `ndl_reference_books` は参考図書・レファ本・事典・辞典・書誌・索引・年鑑用の明示指定 source。候補一覧の所蔵・閲覧可否は detail と `cinii_books` / カーリル / 各館 OPAC で別確認する
 - `kokusho` の書誌・所在は `jp_lit_search(source=kokusho)`、本文スニペットは `jp_lit_search_kokusho_fulltext`、画像タグは `jp_lit_search_kokusho_image_tags` に分ける
 - 有料 DB、文化資源 DB、地域アーカイブ DB は固定 source 化せず、契約 DB は次の人間確認先、文化資源・地域アーカイブは `japan_search` / `nihu_bridge` / リサーチ・ナビ / レファ協の導線で扱う
 - 結果報告には、可能なら `全N件中M件取得` を明記する

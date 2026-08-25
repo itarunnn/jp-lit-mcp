@@ -327,6 +327,20 @@ jp_lit_search(session_id=SID, source="ndl_search", query="栃原岩陰遺跡発�
 
 ---
 
+### 参考図書・事典・索引を探したい
+
+レファ協やリサーチ・ナビが、参考図書・レファ本・事典・辞典・書誌・索引・年鑑を示唆した場合は、`ndl_reference_books` を明示指定します。基礎候補の `ndl_search` + `japan_search` を置き換えるのではなく、調べ方案内で必要と分かったときの追加 source です。
+
+```text
+jp_lit_search(session_id=SID, source=ndl_reference_books, query="人物事典")
+```
+
+`source_metadata.reference_ndc`、`source_metadata.introduction`、`source_metadata.has_introduction`、`source_metadata.reference_book` で候補を選びます。紹介文がないレコードもあるため、`has_introduction=false` を除外根拠にしません。候補一覧だけで所蔵・閲覧可否を判断せず、`jp_lit_get_record` / `jp_lit_get_records` で詳細を確認してから `cinii_books`、カーリル、各館 OPAC に進みます。
+
+`ndl_reference_books` は既定横断外で、sort、期間、`filters.ndl` は未対応です。NDL オープンデータセットの一括取り込みではなく、NDL の公開検索を使う候補探索です。
+
+---
+
 ### 別名義や件名を確認したい
 
 別名義や件名の確認が必要な場合は、Web NDL Authorities を使って典拠を確認できます。
@@ -877,6 +891,7 @@ jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
 | `ndl_articles`        | NDL 雑誌記事索引                                                          | 雑誌記事、古い論文・記事の手がかり                                     | 巻号・ページなどは detail 側の `source_metadata` 確認が必要です                                                  |
 | `ndl_articles_online` | NDL 雑誌記事索引オンライン版                                              | オンライン採録記事の検索                                               | 検索のみ。`jp_lit_get_record` は常に null になります                                                             |
 | `ndl_search`          | NDL Search 参加機関 100 以上を一括横断する広域 source                     | 存在確認・初動調査。「この資料は本当に存在するか」を広く当たりたいとき | CiNii・J-STAGE はハーベスト済みで書誌が薄く、nihu_bridge は対象外。詳細調査は個別 source で                      |
+| `ndl_reference_books` | NDL「参考図書紹介」の候補検索                                               | 参考図書、レファ本、事典、辞典、書誌、索引、年鑑の候補探索             | 既定横断外。紹介文なしもある。sort / 期間 / `filters.ndl` は未対応で、所蔵・閲覧可否は detail 後に別確認           |
 | `cinii_articles`      | CiNii Research の論文・記事検索                                           | 学術論文、紀要、研究論文の探索                                         | 本文公開の有無はレコードごとに異なります                                                                         |
 | `cinii_dissertations` | CiNii Research の博士論文・学位論文検索                                   | 博士論文、学位論文、研究テーマ周辺の未刊行に近い成果確認               | 既定横断検索には含まれません。本文公開の有無はレコードごとに異なります                                           |
 | `cinii_books`         | CiNii Books。大学図書館等の図書・雑誌所蔵検索                             | 大学図書館の所蔵館確認                                                 | holdings が取得できない場合もあります                                                                            |

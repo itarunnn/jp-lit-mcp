@@ -49,6 +49,7 @@ LLM                      = 結果の統合と説明
 - Web 検索でリサーチ・ナビの該当ページを探し、見つかったページまたはドメインに対応する URL を開いて確認
 - 固有名詞 query と抽象 query が薄い場合は、リサーチ・ナビ曖昧検索リンク（`https://ndlsearch.ndl.go.jp/rnavi/search?keyword=<URL encoded query>&isFuzzy=true`）を確認または次アクションとして残す
 - 得られたキーワード・DB候補・調査手順をステップ 3 の分野別シナリオと照合して、`keyword_candidates` / `source_candidates` / `reference_tools` / `suggested_sequence` を作る
+- 参考図書・レファ本・事典・辞典・書誌・索引・年鑑が示唆された場合は、`ndl_reference_books` を `source_candidates` に加え、`紹介文・参考NDCで選別 → detail → cinii_books / カーリル / 各館 OPACで所蔵確認` を `suggested_sequence` に入れる
 
 ### 3. 分野別調査シナリオ
 
@@ -139,6 +140,8 @@ LLM                      = 結果の統合と説明
 - 初手の検索語（2〜5 個まで）
 - 調査順序
 - 先に確認すべき参考資料や索引
+
+参考図書候補を使う場合は、`ndl_reference_books` の候補一覧を所蔵・閲覧可否の確定に使わない。紹介文・参考NDCを手がかりに選別し、`jp_lit_get_record` / `jp_lit_get_records` で詳細を確認してから、`cinii_books`、カーリル、各館 OPAC に接続する。
 
 実検索 source は、ndl_search / japan_search を基礎候補にし、調べ方案内で示唆された専門 DB / source を加えて 2〜4 個に絞る。
 

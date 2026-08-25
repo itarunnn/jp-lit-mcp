@@ -165,6 +165,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 - `cinii_articles` / `cinii_dissertations` / `cinii_books`: `issued_date` のみ対応
 - `japan_search`: `issued_from` / `issued_to` を `r-tempo` に変換
 - `jstage_articles` / `irdb` / `jdcat` / `nihu_bridge` / `national_archives` / `jacar` / `nijl_articles` / `kokusho` / `ninjal_bibliography`: 未対応
+- `ndl_reference_books`: 未対応
 
 レスポンスの `cache`:
 
@@ -218,6 +219,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 - NIHU Bridge: `filters.nihu_bridge.period_from` / `period_to` がない場合のみ自動マッピング
 - Japan Search: 先頭 4 桁の年だけ使い、`r-tempo` に変換
 - IRDB / JDCat / 国立公文書館DA / JACAR: 未対応
+- `ndl_reference_books`: 未対応
 
 `filters.irdb`:
 
@@ -239,6 +241,20 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 | `ndlc` | string | NDLC。`KH286` 形式は `http://id.ndl.go.jp/class/ndlc/KH286` に正規化 |
 
 対応 source は `ndl_search` / `ndl_catalog` / `ndl_digital` / `ndl_articles` / `ndl_articles_online` です。
+
+#### `ndl_reference_books`
+
+NDL「参考図書紹介」の候補を検索する明示指定 source です。参考図書・レファ本・事典・辞典・書誌・索引・年鑑が、レファ協または NDL リサーチ・ナビで示唆された場合に使います。source 未指定の既定8-source横断には含まれません。
+
+```text
+jp_lit_search(source=ndl_reference_books, query="人物事典")
+```
+
+検索 item と detail の `source_metadata` には、`reference_book: true`、`reference_ndc: string[]`、`introduction: string | null`、`has_introduction: boolean` を保持します。`introduction` が `null`、`has_introduction` が `false` のレコードもあります。`reference_ndc` は通常の書誌分類 `classification.ndc` と統合しません。
+
+この source では `sort_by`、`sort_order`、`issued_from`、`issued_to`、`filters.ndl` は未対応です。候補一覧から本文、デジタル画像、所蔵、閲覧可否を推定しません。紹介文と参考NDCで候補を選び、`jp_lit_get_record` / `jp_lit_get_records` で詳細を確認してから、`cinii_books`、カーリル、各館 OPAC で所蔵・閲覧条件を別確認してください。
+
+これは NDL オープンデータセットを runtime に一括取り込みする機能ではなく、NDL の公開検索エンドポイントを都度検索する source です。
 
 `filters.cinii`:
 

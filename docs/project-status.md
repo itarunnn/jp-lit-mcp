@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-08-20 時点の状態:
+2026-08-25 時点の状態:
 
-- 公開ツール 29 種・対応 source 20 種は不変。fresh `npm test` は 80 files / 758 tests 通過
+- 公開ツール 29 種は不変。対応 source 21 種（`ndl_reference_books` を含む）。fresh `npm test` は 81 files / 767 tests 通過
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
 - `ndl_digital` の詳細取得は、既知のデジコレ PID を1件なら `pid`、2〜10件なら `pids` として直接受け付け、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
 - PID 詳細取得では、`content_access.manual_viewing`（公式画面での手動閲覧導線）と `source_metadata.next_digital_library.available`（MCP の OCR 系 tool 利用可否）を独立して返す。本文・画像の自動取得可否や手動閲覧の現在性を、どちらか一方から推定しない
@@ -18,6 +18,7 @@
 ## 実装済み
 
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
+- NDL「参考図書紹介」を `ndl_reference_books` として明示検索できる。レファ協／NDL リサーチ・ナビ → 参考図書候補検索 → detail → `cinii_books` / カーリル / 各館 OPAC の所蔵確認を Skill と公開文書に固定し、候補一覧から所蔵・閲覧可否を推定しない。既定横断外で、sort / 期間 / `filters.ndl` は未対応
 - 同じ source の選別済み候補1〜10件を、順序を保った部分成功と単件 cache/session 共有で詳細取得する `jp_lit_get_records` を実装済み
 - レファレンス協同データベース（CRD）は `jp_lit_search_guides_manuals` / `jp_lit_search_guides_cases` として実装済み
 - ローカルキャッシュ、明示的な調査セッション開始（`jp_lit_start_session`）、調査セッション保存（`jp_lit_annotate_session`）、Markdown / JSON / CSL JSON エクスポート（`jp_lit_export_session`）に対応済み
@@ -35,6 +36,7 @@
 
 ## 最近の更新
 
+- 未リリース: `ndl_reference_books` を追加し、参考図書・レファ本・事典・辞典・書誌・索引・年鑑の自然言語 routing を `jp_lit_search` と `jp-lit-research` に追加。検索結果・detail の `source_metadata.reference_book` / `reference_ndc` / `introduction` / `has_introduction` を公開し、紹介文なしのレコードを区別する。NDL オープンデータセットの runtime 一括取り込みは行わず、公開検索エンドポイントを都度使う候補探索に限定する
 - `0.12.0`: 既存 `EvidenceRef` を後方互換のまま拡張し、速報Web投稿の検索サービス、検索語、投稿URL、投稿者、投稿日時、確認日時、リンク先を構造化保存・Markdown exportできるようにした。Skillでは既存Web補助確認の条件付き分岐としてrunbookへ案内し、投稿だけで書誌的事実・真偽・学術的評価を確定しない境界を追加した。公開ツール数とsource数は変更なし
 - `0.11.0`: jp-lit の `session_id` を MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` と分離し、調査案件を指す明示的なアプリケーション側 handle として確定した。検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は `session_id` 必須となり、同じ cache を複数セッションで共有しながら利用記録を指定先へ分離する。非 current session の更新で `current.json` を切り替えず、`jp_lit_refine_results` は `cache_key` / `cache_keys` / `session_id` のいずれか1つを必須 selector として暗黙の current fallback を削除した。Skill、README、reference、offline smoke も明示 handle workflow へ移行した
 - `0.10.0`: 検索後に選別した同じ source の1〜10件をまとめて詳細取得する `jp_lit_get_records` を追加。入力順を保つ部分成功、重複 ID の外部照会抑制、`jp_lit_get_record` と共通の単件 cache / session を実装した。これは上流の全件収集 API ではなく、生の検索結果全件を自動詳細化しない。`ndl_digital` 候補では、OCR やブラウザ確認の前に `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を候補ごとに確認する既定手順を Skill とガイドへ追加した。デジコレ本体の公式検索画面を Browser / Chrome で操作する場合は、利用可能なブラウザとアクセス範囲を説明してユーザーの明示確認を得てから実行し、ログイン済み Chrome はその閲覧権限内だけで利用する。公開 API のないデジコレ本体全文検索をブラウザで補う利点と、再現性・自動化・網羅性の制約を明記した

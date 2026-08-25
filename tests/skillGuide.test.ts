@@ -2,6 +2,25 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("jp-lit-research skill guide", () => {
+  it("routes reference-book research from guides to detail and holdings confirmation", () => {
+    const sourceAndQuery = readFileSync(
+      "skills/jp-lit-research/reference/02-source-and-query.md",
+      "utf8"
+    );
+
+    const guideIndex = sourceAndQuery.search(/レファ協|リサーチ・ナビ/);
+    const sourceIndex = sourceAndQuery.indexOf("ndl_reference_books");
+    const routing = sourceAndQuery.slice(sourceIndex, sourceIndex + 1200);
+    const detailIndex = routing.search(/jp_lit_get_record(?:s)?/);
+    const holdingsIndex = routing.search(/cinii_books|カーリル|OPAC/);
+
+    expect(sourceAndQuery).toMatch(/参考図書|レファ本|事典|辞典|書誌|索引|年鑑/);
+    expect(guideIndex).toBeGreaterThanOrEqual(0);
+    expect(sourceIndex).toBeGreaterThan(guideIndex);
+    expect(detailIndex).toBeGreaterThan(0);
+    expect(holdingsIndex).toBeGreaterThan(detailIndex);
+  });
+
   it("keeps SKILL.md as a lightweight router with mandatory output contracts", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
 
@@ -747,6 +766,6 @@ describe("jp-lit-research skill guide", () => {
     );
     expect(reference).toContain("独立して確認してください");
     expect(projectStatus).toContain("公開ツール 29 種");
-    expect(projectStatus).toContain("80 files / 758 tests");
+    expect(projectStatus).toContain("81 files / 767 tests");
   });
 });

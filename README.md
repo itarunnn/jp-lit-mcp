@@ -223,6 +223,18 @@ NDL Search、NDL Catalog、CiNii Books などを使い、資料の書誌、所�
 
 検索後に複数候補の詳細を確認する場合は `jp_lit_get_records` を使えます。同じ source の1〜10件を入力し、候補ごとの成功・失敗と単件 cache 情報を受け取ります。これは MCP 呼び出しをまとめる機能であり、上流の一括 API ではありません。未キャッシュ分はIDごとの外部照会になります。
 
+### 参考図書・事典・索引から調べる
+
+レファ協や NDL リサーチ・ナビで、参考図書・レファ本・事典・辞典・書誌・索引・年鑑が有効と分かった場合は、NDL「参考図書紹介」を明示指定して候補を探します。
+
+```text
+jp_lit_search(session_id=SID, source=ndl_reference_books, query="人物事典")
+```
+
+候補は `source_metadata.reference_book`、`source_metadata.reference_ndc`、`source_metadata.introduction`、`source_metadata.has_introduction` で選別します。紹介文がないレコードもあります。候補一覧は所蔵・閲覧可否を示さないため、`jp_lit_get_record` / `jp_lit_get_records` で詳細を確認してから、`cinii_books`、カーリル、各館 OPAC で別に確認してください。
+
+`ndl_reference_books` は source 未指定の既定横断には含まれません。sort、期間（`issued_from` / `issued_to`）、`filters.ndl` は未対応です。これは NDL オープンデータセットを runtime へ一括取り込みする機能ではなく、公開検索エンドポイントで参考図書紹介の候補を検索する導線です。
+
 ### 論文・PDF・機関リポジトリを探す
 
 CiNii Research、CiNii Dissertations、J-STAGE、IRDB、JDCat などから、論文、紀要、博士論文・学位論文、研究データ、本文 PDF への入口を探します。

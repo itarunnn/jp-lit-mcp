@@ -56,6 +56,17 @@ describe("tool definition quality", () => {
     );
   });
 
+  it("jp_lit_search は参考図書の言い回しを専用 source と所蔵確認へ案内する", async () => {
+    const tools = await listPublishedTools();
+    const description =
+      tools.find((tool) => tool.name === "jp_lit_search")?.description ?? "";
+
+    expect(description).toMatch(/参考図書|レファ本|事典|辞典|書誌|索引|年鑑/);
+    expect(description).toContain("ndl_reference_books");
+    expect(description).toMatch(/jp_lit_get_record(?:s)?/);
+    expect(description).toMatch(/cinii_books|カーリル|OPAC/);
+  });
+
   it("全29 toolが副作用と外部到達性をannotationsで公開する", async () => {
     const tools = await listPublishedTools();
     const cachedExternalWrites = new Set(cachedExternalToolNames);

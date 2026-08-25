@@ -86,6 +86,7 @@ ndl_catalog / ndl_digital / ndl_articles / ndl_articles_online
 | 紀要・学位論文・報告書 | 「修士論文」「紀要」「研究報告」 | `irdb` を優先 |
 | 美術・文化財・地域資料・博物館資料 | 「作品」「文化財」「地域」「コレクション」「博物館」「民具」「浮世絵」 | `japan_search`（主力）+ `jp_lit_search_illustrations` + `nihu_bridge`（民俗補完）|
 | 発掘調査報告書・遺跡・埋蔵文化財・出土遺物 | 遺跡名、調査次数、自治体教育委員会、報告書集番号、土器・石器・遺構名 | `irdb` + `ndl_search`。本文・公式公開導線は `irdb` detail、NDL所蔵だけを確かめる場合は `ndl_catalog` |
+| 参考図書・レファ本・事典・辞典・書誌・索引・年鑑 | 主題語、人物名、時代・地域、資料種別 | レファ協 / リサーチ・ナビ → `ndl_reference_books` → `jp_lit_get_record(s)` → `cinii_books` / カーリル / 各館 OPAC。紹介文・参考NDCで選び、候補一覧だけで所蔵・閲覧可否を判定しない |
 | 議会・法令・官庁資料 | 「法律」「答弁」「審議」「議会」 | `kokkai_minutes` / `teikoku_minutes`。官庁原資料・特定歴史公文書なら `national_archives` |
 | 公文書・アジア歴史資料 | 「内閣」「太政官」「省庁」「公文書」「外交」「軍事」「旧外地」「植民地」「朝鮮」「台湾」「関東州」「外務省外交史料館」「防衛研究所」 | 国内官庁・特定歴史公文書は `national_archives`、近現代アジア・外交・軍事・旧外地は `jacar` |
 | 人物回想・雑誌目次・一般誌記事 | 人名単独、回想、追想、雑誌名、昭和戦後一般誌、掲載号探索 | `ndl_search` + `japan_search` → `ndl_articles` / `ndl_catalog` / `cinii_books` |
@@ -224,6 +225,7 @@ jacar             — JACAR。外交・軍事・旧外地・植民地・朝鮮�
 | `nijl_articles` | 既定横断外。HTML best-effort。本文・PDF・OPAC 詳細追跡は対象外 |
 | `kokusho` | 既定横断外。manifest URL は保持するが、manifest 本体・画像・本文一括取得は対象外 |
 | `ninjal_bibliography` | 既定横断外。本文リンク URL は保持するが、本文 PDF・外部本文は対象外 |
+| `ndl_reference_books` | 既定横断外。sort / 期間 / `filters.ndl` は未対応。`reference_ndc` と紹介文で候補を選ぶが、紹介文なしのレコードもある。所蔵・閲覧可否は detail 後に別確認 |
 | `national_archives` | 既定横断外。画像本体・IIIF・OCR・contentDownload は対象外。403 は VPN・ネットワーク制限の可能性 |
 | `jacar` | 既定横断外。画像本体・IIIF・OCR・aj/contentDownload は対象外。403 は VPN・ネットワーク制限の可能性 |
 
