@@ -4,6 +4,7 @@
 
 - 公開ツール 29 種は不変。対応 source 21 種（`ndl_reference_books` を含む）。fresh `npm test` は 81 files / 767 tests 通過
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
+- 2026-08-25 10:04 JST に `ndl_reference_books` を adapter 直結（cache bypass、`force_refresh=true` 相当）で live 確認した。`query="哲学"`、`limit=2`、`page=1` の検索は1回だけ成功し、total 197、取得2件、抽出2件で、全件が `source_metadata.reference_book=true`、`reference_ndc=["103.3"]` だった。紹介文あり候補は1件だけ選び、detailも1回だけ成功した（`R100000002-I000002972211`、`summary` / `introduction` = 「第4版(1985年刊)と同内容。」、公式 URL: `https://ndlsearch.ndl.go.jp/books/R100000002-I000002972211`）。この確認は候補メタデータと詳細経路に限り、本文・現物・所蔵・閲覧可否は未確認である。
 - `ndl_digital` の詳細取得は、既知のデジコレ PID を1件なら `pid`、2〜10件なら `pids` として直接受け付け、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
 - PID 詳細取得では、`content_access.manual_viewing`（公式画面での手動閲覧導線）と `source_metadata.next_digital_library.available`（MCP の OCR 系 tool 利用可否）を独立して返す。本文・画像の自動取得可否や手動閲覧の現在性を、どちらか一方から推定しない
 - カーリル図書館MCP用の `npm run smoke:calil-mcp` を追加済み。これは Codex の MCP 設定とは別の Node smoke script。Codex CLI では `codex mcp add calil --url https://mcp-beta.calil.jp/mcp` と `codex mcp login calil` による直結を確認済み。初回 OAuth 認可後、新しい Codex セッションから `mcp__calil__.search_libraries` を呼べる
