@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { exportViewInputSchema } from "../src/lib/schemas.js";
 import {
   extractJsonToolCall,
-  findForbiddenBrowserClaims
+  lintForbiddenBrowserContractClaims
 } from "./helpers/browserDocumentContracts.js";
 
 describe("jp-lit-research skill guide", () => {
@@ -405,7 +405,7 @@ describe("jp-lit-research skill guide", () => {
       previous = index;
     }
 
-    expect(findForbiddenBrowserClaims(workflow)).toEqual([]);
+    expect(lintForbiddenBrowserContractClaims(workflow)).toEqual([]);
   });
 
   it("documents rolling checkpoints and environment-neutral delegation contracts", () => {

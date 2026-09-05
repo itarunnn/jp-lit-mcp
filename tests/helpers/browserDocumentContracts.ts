@@ -15,43 +15,108 @@ export type BrowserContractViolation = {
 type RelationContract = {
   relation: BrowserContractViolation["relation"];
   subjectGroups: RegExp[][];
-  positiveClaims: RegExp[];
-  negativeClaims: RegExp[];
+  predicateContracts: Array<{
+    positive: RegExp;
+    negatives: RegExp[];
+  }>;
 };
 
 const relationContracts: RelationContract[] = [
   {
     relation: "mcp_performs_browser_operations",
-    subjectGroups: [[/mcp本体/i], [/(?:ブラウザ|browser)/i]],
-    positiveClaims: [/(?:行う|実行する|担当する|操作する|起動する)/],
-    negativeClaims: [
-      /(?:行わない|行わず|実行しない|実行せず|担当しない|担当せず|操作しない|操作せず|起動しない|起動せず)/,
-      /(?:行う|実行する|担当する|操作する|起動する)こと(?:は|も)ない/
+    subjectGroups: [[/mcp(?:本体)?/i], [/(?:ブラウザ|browser)(?:操作)?/i]],
+    predicateContracts: [
+      {
+        positive: /行う/,
+        negatives: [/行う(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /実行する/,
+        negatives: [/実行する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /担当する/,
+        negatives: [/担当する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /操作する/,
+        negatives: [/操作する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /起動する/,
+        negatives: [/起動する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      }
     ]
   },
   {
     relation: "search_hit_means_body_confirmed",
-    subjectGroups: [[/検索ヒット/], [/本文(?:を)?確認済み|本文確認を完了/]],
-    positiveClaims: [/(?:扱う|みなす|意味する|同じ状態|同一視|なら|であれば|=)/],
-    negativeClaims: [
-      /(?:扱わない|みなさない|意味しない|同じではない|同一視しない|とはしない|にはしない)/,
-      /(?:扱う|みなす|意味する)こと(?:は|も)ない/
+    subjectGroups: [
+      [/検索ヒット/],
+      [/本文(?:を)?確認(?:済み|した)|本文確認を完了/]
+    ],
+    predicateContracts: [
+      {
+        positive: /扱う/,
+        negatives: [/扱う(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /みなす/,
+        negatives: [/みなす(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /意味する/,
+        negatives: [/意味する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      { positive: /同じ状態/, negatives: [/同じ(?:状態)?ではない/] },
+      { positive: /同一視/, negatives: [/同一視しない/] },
+      {
+        positive: /(?:なら|であれば|=)/,
+        negatives: [/本文(?:を)?確認(?:済み|した)?ではない|とはしない|にはしない/]
+      }
     ]
   },
   {
     relation: "dialog_means_pdf_saved",
-    subjectGroups: [[/dialog_available/i], [/(?:pdf)?保存済み/i]],
-    positiveClaims: [/(?:扱う|みなす|意味する|なら|であれば|=)/],
-    negativeClaims: [
-      /(?:扱わない|みなさない|意味しない|ではない|とはしない|にはしない)/,
-      /(?:扱う|みなす|意味する)こと(?:は|も)ない/
+    subjectGroups: [
+      [/dialog_available/i],
+      [/(?:pdf)?保存済み|pdf(?:を)?保存した(?:こと)?/i]
+    ],
+    predicateContracts: [
+      {
+        positive: /扱う/,
+        negatives: [/扱う(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /みなす/,
+        negatives: [/みなす(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /意味する/,
+        negatives: [/意味する(?:こと(?:は|も)ない|わけではない|ものではない)/]
+      },
+      {
+        positive: /(?:なら|であれば|=)/,
+        negatives: [/(?:pdf)?保存済みではない|pdf(?:を)?保存したことにはしない/i]
+      }
     ]
   },
   {
     relation: "onsite_login_allows_remote_access",
-    subjectGroups: [[/ndl_onsite_only/i], [/ログイン/], [/遠隔/]],
-    positiveClaims: [/(?:可能|できる)/, /遠隔(?:閲覧)?可(?:$|[、。]|です|である|となる|とする)/],
-    negativeClaims: [/(?:できない|不可|不可能|可能ではない|可能でない|認めない)/]
+    subjectGroups: [[/ndl_onsite_only/i], [/ログイン/], [/(?:遠隔|リモート)/]],
+    predicateContracts: [
+      {
+        positive: /可能/,
+        negatives: [/(?:不可能|可能ではない|可能でない)/]
+      },
+      {
+        positive: /できる/,
+        negatives: [/できる(?:わけではない|ものではない)/]
+      },
+      {
+        positive: /(?:遠隔|リモート(?:で)?)(?:閲覧)?可(?:$|[、。]|です|である|となる|とする)/,
+        negatives: [/(?:遠隔|リモート(?:で)?)(?:閲覧)?(?:不可|可ではない)/]
+      }
+    ]
   }
 ];
 
@@ -63,25 +128,36 @@ function normalizeStatement(statement: string) {
     .toLowerCase();
 }
 
-function splitStatements(markdown: string) {
+function splitContractClauses(markdown: string) {
   return markdown
-    .split(/(?<=[。！？.!?])|\r?\n+/)
-    .map((statement) => statement.trim())
+    .split(
+      /(?<=[。！？.!?])|\r?\n+|が[、,]|けれど(?:も)?[、,]?|[、,]?(?:ただし|しかし|一方(?:で)?)[、,]?|[、,](?=\s*(?:mcp(?:\s*本体)?|browser\s+agent|ブラウザ(?:\s*agent)?|エージェント)\s*(?:は|が))/i
+    )
+    .map((clause) => clause.trim())
     .filter(Boolean);
 }
 
-export function findForbiddenBrowserClaims(markdown: string): BrowserContractViolation[] {
-  return splitStatements(markdown).flatMap((excerpt) => {
+/**
+ * 日本語全般を意味判定するものではなく、公開文書で禁止する4関係だけを
+ * 主体・対象・述語の有限パターンで検査するlint。
+ */
+export function lintForbiddenBrowserContractClaims(
+  markdown: string
+): BrowserContractViolation[] {
+  return splitContractClauses(markdown).flatMap((excerpt) => {
     const normalized = normalizeStatement(excerpt);
     return relationContracts.flatMap(
-      ({ relation, subjectGroups, positiveClaims, negativeClaims }) => {
+      ({ relation, subjectGroups, predicateContracts }) => {
         const hasSubjects = subjectGroups.every((alternatives) =>
           alternatives.some((pattern) => pattern.test(normalized))
         );
-        const isPositiveClaim = positiveClaims.some((pattern) => pattern.test(normalized));
-        const isExplicitlyNegative = negativeClaims.some((pattern) => pattern.test(normalized));
+        const hasPositivePredicate = predicateContracts.some(
+          ({ positive, negatives }) =>
+            positive.test(normalized) &&
+            negatives.every((negative) => !negative.test(normalized))
+        );
 
-        return hasSubjects && isPositiveClaim && !isExplicitlyNegative
+        return hasSubjects && hasPositivePredicate
           ? [{ relation, excerpt }]
           : [];
       }
