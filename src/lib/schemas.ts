@@ -579,6 +579,13 @@ export const recordNdlBrowserSearchInputSchema = z.object({
       message: "reported_total must be at least items.length"
     });
   }
+  if (data.total_relation === "observed_lower_bound") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["total_relation"],
+      message: "non-null reported_total requires a reported relation"
+    });
+  }
 });
 
 const browserObservationMetadataSchema = z.object({
@@ -605,9 +612,54 @@ const browserSearchOutputItemSchema = searchItemSchema.extend({
   source_id: z.string().regex(/^R100000039-I\d+$/),
   authors: z.array(personRoleSchema.strict()),
   availability: availabilitySchema.strict(),
+  url: z.string(),
   source_metadata: browserSourceMetadataSchema,
   related_records: z.array(relatedSearchRecordSchema.strict())
-}).strict();
+}).strict().superRefine((item, ctx) => {
+  const pid = item.source_metadata.pid;
+  if (item.source_id !== `R100000039-I${pid}`) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["source_id"],
+      message: "source_id must match source_metadata.pid"
+    });
+  }
+
+  let viewer: URL;
+  try {
+    viewer = new URL(item.url);
+  } catch {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["url"],
+      message: "url must be a valid URL"
+    });
+    return;
+  }
+
+  const pathPid = viewer.pathname.match(/^\/pid\/(\d+)(?:\/|$)/)?.[1];
+  if (viewer.protocol !== "https:" || viewer.hostname !== "dl.ndl.go.jp") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["url"],
+      message: "url must use https://dl.ndl.go.jp"
+    });
+  }
+  if (viewer.username !== "" || viewer.password !== "") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["url"],
+      message: "url must not contain credentials"
+    });
+  }
+  if (pathPid !== pid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["url"],
+      message: "url PID must match source_metadata.pid"
+    });
+  }
+});
 
 const browserSearchOutputObservationSchema = z.object({
   method: z.literal("browser"),
@@ -629,7 +681,58 @@ export const recordNdlBrowserSearchOutputSchema = z.object({
   items: z.array(browserSearchOutputItemSchema).max(100),
   observation: browserSearchOutputObservationSchema,
   cache: toolCacheSchema.strict().optional()
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  const observedCount = data.items.length;
+  const observation = data.observation;
+
+  if (observation.observed_count !== observedCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["observation", "observed_count"],
+      message: "observed_count must equal items.length"
+    });
+  }
+
+  if (observation.reported_total === null) {
+    if (observation.total_relation !== "observed_lower_bound") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["observation", "total_relation"],
+        message: "reported_total=null requires observed_lower_bound"
+      });
+    }
+    if (data.total !== observation.observed_count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["total"],
+        message: "total must equal observed_count when reported_total is null"
+      });
+    }
+    return;
+  }
+
+  if (observation.reported_total < observedCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["observation", "reported_total"],
+      message: "reported_total must be at least items.length"
+    });
+  }
+  if (observation.total_relation === "observed_lower_bound") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["observation", "total_relation"],
+      message: "non-null reported_total requires a reported relation"
+    });
+  }
+  if (data.total !== observation.reported_total) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["total"],
+      message: "total must equal reported_total when reported_total is present"
+    });
+  }
+});
 
 export const searchOutputSchema = z.object({
   query: z.string(),

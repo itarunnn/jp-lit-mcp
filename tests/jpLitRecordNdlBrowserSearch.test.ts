@@ -144,6 +144,7 @@ describe("recordNdlBrowserSearchInputSchema", () => {
     ["snippet 内の未知 field cookie", (input: any) => { input.items[0].snippets[0].cookie = "secret"; }],
     ["reported_total が items.length 未満", (input: any) => { input.reported_total = 0; }],
     ["reported_total=null と exact", (input: any) => { input.reported_total = null; }],
+    ["reported_total 非 null と observed_lower_bound", (input: any) => { input.total_relation = "observed_lower_bound"; }],
     ["offset のない checked_at", (input: any) => { input.checked_at = "2026-09-05T12:00:00"; }],
     ["実在しない checked_at", (input: any) => { input.checked_at = "2026-09-31T12:00:00+09:00"; }]
   ])("%s を拒否する", (_label, mutate) => {

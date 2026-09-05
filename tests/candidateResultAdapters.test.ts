@@ -105,6 +105,7 @@ const browserItem = {
   ...searchItem,
   title: "帝国憲法大要（ブラウザ）",
   publisher: null,
+  url: "https://dl.ndl.go.jp/pid/1907653",
   source_metadata: {
     pid: "1907653",
     candidate_origins: ["ndl_digital_browser"],
@@ -347,6 +348,66 @@ describe("candidate result adapters", () => {
     )).toThrow(
       `invalid candidate cache payload: jp_lit_record_ndl_browser_search/${searchKey}`
     );
+  });
+
+  it.each([
+    ["source_id と source_metadata.pid の不一致", (payload: any) => {
+      payload.items[0].source_id = "R100000039-I9999999";
+    }],
+    ["HTTP viewer URL", (payload: any) => {
+      payload.items[0].url = "http://dl.ndl.go.jp/pid/1907653";
+    }],
+    ["別 host の viewer URL", (payload: any) => {
+      payload.items[0].url = "https://example.com/pid/1907653";
+    }],
+    ["credential 付き viewer URL", (payload: any) => {
+      payload.items[0].url = "https://user:password@dl.ndl.go.jp/pid/1907653";
+    }],
+    ["viewer URL と PID の不一致", (payload: any) => {
+      payload.items[0].url = "https://dl.ndl.go.jp/pid/9999999";
+    }],
+    ["observed_count と items.length の不一致", (payload: any) => {
+      payload.observation.observed_count = 0;
+    }],
+    ["reported_total が items.length 未満", (payload: any) => {
+      payload.observation.reported_total = 0;
+      payload.total = 0;
+    }],
+    ["reported_total=null と reported_exact", (payload: any) => {
+      payload.observation.reported_total = null;
+      payload.observation.total_relation = "reported_exact";
+    }],
+    ["reported_total 非 null と observed_lower_bound", (payload: any) => {
+      payload.observation.total_relation = "observed_lower_bound";
+    }],
+    ["reported_total と top-level total の不一致", (payload: any) => {
+      payload.total = 2;
+    }],
+    ["observed_count と lower-bound total の不一致", (payload: any) => {
+      payload.observation.reported_total = null;
+      payload.observation.total_relation = "observed_lower_bound";
+      payload.total = 2;
+    }]
+  ])("保存済み browser output の%sを adapter で拒否する", async (_label, mutate) => {
+    const cache = createFileCache(await createTempDir());
+    const payload = structuredClone(browserOutputPayload) as any;
+    mutate(payload);
+    await cache.write("jp_lit_record_ndl_browser_search", {
+      version: 1,
+      tool: "jp_lit_record_ndl_browser_search",
+      cache_key: searchKey,
+      saved_at: "2026-09-05T03:00:00.000Z",
+      input: { query: "普通選挙法" },
+      structured_content: payload
+    });
+
+    await expect(readCandidateResult(cache, {
+      tool: "jp_lit_record_ndl_browser_search",
+      cache_key: searchKey
+    })).rejects.toMatchObject({
+      name: "InvalidRequestError",
+      message: `invalid candidate cache payload: jp_lit_record_ndl_browser_search/${searchKey}`
+    });
   });
 
   it("同一 source record を tool 優先度と安定した union 規則で統合する", () => {
