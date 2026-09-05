@@ -112,6 +112,29 @@ const browserItem = {
   }
 };
 
+const browserOutputPayload = {
+  query: "普通選挙法",
+  source: "ndl_digital" as const,
+  page: 1,
+  limit: 100 as const,
+  total: 1,
+  items: [browserItem],
+  observation: {
+    method: "browser" as const,
+    service: "ndl_digital_collections" as const,
+    checked_at: "2026-09-05T12:00:00+09:00",
+    login_state: "logged_in_existing_session" as const,
+    reported_total: 1,
+    total_relation: "reported_exact" as const,
+    observed_count: 1,
+    filters: {
+      access_scopes: ["transmission" as const],
+      material_types: ["図書"],
+      raw_labels: ["送信サービスで閲覧可能"]
+    }
+  }
+};
+
 const olderBrowserObservation = {
   ...browserObservation,
   checked_at: "2026-09-04T12:00:00+09:00",
@@ -274,7 +297,7 @@ describe("candidate result adapters", () => {
     })).toBeNull();
   });
 
-  it("browser result 用 cache namespace を SearchOutput 互換で保存・再読する", async () => {
+  it("browser result 用 cache namespace を専用 output schema で保存・再読する", async () => {
     const cache = createFileCache(await createTempDir());
     await cache.write("jp_lit_record_ndl_browser_search", {
       version: 1,
@@ -282,14 +305,7 @@ describe("candidate result adapters", () => {
       cache_key: searchKey,
       saved_at: "2026-09-05T03:00:00.000Z",
       input: { query: "普通選挙法" },
-      structured_content: {
-        query: "普通選挙法",
-        source: "ndl_digital",
-        page: 1,
-        limit: 100,
-        total: 1,
-        items: [browserItem]
-      }
+      structured_content: browserOutputPayload
     });
 
     await expect(readCandidateResult(cache, {
@@ -306,6 +322,31 @@ describe("candidate result adapters", () => {
         }
       }]
     });
+  });
+
+  it("browser cache payload の未知 field を専用 output schema で拒否する", () => {
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_record_ndl_browser_search", cache_key: searchKey },
+      { ...browserOutputPayload, cookie: "secret" }
+    )).toThrow(
+      `invalid candidate cache payload: jp_lit_record_ndl_browser_search/${searchKey}`
+    );
+
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_record_ndl_browser_search", cache_key: searchKey },
+      {
+        ...browserOutputPayload,
+        items: [{
+          ...browserItem,
+          source_metadata: {
+            ...browserItem.source_metadata,
+            pdf_path: "C:\\secret.pdf"
+          }
+        }]
+      }
+    )).toThrow(
+      `invalid candidate cache payload: jp_lit_record_ndl_browser_search/${searchKey}`
+    );
   });
 
   it("同一 source record を tool 優先度と安定した union 規則で統合する", () => {

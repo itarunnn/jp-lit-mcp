@@ -357,11 +357,13 @@ export function createSessionStore(baseDir = process.cwd()): SessionStore {
     appendEntry(entry, sessionId) {
       return serializeMutation(async () => {
         const { session, mirrorCurrent } = await loadMutationTarget(sessionId);
-        const existingIndex = session.entries.findIndex(
-          (candidate) =>
-            candidate.tool === entry.tool &&
-            candidate.cache_key === entry.cache_key
-        );
+        const existingIndex = entry.tool === "jp_lit_record_ndl_browser_search"
+          ? -1
+          : session.entries.findIndex(
+              (candidate) =>
+                candidate.tool === entry.tool &&
+                candidate.cache_key === entry.cache_key
+            );
         const entries =
           existingIndex === -1
             ? [...session.entries, entry]

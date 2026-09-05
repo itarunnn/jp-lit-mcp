@@ -3,6 +3,7 @@ import { InvalidRequestError, NotFoundError } from "./errors.js";
 import type { FileCache } from "./persistence/fileCache.js";
 import type { CacheEnvelope } from "./persistence/types.js";
 import {
+  recordNdlBrowserSearchOutputSchema,
   searchFulltextOutputSchema,
   searchOutputSchema
 } from "./schemas.js";
@@ -152,14 +153,32 @@ function normalizeFulltextResult(
   };
 }
 
+function normalizeBrowserResult(
+  ref: CandidateResultRef,
+  structuredContent: unknown
+): CandidateResult {
+  const parsed = recordNdlBrowserSearchOutputSchema.parse(structuredContent);
+  return {
+    ref,
+    query: parsed.query,
+    total: parsed.total,
+    source: parsed.source,
+    items: parsed.items.map(toSearchItem)
+  };
+}
+
 export function normalizeCandidateResult(
   ref: CandidateResultRef,
   structuredContent: unknown
 ): CandidateResult {
   try {
-    return ref.tool === "jp_lit_search_fulltext"
-      ? normalizeFulltextResult(ref, structuredContent)
-      : normalizeSearchResult(ref, structuredContent);
+    if (ref.tool === "jp_lit_search_fulltext") {
+      return normalizeFulltextResult(ref, structuredContent);
+    }
+    if (ref.tool === "jp_lit_record_ndl_browser_search") {
+      return normalizeBrowserResult(ref, structuredContent);
+    }
+    return normalizeSearchResult(ref, structuredContent);
   } catch {
     throw new InvalidRequestError(
       `invalid candidate cache payload: ${ref.tool}/${ref.cache_key}`

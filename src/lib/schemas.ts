@@ -413,6 +413,224 @@ export const enrichRecordInputSchema = enrichRecordInputToolSchema
     }
   });
 
+const browserCheckedAtSchema = z
+  .string()
+  .refine((value) => {
+    const match = value.match(
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+    );
+    if (!match || !Number.isFinite(Date.parse(value))) {
+      return false;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return month >= 1 && month <= 12 && day >= 1 && day <= maxDay;
+  }, "checked_at must be a valid ISO 8601 date-time with an offset");
+
+const browserLoginStateSchema = z.enum([
+  "logged_out",
+  "logged_in_existing_session"
+]);
+
+const browserTotalRelationSchema = z.enum([
+  "reported_exact",
+  "reported_approximate",
+  "observed_lower_bound"
+]);
+
+const browserFilterAccessScopeSchema = z.enum([
+  "public",
+  "transmission",
+  "ndl_onsite_only"
+]);
+
+const browserItemAccessScopeSchema = z.enum([
+  "public",
+  "transmission_unspecified",
+  "individual_transmission",
+  "library_transmission",
+  "ndl_onsite_only",
+  "unknown"
+]);
+
+const browserSnippetLocatorTypeSchema = z.enum([
+  "content_index",
+  "koma",
+  "filename",
+  "unknown"
+]);
+
+const browserItemFulltextStateSchema = z.enum([
+  "not_checked",
+  "unavailable",
+  "available",
+  "searched"
+]);
+
+const browserContentStateSchema = z.enum([
+  "not_checked",
+  "restricted",
+  "viewer_available",
+  "page_image_checked"
+]);
+
+const browserPrintFileStateSchema = z.enum([
+  "not_checked",
+  "unavailable",
+  "dialog_available",
+  "generation_requested",
+  "pdf_ready",
+  "saved"
+]);
+
+const browserSearchFiltersSchema = z.object({
+  access_scopes: z.array(browserFilterAccessScopeSchema),
+  material_types: z.array(z.string()),
+  raw_labels: z.array(z.string())
+}).strict();
+
+const browserSearchSnippetSchema = z.object({
+  text: z.string().max(500),
+  locator_type: browserSnippetLocatorTypeSchema,
+  locator: z.string().nullable()
+}).strict();
+
+const browserSearchObservationItemSchema = z.object({
+  pid: z.string().regex(/^\d+$/),
+  title: z.string(),
+  volume: z.string().nullable(),
+  authors: z.array(z.string()),
+  publisher: z.string().nullable(),
+  published: z.string().nullable(),
+  viewer_url: z.string(),
+  access_scope: browserItemAccessScopeSchema,
+  access_label: z.string(),
+  snippets: z.array(browserSearchSnippetSchema).max(5),
+  item_fulltext_state: browserItemFulltextStateSchema,
+  hit_locations: z.array(z.string().max(120)).max(20),
+  content_state: browserContentStateSchema,
+  print_file_state: browserPrintFileStateSchema
+}).strict().superRefine((item, ctx) => {
+  let viewer: URL;
+  try {
+    viewer = new URL(item.viewer_url);
+  } catch {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["viewer_url"],
+      message: "viewer_url must be a valid URL"
+    });
+    return;
+  }
+
+  const pathPid = viewer.pathname.match(/^\/pid\/(\d+)(?:\/|$)/)?.[1];
+  if (viewer.protocol !== "https:" || viewer.hostname !== "dl.ndl.go.jp") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["viewer_url"],
+      message: "viewer_url must use https://dl.ndl.go.jp"
+    });
+  }
+  if (viewer.username !== "" || viewer.password !== "") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["viewer_url"],
+      message: "viewer_url must not contain credentials"
+    });
+  }
+  if (pathPid !== item.pid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["viewer_url"],
+      message: "viewer_url PID must match pid"
+    });
+  }
+});
+
+export const recordNdlBrowserSearchInputSchema = z.object({
+  session_id: sessionIdInputFieldSchema,
+  query: z.string().trim().min(1),
+  checked_at: browserCheckedAtSchema,
+  login_state: browserLoginStateSchema,
+  page: z.number().int().positive(),
+  reported_total: z.number().int().nonnegative().nullable(),
+  total_relation: browserTotalRelationSchema,
+  filters: browserSearchFiltersSchema,
+  items: z.array(browserSearchObservationItemSchema).max(100)
+}).strict().superRefine((data, ctx) => {
+  if (data.reported_total === null) {
+    if (data.total_relation !== "observed_lower_bound") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["total_relation"],
+        message: "reported_total=null requires observed_lower_bound"
+      });
+    }
+    return;
+  }
+
+  if (data.reported_total < data.items.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reported_total"],
+      message: "reported_total must be at least items.length"
+    });
+  }
+});
+
+const browserObservationMetadataSchema = z.object({
+  checked_at: browserCheckedAtSchema,
+  login_state: browserLoginStateSchema,
+  query: z.string(),
+  access_scope: browserItemAccessScopeSchema,
+  access_label: z.string(),
+  snippets: z.array(browserSearchSnippetSchema).max(5),
+  item_fulltext_state: browserItemFulltextStateSchema,
+  hit_locations: z.array(z.string().max(120)).max(20),
+  content_state: browserContentStateSchema,
+  print_file_state: browserPrintFileStateSchema
+}).strict();
+
+const browserSourceMetadataSchema = z.object({
+  pid: z.string().regex(/^\d+$/),
+  candidate_origins: z.tuple([z.literal("ndl_digital_browser")]),
+  browser_observations: z.array(browserObservationMetadataSchema).min(1)
+}).strict();
+
+const browserSearchOutputItemSchema = searchItemSchema.extend({
+  source: z.literal("ndl_digital"),
+  source_id: z.string().regex(/^R100000039-I\d+$/),
+  authors: z.array(personRoleSchema.strict()),
+  availability: availabilitySchema.strict(),
+  source_metadata: browserSourceMetadataSchema,
+  related_records: z.array(relatedSearchRecordSchema.strict())
+}).strict();
+
+const browserSearchOutputObservationSchema = z.object({
+  method: z.literal("browser"),
+  service: z.literal("ndl_digital_collections"),
+  checked_at: browserCheckedAtSchema,
+  login_state: browserLoginStateSchema,
+  reported_total: z.number().int().nonnegative().nullable(),
+  total_relation: browserTotalRelationSchema,
+  observed_count: z.number().int().nonnegative(),
+  filters: browserSearchFiltersSchema
+}).strict();
+
+export const recordNdlBrowserSearchOutputSchema = z.object({
+  query: z.string(),
+  source: z.literal("ndl_digital"),
+  page: z.number().int().positive(),
+  limit: z.literal(100),
+  total: z.number().int().nonnegative(),
+  items: z.array(browserSearchOutputItemSchema).max(100),
+  observation: browserSearchOutputObservationSchema,
+  cache: toolCacheSchema.strict().optional()
+}).strict();
+
 export const searchOutputSchema = z.object({
   query: z.string(),
   source: sourceSchema.nullable(),
@@ -633,6 +851,12 @@ export type SearchInput = z.infer<typeof searchInputSchema>;
 export type RecordInput = z.infer<typeof recordInputSchema>;
 export type RecordsInput = z.infer<typeof recordsInputSchema>;
 export type EnrichRecordInput = z.infer<typeof enrichRecordInputSchema>;
+export type RecordNdlBrowserSearchInput = z.infer<
+  typeof recordNdlBrowserSearchInputSchema
+>;
+export type RecordNdlBrowserSearchOutput = z.infer<
+  typeof recordNdlBrowserSearchOutputSchema
+>;
 export type SearchOutput = z.infer<typeof searchOutputSchema>;
 export type RecordOutput = z.infer<typeof recordOutputSchema>;
 export type RecordsOutput = z.infer<typeof recordsOutputSchema>;
