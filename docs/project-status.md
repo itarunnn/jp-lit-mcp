@@ -2,7 +2,7 @@
 
 2026-09-06 時点の状態:
 
-- 公開ツール 30 種。対応 source 21 種（`ndl_reference_books` を含む）。この未リリース機能を含む fresh `npm test` の全体 gate は Task 8 で実行する
+- 公開ツール 30 種。対応 source 21 種（`ndl_reference_books` を含む）。この未リリース機能と最終レビュー修正を含む fresh `npm test` は 83 files / 903 tests で通過
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
 - 2026-08-25 10:04 JST に `ndl_reference_books` を adapter 直結（cache bypass、`force_refresh=true` 相当）で live 確認した。`query="哲学"`、`limit=2`、`page=1` の検索は1回だけ成功し、total 197、取得2件、抽出2件で、全件が `source_metadata.reference_book=true`、`reference_ndc=["103.3"]` だった。紹介文あり候補は1件だけ選び、detailも1回だけ成功した（`R100000002-I000002972211`、`summary` / `introduction` = 「第4版(1985年刊)と同内容。」、公式 URL: `https://ndlsearch.ndl.go.jp/books/R100000002-I000002972211`）。この確認は候補メタデータと詳細経路に限り、本文・現物・所蔵・閲覧可否は未確認である。
 - `ndl_digital` の詳細取得では `pids` は1〜10件を受け付ける。運用上は1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使い、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
@@ -47,7 +47,7 @@
 
 ## 最近の更新
 
-- 未リリース: デジコレ公式画面で観測した候補の local-write tool、三 candidate result の adapter、tool-aware cache index/refine、browser provenance を保つ Markdown / JSON / CSL JSON export を追加。Skill と公開文書では、明示許可済みの既存ログイン session、`ndl_onsite_only`、検索ヒット・資料詳細・本文画像・資料内全文検索・印刷/PDF状態の境界を実 enum に合わせた
+- 未リリース: デジコレ公式画面で観測した候補の local-write tool、三 candidate result の adapter、tool-aware cache index/refine、browser provenance を保つ Markdown / JSON / CSL JSON export を追加。Skill と公開文書では、明示許可済みの既存ログイン session、`ndl_onsite_only`、検索ヒット・資料詳細・本文画像・資料内全文検索・印刷/PDF状態の境界を実 enum に合わせた。最終 review では offset 付き観測日時を実時刻順へ修正し、三経路の NDL URL / PID / source ID と制御文字境界を厳格化した
 - `0.13.0`: `ndl_digital` の既知 PID を `jp_lit_get_record` / `jp_lit_get_records` へ直接渡せるようにし、canonical source ID と単件 cache を共有した。`ndl_reference_books` を追加し、参考図書・レファ本・事典・辞典・書誌・索引・年鑑の自然言語 routing を `jp_lit_search` と `jp-lit-research` に追加。検索結果・detail の `source_metadata.reference_book` / `reference_ndc` / `introduction` / `has_introduction` を公開し、紹介文なしのレコードを区別する。NDL オープンデータセットの runtime 一括取り込みは行わず、公開検索エンドポイントを都度使う候補探索に限定する
 - `0.12.0`: 既存 `EvidenceRef` を後方互換のまま拡張し、速報Web投稿の検索サービス、検索語、投稿URL、投稿者、投稿日時、確認日時、リンク先を構造化保存・Markdown exportできるようにした。Skillでは既存Web補助確認の条件付き分岐としてrunbookへ案内し、投稿だけで書誌的事実・真偽・学術的評価を確定しない境界を追加した。公開ツール数とsource数は変更なし
 - `0.11.0`: jp-lit の `session_id` を MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` と分離し、調査案件を指す明示的なアプリケーション側 handle として確定した。検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は `session_id` 必須となり、同じ cache を複数セッションで共有しながら利用記録を指定先へ分離する。非 current session の更新で `current.json` を切り替えず、`jp_lit_refine_results` は `cache_key` / `cache_keys` / `session_id` のいずれか1つを必須 selector として暗黙の current fallback を削除した。Skill、README、reference、offline smoke も明示 handle workflow へ移行した

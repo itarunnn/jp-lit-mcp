@@ -38,7 +38,7 @@
 - Consumes: `FileCache.read<T>(tool, cacheKey)`、`searchOutputSchema`、`searchFulltextOutputSchema`、`searchItemSchema`、`normalizeIssuedAt()`、`ndlPidToDigitalSourceId()`。
 - Produces: `CANDIDATE_RESULT_TOOLS`、`CandidateResultTool`、`candidateResultRefSchema`、`CandidateResultRef`、`CandidateResult`、`isCandidateResultTool()`、`normalizeCandidateResult()`、`readCandidateResult()`、`extractCandidateItems()`、`mergeSameSourceRecordItems()`。
 
-- [ ] **Step 1: source 固有 mapping と invalid payload の失敗テストを書く**
+- [x] **Step 1: source 固有 mapping と invalid payload の失敗テストを書く**
 
 `tests/candidateResultAdapters.test.ts` に `jp_lit_search` と `jp_lit_search_fulltext` の cache payload を作り、次を固定する。
 
@@ -92,13 +92,13 @@ expect(() => normalizeCandidateResult(
 )).toThrow(/invalid candidate cache payload/i);
 ```
 
-- [ ] **Step 2: adapter test を実行し、module 未実装の RED を確認する**
+- [x] **Step 2: adapter test を実行し、module 未実装の RED を確認する**
 
 Run: `npx vitest run tests/candidateResultAdapters.test.ts`
 
 Expected: FAIL with `Cannot find module '../src/lib/candidateResultAdapters.js'`。
 
-- [ ] **Step 3: dependency-free な tool/ref 正本を実装する**
+- [x] **Step 3: dependency-free な tool/ref 正本を実装する**
 
 `src/lib/candidateResults.ts` は schema 側から import できるよう、source 固有 schema を import しない。
 
@@ -128,7 +128,7 @@ export function isCandidateResultTool(value: string): value is CandidateResultTo
 
 `jp_lit_record_ndl_browser_search` を `CACHED_TOOL_NAMES` に追加し、cache inventory の allowlist に入れる。
 
-- [ ] **Step 4: search/fulltext adapter と provenance 付加を実装する**
+- [x] **Step 4: search/fulltext adapter と provenance 付加を実装する**
 
 `src/lib/candidateResultAdapters.ts` の公開契約を次に固定する。
 
@@ -167,7 +167,7 @@ export function mergeSameSourceRecordItems(
 
 `jp_lit_search` item には既存 `source_metadata` を保ったまま `candidate_origins: ["jp_lit_search"]` を加える。fulltext item は `pid` を canonical ID にし、`responsibility` を role=null の author、`publishyear` を優先して日付、`highlights` 等を `source_metadata.next_digital_library_fulltext` に保持する。schema parse に失敗した場合は `InvalidRequestError("invalid candidate cache payload: <tool>/<cache_key>")`、cache miss は `NotFoundError("candidate result cache not found: <tool>/<cache_key>")` とする。
 
-- [ ] **Step 5: 同一 source record の merge 契約テストと実装を追加する**
+- [x] **Step 5: 同一 source record の merge 契約テストと実装を追加する**
 
 優先度を固定し、同じ PID の API/browser/fulltext item を入力順に依存せず一件へ統合する。
 
@@ -194,7 +194,7 @@ expect(
 
 scalar は tool 優先度 `jp_lit_search` → browser → fulltext の最初の非空値、配列は NFKC 正規化キーで union、availability は boolean OR、browser observations は安定 JSON key で重複除去し `checked_at` 昇順で全件保持する。
 
-- [ ] **Step 6: focused test を通してコミットする**
+- [x] **Step 6: focused test を通してコミットする**
 
 Run: `npx vitest run tests/candidateResultAdapters.test.ts tests/persistence/cacheRootBoundary.test.ts`
 
@@ -219,7 +219,7 @@ git commit -m "feat: candidate result adapterを追加"
 - Consumes: Task 1 の `candidateResultRefSchema`、既存 `runCachedTool()`、`normalizeIssuedAt()`、`ndlPidToDigitalSourceId()`。
 - Produces: `recordNdlBrowserSearchInputSchema`、`recordNdlBrowserSearchOutputSchema`、`RecordNdlBrowserSearchInput/Output`、`createJpLitRecordNdlBrowserSearchTool(cache, sessions)`、browser output adapter。
 
-- [ ] **Step 1: strict schema の正常系・negative matrix を書く**
+- [x] **Step 1: strict schema の正常系・negative matrix を書く**
 
 `tests/jpLitRecordNdlBrowserSearch.test.ts` で、既存ログイン済み browser smoke を表す fixture を作る。
 
@@ -257,13 +257,13 @@ const OBSERVATION = {
 
 `http:`、別 host、PID 不一致、101 items、6 snippets、501文字 snippet、21 hit locations、121文字 location、未知 field `cookie`、`reported_total < items.length`、`reported_total=null` と exact の組合せをそれぞれ `safeParse(...).success === false` で固定する。
 
-- [ ] **Step 2: schema test を実行し RED を確認する**
+- [x] **Step 2: schema test を実行し RED を確認する**
 
 Run: `npx vitest run tests/jpLitRecordNdlBrowserSearch.test.ts`
 
 Expected: FAIL because schema/tool exports do not exist。
 
-- [ ] **Step 3: Zod schema と PID/URL cross-field validation を実装する**
+- [x] **Step 3: Zod schema と PID/URL cross-field validation を実装する**
 
 全 object を `.strict()` にし、URL 検証は `new URL(viewer_url)` から protocol、hostname、pathname の PID を比較する。`checked_at` は offset 付き ISO 8601 を許可し、`Date.parse()` が有限であることも検証する。`reported_total` と `total_relation` は top-level `.superRefine()` で関係制約を検証する。
 
@@ -278,7 +278,7 @@ if (pathPid !== item.pid) {
 }
 ```
 
-- [ ] **Step 4: cache/session 保存と SearchItem mapping を実装する**
+- [x] **Step 4: cache/session 保存と SearchItem mapping を実装する**
 
 tool は `session_id` だけを cache key から除外し、`checked_at` を含む観測全体を `runCachedTool()` に渡す。output は `source="ndl_digital"`、`limit=100`、canonical source ID、`candidate_origins=["ndl_digital_browser"]` と次の observation を保持する。
 
@@ -303,7 +303,7 @@ source_metadata: {
 
 cache hit 時の `refresh_hint` は「同一観測の保存済み結果。再確認した場合は新しい `checked_at` で記録する」とし、upstream API や `force_refresh` に言及しない。
 
-- [ ] **Step 5: cache miss/hit、session entry、adapter round-trip test を通す**
+- [x] **Step 5: cache miss/hit、session entry、adapter round-trip test を通す**
 
 ```ts
 const first = await tool({ session_id: session.session_id, ...OBSERVATION });
@@ -322,7 +322,7 @@ Run: `npx vitest run tests/jpLitRecordNdlBrowserSearch.test.ts tests/candidateRe
 
 Expected: PASS。
 
-- [ ] **Step 6: コミットする**
+- [x] **Step 6: コミットする**
 
 ```powershell
 git add src/lib/schemas.ts src/lib/candidateResultAdapters.ts src/tools/jpLitRecordNdlBrowserSearch.ts tests/jpLitRecordNdlBrowserSearch.test.ts tests/candidateResultAdapters.test.ts
@@ -343,7 +343,7 @@ git commit -m "feat: デジコレブラウザ観測を保存"
 - Consumes: Task 1 の `CandidateResultRef`、`isCandidateResultTool()`、`readCandidateResult()`、`mergeSameSourceRecordItems()`。
 - Produces: `result_ref` / `result_refs` selector、`base_result_ref` / `base_result_refs`、tool 付き `totals_by_base`、session 内三種類の candidate result 統合。
 
-- [ ] **Step 1: selector と additive output schema の失敗テストを書く**
+- [x] **Step 1: selector と additive output schema の失敗テストを書く**
 
 ```ts
 expect(refineResultsInputSchema.safeParse({
@@ -360,13 +360,13 @@ expect(refineResultsInputSchema.safeParse({
 
 既存 `cache_key` / `cache_keys` / `session_id` テストは変更せず通す。
 
-- [ ] **Step 2: schema focused test を実行し RED を確認する**
+- [x] **Step 2: schema focused test を実行し RED を確認する**
 
 Run: `npx vitest run tests/explicitSessionSchemas.test.ts tests/jpLitRefineResults.test.ts`
 
 Expected: new result-ref assertions FAIL。
 
-- [ ] **Step 3: selector 解決を cache key から result ref へ置き換える**
+- [x] **Step 3: selector 解決を cache key から result ref へ置き換える**
 
 ```ts
 async function resolveBaseResultRefs(
@@ -388,7 +388,7 @@ async function resolveBaseResultRefs(
 
 schema の selector 数は `cache_key`、`cache_keys`、`result_ref`、`result_refs`、`session_id` のちょうど一種類とする。
 
-- [ ] **Step 4: 三 tool の session fixture と canonical merge test を追加する**
+- [x] **Step 4: 三 tool の session fixture と canonical merge test を追加する**
 
 同じ PID について API は正式タイトル・出版社、browser は access/snippet/state、fulltext は highlight を持つ fixture を書き、session selector の union が1件を返すことを固定する。
 
@@ -413,11 +413,11 @@ expect(result.structuredContent.items[0].source_metadata).toMatchObject({
 });
 ```
 
-- [ ] **Step 5: combine を tool-aware item group へ変更する**
+- [x] **Step 5: combine を tool-aware item group へ変更する**
 
 `source_record` の union/intersection では一致 group を `mergeSameSourceRecordItems()` へ渡す。`minus` は先頭 group の key から後続 group の key を除外する。`duplicate_key` / `title_author_year` は既存の集合判定と先頭 representative を維持し、別 source の field/provenance merge はしない。duplicate cluster 候補はこれまでどおり union 前の全 item から作る。
 
-- [ ] **Step 6: legacy と三経路 test を通してコミットする**
+- [x] **Step 6: legacy と三経路 test を通してコミットする**
 
 Run: `npx vitest run tests/explicitSessionSchemas.test.ts tests/jpLitRefineResults.test.ts`
 
@@ -441,7 +441,7 @@ git commit -m "feat: candidate resultsを統合整理"
 - Consumes: `CANDIDATE_RESULT_TOOLS`、`isCandidateResultTool()`、`readCandidateResult()`。
 - Produces: candidate cache 三種類の横断検索、top-level `result_refs`、各 item の `tool` / `result_ref`、互換 `cache_keys`。
 
-- [ ] **Step 1: browser/fulltext cache index の失敗テストを書く**
+- [x] **Step 1: browser/fulltext cache index の失敗テストを書く**
 
 session に tool の異なる二つの result ref を保存し、browser query、fulltext title、canonical source ID が検索可能であることを固定する。
 
@@ -457,13 +457,13 @@ expect(result.structuredContent.items[0]).toMatchObject({
 });
 ```
 
-- [ ] **Step 2: focused test を実行し RED を確認する**
+- [x] **Step 2: focused test を実行し RED を確認する**
 
 Run: `npx vitest run tests/jpLitSearchCacheIndex.test.ts`
 
 Expected: browser/fulltext cache が結果に含まれず FAIL。
 
-- [ ] **Step 3: session/inventory/read の identity を tool+cache_key に変更する**
+- [x] **Step 3: session/inventory/read の identity を tool+cache_key に変更する**
 
 `Map<string, Set<string>>` の key は `${tool}:${cache_key}` とし、session entry は candidate-producing tool のみ登録する。inventory は次で集約する。
 
@@ -476,7 +476,7 @@ const inventoryItems = inventories.flatMap((inventory) => inventory.items);
 
 各 envelope は `readCandidateResult()` で共通化してから query/source/issued filter と item match を適用する。current/legacy の同一 identity は current を優先する。
 
-- [ ] **Step 4: additive schema と互換 field を実装する**
+- [x] **Step 4: additive schema と互換 field を実装する**
 
 ```ts
 result_refs: limited.map(({ tool, cache_key }) => ({ tool, cache_key })),
@@ -495,7 +495,7 @@ items: limited.map((item) => ({
 }))
 ```
 
-- [ ] **Step 5: index test を通してコミットする**
+- [x] **Step 5: index test を通してコミットする**
 
 Run: `npx vitest run tests/jpLitSearchCacheIndex.test.ts tests/jpLitListCache.test.ts`
 
@@ -521,7 +521,7 @@ git commit -m "feat: candidate cacheを横断検索"
 - Consumes: Task 1 の `extractCandidateItems()`、Task 3 の `base_result_refs` と browser `source_metadata`。
 - Produces: result refs を受ける refined export、browser acquisition/access/content/fulltext/print 表示、候補化済み fulltext/browser の session JSON/Markdown/CSL JSON export。
 
-- [ ] **Step 1: refined Markdown の browser provenance 失敗テストを書く**
+- [x] **Step 1: refined Markdown の browser provenance 失敗テストを書く**
 
 browser observation を含む refined output を stub し、次の表示を固定する。
 
@@ -535,32 +535,31 @@ expect(written).toContain("Print PDF: dialog_available");
 expect(written).toContain("Hit locations: 67–73コマ");
 ```
 
-- [ ] **Step 2: session fulltext normalization と CSL note の失敗テストを書く**
+- [x] **Step 2: session fulltext normalization と CSL note の失敗テストを書く**
 
 `jp_lit_search_fulltext` raw cache に canonical source ID の selected item を annotation した session を作り、selected/unselected export の item が `ndl_digital` book になることを確認する。browser cache の CSL note は selection note に加えて acquisition、checked_at、access scope、content/fulltext/print state を含める。
 
-- [ ] **Step 3: export focused test を実行し RED を確認する**
+- [x] **Step 3: export focused test を実行し RED を確認する**
 
 Run: `npx vitest run tests/jpLitExportView.test.ts tests/jpLitExportSession.test.ts`
 
 Expected: provenance 行と fulltext canonical item が欠けて FAIL。
 
-- [ ] **Step 4: refined Markdown の latest observation rendering を実装する**
+- [x] **Step 4: refined Markdown の latest observation rendering を実装する**
 
-`browser_observations` は `checked_at` の最大値を表示状態に使い、履歴自体は JSON output に残す。表示 helper は未知/欠落 metadata で例外を出さず、従来 item の表示を変えない。
+`browser_observations` は offset 表記の文字列順ではなく `checked_at` が表す実時刻の最大値を表示状態に使い、履歴自体は JSON output に残す。表示 helper は未知/欠落 metadata で例外を出さず、従来 item の表示を変えない。
 
 ```ts
-const latest = browserObservations(item)
-  .sort((left, right) => right.checked_at.localeCompare(left.checked_at))[0];
+const latest = latestBrowserObservation(browserObservations(item));
 ```
 
 origin label は `jp_lit_search` → `NDL Search API`、`next_digital_library_fulltext` → `次世代デジタルライブラリー全文検索`、`ndl_digital_browser` → `デジコレ全文検索（ブラウザ）` とする。
 
-- [ ] **Step 5: session item extraction を candidate adapter に統一する**
+- [x] **Step 5: session item extraction を candidate adapter に統一する**
 
 `extractCslSourceItems()` と `extractUnselectedItems()` は envelope.tool が candidate-producing tool の場合に `extractCandidateItems(envelope)` を使う。それ以外の record/tool payload は既存 generic extraction を維持する。これにより fulltext raw item へ `source/source_id` を後付けせず、adapter だけで canonical 化する。
 
-- [ ] **Step 6: browser provenance を短い CSL note に追加する**
+- [x] **Step 6: browser provenance を短い CSL note に追加する**
 
 ```text
 source: ndl_digital
@@ -574,7 +573,7 @@ browser evidence: item_fulltext=searched, content=page_image_checked, print=dial
 
 browser observation は CSL の title/author/publisher/issued へ混ぜず、note のみへ出す。
 
-- [ ] **Step 7: export test を通してコミットする**
+- [x] **Step 7: export test を通してコミットする**
 
 Run: `npx vitest run tests/jpLitExportView.test.ts tests/jpLitExportSession.test.ts tests/jpLitExportSessionHistory.test.ts`
 
@@ -599,7 +598,7 @@ git commit -m "feat: browser候補の来歴をexport"
 - Consumes: Task 2 の schema/tool factory、既存 `LOCAL_WRITE_ANNOTATIONS`。
 - Produces: 公開 tool `jp_lit_record_ndl_browser_search` と MCP manifest/schema/annotations。
 
-- [ ] **Step 1: manifest と annotation の失敗テストを書く**
+- [x] **Step 1: manifest と annotation の失敗テストを書く**
 
 ```ts
 const tool = tools.find((entry) => entry.name === "jp_lit_record_ndl_browser_search");
@@ -616,13 +615,13 @@ expect(tool?.inputSchema.required).toEqual(expect.arrayContaining([
 ]));
 ```
 
-- [ ] **Step 2: manifest test を実行し RED を確認する**
+- [x] **Step 2: manifest test を実行し RED を確認する**
 
 Run: `npx vitest run tests/smokeMcp.test.ts tests/toolDescriptionQuality.test.ts tests/packageDistribution.test.ts`
 
 Expected: tool が manifest に無く FAIL。
 
-- [ ] **Step 3: factory 作成と registerTool を追加する**
+- [x] **Step 3: factory 作成と registerTool を追加する**
 
 tool description は次の意味を一文内に含める。
 
@@ -632,11 +631,11 @@ local write。エージェントがデジコレ公式画面で観測した全文
 
 `createJpLitRecordNdlBrowserSearchTool(cache, sessions)` を search/fulltext tool と同じ shared cache/session で生成し、`LOCAL_WRITE_ANNOTATIONS` で登録する。既存 refine/cache index descriptions も三 candidate tool と result ref を説明する文面へ更新する。
 
-- [ ] **Step 4: package 境界 test を強化する**
+- [x] **Step 4: package 境界 test を強化する**
 
 既存内部 endpoint deny test を維持し、新 tool runtime が `playwright`、`chrome-launcher`、`puppeteer` へ依存しないこと、input schema の property 名に `cookie`、`password`、`session_token`、`user_id`、`user_name`、`pdf_path`、`screenshot`、`image` がないことを検査する。
 
-- [ ] **Step 5: MCP/package test を通してコミットする**
+- [x] **Step 5: MCP/package test を通してコミットする**
 
 Run: `npx vitest run tests/smokeMcp.test.ts tests/toolDescriptionQuality.test.ts tests/packageDistribution.test.ts`
 
@@ -667,13 +666,13 @@ git commit -m "feat: browser観測記録toolを公開"
 - Consumes: 完成した public tool/schema、設計の browser/login/access/PDF 状態境界。
 - Produces: エージェント向け実行手順、ユーザー向け能力表、統合候補の表示契約、公開 reference。
 
-- [ ] **Step 1: `superpowers:writing-skills` を読み、Skill 編集 gate を適用する**
+- [x] **Step 1: `superpowers:writing-skills` を読み、Skill 編集 gate を適用する**
 
 Run: `Get-Content C:\Users\itarun\.codex\plugins\cache\openai-curated-remote\superpowers\6.3.0\skills\writing-skills\SKILL.md`
 
 Expected: Skill の test-first、router/reference 分離、検証要件を作業チェックリストへ反映する。
 
-- [ ] **Step 2: browser/API 境界と共通候補 UX の文書契約 test を先に書く**
+- [x] **Step 2: browser/API 境界と共通候補 UX の文書契約 test を先に書く**
 
 `tests/skillGuide.test.ts` で次の必須語と禁止断定を検査する。
 
@@ -689,13 +688,13 @@ expect(skillAndReferences).toContain("館内限定");
 expect(skillAndReferences).not.toMatch(/jp_lit_search_fulltext[^\n]{0,80}デジコレ全資料/);
 ```
 
-- [ ] **Step 3: docs/Skill test を実行し RED を確認する**
+- [x] **Step 3: docs/Skill test を実行し RED を確認する**
 
 Run: `npx vitest run tests/skillGuide.test.ts tests/readmeLinks.test.ts`
 
 Expected: new tool/result ref/browser state の説明が足りず FAIL。
 
-- [ ] **Step 4: Skill router と fulltext workflow を更新する**
+- [x] **Step 4: Skill router と fulltext workflow を更新する**
 
 Skill は次の順序を明記する。
 
@@ -710,7 +709,7 @@ Skill は次の順序を明記する。
 
 「検索ヒット」「資料詳細」「本文画像確認」「PDF生成可能」「PDF生成済み」「保存済み」を別状態として扱い、ログインしても `ndl_onsite_only` を遠隔閲覧できないことを明記する。
 
-- [ ] **Step 5: README/usage/reference/project-status に能力表と呼び出し例を追加する**
+- [x] **Step 5: README/usage/reference/project-status に能力表と呼び出し例を追加する**
 
 能力表は次を含める。
 
@@ -721,7 +720,7 @@ Skill は次の順序を明記する。
 
 公開例には browser 操作そのものではなく、観測後の record/refine/annotate/export の JSON 入力を掲載する。
 
-- [ ] **Step 6: docs/Skill test を通してコミットする**
+- [x] **Step 6: docs/Skill test を通してコミットする**
 
 Run: `npx vitest run tests/skillGuide.test.ts tests/readmeLinks.test.ts tests/installDocs.test.ts`
 
@@ -745,7 +744,7 @@ git commit -m "docs: デジコレブラウザ候補の運用を追加"
 - Consumes: repo 内の完成済み Skill、全 runtime/tests/docs。
 - Produces: `.agents` / `.codex` の同一内容、全 gate の fresh evidence、clean worktree、最終ローカルコミット。
 
-- [ ] **Step 1: repo 全体の fresh test/build gate を実行する**
+- [x] **Step 1: repo 全体の fresh test/build gate を実行する**
 
 Run:
 
@@ -759,19 +758,19 @@ git diff --check
 
 Expected: 全 command exit 0。
 
-- [ ] **Step 2: package に禁止 runtime/secret field がないことを実 package 対象で確認する**
+- [x] **Step 2: package に禁止 runtime/secret field がないことを実 package 対象で確認する**
 
 Run: `npx vitest run tests/packageDistribution.test.ts`
 
 Expected: internal endpoint、browser runtime、credential/path input の境界 test が PASS。
 
-- [ ] **Step 3: `.agents` の Codex Skill を installer で更新する**
+- [x] **Step 3: `.agents` の Codex Skill を installer で更新する**
 
 Run: `node scripts/install-skills.mjs codex`
 
 Expected: `C:\Users\itarun\.agents\skills\jp-lit-research` と `jp-lit-verification` の更新先が表示され、exit 0。
 
-- [ ] **Step 4: adapter 済み Skill tree を `.codex` duplicate へ機械同期する**
+- [x] **Step 4: adapter 済み Skill tree を `.codex` duplicate へ機械同期する**
 
 `C:\Users\itarun\.agents\skills\jp-lit-research` の全ファイルを `C:\Users\itarun\.codex\skills\jp-lit-research` へ `Copy-Item -Recurse -Force` し、削除は行わない。
 
@@ -781,7 +780,7 @@ Copy-Item -LiteralPath 'C:\Users\itarun\.agents\skills\jp-lit-research\*' -Desti
 
 PowerShell の `-LiteralPath` は wildcard を展開しないため、実行時は source directory の children を `Get-ChildItem -LiteralPath ...` で列挙し、各 child を `Copy-Item -LiteralPath $_.FullName` で destination へコピーする。
 
-- [ ] **Step 5: repo/installed Skill の意味内容 hash と必須文言を比較する**
+- [x] **Step 5: repo/installed Skill の意味内容 hash と必須文言を比較する**
 
 Codex adapter が `.agents` / `.codex` の `SKILL.md` 先頭へ追加されるため、`SKILL.md` は adapter block と metadata を除いた body hash、reference/workflow は file hash を比較する。
 
@@ -794,11 +793,13 @@ rg -n 'jp_lit_record_ndl_browser_search|result_refs|logged_in_existing_session|p
 
 Expected: workflow/reference hash が3箇所で一致し、必須文言が3 tree 全てに存在する。repo `SKILL.md` body と installed `SKILL.md` body も adapter 除去後に一致する。
 
-- [ ] **Step 6: `superpowers:requesting-code-review` で仕様適合 review を行う**
+- [x] **Step 6: `superpowers:requesting-code-review` で仕様適合 review を行う**
 
 review scope は設計 commit `9efab0e` から現在 HEAD までとし、内部API混入、認証情報 field、三経路 mapping、同一 PID merge、legacy selector、session/export、Skill同期を重点確認する。指摘があれば `superpowers:receiving-code-review` の検証手順で修正する。
 
-- [ ] **Step 7: `superpowers:verification-before-completion` を読み、完了主張前に全 gate を再実行する**
+実績: 全体 review の Important 2件（offset 付き観測日時の比較、三経路の NDL URL / identity 境界）と Minor 1件（snippet locator 契約）を `1301e12` で修正した。scoped re-review で見つかった WHATWG URL の制御文字正規化による迂回を `5976f4c` で閉じ、最終 scoped review は Critical / Important / Minor すべてなし、merge 可と判定した。
+
+- [x] **Step 7: `superpowers:verification-before-completion` を読み、完了主張前に全 gate を再実行する**
 
 Run:
 
@@ -813,7 +814,9 @@ git status --short --branch
 
 Expected: 全 command exit 0、意図した plan checkbox 更新以外に未コミット変更なし。
 
-- [ ] **Step 8: plan を実績で更新し、最終コミットを作る**
+実績: 2026-09-06 に最終 HEAD `5976f4c` と文書更新を含む状態で `npm test`（83 files / 903 tests）、build、script typecheck、offline MCP smoke、`git diff --check` を fresh 実行し、すべて exit 0。未コミット変更は本 plan と `docs/project-status.md` の完了記録だけだった。
+
+- [x] **Step 8: plan を実績で更新し、最終コミットを作る**
 
 全 checkbox を実行結果に合わせて `[x]` にし、未実行を成功扱いにしない。
 
