@@ -119,6 +119,28 @@ researchmap 個人ページで見つけた講演・口頭発表・寄稿・分�
 - `優先`: 高 / 中 / 低 / 保留
 - `根拠`: 要旨 / DB件名 / 目次 / 本文 / 学術書評 / 専門誌書評 / 出版社紹介 / 検索結果スニペット など
 
+### API / browser / fulltext 候補の統合表示
+
+`jp_lit_search`、`jp_lit_search_fulltext`、`jp_lit_record_ndl_browser_search` が同じ canonical `source` + `source_id` を返した場合、経路別に候補一覧を分断せず、一つの候補リストで一件として示す。各 item には次を残す。
+
+- `発見経路`: NDL Search API / 次世代デジタルライブラリー全文検索 / デジコレ本体の全文検索（browser）のうち実際に確認したもの
+- `access`: `access_scope` と公式画面の `access_label`
+- `content`: `content_state`。`page_image_checked` だけを本文画像の実見として扱う
+- `fulltext`: `item_fulltext_state` と `hit_locations`。`searched` は資料内全文検索を実行した状態
+- `print`: `print_file_state`。`dialog_available` / `generation_requested` / `pdf_ready` / `saved` を別状態として表示する
+
+複数の browser observation がある場合、表示上の現在状態は `checked_at` が最新の観測を使い、JSON export では履歴をすべて保つ。検索概要と調査ログでは API / browser / fulltext の total、取得件数、確認日時を分ける。
+
+```md
+1. 斉藤隆夫『帝国憲法大要』憲政公論社, 1926
+   - source: NDLデジタルコレクション, R100000039-I1907653
+   - 発見経路: NDL Search API / 次世代デジタルライブラリー全文検索 / デジコレ本体の全文検索（browser）
+   - access: individual_transmission（個人送信で閲覧可能）
+   - content: page_image_checked
+   - fulltext: searched（67–73コマ）
+   - print: dialog_available
+```
+
 ### 標準出力構成
 
 文献リストを返すときは、原則として次の見出し順にする。ユーザーが短い回答を求めた場合でも、`検索概要`、`今回の確認範囲`、`調査ログ` は圧縮して残す。レファ協・リサーチ・ナビで参考図書・専門索引・有料 DB が示唆された場合は、`参考書誌・有料DBの次アクション` も残す。

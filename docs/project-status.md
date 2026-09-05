@@ -1,8 +1,8 @@
 # 実装状況
 
-2026-08-25 時点の状態:
+2026-09-06 時点の状態:
 
-- 公開ツール 29 種は不変。対応 source 21 種（`ndl_reference_books` を含む）。fresh `npm test` は 81 files / 774 tests 通過
+- 公開ツール 30 種。対応 source 21 種（`ndl_reference_books` を含む）。この未リリース機能を含む fresh `npm test` の全体 gate は Task 8 で実行する
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
 - 2026-08-25 10:04 JST に `ndl_reference_books` を adapter 直結（cache bypass、`force_refresh=true` 相当）で live 確認した。`query="哲学"`、`limit=2`、`page=1` の検索は1回だけ成功し、total 197、取得2件、抽出2件で、全件が `source_metadata.reference_book=true`、`reference_ndc=["103.3"]` だった。紹介文あり候補は1件だけ選び、detailも1回だけ成功した（`R100000002-I000002972211`、`summary` / `introduction` = 「第4版(1985年刊)と同内容。」、公式 URL: `https://ndlsearch.ndl.go.jp/books/R100000002-I000002972211`）。この確認は候補メタデータと詳細経路に限り、本文・現物・所蔵・閲覧可否は未確認である。
 - `ndl_digital` の詳細取得では `pids` は1〜10件を受け付ける。運用上は1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使い、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
@@ -16,6 +16,15 @@
 - README / install docs / usage guide / source-usage-conditions を整備済み
 - ライセンスは `MIT`
 
+デジコレ全文候補の現在の能力境界:
+
+| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
+| --- | --- | --- | --- | --- | --- |
+| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+
+`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。許可済み browser の観測は `jp_lit_record_ndl_browser_search` で同じ `session_id` に保存し、`jp_lit_refine_results` の `session_id` / `result_refs` で canonical merge します。候補は一つの候補リストに統合し、各 item の発見経路と `access` / `content` / `fulltext` / `print_file_state` を保ちます。観測後の record / refine / annotate / export JSON 例は `docs/usage-guide.md` と `docs/reference.md` にあります。
+
 ## 実装済み
 
 - 書誌検索・所蔵確認・デジコレ OCR / 全文 / 図版検索は実装済み
@@ -26,6 +35,7 @@
 - 検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は、調査案件を指す `session_id` を必須入力として明示 routing する。`session_id` は MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` とは別で、`current.json` はローカル互換用 mirror に限定する
 - 過去セッション一覧（`jp_lit_list_sessions`）、過去セッション検索（`jp_lit_find_sessions`）、`session_id` 指定 export に対応済み
 - 保存済み検索結果の一覧・検索・再整理・view export・削除・古い cache の pruning（`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` / `jp_lit_export_view` / `jp_lit_delete_cache` / `jp_lit_prune_cache`）に対応済み
+- デジコレ公式画面の browser 観測を strict schema で検証し、MCP 自身はブラウザ・ログイン・外部通信を行わず local cache/session へ保存する `jp_lit_record_ndl_browser_search` を追加済み。API / browser / fulltext の三 candidate result を tool-aware な `result_refs` で扱い、同一 PID の provenance を保って統合・注釈・export できる
 - Web NDL Authorities から典拠候補・別名義・分類由来の件名標目候補・安全な検索ヒントを返す補助 tools（`jp_lit_resolve_authority` / `jp_lit_find_authority_terms_by_classification`）を追加済み
 - Web NDL Authorities の件名語から NDC / NDLC 分類記号を提案し、CiNii Books `category` filter に渡せる `jp_lit_suggest_classification_codes` を追加済み。`jp_lit_search` は CiNii 系検索の 0 件・ローマ字 query と、source を問わない広い結果集合に `diagnostics` を返す
 - KAKEN から研究課題・研究成果報告書 PDF・成果リストの手がかりを返す補助 tool（`jp_lit_search_kaken_projects`）を追加済み。KAKEN は `jp_lit_search` の source ではなく、文献確定前の検索語展開・報告書確認の入口として扱う
@@ -37,6 +47,7 @@
 
 ## 最近の更新
 
+- 未リリース: デジコレ公式画面で観測した候補の local-write tool、三 candidate result の adapter、tool-aware cache index/refine、browser provenance を保つ Markdown / JSON / CSL JSON export を追加。Skill と公開文書では、明示許可済みの既存ログイン session、`ndl_onsite_only`、検索ヒット・資料詳細・本文画像・資料内全文検索・印刷/PDF状態の境界を実 enum に合わせた
 - `0.13.0`: `ndl_digital` の既知 PID を `jp_lit_get_record` / `jp_lit_get_records` へ直接渡せるようにし、canonical source ID と単件 cache を共有した。`ndl_reference_books` を追加し、参考図書・レファ本・事典・辞典・書誌・索引・年鑑の自然言語 routing を `jp_lit_search` と `jp-lit-research` に追加。検索結果・detail の `source_metadata.reference_book` / `reference_ndc` / `introduction` / `has_introduction` を公開し、紹介文なしのレコードを区別する。NDL オープンデータセットの runtime 一括取り込みは行わず、公開検索エンドポイントを都度使う候補探索に限定する
 - `0.12.0`: 既存 `EvidenceRef` を後方互換のまま拡張し、速報Web投稿の検索サービス、検索語、投稿URL、投稿者、投稿日時、確認日時、リンク先を構造化保存・Markdown exportできるようにした。Skillでは既存Web補助確認の条件付き分岐としてrunbookへ案内し、投稿だけで書誌的事実・真偽・学術的評価を確定しない境界を追加した。公開ツール数とsource数は変更なし
 - `0.11.0`: jp-lit の `session_id` を MCP transport の `Mcp-Session-Id` や結果保存用 `cache_key` と分離し、調査案件を指す明示的なアプリケーション側 handle として確定した。検索・取得・照合・典拠補助などの cached tool と annotation / trace / session export は `session_id` 必須となり、同じ cache を複数セッションで共有しながら利用記録を指定先へ分離する。非 current session の更新で `current.json` を切り替えず、`jp_lit_refine_results` は `cache_key` / `cache_keys` / `session_id` のいずれか1つを必須 selector として暗黙の current fallback を削除した。Skill、README、reference、offline smoke も明示 handle workflow へ移行した
