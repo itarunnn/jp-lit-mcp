@@ -55,7 +55,8 @@ description: >-
 - Web は補助確認に限る。ただし NDL リサーチ・ナビ確認は調査前情報収集の一部として原則実行する。文献DBを主経路とし、Web由来情報をDB書誌・要旨・目次・本文確認と混同しない。
 - 刊行直後の反応、論争、イベント、未発表資料への言及が調査の発端として有効な場合は、既存Web補助確認の速報Web分岐として `reference/04-ephemeral-web-discovery.md` を読む。投稿は確証にせず、同じ `session_id` に発見経路を残して正式 source で裏取りする。
 - デジコレ公式画面のブラウザ操作は既定では行わない。公式画面の確認が調査範囲に有効なら、調査計画の提示時に未ログイン検索を実行してよいか確認する。
-- ログイン済み Chrome の利用は未ログイン検索とは別の権限とし、利用者が明示的に許可した場合だけ行う。内蔵 Browser から Chrome へ、または未ログイン検索からログイン済み閲覧へ無断で切り替えない。
+- ログイン済み Chrome の利用は未ログイン検索とは別の権限とする。ただし「ログイン済みタブがあるから見て」など利用者が明示的に許可済みなら再確認しない。内蔵 Browser から Chrome へ、または未ログイン検索からログイン済み閲覧へ無断で切り替えない。
+- 許可済みのデジコレ公式画面で得た候補は会話内の別一覧で終わらせず、`jp_lit_record_ndl_browser_search` で API 検索と同じ `session_id` に保存し、`jp_lit_refine_results(session_id=...)` で統合する。権限・状態・`result_refs`・annotation/export の詳細は `workflows/fulltext-page-lookup.md` を読む。
 - デジコレ本体の網羅性を確認するかどうかは MCP の検索件数で決めない。許可を得て公式画面を確認した場合も、MCP の次世代デジタルライブラリー API 範囲と公式画面範囲を分けて報告する。
 - 選別済みの `ndl_digital` 候補は、OCR・閲覧経路・ブラウザ確認を判断する前に詳細化する。デジコレ PID が既知なら title を再検索しない。`pids` は1〜10件を受け付けるが、1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` で現在の `manual_viewing` と `next_digital_library.available` を確認する。PID一覧全件の自動詳細化はしない。
 

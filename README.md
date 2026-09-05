@@ -259,6 +259,15 @@ J-STAGE など一部 source では、API がアブストラクトを返さない
 
 `jp-lit-research` では、デジコレ公式画面のブラウザ操作は明示的に許可された場合だけ行います。既定は MCP のみです。未ログイン検索とログイン済み Chrome の利用は別の権限であり、前者の許可から後者を推定しません。回答では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分けて書きます。
 
+| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
+| --- | --- | --- | --- | --- | --- |
+| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+
+`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。公式画面をユーザーが許可した場合、browser agent は画面を確認し、その観測値を `jp_lit_record_ndl_browser_search` で API 検索と同じ `session_id` へ保存できます。MCP 本体は browser / login / network を担当せず、観測値を検証して local cache/session へ記録するだけです。
+
+保存後は `jp_lit_refine_results(session_id=...)` または `result_refs` で API / browser / fulltext の同一 PID を統合し、ユーザーには一つの候補リストを返します。各候補には発見経路と access / content / fulltext / print 状態を残し、検索概要の件数・確認時刻は経路別に示します。観測後の record / refine / annotate / export JSON 例は [使い方ガイド](docs/usage-guide.md#browser観測を同じsessionへ統合する) と [技術リファレンス](docs/reference.md#jp_lit_record_ndl_browser_search) を参照してください。
+
 `ndl_digital` の検索後は、選別済み候補の `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を `jp_lit_get_records` で候補ごとに独立して確認できます。手動閲覧導線と MCP の OCR 利用可否を分けて判断してから、OCR または許可済みのブラウザ確認へ進みます。デジコレ PID が既知なら、`pids` は1〜10件を受け付けますが、1件だけなら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使うのが基本です。
 
 ```text

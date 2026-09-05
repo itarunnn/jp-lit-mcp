@@ -45,8 +45,9 @@
 ## 検索後の二次操作
 
 - 「今の検索を並び替えて」「この条件で絞って」系の依頼は、まず `jp_lit_refine_results` を使う
-- `jp_lit_refine_results` はローカルキャッシュ済みの `jp_lit_search` 結果を再処理するため、upstream 再検索より速く、追加ノイズも増やしにくい
-- 対象は `cache_key`、`cache_keys`、`session_id` のいずれか1つだけで明示する。`include_enrichment=true` では、対象 `session_id` または `enrichment_cache_keys` も明示する
+- candidate result は `jp_lit_search`、`jp_lit_search_fulltext`、`jp_lit_record_ndl_browser_search` の3種類。後者は browser agent の観測値を同じ `session_id` の local cache/session へ保存するだけで、MCP 本体はブラウザ・ログイン・外部通信を行わない
+- `jp_lit_refine_results` はこれらのローカルキャッシュ済み結果を再処理するため、upstream 再検索より速く、追加ノイズも増やしにくい。同じ canonical `source` + `source_id` は来歴を保って統合する
+- 対象は `cache_key`、`cache_keys`、`result_ref`、`result_refs`、`session_id` のいずれか1つだけで明示する。複数 tool の正本は `{ tool, cache_key }` の `result_refs` とする。`include_enrichment=true` では、対象 `session_id` または `enrichment_cache_keys` も明示する
 - `jp_lit_refine_results` で足りない場合のみ、query/source を変えた再検索へ進む
 - cached tool の `cache.hit=true` は保存済み結果の再利用を意味する。返答では `cache.saved_at` と、上流 API へ再検索していないことを明示する
 - 最新データが必要な場合だけ `force_refresh=true` を使う。通常の継続調査・再整理では明示リフレッシュしない

@@ -459,7 +459,12 @@ KAKEN の研究課題を検索し、研究テーマ、キーワード、研究�
 
 ### NDL デジタルコレクション OCR・図版
 
-OCR 系ツールは次世代デジタルライブラリー API の収録資料に対応します。上流は次世代デジタルライブラリー API であり、デジコレ本体（`dl.ndl.go.jp`）の全文検索画面を API として取得するものではありません。次世代デジタルライブラリーで扱える資料と、デジコレ本体でログインなし閲覧できる資料は近い範囲ですが同一ではありません。デジコレ本体の検索画面では、MCP が取得できないログインなし公開資料や、館内限定・送信サービス限定資料の OCR ヒットが見える場合があります。
+OCR 系ツールは次世代デジタルライブラリー API の収録資料に対応します。上流は次世代デジタルライブラリー API であり、`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。デジコレ本体（`dl.ndl.go.jp`）の全文検索画面を API として取得するものでもありません。次世代デジタルライブラリーで扱える資料と、デジコレ本体でログインなし閲覧できる資料は近い範囲ですが同一ではありません。デジコレ本体の検索画面では、MCP が取得できないログインなし公開資料や、館内限定・送信サービス限定資料の OCR ヒットが見える場合があります。
+
+| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
+| --- | --- | --- | --- | --- | --- |
+| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
 
 デジコレ本体の全文検索結果を取得する公開・文書化 API は確認できていません。このため、公式画面側の総ヒット件数、該当コマ、スニペット、公開範囲について、MCP ではAPIとしてのページング、キャッシュ、差分比較、安定した全件収集を保証できません。ブラウザ確認も UI、セッション状態、表示遅延に依存する補完経路であり、公開 API と同等の再現性はありません。画面内部 endpoint は公開 API として扱わず、MCP の通常機能・配布 package・公開 workflow へ組み込みません。
 
@@ -486,6 +491,76 @@ OCR 系ツールは次世代デジタルライブラリー API の収録資料�
 | `force_refresh` | boolean | `false` | `true` でキャッシュを無視して upstream 再検索 |
 
 主な出力は `pid` / `viewer_url` / `title` / `responsibility` / `publisher` / `published` / `publishyear` / `ndc` / `bib_id` / `call_no` / `page_count` / `is_classic` / `highlights` です。
+
+#### `jp_lit_record_ndl_browser_search`
+
+browser agent がデジコレ公式画面で観測した一回の全文検索候補を検証し、local cache と指定した調査 session に保存します。MCP 本体はブラウザ・ログイン・外部通信を行いません。未ログインでも公式画面の全文検索候補は確認できますが、個人送信の本文画像などは利用者が許可した既存ログイン済み session が必要です。`ndl_onsite_only` はログインしても遠隔閲覧できません。
+
+エージェントは認証情報を入力せず、MCP は cookie を受け取りません。CAPTCHA・アクセス制限を回避せず、画像、スクリーンショット、PDF 本体、保存先 path は入力・cache保存の対象外です。
+
+| 引数 | 型 | 説明 |
+| --- | --- | --- |
+| `session_id` | string | 保存先の調査 session。必須 |
+| `query` | string | 公式画面で使った検索語 |
+| `checked_at` | ISO 8601 | offset 付きの観測日時 |
+| `login_state` | enum | `logged_out` / `logged_in_existing_session` |
+| `page` | number | 観測した結果ページ。1始まり |
+| `reported_total` | number \| null | 画面上の総件数。読めなければ `null` |
+| `total_relation` | enum | `reported_exact` / `reported_approximate` / `observed_lower_bound` |
+| `filters.access_scopes[]` | enum[] | `public` / `transmission` / `ndl_onsite_only` |
+| `filters.material_types[]` | string[] | 画面で指定した資料種別 |
+| `filters.raw_labels[]` | string[] | 画面で確認した filter 表示 |
+| `items[]` | array | 観測した候補。最大100件 |
+
+各 item は `pid`、`title`、`volume`、`authors`、`publisher`、`published`、`viewer_url`、`access_scope`、`access_label`、`snippets`、`item_fulltext_state`、`hit_locations`、`content_state`、`print_file_state` をすべて指定します。`access_scope` は `public` / `transmission_unspecified` / `individual_transmission` / `library_transmission` / `ndl_onsite_only` / `unknown` です。
+
+検索ヒット、資料詳細、本文画像、資料内全文検索、印刷ダイアログ、PDF生成、保存は別状態です。
+
+| field | enum | 意味 |
+| --- | --- | --- |
+| `item_fulltext_state` | `not_checked` / `unavailable` / `available` / `searched` | 資料内全文検索の確認状態 |
+| `content_state` | `not_checked` / `restricted` / `viewer_available` / `page_image_checked` | 本文画像の確認状態。`page_image_checked` だけが実見済み |
+| `print_file_state` | `not_checked` / `unavailable` / `dialog_available` / `generation_requested` / `pdf_ready` / `saved` | 印刷ダイアログ、生成依頼、PDF生成済み、保存済みの状態 |
+
+観測後の record 入力例:
+
+```json
+{
+  "tool": "jp_lit_record_ndl_browser_search",
+  "arguments": {
+    "session_id": "<SID>",
+    "query": "普通選挙法",
+    "checked_at": "2026-09-05T12:00:00+09:00",
+    "login_state": "logged_in_existing_session",
+    "page": 1,
+    "reported_total": 1,
+    "total_relation": "reported_exact",
+    "filters": {
+      "access_scopes": ["transmission"],
+      "material_types": ["図書"],
+      "raw_labels": ["個人送信で閲覧可能"]
+    },
+    "items": [{
+      "pid": "1907653",
+      "title": "帝国憲法大要",
+      "volume": null,
+      "authors": ["斉藤隆夫"],
+      "publisher": "憲政公論社",
+      "published": "1926",
+      "viewer_url": "https://dl.ndl.go.jp/pid/1907653",
+      "access_scope": "individual_transmission",
+      "access_label": "個人送信で閲覧可能",
+      "snippets": [{ "text": "普通選挙法", "locator_type": "koma", "locator": "67" }],
+      "item_fulltext_state": "searched",
+      "hit_locations": ["67–73コマ"],
+      "content_state": "page_image_checked",
+      "print_file_state": "dialog_available"
+    }]
+  }
+}
+```
+
+output item は `source="ndl_digital"`、`source_id="R100000039-I<PID>"` へ正規化され、`source_metadata.candidate_origins=["ndl_digital_browser"]` と `browser_observations[]` を持ちます。再確認時は新しい `checked_at` で別観測を保存します。
 
 #### `jp_lit_search_pages`
 
@@ -743,6 +818,54 @@ jp_lit_search_pages(source=ndl_digital, pid="...", keyword="大政奉還")
 jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=N)
 ```
 
+### API・browser・fulltext候補を統合して注釈・exportする
+
+API検索、許可済み公式ブラウザ、`jp_lit_record_ndl_browser_search` には同じ `session_id` を渡します。`jp_lit_refine_results(session_id=...)` は session 内の `jp_lit_search` / `jp_lit_search_fulltext` / `jp_lit_record_ndl_browser_search` を読み、同じ canonical `source` + `source_id` を一件へ統合します。候補は経路別に分断せず一つの候補リストとし、item ごとに発見経路と access / content / fulltext / print 状態を保持します。
+
+```json
+{
+  "tool": "jp_lit_refine_results",
+  "arguments": {
+    "session_id": "<SID>",
+    "combine": "union",
+    "key_by": "source_record"
+  }
+}
+```
+
+特定の保存結果だけを統合する場合は `result_refs` に `{ "tool": "jp_lit_search", "cache_key": "..." }`、`{ "tool": "jp_lit_search_fulltext", "cache_key": "..." }`、`{ "tool": "jp_lit_record_ndl_browser_search", "cache_key": "..." }` を並べます。
+
+```json
+{
+  "tool": "jp_lit_annotate_session",
+  "arguments": {
+    "session_id": "<SID>",
+    "tool": "jp_lit_record_ndl_browser_search",
+    "cache_key": "<record-cache-key>",
+    "selected_items": [{
+      "source": "ndl_digital",
+      "source_id": "R100000039-I1907653",
+      "title": "帝国憲法大要",
+      "label": "strong_candidate",
+      "note": "API/browser/fulltextを同一PIDで統合"
+    }]
+  }
+}
+```
+
+```json
+{
+  "tool": "jp_lit_export_session",
+  "arguments": {
+    "session_id": "<SID>",
+    "format": "json",
+    "profile": "selected"
+  }
+}
+```
+
+全 browser observation を含む統合結果そのものを出す場合は、`jp_lit_export_view` の `view="refined_results"` と同じ `session_id` または `result_refs` を使います。
+
 ### 図版検索から画像 URL を使う
 
 ```text
@@ -955,13 +1078,15 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 
 ### `jp_lit_refine_results`
 
-保存済みの `jp_lit_search` 結果を upstream 再検索せずに再抽出します。単一結果の再ソート/再フィルタだけでなく、複数キャッシュの集合演算にも対応します。
+保存済みの candidate result（`jp_lit_search` / `jp_lit_search_fulltext` / `jp_lit_record_ndl_browser_search`）を upstream 再検索せずに再抽出します。単一結果の再ソート/再フィルタだけでなく、複数 tool の集合演算と同一 canonical record の provenance merge にも対応します。
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
 | `cache_key` | string | 選択必須 | 単一の対象キャッシュ |
 | `cache_keys` | string[] | 選択必須 | 複数キャッシュを明示指定 |
-| `session_id` | string | 選択必須 | 指定セッション内の `jp_lit_search` 結果をまとめて対象化 |
+| `result_ref` | object | 選択必須 | `{ tool, cache_key }` で単一 candidate result を指定 |
+| `result_refs` | object[] | 選択必須 | 複数 candidate result を tool-aware に指定 |
+| `session_id` | string | 選択必須 | 指定セッション内の三 candidate tool の結果をまとめて対象化 |
 | `combine` | string | `union` | `union` / `intersection` / `minus` |
 | `key_by` | string | `source_record` | 集合演算キー。`source_record` / `duplicate_key` / `title_author_year` |
 | `sort_by` | string | なし | `issued_at` / `title` |
@@ -977,7 +1102,7 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 | `filters` | object | なし | `source` / `issued_from` / `issued_to` / `online` / `digital_collection` / `title_contains` / `author_contains` |
 
 `combine=minus` は「先頭集合 - 後続集合」の差集合です。
-`cache_key` / `cache_keys` / `session_id` は、暗黙の current fallback を避けるため、いずれか1つだけを指定します。
+`cache_key` / `cache_keys` / `result_ref` / `result_refs` / `session_id` は、暗黙の current fallback を避けるため、いずれか1つだけを指定します。legacy の `cache_key` / `cache_keys` は `tool="jp_lit_search"` の省略形であり、複数 tool の正本は `result_ref` / `result_refs` です。output の `base_result_ref` / `base_result_refs` と `totals_by_base[].tool` で実際の入力経路を確認できます。
 既定では、整理後の結果を会話で扱いやすくするため先頭 30 件だけ返します。全体件数は `total_after` で把握し、全件が必要な場合は `limit` を増やすか `jp_lit_export_view(view="refined_results", ...)` で書き出してください。
 
 重複クラスタは通常の再整理では返しません。必要なときだけ `include_duplicate_clusters=true` を指定します。クラスタは自動削除ではなく、`duplicate_key` と title/author/year の近似一致から候補を示すものです。`search_result_readiness` は検索結果レベルのメタデータ充足度であり、引用確定には `jp_lit_get_record` や現物確認が必要です。
@@ -986,7 +1111,7 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 
 ### `jp_lit_search_cache_index`
 
-保存済み `jp_lit_search` キャッシュを横断検索し、再抽出に使える `cache_key` 群を返します。返された `cache_keys` はそのまま `jp_lit_refine_results(cache_keys=[...])` に渡せます。
+保存済みの三 candidate tool（`jp_lit_search` / `jp_lit_search_fulltext` / `jp_lit_record_ndl_browser_search`）のキャッシュを横断検索し、再抽出に使える `result_refs` を返します。各 item の `tool` と `result_ref` を保持するため、同じ cache key 文字列でも取得経路を失いません。互換用の `cache_keys` も返しますが、複数 tool を `jp_lit_refine_results` へ渡す場合は `result_refs` を使います。
 
 | 引数 | 型 | 既定 | 説明 |
 | ---- | -- | ---- | ---- |
@@ -1002,7 +1127,7 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 
 `saved_on` ショートハンドはサーバー側で `Asia/Tokyo` 基準に解決されます。`saved_on` を指定した場合、出力には解決後の日付（`saved_on_resolved`）も含まれます。
 
-出力には `cache_keys[]` と、各キャッシュの `matched_fields`（`query` / `title` / `author` / `subject` / `source_id`）が含まれます。
+出力には `result_refs[]`、互換 `cache_keys[]`、各 item の `tool` / `result_ref` と `matched_fields`（`query` / `title` / `author` / `subject` / `source_id`）が含まれます。
 
 ### `jp_lit_delete_cache`
 

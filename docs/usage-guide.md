@@ -458,7 +458,12 @@ batch 全体の独自 cache/session は作らず、成功 item は `jp_lit_get_r
 | `jp_lit_search_pages`         | ヒットした資料の中で、どのページに語があるか特定する       |
 | `jp_lit_get_text_coordinates` | 特定ページの OCR テキスト・座標・ページ画像 URL を取得する |
 
-`jp_lit_search_fulltext` はデジコレ本体の検索画面そのものを API 化したものではありません。上流は次世代デジタルライブラリー API なので、デジコレ本体の「ログインなしで閲覧可能」資料全体を検索するものでも、全文検索画面で見える館内限定・送信サービス限定資料の OCR ヒットを網羅するものでもありません。`content_access.manual_viewing` は、MCP から本文を自動取得できない資料を人間が公式画面で読むための導線であり、MCP がデジコレ本体の全文検索結果を取得済みであることを意味しません。
+| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
+| --- | --- | --- | --- | --- | --- |
+| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+
+`jp_lit_search_fulltext` はデジコレ本体の検索画面そのものを API 化したものではありません。上流は次世代デジタルライブラリー API であり、デジコレ本体の全文検索を網羅しません。デジコレ本体の「ログインなしで閲覧可能」資料全体を検索するものでも、全文検索画面で見える館内限定・送信サービス限定資料の OCR ヒットを網羅するものでもありません。`content_access.manual_viewing` は、MCP から本文を自動取得できない資料を人間が公式画面で読むための導線であり、MCP がデジコレ本体の全文検索結果を取得済みであることを意味しません。
 
 このため、利用者が「デジコレ全文を調べて」「見落としがないか確認して」のように網羅性を求めている場合は、`jp_lit_search_fulltext` だけで調査を閉じません。MCP の検索件数にかかわらず、次世代デジタルライブラリー API とデジコレ公式画面を独立した確認経路として計画します。ただし、公式画面のブラウザ操作は既定では行いません。
 
@@ -472,13 +477,26 @@ batch 全体の独自 cache/session は作らず、成功 item は `jp_lit_get_r
 
 > 次世代デジタルライブラリー API の範囲に加えて、デジコレ公式画面も検索しますか？ 公式画面を使う場合は、未ログイン検索のみか、ログイン済み Chrome も使用可かを指定してください。
 
-「デジコレ本体をブラウザでも検索して」という指示は、未ログイン検索のみの許可として扱います。内蔵 Browser から Chrome へ、または未ログイン検索からログイン済み閲覧へ無断で切り替えません。ログインが必要なら、認証は人間が行います。ただし、人間が認証しただけではログイン済み Chrome の利用許可を得たことにはなりません。別途の明示許可がない場合、エージェントは `本文: アクセス制限` として停止します。認証情報を要求・入力・保存せず、CAPTCHA やアクセス制限を回避しません。
+「デジコレ本体をブラウザでも検索して」という指示は、未ログイン検索のみの許可として扱います。内蔵 Browser から Chrome へ、または未ログイン検索からログイン済み閲覧へ無断で切り替えません。一方、「ログイン済みタブがあるから見て」のように対象タブと利用を明示した指示は許可済みなので、同じ範囲について再確認しません。ログインが必要なら、認証は人間が行います。ただし、人間が認証しただけではログイン済み Chrome の利用許可を得たことにはなりません。別途の明示許可がない場合、エージェントは `本文: アクセス制限` として停止します。
+
+未ログインでも公式画面の全文検索候補は確認できます。個人送信の本文画像などは、ユーザーが許可した既存ログイン済み session が必要です。`ndl_onsite_only` はログインしても遠隔閲覧できません。エージェントは認証情報を要求せず、認証情報を入力しません。MCP は cookie を受け取らず、CAPTCHA やアクセス制限の回避も行いません。MCP 本体はブラウザ、ログイン、外部通信を行わず、browser agent が渡した観測値の検証と local cache/session 保存だけを担当します。
 
 検索と閲覧は別です。未ログインでも、個人送信、図書館送信、館内限定などの資料がヒットしたことと公開範囲表示を確認できる場合があります。ヒットを確認しただけなら `本文: アクセス制限` または `本文: オンライン入口あり未読` とし、本文を読んだことにはしません。
 
+検索ヒット、資料詳細、本文画像、資料内全文検索、印刷ダイアログ、PDF生成、保存は別状態です。
+
+| 対象 | schema field / enum | 状態の意味 |
+| --- | --- | --- |
+| login | `login_state`: `logged_out` / `logged_in_existing_session` | browser 観測時の既存 session 状態 |
+| 検索ヒット | `reported_total` + `total_relation`: `reported_exact` / `reported_approximate` / `observed_lower_bound` | 公式画面で表示件数を観測した範囲 |
+| 資料詳細 | `jp_lit_get_record` / `jp_lit_get_records` | 書誌と手動閲覧導線。本文画像確認とは別 |
+| 資料内全文検索 | `item_fulltext_state`: `not_checked` / `unavailable` / `available` / `searched` | `searched` だけが資料内検索を実行済み |
+| 本文画像 | `content_state`: `not_checked` / `restricted` / `viewer_available` / `page_image_checked` | `page_image_checked` だけが画像を実見済み |
+| 印刷・PDF | `print_file_state`: `not_checked` / `unavailable` / `dialog_available` / `generation_requested` / `pdf_ready` / `saved` | ダイアログ、生成依頼、PDF生成済み、保存済みを区別 |
+
 デジコレ本体の全文検索結果を取得する公開・文書化 API は確認できていないため、公式画面側の総件数、該当コマ、スニペット、公開範囲を MCP で安定して全件収集できません。API としてのページング、キャッシュ、差分比較も保証できず、ブラウザ UI やセッション状態の影響を受けます。ブラウザ確認ではこの欠落範囲を補完できますが、公開 API の代替にはなりません。
 
-公式画面を確認した場合は、query、filter、ログイン状態、確認日時、確認できたヒット表示範囲を調査ログへ残します。最終回答では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分けて明記します。
+公式画面を確認した場合は、query、filter、ログイン状態、確認日時、確認できたヒット表示範囲を調査ログへ残します。検索概要では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分け、候補一覧は canonical ID で統合した一つの候補リストにします。
 
 ```text
 文献DBで、1925年の官報で普通選挙法の公布に関する記録を探して、ページも特定してください。
@@ -491,6 +509,95 @@ jp_lit_search_fulltext(keyword="普通選挙法 公布")
 jp_lit_search_pages(source=ndl_digital, pid="...", keyword="普通選挙法 公布")
 jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=...)
 ```
+
+#### browser観測を同じsessionへ統合する
+
+API 検索と公式画面の観測には同じ `session_id` を使います。browser agent が公式画面を確認した後、次の record / refine / annotate / export を順に行います。browser の操作方法、認証情報、cookie、画像、生成 PDF、保存先 path は入力しません。
+
+```json
+{
+  "tool": "jp_lit_record_ndl_browser_search",
+  "arguments": {
+    "session_id": "<SID>",
+    "query": "普通選挙法",
+    "checked_at": "2026-09-05T12:00:00+09:00",
+    "login_state": "logged_in_existing_session",
+    "page": 1,
+    "reported_total": 1,
+    "total_relation": "reported_exact",
+    "filters": {
+      "access_scopes": ["transmission"],
+      "material_types": ["図書"],
+      "raw_labels": ["個人送信で閲覧可能"]
+    },
+    "items": [{
+      "pid": "1907653",
+      "title": "帝国憲法大要",
+      "volume": null,
+      "authors": ["斉藤隆夫"],
+      "publisher": "憲政公論社",
+      "published": "1926",
+      "viewer_url": "https://dl.ndl.go.jp/pid/1907653",
+      "access_scope": "individual_transmission",
+      "access_label": "個人送信で閲覧可能",
+      "snippets": [{
+        "text": "普通選挙法",
+        "locator_type": "koma",
+        "locator": "67"
+      }],
+      "item_fulltext_state": "searched",
+      "hit_locations": ["67–73コマ"],
+      "content_state": "page_image_checked",
+      "print_file_state": "dialog_available"
+    }]
+  }
+}
+```
+
+record の返り値にある `cache.cache_key` を控えます。同じ session の candidate result 全体を統合する場合は `session_id`、特定結果だけなら `result_refs` を使います。
+
+```json
+{
+  "tool": "jp_lit_refine_results",
+  "arguments": {
+    "session_id": "<SID>",
+    "combine": "union",
+    "key_by": "source_record",
+    "limit": 30
+  }
+}
+```
+
+```json
+{
+  "tool": "jp_lit_annotate_session",
+  "arguments": {
+    "session_id": "<SID>",
+    "tool": "jp_lit_record_ndl_browser_search",
+    "cache_key": "<record-cache-key>",
+    "selected_items": [{
+      "source": "ndl_digital",
+      "source_id": "R100000039-I1907653",
+      "title": "帝国憲法大要",
+      "label": "strong_candidate",
+      "note": "API/browser/fulltextを同一PIDで統合"
+    }]
+  }
+}
+```
+
+```json
+{
+  "tool": "jp_lit_export_session",
+  "arguments": {
+    "session_id": "<SID>",
+    "format": "json",
+    "profile": "selected"
+  }
+}
+```
+
+`result_refs` を使う場合は、`[{ "tool": "jp_lit_search", "cache_key": "..." }, { "tool": "jp_lit_search_fulltext", "cache_key": "..." }, { "tool": "jp_lit_record_ndl_browser_search", "cache_key": "..." }]` のように tool と cache key を組にします。`key_by="source_record"` では同じ PID が canonical な `source="ndl_digital"` / `source_id="R100000039-I<PID>"` で一件にまとまり、発見経路と browser observation は失われません。
 
 `jp_lit_search_fulltext` の結果に含まれる `pid` は、そのまま `jp_lit_search_pages` や `jp_lit_get_text_coordinates` に渡せます。`source_id` 経由で OCR を使う場合は、先に `jp_lit_get_record(source=ndl_digital, source_id=...)` で `source_metadata.next_digital_library.available=true` を確認しておくとスムーズです。
 

@@ -158,4 +158,58 @@ describe("README public onboarding", () => {
     expect(regionalDoc).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/pubpath");
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");
   });
+
+  it("documents the NDL browser candidate capability and post-observation calls", () => {
+    const docs = {
+      readme: readFileSync("README.md", "utf8"),
+      usage: readFileSync("docs/usage-guide.md", "utf8"),
+      reference: readFileSync("docs/reference.md", "utf8"),
+      status: readFileSync("docs/project-status.md", "utf8")
+    };
+    const publicDocs = Object.values(docs).join("\n");
+
+    for (const [name, doc] of Object.entries(docs)) {
+      expect.soft(doc, `${name}: browser record tool`).toContain(
+        "jp_lit_record_ndl_browser_search"
+      );
+      expect.soft(doc, `${name}: Next Digital boundary`).toContain(
+        "jp_lit_search_fulltext"
+      );
+    }
+
+    for (const heading of [
+      "全文候補検索",
+      "送信資料ヒット",
+      "本文画像確認",
+      "PDF状態",
+      "cache/session統合"
+    ]) {
+      expect.soft(publicDocs, heading).toContain(heading);
+    }
+
+    for (const tool of [
+      "jp_lit_record_ndl_browser_search",
+      "jp_lit_refine_results",
+      "jp_lit_annotate_session",
+      "jp_lit_export_session"
+    ]) {
+      expect.soft(docs.usage, `usage JSON: ${tool}`).toContain(
+        `\"tool\": \"${tool}\"`
+      );
+      expect.soft(docs.reference, `reference JSON: ${tool}`).toContain(
+        `\"tool\": \"${tool}\"`
+      );
+    }
+
+    expect(publicDocs).toContain("デジコレ本体の全文検索を網羅しません");
+    expect(publicDocs).toContain("一つの候補リスト");
+    expect(publicDocs).toContain("result_refs");
+    expect(publicDocs).toContain("logged_in_existing_session");
+    expect(publicDocs).toContain("page_image_checked");
+    expect(publicDocs).toContain("print_file_state");
+    expect(docs.status).toContain("公開ツール 30 種");
+    expect(publicDocs).not.toMatch(
+      /jp_lit_search_fulltext[^\n]{0,80}デジコレ全資料/
+    );
+  });
 });

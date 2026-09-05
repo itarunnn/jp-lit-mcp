@@ -23,7 +23,7 @@
 
 ## 次世代 API とデジコレ公式画面を分ける
 
-`jp_lit_search_fulltext` は次世代デジタルライブラリー API の収録資料を検索する。デジコレ本体の全文検索結果を取得する公開・文書化 API ではない。デジコレ本体では、次世代 API の範囲外にあるログインなし公開資料、個人送信・図書館送信対象、館内限定資料の全文ヒットが見える場合がある。
+`jp_lit_search_fulltext` は次世代デジタルライブラリー API の収録資料を検索する。デジコレ本体の全文検索結果を取得する公開・文書化 API ではなく、デジコレ本体の全文検索を網羅しない。デジコレ本体では、次世代 API の範囲外にあるログインなし公開資料、個人送信・図書館送信対象、館内限定資料の全文ヒットが見える場合がある。
 
 そのため、利用者がデジコレ本体の全文、網羅性、限定資料を含むヒット確認を求める場合は、MCP の検索件数にかかわらず、次の2経路を独立して計画する。
 
@@ -36,9 +36,26 @@
 
 - 既定は MCP のみで、ブラウザ操作は行わない。
 - 「デジコレ本体をブラウザでも検索して」という指示は未ログイン検索だけの許可として扱う。
-- ログイン済み Chrome は別の権限であり、明示許可なしに使わない。内蔵 Browser から Chrome へ無断で切り替えない。
-- 検索と閲覧を分ける。未ログインでも限定資料がヒットしたことや公開範囲表示を確認できる場合がある。本文閲覧にログインが必要なら一度止まる。人間が認証した事実だけではログイン済み Chrome の利用許可を得たことにならない。別途の明示許可がある場合だけ、その正規の閲覧権限内で再開する。許可がなければ `本文: アクセス制限` として、未ログインで確認できた範囲までを記録する。
-- エージェントは認証情報を要求・入力・保存せず、CAPTCHA やアクセス制限を回避しない。
+- ログイン済み Chrome は別の権限であり、明示許可なしに使わない。内蔵 Browser から Chrome へ無断で切り替えない。ただし「ログイン済みタブがあるから見て」のように利用者が対象タブと利用を明示した指示は許可済みなので、同じ範囲について再確認しない。
+- 検索と閲覧を分ける。未ログインでも公式画面の全文検索候補と公開範囲表示は確認できる場合がある。個人送信の本文画像などは利用者自身が認証した既存ログイン済み session が必要である。人間が認証した事実だけでは、その session をエージェントが使う許可にはならない。許可がなければ `本文: アクセス制限` として、未ログインで確認できた範囲までを記録する。
+- `ndl_onsite_only` はログインしても遠隔閲覧できない。国立国会図書館内での利用が必要な状態として記録する。
+- エージェントは認証情報を要求せず、認証情報を入力しない。MCP もエージェントも cookie を受け取らない。CAPTCHA を回避しない。アクセス制限を回避しない。
+- MCP 本体はブラウザ・ログイン・外部通信を行わない。browser agent が公式画面を操作し、MCP は渡された観測値の検証・正規化・local cache/session 保存だけを担当する。
+
+### 観測状態の契約
+
+検索ヒット、資料詳細、本文画像、資料内全文検索、印刷ダイアログ、PDF生成、保存は別状態である。画面を一段進んだだけで後続状態を推定せず、schema の実 enum をそのまま記録する。
+
+| 対象 | field / 状態 | 読み方 |
+| --- | --- | --- |
+| browser login | `login_state`: `logged_out` / `logged_in_existing_session` | 利用した既存 session の状態。認証情報そのものではない |
+| 検索ヒット | `reported_total` + `total_relation`: `reported_exact` / `reported_approximate` / `observed_lower_bound` | ヒット表示を観測した状態。資料詳細や本文確認を意味しない |
+| 資料詳細 | `jp_lit_get_record` / `jp_lit_get_records` の `content_access.manual_viewing` | 書誌・手動閲覧導線の確認。browser の本文状態とは別 |
+| 資料内全文検索 | `item_fulltext_state`: `not_checked` / `unavailable` / `available` / `searched` | `searched` だけが資料内検索を実行した状態 |
+| 本文画像 | `content_state`: `not_checked` / `restricted` / `viewer_available` / `page_image_checked` | `viewer_available` は画面入口、`page_image_checked` は画像を実見した状態 |
+| 印刷・PDF | `print_file_state`: `not_checked` / `unavailable` / `dialog_available` / `generation_requested` / `pdf_ready` / `saved` | 印刷ダイアログ、生成依頼、PDF生成済み、保存済みを順に分ける |
+
+filter の公開範囲は `public` / `transmission` / `ndl_onsite_only`、item の `access_scope` は `public` / `transmission_unspecified` / `individual_transmission` / `library_transmission` / `ndl_onsite_only` / `unknown` を使う。`print_file_state=saved` でも、PDF 本体や保存先は観測 schema に含めない。
 
 ### 公開 API を確認できないことによる欠点
 
@@ -49,6 +66,19 @@
 許可を得たブラウザ検索では、次世代 API の件数が0件でも1件以上でも、API 範囲外の全文ヒットと公開範囲表示を補完できる。これにより、MCP の結果をデジコレ全体の不在証明にせず、検索可能範囲を分けた調査報告にできる。
 
 ブラウザは公開 API の代替ではない。調査ログには query、filter、ログイン状態、確認日時、確認できたヒット表示範囲を残し、最終回答では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分ける。
+
+## デジコレ公式画面の候補統合
+
+許可済み browser 観測は、次の正の手順で API 候補と同じ調査 session へ合流させる。
+
+1. 同じ `session_id` で `jp_lit_search(source=ndl_digital, ...)` と `jp_lit_search_fulltext(...)` を実行し、公開 API の書誌候補と次世代デジタルライブラリー範囲を保存する。
+2. デジコレ本体の全文検索範囲が必要なら、ユーザーが許可した公式ブラウザで検索・必要範囲の閲覧を行う。
+3. 観測値を `jp_lit_record_ndl_browser_search` へ渡し、同じ `session_id` に browser candidate result を保存する。
+4. `jp_lit_refine_results(session_id=..., combine="union", key_by="source_record")` で API / browser / fulltext 候補を統合する。個別指定では `result_refs` に `{ tool, cache_key }` を渡す。
+5. 採用候補を `jp_lit_annotate_session` で同じ session に記録する。
+6. `jp_lit_export_session` で調査 session を、または `jp_lit_export_view(view="refined_results", params={ result_refs=[...] })` で統合結果を export する。
+
+同じデジコレ PID は canonical な `source="ndl_digital"` + `source_id="R100000039-I<PID>"` で一件へ merge される。書誌は API、全文 highlight は次世代 API、access/content/fulltext/print は browser observation の来歴を保つ。ユーザーには経路別の別一覧ではなく一つの候補リストを返し、item ごとに発見経路、`access`、`content`、`fulltext`、`print` を示す。検索概要と調査ログの total・取得件数・確認日時は経路別に残す。
 
 ---
 

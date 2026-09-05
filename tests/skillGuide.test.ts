@@ -291,6 +291,94 @@ describe("jp-lit-research skill guide", () => {
     expect(reference).toContain("安定した全件収集");
   });
 
+  it("normalizes authorized NDL browser observations into one candidate workflow", () => {
+    const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+    const workflow = readFileSync(
+      "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+      "utf8"
+    );
+    const workflowCore = readFileSync(
+      "skills/jp-lit-research/reference/01-core-workflow.md",
+      "utf8"
+    );
+    const evidence = readFileSync(
+      "skills/jp-lit-research/reference/03-evidence-and-output.md",
+      "utf8"
+    );
+    const skillAndReferences = `${skill}\n${workflow}\n${workflowCore}\n${evidence}`;
+
+    for (const required of [
+      "jp_lit_record_ndl_browser_search",
+      "result_refs",
+      "logged_in_existing_session",
+      "page_image_checked",
+      "print_file_state",
+      "デジコレ本体の全文検索",
+      "次世代デジタルライブラリー",
+      "館内限定",
+      "検索ヒット",
+      "資料詳細",
+      "一つの候補リスト",
+      "発見経路",
+      "access",
+      "content",
+      "fulltext",
+      "print"
+    ]) {
+      expect.soft(skillAndReferences, required).toContain(required);
+    }
+
+    const normalizedWorkflow = workflow.slice(
+      workflow.indexOf("## デジコレ公式画面の候補統合")
+    );
+    const orderedSteps = [
+      "jp_lit_search_fulltext",
+      "ユーザーが許可した",
+      "jp_lit_record_ndl_browser_search",
+      "jp_lit_refine_results",
+      "jp_lit_annotate_session",
+      "jp_lit_export_session"
+    ];
+    let previousIndex = -1;
+    for (const step of orderedSteps) {
+      const stepIndex = normalizedWorkflow.indexOf(step);
+      expect.soft(stepIndex, step).toBeGreaterThan(previousIndex);
+      previousIndex = stepIndex;
+    }
+
+    expect(skillAndReferences).toContain("ログイン済みタブがあるから見て");
+    expect(skillAndReferences).toContain("再確認しない");
+    expect(skillAndReferences).toContain("MCP 本体はブラウザ・ログイン・外部通信を行わない");
+    expect(skillAndReferences).toContain("認証情報を入力しない");
+    expect(skillAndReferences).toContain("cookie を受け取らない");
+    expect(skillAndReferences).toContain("CAPTCHA を回避しない");
+    expect(skillAndReferences).toContain("アクセス制限を回避しない");
+    expect(skillAndReferences).toContain("未ログインでも");
+    expect(skillAndReferences).toContain("個人送信");
+    expect(skillAndReferences).toContain("既存ログイン済み session");
+    expect(skillAndReferences).toContain("`ndl_onsite_only`");
+    expect(skillAndReferences).toContain("ログインしても遠隔閲覧できない");
+
+    for (const state of [
+      "logged_out",
+      "not_checked",
+      "unavailable",
+      "available",
+      "searched",
+      "restricted",
+      "viewer_available",
+      "dialog_available",
+      "generation_requested",
+      "pdf_ready",
+      "saved"
+    ]) {
+      expect.soft(skillAndReferences, state).toContain(state);
+    }
+    expect(skillAndReferences).not.toMatch(
+      /jp_lit_search_fulltext[^\n]{0,80}デジコレ全資料/
+    );
+  });
+
   it("documents rolling checkpoints and environment-neutral delegation contracts", () => {
     const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
     const workflowCore = readFileSync(
@@ -769,7 +857,7 @@ describe("jp-lit-research skill guide", () => {
       "`source_metadata.next_digital_library.available`"
     );
     expect(reference).toContain("独立して確認してください");
-    expect(projectStatus).toContain("公開ツール 29 種");
-    expect(projectStatus).toContain("81 files / 774 tests");
+    expect(projectStatus).toContain("公開ツール 30 種");
+    expect(projectStatus).toContain("fresh `npm test`");
   });
 });
