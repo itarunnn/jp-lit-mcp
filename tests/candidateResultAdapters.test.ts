@@ -397,4 +397,30 @@ describe("candidate result adapters", () => {
       browserObservation
     ]);
   });
+
+  it("日付組は issued_at の有無より tool 優先度順の最初の内容を採用する", () => {
+    const apiItem = {
+      ...searchItem,
+      issued_at: null,
+      issued_at_label: "大正15",
+      issued_at_precision: "unknown" as const
+    };
+    const fulltextItem = {
+      ...searchItem,
+      issued_at: "1926",
+      issued_at_label: "1926",
+      issued_at_precision: "year" as const
+    };
+
+    const merged = mergeSameSourceRecordItems([
+      { tool: "jp_lit_search_fulltext", item: fulltextItem },
+      { tool: "jp_lit_search", item: apiItem }
+    ]);
+
+    expect(merged).toMatchObject({
+      issued_at: null,
+      issued_at_label: "大正15",
+      issued_at_precision: "unknown"
+    });
+  });
 });

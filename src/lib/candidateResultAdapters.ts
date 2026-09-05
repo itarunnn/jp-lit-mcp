@@ -310,8 +310,10 @@ export function mergeSameSourceRecordItems(
     const value = sorted.map((entry) => read(entry.item)).find(hasValue);
     return value as T;
   };
-  const dateEntry = sorted.find((entry) => entry.item.issued_at !== null)
-    ?? sorted.find((entry) => entry.item.issued_at_label !== null)
+  const dateEntry = sorted.find(
+    (entry) =>
+      entry.item.issued_at !== null || entry.item.issued_at_label !== null
+  )
     ?? preferred;
   const dateFields = toDateFields(
     dateEntry.item.issued_at,
