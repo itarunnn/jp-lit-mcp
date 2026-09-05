@@ -6,7 +6,9 @@ import { createServer } from "../src/server.js";
 import { CACHED_TOOL_NAMES } from "../src/lib/persistence/cacheIdentity.js";
 
 const cachedExternalToolNames = [
-  ...CACHED_TOOL_NAMES,
+  ...CACHED_TOOL_NAMES.filter(
+    (toolName) => toolName !== "jp_lit_record_ndl_browser_search"
+  ),
   "jp_lit_get_records"
 ] as const;
 

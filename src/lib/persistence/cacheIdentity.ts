@@ -10,6 +10,7 @@ export const CACHED_TOOL_NAMES = [
   "jp_lit_get_fulltext",
   "jp_lit_get_record",
   "jp_lit_get_text_coordinates",
+  "jp_lit_record_ndl_browser_search",
   "jp_lit_resolve_authority",
   "jp_lit_search",
   "jp_lit_search_fulltext",

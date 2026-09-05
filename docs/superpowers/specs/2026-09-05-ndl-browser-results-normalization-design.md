@@ -163,7 +163,7 @@ tool annotation は local cache / session を更新するため `readOnlyHint=fa
 
 ## 共通 candidate result adapter
 
-`src/lib/candidateResults.ts` に candidate-producing tool の正本を置く。
+`src/lib/candidateResults.ts` に candidate-producing tool/ref の dependency-free な正本を置き、`src/lib/candidateResultAdapters.ts` に source 固有 cache output から共通候補への変換、cache 読み出し、同一 source record の統合を置く。これにより schema 側は source 固有 output schema への循環依存なしに result ref を共有できる。
 
 ```ts
 const CANDIDATE_RESULT_TOOLS = [
@@ -192,7 +192,7 @@ type CandidateResultRef = {
 
 - `jp_lit_search`: 既存 item をそのまま使う。
 - `jp_lit_search_fulltext`: PID を `ndl_digital` の canonical source ID に変換し、固有 field と highlights を `source_metadata` に保持する。既存 tool output は変更せず、adapter 上だけで共通化する。
-- browser record: output の共通 item を使う。
+- browser record: output の共通 item を使う。browser tool の厳格な output schema を追加するまでは `SearchOutput` 互換として検証し、厳格 schema 導入後に adapter の validation を差し替える。
 
 adapter が不正な cache payload を読んだ場合は、その result ref を黙って無視せず invalid-payload error とする。
 
