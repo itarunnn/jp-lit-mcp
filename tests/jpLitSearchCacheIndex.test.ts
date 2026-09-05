@@ -63,6 +63,231 @@ afterEach(async () => {
 });
 
 describe("jp_lit_search_cache_index", () => {
+  it("tool-aware identity で browser query・fulltext title・canonical source ID を横断検索する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+    const session = await sessions.startSession({
+      research_goal: "candidate cache 横断"
+    });
+    const sharedKey = fixtureCacheKey("tool-aware-shared-hash");
+    const canonicalSourceId = "R100000039-I1907653";
+
+    await sessions.appendEntry({
+      tool: "jp_lit_record_ndl_browser_search",
+      input: { query: "横断一致 ブラウザ専用検索語" },
+      cache_key: sharedKey,
+      result_ref: {
+        tool: "jp_lit_record_ndl_browser_search",
+        cache_key: sharedKey
+      },
+      selected_items: [],
+      notes: []
+    }, session.session_id);
+    await sessions.appendEntry({
+      tool: "jp_lit_search_fulltext",
+      input: { keyword: "本文語" },
+      cache_key: sharedKey,
+      result_ref: { tool: "jp_lit_search_fulltext", cache_key: sharedKey },
+      selected_items: [],
+      notes: []
+    }, session.session_id);
+
+    const browserItem = {
+      ...createSearchItem(
+        "ndl_digital",
+        canonicalSourceId,
+        "ブラウザ観測資料",
+        "1926",
+        "斉藤隆夫"
+      ),
+      url: "https://dl.ndl.go.jp/pid/1907653",
+      source_metadata: {
+        pid: "1907653",
+        candidate_origins: ["ndl_digital_browser"],
+        browser_observations: [{
+          checked_at: "2026-09-05T12:00:00+09:00",
+          login_state: "logged_in_existing_session",
+          query: "横断一致 ブラウザ専用検索語",
+          access_scope: "individual_transmission",
+          access_label: "個人送信で閲覧可能",
+          snippets: [{ text: "普通選挙法", locator_type: "koma", locator: "67" }],
+          item_fulltext_state: "searched",
+          hit_locations: ["67–73コマ"],
+          content_state: "page_image_checked",
+          print_file_state: "dialog_available"
+        }]
+      }
+    };
+    await cache.write("jp_lit_record_ndl_browser_search", {
+      version: 1,
+      tool: "jp_lit_record_ndl_browser_search",
+      cache_key: sharedKey,
+      saved_at: "2026-09-05T00:03:00.000Z",
+      input: { query: "横断一致 ブラウザ専用検索語" },
+      structured_content: {
+        query: "横断一致 ブラウザ専用検索語",
+        source: "ndl_digital",
+        page: 1,
+        limit: 100,
+        total: 1,
+        items: [browserItem],
+        observation: {
+          method: "browser",
+          service: "ndl_digital_collections",
+          checked_at: "2026-09-05T12:00:00+09:00",
+          login_state: "logged_in_existing_session",
+          reported_total: 1,
+          total_relation: "reported_exact",
+          observed_count: 1,
+          filters: {
+            access_scopes: ["transmission"],
+            material_types: ["図書"],
+            raw_labels: ["送信サービスで閲覧可能"]
+          }
+        }
+      }
+    });
+    await cache.write("jp_lit_search_fulltext", {
+      version: 1,
+      tool: "jp_lit_search_fulltext",
+      cache_key: sharedKey,
+      saved_at: "2026-09-05T00:02:00.000Z",
+      input: { keyword: "本文語" },
+      structured_content: {
+        keyword: "本文語",
+        searchfield: "contentonly",
+        total: 1,
+        from: 0,
+        items: [{
+          pid: "1907653",
+          viewer_url: "https://dl.ndl.go.jp/pid/1907653",
+          title: "横断一致 全文検索固有タイトル",
+          volume: null,
+          responsibility: "斉藤隆夫 著",
+          publisher: "憲政公論社",
+          published: "大正15",
+          publishyear: 1926,
+          ndc: "323",
+          bib_id: "000000000001",
+          call_no: "特1-1",
+          page_count: 123,
+          is_classic: false,
+          highlights: ["普通選挙法"]
+        }],
+        raw: {}
+      }
+    });
+
+    // 同じ hash の search cache は session 未登録なので、tool-aware identity なら混入しない。
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: sharedKey,
+      saved_at: "2026-09-05T00:04:00.000Z",
+      input: { query: "横断一致" },
+      structured_content: {
+        query: "横断一致",
+        source: "ndl_digital",
+        page: 1,
+        limit: 50,
+        total: 1,
+        items: [createSearchItem(
+          "ndl_digital",
+          "R100000039-I9999999",
+          "session 未登録資料",
+          "1926"
+        )]
+      }
+    });
+
+    const result = await tool({
+      query: "横断一致",
+      source: "ndl_digital",
+      issued_from: "1926",
+      issued_to: "1926"
+    });
+
+    expect(result.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_record_ndl_browser_search", cache_key: sharedKey },
+      { tool: "jp_lit_search_fulltext", cache_key: sharedKey }
+    ]);
+    expect(result.structuredContent.cache_keys).toEqual([sharedKey, sharedKey]);
+    expect(result.structuredContent.items[0]).toMatchObject({
+      tool: "jp_lit_record_ndl_browser_search",
+      result_ref: {
+        tool: "jp_lit_record_ndl_browser_search",
+        cache_key: sharedKey
+      },
+      cache_key: sharedKey,
+      source: "ndl_digital",
+      matched_fields: ["query"]
+    });
+    expect(result.structuredContent.items[1]).toMatchObject({
+      tool: "jp_lit_search_fulltext",
+      result_ref: { tool: "jp_lit_search_fulltext", cache_key: sharedKey },
+      cache_key: sharedKey,
+      source: "ndl_digital",
+      matched_fields: ["title"]
+    });
+
+    const browserQuery = await tool({ query: "ブラウザ専用検索語" });
+    expect(browserQuery.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_record_ndl_browser_search", cache_key: sharedKey }
+    ]);
+
+    const fulltextTitle = await tool({ query: "全文検索固有タイトル" });
+    expect(fulltextTitle.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_search_fulltext", cache_key: sharedKey }
+    ]);
+
+    const canonicalId = await tool({ query: canonicalSourceId });
+    expect(canonicalId.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_record_ndl_browser_search", cache_key: sharedKey },
+      { tool: "jp_lit_search_fulltext", cache_key: sharedKey }
+    ]);
+    expect(canonicalId.structuredContent.items.every(
+      (item) => item.matched_fields.includes("source_id")
+    )).toBe(true);
+  });
+
+  it("candidate-producing tool 以外の session entry は cache index に登録しない", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const key = fixtureCacheKey("non-candidate-session-entry");
+    await sessions.appendEntry({
+      tool: "jp_lit_get_record",
+      input: { source: "ndl_catalog", source_id: "id-0" },
+      cache_key: key,
+      result_ref: { tool: "jp_lit_get_record", cache_key: key },
+      selected_items: [],
+      notes: []
+    });
+    await cache.write("jp_lit_search", {
+      version: 1,
+      tool: "jp_lit_search",
+      cache_key: key,
+      saved_at: "2026-09-05T00:00:00.000Z",
+      input: { query: "candidate-only" },
+      structured_content: {
+        query: "candidate-only",
+        source: "ndl_catalog",
+        page: 1,
+        limit: 50,
+        total: 0,
+        items: []
+      }
+    });
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+
+    const result = await tool({ query: "candidate-only" });
+
+    expect(result.structuredContent.total).toBe(0);
+    expect(result.structuredContent.cache_keys).toEqual([]);
+  });
+
   it("キャッシュ横断で一致 cache_key を返す", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);

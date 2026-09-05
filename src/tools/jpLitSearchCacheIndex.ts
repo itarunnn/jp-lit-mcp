@@ -1,4 +1,14 @@
+import { readCandidateResult } from "../lib/candidateResultAdapters.js";
+import {
+  CANDIDATE_RESULT_TOOLS,
+  isCandidateResultTool
+} from "../lib/candidateResults.js";
+import type {
+  CandidateResultRef,
+  CandidateResultTool
+} from "../lib/candidateResults.js";
 import { listCacheInventory } from "../lib/persistence/cacheInventory.js";
+import type { CacheInventoryItem } from "../lib/persistence/cacheInventory.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
 import { resolveSavedDateFilter } from "../lib/savedDateFilter.js";
@@ -6,13 +16,14 @@ import {
   searchCacheIndexInputSchema,
   searchCacheIndexOutputSchema
 } from "../lib/schemas.js";
-import type {
-  SearchCacheIndexOutput,
-  SearchOutput
-} from "../lib/schemas.js";
+import type { SearchCacheIndexOutput } from "../lib/schemas.js";
+import type { SearchItem } from "../lib/types.js";
 
-type SearchItem = SearchOutput["items"][number];
 type MatchedField = "query" | "title" | "author" | "subject" | "source_id";
+
+function candidateIdentity(tool: CandidateResultTool, cacheKey: string) {
+  return `${tool}:${cacheKey}`;
+}
 
 function normalizeText(value: string) {
   return value
@@ -66,39 +77,57 @@ export function createJpLitSearchCacheIndexTool(
     const allSessions = parsed.session_id
       ? [await sessions.readById(parsed.session_id)]
       : await sessions.listAll();
-    const cacheToSessionIds = new Map<string, Set<string>>();
+    const candidateToSessionIds = new Map<string, Set<string>>();
 
     for (const session of allSessions) {
       for (const entry of session.entries) {
-        if (entry.tool !== "jp_lit_search") {
+        if (!isCandidateResultTool(entry.tool)) {
           continue;
         }
-        const set = cacheToSessionIds.get(entry.cache_key) ?? new Set<string>();
+        const identity = candidateIdentity(entry.tool, entry.cache_key);
+        const set = candidateToSessionIds.get(identity) ?? new Set<string>();
         set.add(session.session_id);
-        cacheToSessionIds.set(entry.cache_key, set);
+        candidateToSessionIds.set(identity, set);
       }
     }
 
-    const inventory = await listCacheInventory(baseDir, "jp_lit_search");
-    const cacheKeys = Array.from(
-      new Set(inventory.items.map((item) => item.cache_key))
+    const inventories = await Promise.all(
+      CANDIDATE_RESULT_TOOLS.map((tool) => listCacheInventory(baseDir, tool))
     );
+    const inventoryByIdentity = new Map<string, CacheInventoryItem>();
+    for (const item of inventories.flatMap((inventory) => inventory.items)) {
+      if (!isCandidateResultTool(item.tool)) {
+        continue;
+      }
+      const identity = candidateIdentity(item.tool, item.cache_key);
+      const existing = inventoryByIdentity.get(identity);
+      if (!existing || (existing.root === "legacy" && item.root === "current")) {
+        inventoryByIdentity.set(identity, item);
+      }
+    }
 
     const results: SearchCacheIndexOutput["items"] = [];
-    for (const cacheKey of cacheKeys) {
-      if (!cacheToSessionIds.has(cacheKey)) {
+    for (const inventoryItem of inventoryByIdentity.values()) {
+      if (!isCandidateResultTool(inventoryItem.tool)) {
         continue;
       }
-      const cached = await cache.read<SearchOutput>("jp_lit_search", cacheKey);
-      if (!cached) {
+      const identity = candidateIdentity(
+        inventoryItem.tool,
+        inventoryItem.cache_key
+      );
+      if (!candidateToSessionIds.has(identity)) {
         continue;
       }
+      const resultRef: CandidateResultRef = {
+        tool: inventoryItem.tool,
+        cache_key: inventoryItem.cache_key
+      };
+      const output = await readCandidateResult(cache, resultRef);
 
-      const output = cached.structured_content;
-      if (effectiveSavedFrom && cached.saved_at < effectiveSavedFrom) {
+      if (effectiveSavedFrom && inventoryItem.saved_at < effectiveSavedFrom) {
         continue;
       }
-      if (effectiveSavedTo && cached.saved_at > effectiveSavedTo) {
+      if (effectiveSavedTo && inventoryItem.saved_at > effectiveSavedTo) {
         continue;
       }
       if (parsed.source && output.source !== parsed.source) {
@@ -136,7 +165,9 @@ export function createJpLitSearchCacheIndexTool(
         continue;
       }
 
-      const sessionIds = Array.from(cacheToSessionIds.get(cacheKey) ?? []).filter((sessionId) =>
+      const sessionIds = Array.from(
+        candidateToSessionIds.get(identity) ?? []
+      ).filter((sessionId) =>
         targetSessionIds ? targetSessionIds.has(sessionId) : true
       );
       if (sessionIds.length === 0) {
@@ -144,9 +175,11 @@ export function createJpLitSearchCacheIndexTool(
       }
 
       results.push({
-        cache_key: cacheKey,
+        tool: inventoryItem.tool,
+        result_ref: resultRef,
+        cache_key: inventoryItem.cache_key,
         session_ids: sessionIds,
-        saved_at: cached.saved_at,
+        saved_at: inventoryItem.saved_at,
         source: output.source,
         query_preview: createPreview(output.query),
         total: output.total,
@@ -170,8 +203,20 @@ export function createJpLitSearchCacheIndexTool(
       saved_to: parsed.saved_to ?? null,
       total: results.length,
       limit: parsed.limit,
+      result_refs: limited.map(({ tool, cache_key }) => ({ tool, cache_key })),
       cache_keys: limited.map((item) => item.cache_key),
-      items: limited
+      items: limited.map((item) => ({
+        tool: item.tool,
+        result_ref: item.result_ref,
+        cache_key: item.cache_key,
+        session_ids: item.session_ids,
+        saved_at: item.saved_at,
+        source: item.source,
+        query_preview: item.query_preview,
+        total: item.total,
+        item_count: item.item_count,
+        matched_fields: item.matched_fields
+      }))
     });
 
     return {

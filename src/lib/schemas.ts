@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { candidateResultRefSchema } from "./candidateResults.js";
+import {
+  candidateResultRefSchema,
+  candidateResultToolSchema
+} from "./candidateResults.js";
 import {
   cachedToolSchema,
   cacheKeySchema
@@ -1247,9 +1250,9 @@ export const listSessionsOutputSchema = z.object({
 });
 
 export const searchCacheIndexInputSchema = z.object({
-  query: z.string().trim().min(1).describe("保存済み jp_lit_search 結果内で探す語。元の検索語、タイトル、著者、件名、source_id を NFKC 正規化して部分一致検索する。"),
-  session_id: sessionIdInputFieldSchema.optional().describe("このセッションに紐づく jp_lit_search cache だけを検索する。未指定なら全セッションに紐づく cache を対象にする。"),
-  source: optionalSourceInputFieldSchema.describe("保存済み検索結果の source を絞る。例: ndl_catalog, cinii_books。未指定なら source を問わない。"),
+  query: z.string().trim().min(1).describe("保存済み candidate result 内で探す語。元の検索語、タイトル、著者、件名、source_id を NFKC 正規化して部分一致検索する。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("このセッションに紐づく candidate result cache だけを検索する。未指定なら全セッションに紐づく cache を対象にする。"),
+  source: optionalSourceInputFieldSchema.describe("保存済み検索結果の source を絞る。例: ndl_catalog, cinii_books, ndl_digital。未指定なら source を問わない。"),
   issued_from: z.string().optional().describe("結果 item の issued_at 下限。年だけの '1900' など、既存データと同じ文字列表現で比較する。"),
   issued_to: z.string().optional().describe("結果 item の issued_at 上限。issued_from と組み合わせて刊行年範囲を絞る。"),
   saved_on: z
@@ -1274,9 +1277,12 @@ export const searchCacheIndexOutputSchema = z.object({
   saved_to: z.string().nullable(),
   total: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
+  result_refs: z.array(candidateResultRefSchema),
   cache_keys: z.array(z.string()),
   items: z.array(
     z.object({
+      tool: candidateResultToolSchema,
+      result_ref: candidateResultRefSchema,
       cache_key: z.string(),
       session_ids: z.array(z.string()),
       saved_at: z.string(),
