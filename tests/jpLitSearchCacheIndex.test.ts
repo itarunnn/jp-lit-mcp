@@ -169,6 +169,46 @@ describe("jp_lit_search_cache_index", () => {
     ]);
   });
 
+  it("inventory 後の予期しない filesystem read error を呼び出し元へ伝播する", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const key = fixtureCacheKey("unexpected-filesystem-error");
+    const target = path.join(
+      getCacheRoot(baseDir),
+      "jp_lit_search",
+      `${key}.json`
+    );
+    await appendSearchEntry(sessions, key);
+    await cache.write("jp_lit_search", createSearchEnvelope(
+      key,
+      "2026-05-02T00:00:00.000Z",
+      createSearchResult("io-error", "io-error-id")
+    ));
+
+    const originalListCacheInventory = cacheInventory.listCacheInventory;
+    let completedInventories = 0;
+    vi.spyOn(cacheInventory, "listCacheInventory").mockImplementation(
+      async (inventoryBaseDir, toolName) => {
+        const inventory = await originalListCacheInventory(
+          inventoryBaseDir,
+          toolName
+        );
+        completedInventories += 1;
+        if (completedInventories === 3) {
+          await rm(target);
+          await mkdir(target);
+        }
+        return inventory;
+      }
+    );
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+
+    await expect(tool({ query: "io-error" })).rejects.toMatchObject({
+      code: expect.stringMatching(/^(EACCES|EISDIR|EPERM)$/)
+    });
+  });
+
   it.each(["invalid_json", "invalid_structured_content"] as const)(
     "malformed current (%s) が valid legacy を遮らない",
     async (malformedKind) => {

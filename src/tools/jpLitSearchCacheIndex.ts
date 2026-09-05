@@ -52,20 +52,38 @@ async function readInventoryCandidateResult(
       if (tool !== resultRef.tool || cacheKey !== resultRef.cache_key) {
         return null;
       }
+
+      let text: string;
       try {
-        const envelope = JSON.parse(
-          await readFile(target, "utf8")
-        ) as CacheEnvelope<T>;
-        if (
-          envelope.tool !== resultRef.tool
-          || envelope.cache_key !== resultRef.cache_key
-        ) {
+        text = await readFile(target, "utf8");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
           return null;
         }
-        return envelope;
-      } catch {
+        throw error;
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          return null;
+        }
+        throw error;
+      }
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
         return null;
       }
+
+      const envelope = parsed as CacheEnvelope<T>;
+      if (
+        envelope.tool !== resultRef.tool
+        || envelope.cache_key !== resultRef.cache_key
+      ) {
+        return null;
+      }
+      return envelope;
     }
   };
 
