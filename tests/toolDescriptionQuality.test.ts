@@ -69,7 +69,7 @@ describe("tool definition quality", () => {
     expect(description).toMatch(/cinii_books|カーリル|OPAC/);
   });
 
-  it("全29 toolが副作用と外部到達性をannotationsで公開する", async () => {
+  it("全30 toolが副作用と外部到達性をannotationsで公開する", async () => {
     const tools = await listPublishedTools();
     const cachedExternalWrites = new Set(cachedExternalToolNames);
     const localReadOnly = new Set([
@@ -84,12 +84,13 @@ describe("tool definition quality", () => {
       "jp_lit_update_session_trace",
       "jp_lit_start_session",
       "jp_lit_export_session",
-      "jp_lit_export_view"
+      "jp_lit_export_view",
+      "jp_lit_record_ndl_browser_search"
     ]);
     const destructiveIdempotent = new Set(["jp_lit_delete_cache"]);
     const destructiveNonIdempotent = new Set(["jp_lit_prune_cache"]);
 
-    expect(tools).toHaveLength(29);
+    expect(tools).toHaveLength(30);
     for (const tool of tools) {
       const annotations = tool.annotations;
       expect(annotations, tool.name).toBeDefined();
@@ -173,12 +174,49 @@ describe("tool definition quality", () => {
       ["jp_lit_export_view", /exports\/|書き出|write|export/i],
       ["jp_lit_annotate_session", /保存|追記|write|session/i],
       ["jp_lit_start_session", /開始|start|lifecycle|session/i],
-      ["jp_lit_update_session_trace", /追記|更新|write|session/i]
+      ["jp_lit_update_session_trace", /追記|更新|write|session/i],
+      ["jp_lit_record_ndl_browser_search", /local write/i]
     ] as const;
 
     for (const [toolName, pattern] of expectations) {
       const tool = tools.find((candidate) => candidate.name === toolName);
       expect(tool?.description, toolName).toMatch(pattern);
+    }
+  });
+
+  it("browser観測記録toolはローカル保存境界と後続toolを一文で説明する", async () => {
+    const tools = await listPublishedTools();
+    const description = tools.find(
+      (tool) => tool.name === "jp_lit_record_ndl_browser_search"
+    )?.description ?? "";
+
+    expect(description).toMatch(/local write/i);
+    expect(description).toMatch(/デジコレ公式画面.*全文検索候補/);
+    expect(description).toMatch(/閲覧.*資料内検索.*印刷用PDF/);
+    expect(description).toMatch(/cache\/session.*保存/);
+    expect(description).toMatch(/MCP自身.*ブラウザ操作.*ログイン.*外部通信.*行わず/);
+    expect(description).toMatch(/cookie.*認証情報.*画像.*PDF本体.*path.*受け取らない/i);
+    for (const downstreamTool of [
+      "jp_lit_refine_results",
+      "jp_lit_search_cache_index",
+      "jp_lit_annotate_session",
+      "jp_lit_export_view",
+      "jp_lit_export_session"
+    ]) {
+      expect(description).toContain(downstreamTool);
+    }
+  });
+
+  it("refineとcache indexは三candidate toolのresult refを説明する", async () => {
+    const tools = await listPublishedTools();
+
+    for (const toolName of ["jp_lit_refine_results", "jp_lit_search_cache_index"]) {
+      const description =
+        tools.find((tool) => tool.name === toolName)?.description ?? "";
+      expect(description, toolName).toContain("jp_lit_search");
+      expect(description, toolName).toContain("jp_lit_search_fulltext");
+      expect(description, toolName).toContain("jp_lit_record_ndl_browser_search");
+      expect(description, toolName).toMatch(/result_ref/);
     }
   });
 
