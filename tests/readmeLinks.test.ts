@@ -8,23 +8,10 @@ import {
   refineResultsInputSchema,
   sourceSchema
 } from "../src/lib/schemas.js";
-
-type JsonToolCall = {
-  tool: string;
-  arguments: unknown;
-};
-
-function extractJsonToolCall(markdown: string, tool: string): JsonToolCall {
-  const block = [...markdown.matchAll(/```json\s*\r?\n([\s\S]*?)\r?\n```/g)]
-    .map((match) => match[1])
-    .find((candidate) => candidate.includes(`"tool": "${tool}"`));
-
-  if (!block) {
-    throw new Error(`JSON example not found for ${tool}`);
-  }
-
-  return JSON.parse(block) as JsonToolCall;
-}
+import {
+  extractJsonToolCall,
+  findForbiddenBrowserClaims
+} from "./helpers/browserDocumentContracts.js";
 
 function extractCapabilityTable(markdown: string) {
   const header = "| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |";
@@ -62,6 +49,60 @@ function githubHeadingSlugs(markdown: string) {
 
   return slugs;
 }
+
+describe("browser document contract helpers", () => {
+  it.each([
+    ["mcp_performs_browser_operations", "MCP 本体がブラウザ操作を行う。"],
+    ["mcp_performs_browser_operations", "ブラウザ操作は MCP 本体が担当する。"],
+    ["search_hit_means_body_confirmed", "検索ヒットを本文確認済みとして扱う。"],
+    ["search_hit_means_body_confirmed", "本文確認済みは検索ヒットを意味する。"],
+    ["dialog_means_pdf_saved", "dialog_available ならPDF保存済み。"],
+    ["dialog_means_pdf_saved", "PDF保存済みは dialog_available を意味する。"],
+    ["onsite_login_allows_remote_access", "ndl_onsite_only はログイン済みなら遠隔可。"],
+    ["onsite_login_allows_remote_access", "ログインすれば遠隔閲覧できるのが ndl_onsite_only です。"]
+  ] as const)("detects forbidden %s claims independently of word order", (relation, text) => {
+    expect(findForbiddenBrowserClaims(text)).toEqual([
+      expect.objectContaining({ relation })
+    ]);
+  });
+
+  it.each([
+    "MCP 本体はブラウザ操作を行わない。",
+    "検索ヒットを本文確認済みとして扱わない。",
+    "dialog_available は PDF 保存済みを意味しない。",
+    "ndl_onsite_only はログインしても遠隔閲覧できない。"
+  ])("does not flag an explicit negative contract: %s", (text) => {
+    expect(findForbiddenBrowserClaims(text)).toEqual([]);
+  });
+
+  it("selects a minified JSON tool wrapper by parsed.tool", () => {
+    const markdown = [
+      "```json",
+      '{"tool":"jp_lit_refine_results","arguments":{"session_id":"2026-09-05-120000-a1b2c3d4"}}',
+      "```"
+    ].join("\n");
+
+    expect(extractJsonToolCall(markdown, "jp_lit_refine_results")).toEqual({
+      tool: "jp_lit_refine_results",
+      arguments: { session_id: "2026-09-05-120000-a1b2c3d4" }
+    });
+  });
+
+  it("parses every JSON fence before selecting a tool wrapper", () => {
+    const markdown = [
+      "```json",
+      '{"tool":"broken","arguments":}',
+      "```",
+      "```json",
+      '{"tool": "jp_lit_refine_results", "arguments": {}}',
+      "```"
+    ].join("\n");
+
+    expect(() => extractJsonToolCall(markdown, "jp_lit_refine_results")).toThrow(
+      "Invalid JSON fence 1"
+    );
+  });
+});
 
 describe("README public onboarding", () => {
   it("links to install guides", () => {
@@ -249,15 +290,7 @@ describe("README public onboarding", () => {
         "`ndl_onsite_only` はログインしても遠隔不可"
       );
 
-      const forbiddenAssertions = [
-        /`?ndl_onsite_only`?.{0,40}ログイン(?:済み)?(?:なら|で|すれば).{0,40}遠隔閲覧(?:可能|できる|可)/,
-        /MCP 本体(?:が|は).{0,20}(?:ブラウザ|browser).{0,20}(?:ログイン|login).{0,20}(?:外部通信|network).{0,20}(?:を行う。|を実行する。|を担当する。)/,
-        /検索ヒット(?:だけ)?(?:は|なら|=).{0,20}本文(?:を)?確認済み/,
-        /`?dialog_available`?(?:\s*=\s*|.{0,12}(?:は|を意味する)).{0,12}(?:PDF)?保存済み/
-      ];
-      for (const forbidden of forbiddenAssertions) {
-        expect.soft(doc, `${name}: ${forbidden}`).not.toMatch(forbidden);
-      }
+      expect.soft(findForbiddenBrowserClaims(doc), `${name}: forbidden claims`).toEqual([]);
     }
 
     expect(docs.status).toContain("公開ツール 30 種");
@@ -267,7 +300,15 @@ describe("README public onboarding", () => {
       docs.readme.indexOf("\n### ", docs.readme.indexOf("### NDL デジタルコレクション系の OCR 全文を探す") + 4)
     );
     const relativeLinks = [...browserSection.matchAll(/\[[^\]]+\]\((docs\/[^)#]+\.md)#([^)]+)\)/g)];
-    expect(relativeLinks).toHaveLength(2);
+    const requiredLinks = [
+      ["docs/usage-guide.md", "browser観測を同じsessionへ統合する"],
+      ["docs/reference.md", "jp_lit_record_ndl_browser_search"]
+    ];
+    for (const [targetPath, anchor] of requiredLinks) {
+      expect
+        .soft(relativeLinks.some((link) => link[1] === targetPath && link[2] === anchor), `${targetPath}#${anchor}`)
+        .toBe(true);
+    }
     for (const [, targetPath, anchor] of relativeLinks) {
       expect.soft(existsSync(targetPath), targetPath).toBe(true);
       if (!existsSync(targetPath)) {
@@ -279,9 +320,22 @@ describe("README public onboarding", () => {
   });
 
   it("parses the public browser workflow JSON examples and validates every tool argument schema", () => {
+    const usage = readFileSync("docs/usage-guide.md", "utf8");
+    const reference = readFileSync("docs/reference.md", "utf8");
+    const usageStart = usage.indexOf("#### browser観測を同じsessionへ統合する");
+    const usageEnd = usage.indexOf("\n---", usageStart);
+    const referenceRecordStart = reference.indexOf("#### `jp_lit_record_ndl_browser_search`");
+    const referenceRecordEnd = reference.indexOf("\n#### ", referenceRecordStart + 5);
+    const referenceWorkflowStart = reference.indexOf(
+      "### API・browser・fulltext候補を統合して注釈・exportする"
+    );
+    const referenceWorkflowEnd = reference.indexOf("\n### ", referenceWorkflowStart + 4);
     const docs = {
-      usage: readFileSync("docs/usage-guide.md", "utf8"),
-      reference: readFileSync("docs/reference.md", "utf8")
+      usage: usage.slice(usageStart, usageEnd),
+      reference: [
+        reference.slice(referenceRecordStart, referenceRecordEnd),
+        reference.slice(referenceWorkflowStart, referenceWorkflowEnd)
+      ].join("\n")
     };
     const schemas = {
       jp_lit_record_ndl_browser_search: recordNdlBrowserSearchInputSchema,
