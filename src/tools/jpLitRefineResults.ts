@@ -1,5 +1,14 @@
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import {
+  mergeSameSourceRecordItems,
+  readCandidateResult
+} from "../lib/candidateResultAdapters.js";
+import {
+  isCandidateResultTool,
+  type CandidateResultRef,
+  type CandidateResultTool
+} from "../lib/candidateResults.js";
 import { buildDuplicateClusters } from "../lib/duplicateClustering.js";
 import type {
   DuplicateCluster,
@@ -12,12 +21,18 @@ import {
   refineResultsOutputSchema
 } from "../lib/schemas.js";
 import type { EnrichRecordOutput, RefineResultsOutput, SearchOutput } from "../lib/schemas.js";
+import type { SearchItem } from "../lib/types.js";
 import { normalizeDoi, normalizeTitleForMatch } from "../sources/externalWork/matching.js";
 
 type RefineItem = SearchOutput["items"][number];
 type RefineInput = ReturnType<typeof refineResultsInputSchema.parse>;
 type SessionDocument = Awaited<ReturnType<SessionStore["readCurrent"]>>;
 type EnrichRecordMatch = EnrichRecordOutput["matches"][number];
+
+interface CandidateItemGroup {
+  tool: CandidateResultTool;
+  items: SearchItem[];
+}
 
 const CONFIDENCE_WEIGHT: Record<ExternalBibliographicMatchConfidence, number> = {
   high: 3,
@@ -251,31 +266,56 @@ function enrichClusters(
   });
 }
 
-async function resolveBaseCacheKeys(input: RefineInput, sessions: SessionStore) {
-  if (input.cache_keys && input.cache_keys.length > 0) {
-    return Array.from(new Set(input.cache_keys));
+function uniqueResultRefs(refs: CandidateResultRef[]) {
+  const seen = new Set<string>();
+  return refs.filter((ref) => {
+    const key = `${ref.tool}:${ref.cache_key}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+async function resolveBaseResultRefs(
+  input: RefineInput,
+  sessions: SessionStore
+): Promise<CandidateResultRef[]> {
+  if (input.result_refs) {
+    return uniqueResultRefs(input.result_refs);
+  }
+
+  if (input.result_ref) {
+    return [input.result_ref];
+  }
+
+  if (input.cache_keys) {
+    return uniqueResultRefs(
+      input.cache_keys.map((cache_key) => ({ tool: "jp_lit_search", cache_key }))
+    );
+  }
+
+  if (input.cache_key) {
+    return [{ tool: "jp_lit_search", cache_key: input.cache_key }];
   }
 
   if (input.session_id) {
     const session = await sessions.readById(input.session_id);
-    const keys = Array.from(
-      new Set(
-        session.entries
-          .filter((entry) => entry.tool === "jp_lit_search")
-          .map((entry) => entry.cache_key)
+    const refs = uniqueResultRefs(
+      session.entries.flatMap((entry): CandidateResultRef[] =>
+        isCandidateResultTool(entry.tool)
+          ? [{ tool: entry.tool, cache_key: entry.cache_key }]
+          : []
       )
     );
-    if (keys.length === 0) {
-      throw new Error(`session_id=${input.session_id} に jp_lit_search の結果がありません`);
+    if (refs.length === 0) {
+      throw new Error(`session_id=${input.session_id} に candidate result がありません`);
     }
-    return keys;
+    return refs;
   }
 
-  if (input.cache_key) {
-    return [input.cache_key];
-  }
-
-  return [input.cache_key!];
+  return [];
 }
 
 function collectEnrichmentCacheKeys(session: SessionDocument) {
@@ -351,7 +391,7 @@ function buildItemKey(item: RefineItem, keyBy: RefineInput["key_by"]) {
 }
 
 function combineItems(
-  groups: RefineItem[][],
+  groups: CandidateItemGroup[],
   input: RefineInput
 ) {
   if (groups.length === 0) {
@@ -359,10 +399,51 @@ function combineItems(
   }
 
   const keyBy = input.key_by;
+  const itemGroups = groups.map((group) => group.items);
+
+  if (keyBy === "source_record" && input.combine === "union") {
+    const grouped = new Map<
+      string,
+      Array<{ tool: CandidateResultTool; item: SearchItem }>
+    >();
+    for (const group of groups) {
+      for (const item of group.items) {
+        const key = buildItemKey(item, keyBy);
+        const entries = grouped.get(key) ?? [];
+        entries.push({ tool: group.tool, item });
+        grouped.set(key, entries);
+      }
+    }
+    return Array.from(grouped.values()).map(mergeSameSourceRecordItems);
+  }
+
+  if (keyBy === "source_record" && input.combine === "intersection") {
+    const restSets = itemGroups.slice(1).map((group) =>
+      new Set(group.map((item) => buildItemKey(item, keyBy)))
+    );
+    const selectedKeys: string[] = [];
+    const selected = new Set<string>();
+    for (const item of itemGroups[0] ?? []) {
+      const key = buildItemKey(item, keyBy);
+      if (!selected.has(key) && restSets.every((set) => set.has(key))) {
+        selected.add(key);
+        selectedKeys.push(key);
+      }
+    }
+
+    return selectedKeys.map((key) => mergeSameSourceRecordItems(
+      groups.flatMap((group) =>
+        group.items
+          .filter((item) => buildItemKey(item, keyBy) === key)
+          .map((item) => ({ tool: group.tool, item }))
+      )
+    ));
+  }
+
   if (input.combine === "union") {
     const merged: RefineItem[] = [];
     const seen = new Set<string>();
-    for (const group of groups) {
+    for (const group of itemGroups) {
       for (const item of group) {
         const key = buildItemKey(item, keyBy);
         if (seen.has(key)) {
@@ -376,8 +457,8 @@ function combineItems(
   }
 
   if (input.combine === "intersection") {
-    const first = groups[0] ?? [];
-    const restSets = groups.slice(1).map((group) =>
+    const first = itemGroups[0] ?? [];
+    const restSets = itemGroups.slice(1).map((group) =>
       new Set(group.map((item) => buildItemKey(item, keyBy)))
     );
     const used = new Set<string>();
@@ -394,9 +475,9 @@ function combineItems(
     });
   }
 
-  const first = groups[0] ?? [];
+  const first = itemGroups[0] ?? [];
   const minusSet = new Set(
-    groups
+    itemGroups
       .slice(1)
       .flatMap((group) => group.map((item) => buildItemKey(item, keyBy)))
   );
@@ -496,28 +577,22 @@ export function createJpLitRefineResultsTool(
   return async (input: unknown) => {
     const parsed = refineResultsInputSchema.parse(input);
     const enrichmentEntries = await readEnrichmentEntries(parsed, cache, sessions);
-    const cacheKeys = await resolveBaseCacheKeys(parsed, sessions);
-    const cachedResults = await Promise.all(
-      cacheKeys.map(async (cacheKey) => {
-        const cached = await cache.read<SearchOutput>("jp_lit_search", cacheKey);
-        if (!cached) {
-          throw new Error(`cache_key=${cacheKey} のキャッシュが見つかりません`);
-        }
-        return {
-          cache_key: cacheKey,
-          items: cached.structured_content.items
-        };
-      })
+    const resultRefs = await resolveBaseResultRefs(parsed, sessions);
+    const candidateResults = await Promise.all(
+      resultRefs.map((ref) => readCandidateResult(cache, ref))
     );
     const combinedItems = combineItems(
-      cachedResults.map((result) => result.items),
+      candidateResults.map((result) => ({
+        tool: result.ref.tool,
+        items: result.items
+      })),
       parsed
     );
     const filteredItems = applyFilters(combinedItems, parsed);
     const sortedItems = applySort(filteredItems, parsed);
     const slicedItems = sortedItems.slice(parsed.offset, parsed.offset + parsed.limit);
     const rawUnionClusterCandidates = applySort(
-      applyFilters(cachedResults.flatMap((result) => result.items), parsed),
+      applyFilters(candidateResults.flatMap((result) => result.items), parsed),
       parsed
     );
     const clusterCandidates =
@@ -534,12 +609,15 @@ export function createJpLitRefineResultsTool(
       : undefined;
 
     const structuredContent: RefineResultsOutput = refineResultsOutputSchema.parse({
-      base_cache_key: cacheKeys[0],
-      base_cache_keys: cacheKeys,
+      base_cache_key: resultRefs[0]!.cache_key,
+      base_cache_keys: resultRefs.map((ref) => ref.cache_key),
+      base_result_ref: resultRefs[0],
+      base_result_refs: resultRefs,
       combine: parsed.combine,
       key_by: parsed.key_by,
-      totals_by_base: cachedResults.map((entry) => ({
-        cache_key: entry.cache_key,
+      totals_by_base: candidateResults.map((entry) => ({
+        tool: entry.ref.tool,
+        cache_key: entry.ref.cache_key,
         total: entry.items.length
       })),
       total_before: combinedItems.length,

@@ -7,8 +7,10 @@ import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import type { SessionEntry } from "../src/lib/persistence/types.js";
+import type { CandidateResultTool } from "../src/lib/candidateResults.js";
 import type { SearchItem } from "../src/lib/types.js";
 import type { EnrichRecordOutput } from "../src/lib/schemas.js";
+import { createJpLitRecordNdlBrowserSearchTool } from "../src/tools/jpLitRecordNdlBrowserSearch.js";
 import { createJpLitRefineResultsTool } from "../src/tools/jpLitRefineResults.js";
 
 const tempDirs: string[] = [];
@@ -67,6 +69,20 @@ function createSearchEntry(cacheKey: string): SessionEntry {
       tool: "jp_lit_search",
       cache_key: cacheKey
     },
+    selected_items: [],
+    notes: []
+  };
+}
+
+function createCandidateEntry(
+  tool: CandidateResultTool,
+  cacheKey: string
+): SessionEntry {
+  return {
+    tool,
+    input: { query: "普通選挙法" },
+    cache_key: cacheKey,
+    result_ref: { tool, cache_key: cacheKey },
     selected_items: [],
     notes: []
   };
@@ -208,6 +224,132 @@ function createDoiOnlyEnrichOutput(): EnrichRecordOutput {
   };
 }
 
+async function setupThreeRouteCandidates() {
+  const baseDir = await createTempDir();
+  const cache = createFileCache(baseDir);
+  const sessions = createSessionStore(baseDir);
+  const session = await sessions.startSession({ research_goal: "三経路候補統合" });
+  const sharedCacheKey = fixtureCacheKey("three-route-shared-key");
+  const canonicalSourceId = "R100000039-I1907653";
+  const apiItem = {
+    ...createSearchItem(
+      "ndl_digital",
+      canonicalSourceId,
+      "帝国憲法大要（NDL Search 正式書誌）",
+      "1926",
+      false,
+      "斉藤隆夫"
+    ),
+    publisher: "憲政公論社",
+    source_metadata: {
+      pid: "1907653",
+      provider_id: "ndl-dl"
+    }
+  };
+
+  await cache.write("jp_lit_search", {
+    version: 1,
+    tool: "jp_lit_search",
+    cache_key: sharedCacheKey,
+    saved_at: "2026-09-05T00:00:00.000Z",
+    input: { query: "普通選挙法" },
+    structured_content: {
+      query: "普通選挙法",
+      source: "ndl_digital",
+      page: 1,
+      limit: 50,
+      total: 1,
+      items: [apiItem]
+    }
+  });
+  await sessions.appendEntry(
+    createCandidateEntry("jp_lit_search", sharedCacheKey),
+    session.session_id
+  );
+
+  await cache.write("jp_lit_search_fulltext", {
+    version: 1,
+    tool: "jp_lit_search_fulltext",
+    cache_key: sharedCacheKey,
+    saved_at: "2026-09-05T00:01:00.000Z",
+    input: { keyword: "普通選挙法" },
+    structured_content: {
+      keyword: "普通選挙法",
+      searchfield: "contentonly",
+      total: 1,
+      from: 0,
+      items: [{
+        pid: "1907653",
+        viewer_url: "https://dl.ndl.go.jp/pid/1907653",
+        title: "帝国憲法大要（全文検索候補）",
+        volume: null,
+        responsibility: "斉藤隆夫 著",
+        publisher: null,
+        published: "大正15",
+        publishyear: 1926,
+        ndc: "323",
+        bib_id: "000000000001",
+        call_no: "特1-1",
+        page_count: 123,
+        is_classic: false,
+        highlights: ["普通選挙法"]
+      }],
+      raw: {}
+    }
+  });
+  await sessions.appendEntry(
+    createCandidateEntry("jp_lit_search_fulltext", sharedCacheKey),
+    session.session_id
+  );
+
+  const recordBrowserResult = createJpLitRecordNdlBrowserSearchTool(cache, sessions);
+  const browserInput = {
+    session_id: session.session_id,
+    query: "普通選挙法",
+    checked_at: "2026-09-05T12:00:00+09:00",
+    login_state: "logged_in_existing_session",
+    page: 1,
+    reported_total: 1,
+    total_relation: "reported_exact",
+    filters: {
+      access_scopes: ["transmission"],
+      material_types: ["図書"],
+      raw_labels: ["送信サービスで閲覧可能"]
+    },
+    items: [{
+      pid: "1907653",
+      title: "帝国憲法大要（ブラウザ観測）",
+      volume: null,
+      authors: ["斉藤隆夫"],
+      publisher: null,
+      published: "1926",
+      viewer_url: "https://dl.ndl.go.jp/pid/1907653",
+      access_scope: "individual_transmission",
+      access_label: "個人送信で閲覧可能",
+      snippets: [{ text: "普通選挙法", locator_type: "koma", locator: "67" }],
+      item_fulltext_state: "searched",
+      hit_locations: ["67–73コマ"],
+      content_state: "page_image_checked",
+      print_file_state: "dialog_available"
+    }]
+  } as const;
+  const browserResult = await recordBrowserResult(browserInput);
+  await recordBrowserResult(browserInput);
+  const browserCacheKey = browserResult.structuredContent.cache.cache_key;
+
+  return {
+    cache,
+    sessions,
+    sessionId: session.session_id,
+    searchRef: { tool: "jp_lit_search" as const, cache_key: sharedCacheKey },
+    fulltextRef: { tool: "jp_lit_search_fulltext" as const, cache_key: sharedCacheKey },
+    browserRef: {
+      tool: "jp_lit_record_ndl_browser_search" as const,
+      cache_key: browserCacheKey
+    }
+  };
+}
+
 afterEach(async () => {
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
@@ -215,6 +357,152 @@ afterEach(async () => {
 });
 
 describe("jp_lit_refine_results", () => {
+  it("result_ref で fulltext cache を選び result ref と tool 付き total を返す", async () => {
+    const setup = await setupThreeRouteCandidates();
+    const tool = createJpLitRefineResultsTool(setup.cache, setup.sessions);
+
+    const result = await tool({ result_ref: setup.fulltextRef });
+
+    expect(result.structuredContent).toMatchObject({
+      base_cache_key: setup.fulltextRef.cache_key,
+      base_cache_keys: [setup.fulltextRef.cache_key],
+      base_result_ref: setup.fulltextRef,
+      base_result_refs: [setup.fulltextRef],
+      totals_by_base: [{ ...setup.fulltextRef, total: 1 }],
+      total_before: 1,
+      total_after: 1,
+      items: [{
+        source: "ndl_digital",
+        source_id: "R100000039-I1907653",
+        source_metadata: {
+          next_digital_library_fulltext: {
+            highlights: ["普通選挙法"]
+          }
+        }
+      }]
+    });
+  });
+
+  it("session_id で三経路を tool:cache_key 単位に選び同一 PID を一候補へ統合する", async () => {
+    const setup = await setupThreeRouteCandidates();
+    const tool = createJpLitRefineResultsTool(setup.cache, setup.sessions);
+
+    const result = await tool({ session_id: setup.sessionId });
+
+    expect(result.structuredContent.base_result_refs).toEqual([
+      setup.searchRef,
+      setup.fulltextRef,
+      setup.browserRef
+    ]);
+    expect(result.structuredContent.totals_by_base).toEqual([
+      { ...setup.searchRef, total: 1 },
+      { ...setup.fulltextRef, total: 1 },
+      { ...setup.browserRef, total: 1 }
+    ]);
+    expect(result.structuredContent.items).toHaveLength(1);
+    expect(result.structuredContent.items[0]).toMatchObject({
+      source: "ndl_digital",
+      source_id: "R100000039-I1907653",
+      title: "帝国憲法大要（NDL Search 正式書誌）",
+      publisher: "憲政公論社",
+      availability: { online: true, digital_collection: true },
+      source_metadata: {
+        candidate_origins: [
+          "jp_lit_search",
+          "ndl_digital_browser",
+          "next_digital_library_fulltext"
+        ],
+        browser_observations: [{
+          access_scope: "individual_transmission",
+          snippets: [{ text: "普通選挙法", locator_type: "koma", locator: "67" }]
+        }],
+        next_digital_library_fulltext: {
+          highlights: ["普通選挙法"]
+        }
+      }
+    });
+  });
+
+  it("source_record intersection でも一致した三経路の field と provenance を統合する", async () => {
+    const setup = await setupThreeRouteCandidates();
+    const tool = createJpLitRefineResultsTool(setup.cache, setup.sessions);
+
+    const result = await tool({
+      result_refs: [setup.fulltextRef, setup.browserRef, setup.searchRef],
+      combine: "intersection",
+      key_by: "source_record"
+    });
+
+    expect(result.structuredContent.items).toHaveLength(1);
+    expect(result.structuredContent.items[0]).toMatchObject({
+      title: "帝国憲法大要（NDL Search 正式書誌）",
+      publisher: "憲政公論社",
+      source_metadata: {
+        candidate_origins: [
+          "jp_lit_search",
+          "ndl_digital_browser",
+          "next_digital_library_fulltext"
+        ]
+      }
+    });
+  });
+
+  it.each(["duplicate_key", "title_author_year"] as const)(
+    "%s は別 source の field/provenance を merge せず先頭 representative を保つ",
+    async (keyBy) => {
+      const baseDir = await createTempDir();
+      const cache = createFileCache(baseDir);
+      const sessions = createSessionStore(baseDir);
+      const tool = createJpLitRefineResultsTool(cache, sessions);
+      const firstKey = fixtureCacheKey(`${keyBy}-first`);
+      const secondKey = fixtureCacheKey(`${keyBy}-second`);
+      const first = {
+        ...createSearchItem("ndl_catalog", "first", "同一視候補", "1926", false, "斉藤隆夫"),
+        duplicate_key: "shared-duplicate-key",
+        source_metadata: { representative: "first" }
+      };
+      const second = {
+        ...createSearchItem("cinii_books", "second", "同一視候補", "1926", true, "斉藤隆夫"),
+        duplicate_key: "shared-duplicate-key",
+        publisher: "混ぜてはいけない出版社",
+        source_metadata: { representative: "second", extra: "must-not-merge" }
+      };
+
+      for (const [cacheKey, item] of [[firstKey, first], [secondKey, second]] as const) {
+        await cache.write("jp_lit_search", {
+          version: 1,
+          tool: "jp_lit_search",
+          cache_key: cacheKey,
+          saved_at: "2026-09-05T00:00:00.000Z",
+          input: { query: "同一視候補" },
+          structured_content: {
+            query: "同一視候補",
+            source: null,
+            page: 1,
+            limit: 50,
+            total: 1,
+            items: [item]
+          }
+        });
+      }
+
+      const result = await tool({
+        cache_keys: [firstKey, secondKey],
+        combine: "union",
+        key_by: keyBy
+      });
+
+      expect(result.structuredContent.items).toHaveLength(1);
+      expect(result.structuredContent.items[0]).toMatchObject({
+        source: "ndl_catalog",
+        source_id: "first",
+        publisher: null,
+        source_metadata: { representative: "first" }
+      });
+      expect(result.structuredContent.items[0]?.source_metadata).not.toHaveProperty("extra");
+    }
+  );
+
   it("session_id で選んだ jp_lit_search 結果を issued_at で昇順ソートする", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
@@ -257,7 +545,7 @@ describe("jp_lit_refine_results", () => {
     expect(result.structuredContent.total_before).toBe(3);
     expect(result.structuredContent.total_after).toBe(3);
     expect(result.structuredContent.totals_by_base).toEqual([
-      { cache_key: cacheKey, total: 3 }
+      { tool: "jp_lit_search", cache_key: cacheKey, total: 3 }
     ]);
     expect(result.structuredContent.items.map((item) => item.source_id)).toEqual([
       "a",
@@ -606,7 +894,7 @@ describe("jp_lit_refine_results", () => {
     ]);
   });
 
-  it("jp_lit_search 結果が無い場合はエラーを返す", async () => {
+  it("candidate result が無い場合はエラーを返す", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
     const sessions = createSessionStore(baseDir);
@@ -614,7 +902,7 @@ describe("jp_lit_refine_results", () => {
     const session = await sessions.readCurrent();
 
     await expect(tool({ session_id: session.session_id })).rejects.toThrow(
-      `session_id=${session.session_id} に jp_lit_search の結果がありません`
+      `session_id=${session.session_id} に candidate result がありません`
     );
   });
 

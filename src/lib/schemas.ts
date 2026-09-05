@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { candidateResultRefSchema } from "./candidateResults.js";
 import {
   cachedToolSchema,
   cacheKeySchema
@@ -1474,9 +1475,11 @@ const duplicateClusterSummarySchema = z.object({
 });
 
 export const refineResultsInputSchema = z.object({
-  cache_key: cacheKeyInputFieldSchema.optional().describe("再抽出する単一の jp_lit_search cache_key。cache_keys / session_id と同時指定しない。"),
-  cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("集合演算する複数の jp_lit_search cache_key。cache_key / session_id と同時指定しない。"),
-  session_id: sessionIdInputFieldSchema.optional().describe("セッションに紐づく検索 cache を対象にする場合のセッションID。cache_key / cache_keys と同時指定しない。"),
+  cache_key: cacheKeyInputFieldSchema.optional().describe("再抽出する単一の jp_lit_search cache_key。ほかの selector と同時指定しない。"),
+  cache_keys: z.array(cacheKeyInputFieldSchema).min(1).optional().describe("集合演算する複数の jp_lit_search cache_key。ほかの selector と同時指定しない。"),
+  result_ref: candidateResultRefSchema.optional().describe("再抽出する単一の candidate result ref。ほかの selector と同時指定しない。"),
+  result_refs: z.array(candidateResultRefSchema).min(1).optional().describe("集合演算する複数の candidate result ref。ほかの selector と同時指定しない。"),
+  session_id: sessionIdInputFieldSchema.optional().describe("セッションに紐づく candidate result を対象にする場合のセッションID。ほかの selector と同時指定しない。"),
   combine: z.enum(["union", "intersection", "minus"]).default("union").describe("複数 cache の集合演算。union は和集合、intersection は積集合、minus は先頭から後続を除外する。"),
   key_by: z
     .enum(["source_record", "duplicate_key", "title_author_year"])
@@ -1494,13 +1497,19 @@ export const refineResultsInputSchema = z.object({
   cluster_member_limit: z.number().int().positive().default(5).describe("各重複クラスタで preview する member の最大件数。"),
   filters: refineResultsFiltersSchema.optional().describe("保存済み結果に対するローカル filter。upstream 再検索は行わない。")
 }).superRefine((input, context) => {
-  const selectors = [input.cache_key, input.cache_keys, input.session_id]
+  const selectors = [
+    input.cache_key,
+    input.cache_keys,
+    input.result_ref,
+    input.result_refs,
+    input.session_id
+  ]
     .filter((value) => value !== undefined);
   if (selectors.length !== 1) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["session_id"],
-      message: "cache_key、cache_keys、session_id のいずれか1つだけを指定してください"
+      message: "cache_key、cache_keys、result_ref、result_refs、session_id のいずれか1つだけを指定してください"
     });
   }
   if (
@@ -1519,11 +1528,12 @@ export const refineResultsInputSchema = z.object({
 export const refineResultsOutputSchema = z.object({
   base_cache_key: z.string(),
   base_cache_keys: z.array(z.string()),
+  base_result_ref: candidateResultRefSchema,
+  base_result_refs: z.array(candidateResultRefSchema),
   combine: z.enum(["union", "intersection", "minus"]),
   key_by: z.enum(["source_record", "duplicate_key", "title_author_year"]),
   totals_by_base: z.array(
-    z.object({
-      cache_key: z.string(),
+    candidateResultRefSchema.extend({
       total: z.number().int().nonnegative()
     })
   ),

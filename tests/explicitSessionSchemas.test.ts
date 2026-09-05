@@ -12,6 +12,7 @@ import {
   guidesManualsInputSchema,
   recordInputSchema,
   refineResultsInputSchema,
+  refineResultsOutputSchema,
   recordsInputSchema,
   resolveAuthorityInputSchema,
   searchFulltextInputSchema,
@@ -28,6 +29,7 @@ import {
 
 const SESSION_ID = "2026-08-08-120000-a1b2c3d4";
 const CACHE_KEY = createCacheKey("jp_lit_search", { query: "遊び" });
+const FULLTEXT_CACHE_KEY = createCacheKey("jp_lit_search_fulltext", { keyword: "遊び" });
 
 const cases: Array<{
   name: string;
@@ -141,11 +143,38 @@ describe("explicit research session schemas", () => {
   it("requires exactly one explicit selector for jp_lit_refine_results", () => {
     expect(refineResultsInputSchema.safeParse({}).success).toBe(false);
     expect(refineResultsInputSchema.safeParse({ cache_key: CACHE_KEY }).success).toBe(true);
+    expect(refineResultsInputSchema.safeParse({ cache_keys: [CACHE_KEY] }).success).toBe(true);
+    expect(refineResultsInputSchema.safeParse({
+      result_ref: {
+        tool: "jp_lit_search_fulltext",
+        cache_key: FULLTEXT_CACHE_KEY
+      }
+    }).success).toBe(true);
+    expect(refineResultsInputSchema.safeParse({
+      result_refs: [{
+        tool: "jp_lit_search",
+        cache_key: CACHE_KEY
+      }]
+    }).success).toBe(true);
     expect(refineResultsInputSchema.safeParse({ session_id: SESSION_ID }).success).toBe(true);
     expect(refineResultsInputSchema.safeParse({
       cache_key: CACHE_KEY,
       session_id: SESSION_ID
     }).success).toBe(false);
+    expect(refineResultsInputSchema.safeParse({
+      cache_key: CACHE_KEY,
+      result_ref: {
+        tool: "jp_lit_search",
+        cache_key: CACHE_KEY
+      }
+    }).success).toBe(false);
+    expect(refineResultsInputSchema.safeParse({
+      result_ref: {
+        tool: "jp_lit_get_record",
+        cache_key: CACHE_KEY
+      }
+    }).success).toBe(false);
+    expect(refineResultsInputSchema.safeParse({ result_refs: [] }).success).toBe(false);
   });
 
   it("requires an explicit enrichment selector when enrichment is enabled", () => {
@@ -158,5 +187,34 @@ describe("explicit research session schemas", () => {
       include_enrichment: true,
       enrichment_cache_keys: [createCacheKey("jp_lit_enrich_record", { title: "遊び" })]
     }).success).toBe(true);
+  });
+
+  it("keeps legacy cache keys while exposing candidate result refs in refine output", () => {
+    const resultRef = {
+      tool: "jp_lit_search_fulltext" as const,
+      cache_key: FULLTEXT_CACHE_KEY
+    };
+    const parsed = refineResultsOutputSchema.parse({
+      base_cache_key: FULLTEXT_CACHE_KEY,
+      base_cache_keys: [FULLTEXT_CACHE_KEY],
+      base_result_ref: resultRef,
+      base_result_refs: [resultRef],
+      combine: "union",
+      key_by: "source_record",
+      totals_by_base: [{ ...resultRef, total: 0 }],
+      total_before: 0,
+      total_after: 0,
+      limit: 30,
+      offset: 0,
+      items: []
+    });
+
+    expect(parsed).toMatchObject({
+      base_cache_key: FULLTEXT_CACHE_KEY,
+      base_cache_keys: [FULLTEXT_CACHE_KEY],
+      base_result_ref: resultRef,
+      base_result_refs: [resultRef],
+      totals_by_base: [{ ...resultRef, total: 0 }]
+    });
   });
 });
