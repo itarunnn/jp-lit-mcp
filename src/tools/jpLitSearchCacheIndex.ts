@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { readCandidateResult } from "../lib/candidateResultAdapters.js";
 import {
   CANDIDATE_RESULT_TOOLS,
@@ -7,10 +9,14 @@ import type {
   CandidateResultRef,
   CandidateResultTool
 } from "../lib/candidateResults.js";
+import { InvalidRequestError, NotFoundError } from "../lib/errors.js";
+import { resolveContainedCachePath } from "../lib/persistence/cacheIdentity.js";
 import { listCacheInventory } from "../lib/persistence/cacheInventory.js";
 import type { CacheInventoryItem } from "../lib/persistence/cacheInventory.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
+import { getCacheRoot, getLegacyCacheRoot } from "../lib/persistence/paths.js";
 import type { SessionStore } from "../lib/persistence/sessionStore.js";
+import type { CacheEnvelope } from "../lib/persistence/types.js";
 import { resolveSavedDateFilter } from "../lib/savedDateFilter.js";
 import {
   searchCacheIndexInputSchema,
@@ -23,6 +29,54 @@ type MatchedField = "query" | "title" | "author" | "subject" | "source_id";
 
 function candidateIdentity(tool: CandidateResultTool, cacheKey: string) {
   return `${tool}:${cacheKey}`;
+}
+
+async function readInventoryCandidateResult(
+  cache: FileCache,
+  baseDir: string,
+  inventoryItem: CacheInventoryItem,
+  resultRef: CandidateResultRef
+) {
+  const root = inventoryItem.root === "current"
+    ? getCacheRoot(baseDir)
+    : getLegacyCacheRoot(baseDir);
+  const target = resolveContainedCachePath(
+    baseDir,
+    root,
+    inventoryItem.tool,
+    `${inventoryItem.cache_key}.json`
+  );
+  const rootAwareCache: FileCache = {
+    ...cache,
+    async read<T>(tool: string, cacheKey: string) {
+      if (tool !== resultRef.tool || cacheKey !== resultRef.cache_key) {
+        return null;
+      }
+      try {
+        const envelope = JSON.parse(
+          await readFile(target, "utf8")
+        ) as CacheEnvelope<T>;
+        if (
+          envelope.tool !== resultRef.tool
+          || envelope.cache_key !== resultRef.cache_key
+        ) {
+          return null;
+        }
+        return envelope;
+      } catch {
+        return null;
+      }
+    }
+  };
+
+  try {
+    return await readCandidateResult(rootAwareCache, resultRef);
+  } catch (error) {
+    if (error instanceof NotFoundError || error instanceof InvalidRequestError) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 function normalizeText(value: string) {
@@ -94,35 +148,61 @@ export function createJpLitSearchCacheIndexTool(
     const inventories = await Promise.all(
       CANDIDATE_RESULT_TOOLS.map((tool) => listCacheInventory(baseDir, tool))
     );
-    const inventoryByIdentity = new Map<string, CacheInventoryItem>();
+    const inventoryByIdentity = new Map<string, CacheInventoryItem[]>();
     for (const item of inventories.flatMap((inventory) => inventory.items)) {
       if (!isCandidateResultTool(item.tool)) {
         continue;
       }
       const identity = candidateIdentity(item.tool, item.cache_key);
-      const existing = inventoryByIdentity.get(identity);
-      if (!existing || (existing.root === "legacy" && item.root === "current")) {
-        inventoryByIdentity.set(identity, item);
-      }
+      const entries = inventoryByIdentity.get(identity) ?? [];
+      entries.push(item);
+      entries.sort((left, right) =>
+        Number(left.root === "legacy") - Number(right.root === "legacy")
+      );
+      inventoryByIdentity.set(identity, entries);
     }
 
     const results: SearchCacheIndexOutput["items"] = [];
-    for (const inventoryItem of inventoryByIdentity.values()) {
-      if (!isCandidateResultTool(inventoryItem.tool)) {
+    for (const inventoryItems of inventoryByIdentity.values()) {
+      const firstInventoryItem = inventoryItems[0];
+      if (!firstInventoryItem || !isCandidateResultTool(firstInventoryItem.tool)) {
         continue;
       }
       const identity = candidateIdentity(
-        inventoryItem.tool,
-        inventoryItem.cache_key
+        firstInventoryItem.tool,
+        firstInventoryItem.cache_key
       );
       if (!candidateToSessionIds.has(identity)) {
         continue;
       }
-      const resultRef: CandidateResultRef = {
-        tool: inventoryItem.tool,
-        cache_key: inventoryItem.cache_key
-      };
-      const output = await readCandidateResult(cache, resultRef);
+      let selected: {
+        inventoryItem: CacheInventoryItem;
+        resultRef: CandidateResultRef;
+        output: Awaited<ReturnType<typeof readCandidateResult>>;
+      } | null = null;
+      for (const inventoryItem of inventoryItems) {
+        if (!isCandidateResultTool(inventoryItem.tool)) {
+          continue;
+        }
+        const resultRef: CandidateResultRef = {
+          tool: inventoryItem.tool,
+          cache_key: inventoryItem.cache_key
+        };
+        const output = await readInventoryCandidateResult(
+          cache,
+          baseDir,
+          inventoryItem,
+          resultRef
+        );
+        if (output) {
+          selected = { inventoryItem, resultRef, output };
+          break;
+        }
+      }
+      if (!selected) {
+        continue;
+      }
+      const { inventoryItem, resultRef, output } = selected;
 
       if (effectiveSavedFrom && inventoryItem.saved_at < effectiveSavedFrom) {
         continue;
@@ -175,9 +255,9 @@ export function createJpLitSearchCacheIndexTool(
       }
 
       results.push({
-        tool: inventoryItem.tool,
+        tool: resultRef.tool,
         result_ref: resultRef,
-        cache_key: inventoryItem.cache_key,
+        cache_key: resultRef.cache_key,
         session_ids: sessionIds,
         saved_at: inventoryItem.saved_at,
         source: output.source,

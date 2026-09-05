@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
+import * as cacheInventory from "../src/lib/persistence/cacheInventory.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import {
   getCacheRoot,
@@ -56,13 +57,185 @@ function createSearchItem(
   };
 }
 
+function createSearchResult(
+  query: string,
+  sourceId: string,
+  title = query
+) {
+  return {
+    query,
+    source: "ndl_catalog" as const,
+    page: 1,
+    limit: 50,
+    total: 1,
+    items: [createSearchItem("ndl_catalog", sourceId, title, "1950")]
+  };
+}
+
+function createSearchEnvelope(
+  cacheKey: string,
+  savedAt: string,
+  structuredContent: unknown
+) {
+  return {
+    version: 1,
+    tool: "jp_lit_search",
+    cache_key: cacheKey,
+    saved_at: savedAt,
+    input: { query: "fixture" },
+    structured_content: structuredContent
+  };
+}
+
+async function appendSearchEntry(
+  sessions: ReturnType<typeof createSessionStore>,
+  cacheKey: string
+) {
+  await sessions.appendEntry({
+    tool: "jp_lit_search",
+    input: { query: "fixture" },
+    cache_key: cacheKey,
+    result_ref: { tool: "jp_lit_search", cache_key: cacheKey },
+    selected_items: [],
+    notes: []
+  });
+}
+
+async function writeLegacySearchEnvelope(
+  baseDir: string,
+  envelope: ReturnType<typeof createSearchEnvelope>
+) {
+  const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+  await mkdir(legacyDir, { recursive: true });
+  await writeFile(
+    path.join(legacyDir, `${envelope.cache_key}.json`),
+    JSON.stringify(envelope),
+    "utf8"
+  );
+}
+
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
   );
 });
 
 describe("jp_lit_search_cache_index", () => {
+  it("inventory 後に一件が消失しても残る candidate cache を返す", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const disappearingKey = fixtureCacheKey("disappearing-after-inventory");
+    const survivingKey = fixtureCacheKey("surviving-after-inventory");
+    await appendSearchEntry(sessions, disappearingKey);
+    await appendSearchEntry(sessions, survivingKey);
+    await cache.write("jp_lit_search", createSearchEnvelope(
+      disappearingKey,
+      "2026-05-02T00:00:00.000Z",
+      createSearchResult("inventory-race", "disappearing-id")
+    ));
+    await cache.write("jp_lit_search", createSearchEnvelope(
+      survivingKey,
+      "2026-05-01T00:00:00.000Z",
+      createSearchResult("inventory-race", "surviving-id")
+    ));
+
+    const originalListCacheInventory = cacheInventory.listCacheInventory;
+    let completedInventories = 0;
+    vi.spyOn(cacheInventory, "listCacheInventory").mockImplementation(
+      async (inventoryBaseDir, toolName) => {
+        const inventory = await originalListCacheInventory(
+          inventoryBaseDir,
+          toolName
+        );
+        completedInventories += 1;
+        if (completedInventories === 3) {
+          await rm(path.join(
+            getCacheRoot(baseDir),
+            "jp_lit_search",
+            `${disappearingKey}.json`
+          ));
+        }
+        return inventory;
+      }
+    );
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+
+    const result = await tool({ query: "inventory-race" });
+
+    expect(result.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_search", cache_key: survivingKey }
+    ]);
+  });
+
+  it.each(["invalid_json", "invalid_structured_content"] as const)(
+    "malformed current (%s) が valid legacy を遮らない",
+    async (malformedKind) => {
+      const baseDir = await createTempDir();
+      const cache = createFileCache(baseDir);
+      const sessions = createSessionStore(baseDir);
+      const key = fixtureCacheKey(`malformed-current-${malformedKind}`);
+      await appendSearchEntry(sessions, key);
+
+      if (malformedKind === "invalid_json") {
+        const currentDir = path.join(getCacheRoot(baseDir), "jp_lit_search");
+        await mkdir(currentDir, { recursive: true });
+        await writeFile(path.join(currentDir, `${key}.json`), "{", "utf8");
+      } else {
+        await cache.write("jp_lit_search", createSearchEnvelope(
+          key,
+          "2026-05-02T00:00:00.000Z",
+          { query: "broken", items: "not-an-array" }
+        ));
+      }
+      await writeLegacySearchEnvelope(baseDir, createSearchEnvelope(
+        key,
+        "2026-05-01T00:00:00.000Z",
+        createSearchResult("legacy-fallback", "legacy-valid-id")
+      ));
+      const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+
+      const result = await tool({ query: "legacy-fallback" });
+
+      expect(result.structuredContent.result_refs).toEqual([
+        { tool: "jp_lit_search", cache_key: key }
+      ]);
+      expect(result.structuredContent.items[0]).toMatchObject({
+        saved_at: "2026-05-01T00:00:00.000Z",
+        query_preview: "legacy-fallback"
+      });
+    }
+  );
+
+  it("malformed structured_content は個別 cache を skip して検索を続ける", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const malformedKey = fixtureCacheKey("malformed-structured-content");
+    const validKey = fixtureCacheKey("valid-beside-malformed");
+    await appendSearchEntry(sessions, malformedKey);
+    await appendSearchEntry(sessions, validKey);
+    await cache.write("jp_lit_search", createSearchEnvelope(
+      malformedKey,
+      "2026-05-02T00:00:00.000Z",
+      { query: "skip-malformed", items: "not-an-array" }
+    ));
+    await cache.write("jp_lit_search", createSearchEnvelope(
+      validKey,
+      "2026-05-01T00:00:00.000Z",
+      createSearchResult("skip-malformed", "valid-id")
+    ));
+    const tool = createJpLitSearchCacheIndexTool(cache, sessions, baseDir);
+
+    const result = await tool({ query: "skip-malformed" });
+
+    expect(result.structuredContent.total).toBe(1);
+    expect(result.structuredContent.result_refs).toEqual([
+      { tool: "jp_lit_search", cache_key: validKey }
+    ]);
+  });
+
   it("tool-aware identity で browser query・fulltext title・canonical source ID を横断検索する", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
