@@ -218,7 +218,7 @@ output には `base_result_ref` / `base_result_refs` を追加し、`totals_by_b
 3. `source_metadata.candidate_origins` と `browser_observations` は全 result から和集合にする。
 4. access、snippet、閲覧・全文検索・印刷状態は browser observation として保持し、API 書誌 field を上書きしない。
 5. 同じ source record の item を二重表示しない。
-6. `duplicate_key` / `title_author_year` による別 source 間の近似一致は自動統合せず、従来どおり重複候補にする。
+6. `duplicate_key` / `title_author_year` による既存の集合演算・代表 item 選択は維持するが、別 source の書誌 field や provenance は一件へ merge しない。重複確認には従来どおり cluster 出力を使う。
 
 複数 browser snapshot がある場合は全観測を保持し、表示上の現在状態には `checked_at` が最新の観測を使う。過去の観測を削除しない。
 
@@ -341,9 +341,9 @@ repo Skill とインストール済み Skill の hash / 文言比較も別に実
 ## 実装対象の概略
 
 - Add: `src/lib/candidateResults.ts`
+- Add: `src/lib/candidateResultAdapters.ts`
 - Add: `src/tools/jpLitRecordNdlBrowserSearch.ts`
 - Modify: `src/lib/schemas.ts`
-- Modify: `src/lib/types.ts`
 - Modify: `src/lib/persistence/cacheIdentity.ts`
 - Modify: `src/tools/jpLitRefineResults.ts`
 - Modify: `src/tools/jpLitSearchCacheIndex.ts`
