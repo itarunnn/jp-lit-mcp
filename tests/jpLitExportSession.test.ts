@@ -602,6 +602,243 @@ describe("jp_lit_export_session", () => {
     expect(JSON.stringify(written)).not.toContain("Search Attempt");
   });
 
+  it("normalizes fulltext candidate cache for selected and unselected session exports", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+    const cacheKey = fixtureCacheKey("sha256-fulltext-candidates");
+
+    await cache.write("jp_lit_search_fulltext", {
+      version: 1,
+      tool: "jp_lit_search_fulltext",
+      cache_key: cacheKey,
+      saved_at: "2026-09-05T03:00:00.000Z",
+      input: { keyword: "普通選挙法" },
+      structured_content: {
+        keyword: "普通選挙法",
+        searchfield: "contentonly",
+        total: 2,
+        from: 0,
+        items: [
+          {
+            pid: "1907653",
+            viewer_url: "https://dl.ndl.go.jp/pid/1907653",
+            title: "帝国憲法大要",
+            volume: null,
+            responsibility: "斉藤隆夫 著",
+            publisher: "憲政公論社",
+            published: "大正15",
+            publishyear: 1926,
+            ndc: "323",
+            bib_id: "000000000001",
+            call_no: "特1-1",
+            page_count: 123,
+            is_classic: false,
+            highlights: ["普通選挙法"]
+          },
+          {
+            pid: "1907654",
+            viewer_url: "https://dl.ndl.go.jp/pid/1907654",
+            title: "普通選挙法要義",
+            volume: null,
+            responsibility: "田中一郎 著",
+            publisher: "公論社",
+            published: "昭和2",
+            publishyear: 1927,
+            ndc: "314",
+            bib_id: "000000000002",
+            call_no: "特1-2",
+            page_count: 88,
+            is_classic: false,
+            highlights: ["普通選挙法"]
+          }
+        ],
+        raw: {}
+      }
+    });
+    await sessions.appendEntry({
+      tool: "jp_lit_search_fulltext",
+      input: { keyword: "普通選挙法" },
+      cache_key: cacheKey,
+      result_ref: { tool: "jp_lit_search_fulltext", cache_key: cacheKey },
+      selected_items: [{
+        source: "ndl_digital",
+        source_id: "R100000039-I1907653",
+        title: "帝国憲法大要",
+        label: "strong_candidate",
+        note: "selected fulltext"
+      }],
+      notes: []
+    });
+
+    const selectedPath = path.join(baseDir, "exports", "fulltext-selected.csl.json");
+    const unselectedPath = path.join(baseDir, "exports", "fulltext-unselected.csl.json");
+    const unselectedJsonPath = path.join(baseDir, "exports", "fulltext-unselected.json");
+    await tool({ format: "csl-json", profile: "selected", output_path: selectedPath });
+    await tool({ format: "csl-json", profile: "unselected", output_path: unselectedPath });
+    await tool({ format: "json", profile: "unselected", output_path: unselectedJsonPath });
+
+    const selected = JSON.parse(await readFile(selectedPath, "utf8")) as Array<Record<string, unknown>>;
+    const unselected = JSON.parse(await readFile(unselectedPath, "utf8")) as Array<Record<string, unknown>>;
+    const unselectedJson = JSON.parse(await readFile(unselectedJsonPath, "utf8")) as {
+      entries: Array<{ unselected_items: Array<Record<string, unknown>> }>;
+    };
+    expect(selected).toMatchObject([{
+      type: "book",
+      id: "ndl_digital:R100000039-I1907653",
+      title: "帝国憲法大要",
+      author: [{ literal: "斉藤隆夫 著" }],
+      publisher: "憲政公論社",
+      issued: { "date-parts": [[1926]] }
+    }]);
+    expect(unselected).toMatchObject([{
+      type: "book",
+      id: "ndl_digital:R100000039-I1907654",
+      title: "普通選挙法要義",
+      author: [{ literal: "田中一郎 著" }]
+    }]);
+    expect(unselectedJson.entries[0]?.unselected_items).toMatchObject([{
+      source: "ndl_digital",
+      source_id: "R100000039-I1907654",
+      material_type: "図書",
+      source_metadata: {
+        candidate_origins: ["next_digital_library_fulltext"]
+      }
+    }]);
+  });
+
+  it("adds latest browser provenance to the CSL note without replacing bibliography fields", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const sessions = createSessionStore(baseDir);
+    const exporter = createSessionExporter(cache, baseDir);
+    const tool = createJpLitExportSessionTool(sessions, exporter);
+    const cacheKey = fixtureCacheKey("sha256-browser-csl");
+    const olderObservation = {
+      checked_at: "2026-09-04T12:00:00+09:00",
+      login_state: "logged_out",
+      query: "普通選挙法",
+      access_scope: "ndl_onsite_only",
+      access_label: "国立国会図書館内限定",
+      snippets: [],
+      item_fulltext_state: "unavailable",
+      hit_locations: [],
+      content_state: "restricted",
+      print_file_state: "unavailable"
+    };
+    const latestObservation = {
+      checked_at: "2026-09-05T12:00:00+09:00",
+      login_state: "logged_in_existing_session",
+      query: "普通選挙法",
+      access_scope: "individual_transmission",
+      access_label: "個人送信で閲覧可能",
+      snippets: [{ text: "普通選挙法", locator_type: "koma", locator: "67" }],
+      item_fulltext_state: "searched",
+      hit_locations: ["67–73コマ"],
+      content_state: "page_image_checked",
+      print_file_state: "dialog_available"
+    };
+
+    await cache.write("jp_lit_record_ndl_browser_search", {
+      version: 1,
+      tool: "jp_lit_record_ndl_browser_search",
+      cache_key: cacheKey,
+      saved_at: "2026-09-05T03:00:00.000Z",
+      input: { query: "普通選挙法" },
+      structured_content: {
+        query: "普通選挙法",
+        source: "ndl_digital",
+        page: 1,
+        limit: 100,
+        total: 1,
+        items: [{
+          source: "ndl_digital",
+          source_id: "R100000039-I1907653",
+          title: "帝国憲法大要",
+          subtitle: null,
+          title_reading: null,
+          authors: [{ name: "斉藤隆夫", role: null }],
+          publisher: "憲政公論社",
+          journal_title: null,
+          issued_at: "1926",
+          issued_at_label: "1926",
+          issued_at_precision: "year",
+          summary: null,
+          url: "https://dl.ndl.go.jp/pid/1907653",
+          availability: { online: true, digital_collection: true },
+          material_type: "図書",
+          subjects: [],
+          table_of_contents: [],
+          source_metadata: {
+            pid: "1907653",
+            candidate_origins: ["ndl_digital_browser"],
+            browser_observations: [olderObservation, latestObservation]
+          },
+          duplicate_key: null,
+          duplicate_count: 1,
+          related_records: []
+        }],
+        observation: {
+          method: "browser",
+          service: "ndl_digital_collections",
+          checked_at: latestObservation.checked_at,
+          login_state: latestObservation.login_state,
+          reported_total: 1,
+          total_relation: "reported_exact",
+          observed_count: 1,
+          filters: {
+            access_scopes: ["transmission"],
+            material_types: ["図書"],
+            raw_labels: ["送信サービスで閲覧可能"]
+          }
+        }
+      }
+    });
+    await sessions.appendEntry({
+      tool: "jp_lit_record_ndl_browser_search",
+      input: { query: "普通選挙法" },
+      cache_key: cacheKey,
+      result_ref: { tool: "jp_lit_record_ndl_browser_search", cache_key: cacheKey },
+      selected_items: [{
+        source: "ndl_digital",
+        source_id: "R100000039-I1907653",
+        title: "帝国憲法大要",
+        label: "strong_candidate",
+        note: "review after browser check"
+      }],
+      notes: []
+    });
+
+    const outputPath = path.join(baseDir, "exports", "browser.csl.json");
+    await tool({ format: "csl-json", profile: "selected", output_path: outputPath });
+    const written = JSON.parse(await readFile(outputPath, "utf8")) as Array<{
+      type: string;
+      title: string;
+      author: Array<{ literal: string }>;
+      publisher: string;
+      issued: { "date-parts": number[][] };
+      note: string;
+    }>;
+
+    expect(written[0]).toMatchObject({
+      type: "book",
+      title: "帝国憲法大要",
+      author: [{ literal: "斉藤隆夫" }],
+      publisher: "憲政公論社",
+      issued: { "date-parts": [[1926]] }
+    });
+    expect(written[0]?.note).toContain("selection note: review after browser check");
+    expect(written[0]?.note).toContain("acquisition: ndl_digital_browser");
+    expect(written[0]?.note).toContain("browser checked_at: 2026-09-05T12:00:00+09:00");
+    expect(written[0]?.note).toContain("browser access: individual_transmission");
+    expect(written[0]?.note).toContain(
+      "browser evidence: item_fulltext=searched, content=page_image_checked, print=dialog_available"
+    );
+    expect(written[0]?.note).not.toContain("2026-09-04T12:00:00+09:00");
+  });
+
   it("writes cinii_dissertations records as CSL thesis items", async () => {
     const baseDir = await createTempDir();
     const cache = createFileCache(baseDir);
@@ -766,12 +1003,22 @@ describe("jp_lit_export_session", () => {
             source: "ndl_catalog",
             source_id: "S1",
             title: "採用する本",
+            subtitle: null,
+            title_reading: null,
             authors: [],
             publisher: null,
             journal_title: null,
             issued_at: null,
             issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
             material_type: "book",
+            availability: { online: false, digital_collection: false },
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: [],
             identifiers: {},
             source_metadata: {},
             content_access: {},
@@ -781,12 +1028,22 @@ describe("jp_lit_export_session", () => {
             source: "ndl_catalog",
             source_id: "S2",
             title: "採用しない本",
+            subtitle: null,
+            title_reading: null,
             authors: [],
             publisher: null,
             journal_title: null,
             issued_at: null,
             issued_at_label: null,
+            issued_at_precision: "unknown",
+            summary: null,
             material_type: "book",
+            availability: { online: false, digital_collection: false },
+            subjects: [],
+            table_of_contents: [],
+            duplicate_key: null,
+            duplicate_count: 1,
+            related_records: [],
             identifiers: {},
             source_metadata: {},
             content_access: {},

@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { extractCandidateItems } from "../candidateResultAdapters.js";
 import { resolveExportTarget, writeExportFile } from "./exportPath.js";
 import { getExportsRoot } from "./paths.js";
 import type { FileCache } from "./fileCache.js";
@@ -38,6 +39,11 @@ function defaultExportPath(
 function extractUnselectedItems(envelope: CacheEnvelope<unknown> | null) {
   if (!envelope) {
     return [];
+  }
+
+  const candidateItems = extractCandidateItems(envelope);
+  if (candidateItems) {
+    return candidateItems as unknown as Array<Record<string, unknown>>;
   }
 
   const structuredContent = envelope.structured_content as {

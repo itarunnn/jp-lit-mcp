@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createCacheKey } from "../src/lib/persistence/cacheKeys.js";
 import { createFileCache } from "../src/lib/persistence/fileCache.js";
 import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
-import type { EnrichRecordOutput } from "../src/lib/schemas.js";
+import type { EnrichRecordOutput, RefineResultsOutput } from "../src/lib/schemas.js";
 import type { SearchItem } from "../src/lib/types.js";
 import { createJpLitExportViewTool } from "../src/tools/jpLitExportView.js";
 import { createJpLitListCacheTool } from "../src/tools/jpLitListCache.js";
@@ -309,6 +309,115 @@ describe("jp_lit_export_view", () => {
     expect(result.structuredContent.item_count).toBe(2);
     expect(written.total_after).toBe(2);
     expect(written.items.map((item) => item.title)).toEqual(["文学史", "文学入門"]);
+  });
+
+  it("refined_results は result refs と最新 browser provenance を表示し JSON の観測履歴を保つ", async () => {
+    const baseDir = await createTempDir();
+    const browserCacheKey = fixtureCacheKey("ev-browser");
+    const browserRef = {
+      tool: "jp_lit_record_ndl_browser_search" as const,
+      cache_key: browserCacheKey
+    };
+    const olderObservation = {
+      checked_at: "2026-09-04T12:00:00+09:00",
+      login_state: "logged_out",
+      query: "普通選挙法",
+      access_scope: "ndl_onsite_only",
+      access_label: "国立国会図書館内限定",
+      snippets: [],
+      item_fulltext_state: "unavailable",
+      hit_locations: ["12コマ"],
+      content_state: "restricted",
+      print_file_state: "unavailable"
+    };
+    const latestObservation = {
+      checked_at: "2026-09-05T12:00:00+09:00",
+      login_state: "logged_in_existing_session",
+      query: "普通選挙法",
+      access_scope: "individual_transmission",
+      access_label: "個人送信で閲覧可能",
+      snippets: [{ text: "普通選挙法", locator_type: "koma", locator: "67" }],
+      item_fulltext_state: "searched",
+      hit_locations: ["67–73コマ"],
+      content_state: "page_image_checked",
+      print_file_state: "dialog_available"
+    };
+    const apiItem = {
+      ...createSearchItem("api-item", "API 候補"),
+      source_metadata: { candidate_origins: ["jp_lit_search"] }
+    };
+    const fulltextItem = {
+      ...createSearchItem("R100000039-I1907652", "全文候補", "ndl_digital"),
+      source_metadata: { candidate_origins: ["next_digital_library_fulltext"] }
+    };
+    const browserItem = {
+      ...createSearchItem("R100000039-I1907653", "ブラウザ候補", "ndl_digital"),
+      source_metadata: {
+        pid: "1907653",
+        candidate_origins: ["ndl_digital_browser"],
+        browser_observations: [olderObservation, latestObservation]
+      }
+    };
+    const legacyItem = createSearchItem("legacy-item", "従来候補");
+    const refinedOutput: RefineResultsOutput = {
+      base_cache_key: browserCacheKey,
+      base_cache_keys: [browserCacheKey],
+      base_result_ref: browserRef,
+      base_result_refs: [browserRef],
+      combine: "union",
+      key_by: "source_record",
+      totals_by_base: [{ ...browserRef, total: 4 }],
+      total_before: 4,
+      total_after: 4,
+      limit: 30,
+      offset: 0,
+      items: [apiItem, fulltextItem, browserItem, legacyItem]
+    };
+    const unsupported = async (): Promise<never> => {
+      throw new Error("unexpected view call");
+    };
+    const exportViewTool = createJpLitExportViewTool({
+      listCache: unsupported,
+      searchCacheIndex: unsupported,
+      refineResults: async () => ({ structuredContent: refinedOutput })
+    }, baseDir);
+    const markdownPath = path.join(baseDir, "exports", "browser-provenance.md");
+    const jsonPath = path.join(baseDir, "exports", "browser-provenance.json");
+
+    await exportViewTool({
+      view: "refined_results",
+      params: { result_ref: browserRef },
+      format: "markdown",
+      output_path: markdownPath
+    });
+    await exportViewTool({
+      view: "refined_results",
+      params: { result_ref: browserRef },
+      format: "json",
+      output_path: jsonPath
+    });
+
+    const written = await readFile(markdownPath, "utf8");
+    const json = JSON.parse(await readFile(jsonPath, "utf8")) as RefineResultsOutput;
+    expect(written).toContain(
+      `Base result refs: jp_lit_record_ndl_browser_search/${browserCacheKey}`
+    );
+    expect(written).toContain("Acquisition: NDL Search API");
+    expect(written).toContain("Acquisition: 次世代デジタルライブラリー全文検索");
+    expect(written).toContain("Acquisition: デジコレ全文検索（ブラウザ）");
+    expect(written).toContain("Browser checked at: 2026-09-05T12:00:00+09:00");
+    expect(written).toContain("Access: 個人送信で閲覧可能");
+    expect(written).toContain("Item fulltext: searched");
+    expect(written).toContain("Content: page_image_checked");
+    expect(written).toContain("Print PDF: dialog_available");
+    expect(written).toContain("Hit locations: 67–73コマ");
+    expect(written).not.toContain("Browser checked at: 2026-09-04T12:00:00+09:00");
+    expect(written).toContain("### 4. 従来候補");
+    expect(written).toContain("- Source ID: legacy-item");
+    expect(json.items[2]?.source_metadata?.browser_observations).toEqual([
+      olderObservation,
+      latestObservation
+    ]);
   });
 
   it("refined_results は export_all でページ上限を超えて全件を書き出せる", async () => {

@@ -17,6 +17,12 @@ import type {
 
 type ViewOutput = ListCacheOutput | SearchCacheIndexOutput | RefineResultsOutput;
 
+const ORIGIN_LABELS: Record<string, string> = {
+  jp_lit_search: "NDL Search API",
+  next_digital_library_fulltext: "次世代デジタルライブラリー全文検索",
+  ndl_digital_browser: "デジコレ全文検索（ブラウザ）"
+};
+
 export interface ViewTools {
   listCache(input: unknown): Promise<{ structuredContent: ListCacheOutput }>;
   searchCacheIndex(input: unknown): Promise<{ structuredContent: SearchCacheIndexOutput }>;
@@ -69,6 +75,56 @@ function renderMarkdown(
   return lines.join("\n");
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function renderItemProvenance(item: SearchOutput["items"][number]) {
+  const sourceMetadata = asRecord(item.source_metadata);
+  if (!sourceMetadata) return [];
+
+  const origins = Array.isArray(sourceMetadata.candidate_origins)
+    ? sourceMetadata.candidate_origins
+        .map(readString)
+        .filter((origin): origin is string => origin !== null)
+    : [];
+  const lines: string[] = [];
+  if (origins.length > 0) {
+    lines.push(`- Acquisition: ${origins.map((origin) => ORIGIN_LABELS[origin] ?? origin).join(", ")}`);
+  }
+
+  const observations = Array.isArray(sourceMetadata.browser_observations)
+    ? sourceMetadata.browser_observations
+        .map(asRecord)
+        .filter((observation): observation is Record<string, unknown> => observation !== null)
+    : [];
+  const latest = [...observations].sort((left, right) =>
+    (readString(right.checked_at) ?? "").localeCompare(readString(left.checked_at) ?? "")
+  )[0];
+  if (!latest) return lines;
+
+  const hitLocations = Array.isArray(latest.hit_locations)
+    ? latest.hit_locations
+        .map(readString)
+        .filter((location): location is string => location !== null)
+    : [];
+  lines.push(
+    `- Browser checked at: ${readString(latest.checked_at) ?? "-"}`,
+    `- Access: ${readString(latest.access_label) ?? readString(latest.access_scope) ?? "-"}`,
+    `- Item fulltext: ${readString(latest.item_fulltext_state) ?? "-"}`,
+    `- Content: ${readString(latest.content_state) ?? "-"}`,
+    `- Print PDF: ${readString(latest.print_file_state) ?? "-"}`,
+    `- Hit locations: ${hitLocations.join(", ") || "-"}`
+  );
+  return lines;
+}
+
 function renderSearchItem(item: SearchOutput["items"][number], index: number) {
   const authors = item.authors.map((author) => author.name).join(", ") || "-";
   return [
@@ -81,6 +137,7 @@ function renderSearchItem(item: SearchOutput["items"][number], index: number) {
     `- Publisher/Journal: ${item.publisher ?? item.journal_title ?? "-"}`,
     `- URL: ${item.url ?? "-"}`,
     `- Duplicate key: ${item.duplicate_key ?? "-"}`,
+    ...renderItemProvenance(item),
     ""
   ];
 }
@@ -100,11 +157,21 @@ function renderProviderStatuses(providers: ClusterEnrichment["providers"]) {
 }
 
 function renderRefinedResultsMarkdown(output: RefineResultsOutput, exportedAt: string) {
+  const baseResultRefs = output.base_result_refs?.length
+    ? output.base_result_refs
+    : output.base_result_ref
+      ? [output.base_result_ref]
+      : [];
   const lines = [
     "# Refined Results Export",
     "",
     `- Exported at: ${exportedAt}`,
     `- Base cache keys: ${output.base_cache_keys.join(", ")}`,
+    ...(baseResultRefs.length > 0
+      ? [`- Base result refs: ${baseResultRefs
+          .map((ref) => `${ref.tool}/${ref.cache_key}`)
+          .join(", ")}`]
+      : []),
     `- Combine: ${output.combine}`,
     `- Key by: ${output.key_by}`,
     `- Total before: ${output.total_before}`,
