@@ -241,6 +241,7 @@ async function setupThreeRouteCandidates() {
       "斉藤隆夫"
     ),
     publisher: "憲政公論社",
+    url: `https://ndlsearch.ndl.go.jp/books/${canonicalSourceId}`,
     source_metadata: {
       pid: "1907653",
       provider_id: "ndl-dl"

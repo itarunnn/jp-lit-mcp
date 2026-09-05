@@ -319,7 +319,7 @@ describe("jp_lit_export_view", () => {
       cache_key: browserCacheKey
     };
     const olderObservation = {
-      checked_at: "2026-09-04T12:00:00+09:00",
+      checked_at: "2026-09-06T00:30:00+14:00",
       login_state: "logged_out",
       query: "普通選挙法",
       access_scope: "ndl_onsite_only",
@@ -331,7 +331,7 @@ describe("jp_lit_export_view", () => {
       print_file_state: "unavailable"
     };
     const latestObservation = {
-      checked_at: "2026-09-05T12:00:00+09:00",
+      checked_at: "2026-09-05T23:45:00-12:00",
       login_state: "logged_in_existing_session",
       query: "普通選挙法",
       access_scope: "individual_transmission",
@@ -405,13 +405,13 @@ describe("jp_lit_export_view", () => {
     expect(written).toContain("Acquisition: NDL Search API");
     expect(written).toContain("Acquisition: 次世代デジタルライブラリー全文検索");
     expect(written).toContain("Acquisition: デジコレ全文検索（ブラウザ）");
-    expect(written).toContain("Browser checked at: 2026-09-05T12:00:00+09:00");
+    expect(written).toContain("Browser checked at: 2026-09-05T23:45:00-12:00");
     expect(written).toContain("Access: 個人送信で閲覧可能");
     expect(written).toContain("Item fulltext: searched");
     expect(written).toContain("Content: page_image_checked");
     expect(written).toContain("Print PDF: dialog_available");
     expect(written).toContain("Hit locations: 67–73コマ");
-    expect(written).not.toContain("Browser checked at: 2026-09-04T12:00:00+09:00");
+    expect(written).not.toContain("Browser checked at: 2026-09-06T00:30:00+14:00");
     expect(written).toContain("### 4. 従来候補");
     expect(written).toContain("- Source ID: legacy-item");
     expect(json.items[2]?.source_metadata?.browser_observations).toEqual([

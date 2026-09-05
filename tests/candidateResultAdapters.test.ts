@@ -208,6 +208,78 @@ describe("candidate result adapters", () => {
     });
   });
 
+  it.each([
+    ["canonical でない source_id", (item: any) => {
+      item.source_id = "1907653";
+    }],
+    ["official URL と source_id の不一致", (item: any) => {
+      item.url = "https://ndlsearch.ndl.go.jp/books/R100000039-I9999999";
+    }],
+    ["source_metadata.pid と source_id の不一致", (item: any) => {
+      item.source_metadata.pid = "9999999";
+    }],
+    ["HTTP URL", (item: any) => {
+      item.url = "http://ndlsearch.ndl.go.jp/books/R100000039-I1907653";
+    }],
+    ["別 host", (item: any) => {
+      item.url = "https://example.com/books/R100000039-I1907653";
+    }],
+    ["非標準 port", (item: any) => {
+      item.url = "https://ndlsearch.ndl.go.jp:8443/books/R100000039-I1907653";
+    }],
+    ["token 風 query", (item: any) => {
+      item.url = "https://ndlsearch.ndl.go.jp/books/R100000039-I1907653?token=secret";
+    }],
+    ["fragment", (item: any) => {
+      item.url = "https://ndlsearch.ndl.go.jp/books/R100000039-I1907653#detail";
+    }],
+    ["credential 付き URL", (item: any) => {
+      item.url = "https://user:password@ndlsearch.ndl.go.jp/books/R100000039-I1907653";
+    }],
+    ["URL 欠落", (item: any) => {
+      item.url = null;
+    }]
+  ])("jp_lit_search の ndl_digital item は%sを拒否する", (_label, mutate) => {
+    const item = structuredClone(searchItem) as any;
+    mutate(item);
+
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_search", cache_key: searchKey },
+      {
+        query: "普通選挙法",
+        source: "ndl_digital",
+        page: 1,
+        limit: 50,
+        total: 1,
+        items: [item]
+      }
+    )).toThrow(
+      `invalid candidate cache payload: jp_lit_search/${searchKey}`
+    );
+  });
+
+  it("jp_lit_search の ndl_digital 以外の source は従来の URL 形を維持する", () => {
+    const otherSourceItem = {
+      ...searchItem,
+      source: "jstage_articles" as const,
+      source_id: "article-1",
+      url: "https://example.com/article?id=1#abstract",
+      source_metadata: { pid: "not-an-ndl-pid" }
+    };
+
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_search", cache_key: searchKey },
+      {
+        query: "普通選挙法",
+        source: "jstage_articles",
+        page: 1,
+        limit: 50,
+        total: 1,
+        items: [otherSourceItem]
+      }
+    )).not.toThrow();
+  });
+
   it("jp_lit_search_fulltext を canonical な NDL Digital item に変換する", () => {
     const normalized = normalizeCandidateResult(
       { tool: "jp_lit_search_fulltext", cache_key: fulltextKey },
@@ -246,6 +318,50 @@ describe("candidate result adapters", () => {
         }
       }]
     });
+  });
+
+  it("jp_lit_search_fulltext は clean なデジコレ subpath を受理する", () => {
+    const payload = structuredClone(fulltextPayload);
+    payload.items[0]!.viewer_url = "https://dl.ndl.go.jp/pid/1907653/1/36";
+
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_search_fulltext", cache_key: fulltextKey },
+      payload
+    )).not.toThrow();
+  });
+
+  it.each([
+    ["HTTP URL", (item: any) => {
+      item.viewer_url = "http://dl.ndl.go.jp/pid/1907653";
+    }],
+    ["別 host", (item: any) => {
+      item.viewer_url = "https://example.com/pid/1907653";
+    }],
+    ["viewer URL と PID の不一致", (item: any) => {
+      item.viewer_url = "https://dl.ndl.go.jp/pid/9999999";
+    }],
+    ["非標準 port", (item: any) => {
+      item.viewer_url = "https://dl.ndl.go.jp:8443/pid/1907653";
+    }],
+    ["token 風 query", (item: any) => {
+      item.viewer_url = "https://dl.ndl.go.jp/pid/1907653?token=secret";
+    }],
+    ["fragment", (item: any) => {
+      item.viewer_url = "https://dl.ndl.go.jp/pid/1907653#detail";
+    }],
+    ["credential 付き URL", (item: any) => {
+      item.viewer_url = "https://user:password@dl.ndl.go.jp/pid/1907653";
+    }]
+  ])("jp_lit_search_fulltext は%sを拒否する", (_label, mutate) => {
+    const payload = structuredClone(fulltextPayload) as any;
+    mutate(payload.items[0]);
+
+    expect(() => normalizeCandidateResult(
+      { tool: "jp_lit_search_fulltext", cache_key: fulltextKey },
+      payload
+    )).toThrow(
+      `invalid candidate cache payload: jp_lit_search_fulltext/${fulltextKey}`
+    );
   });
 
   it("壊れた candidate cache payload を明示エラーにする", () => {
@@ -362,6 +478,15 @@ describe("candidate result adapters", () => {
     }],
     ["credential 付き viewer URL", (payload: any) => {
       payload.items[0].url = "https://user:password@dl.ndl.go.jp/pid/1907653";
+    }],
+    ["非標準 port の viewer URL", (payload: any) => {
+      payload.items[0].url = "https://dl.ndl.go.jp:8443/pid/1907653";
+    }],
+    ["token 風 query 付き viewer URL", (payload: any) => {
+      payload.items[0].url = "https://dl.ndl.go.jp/pid/1907653?token=secret";
+    }],
+    ["fragment 付き viewer URL", (payload: any) => {
+      payload.items[0].url = "https://dl.ndl.go.jp/pid/1907653#detail";
     }],
     ["viewer URL と PID の不一致", (payload: any) => {
       payload.items[0].url = "https://dl.ndl.go.jp/pid/9999999";
@@ -498,6 +623,61 @@ describe("candidate result adapters", () => {
       olderBrowserObservation,
       browserObservation
     ]);
+  });
+
+  it("browser observation 履歴を offset 表記ではなく実時刻の昇順に並べる", () => {
+    const newerObservation = {
+      ...browserObservation,
+      checked_at: "2026-09-05T23:45:00-12:00",
+      access_label: "実時刻が新しい観測"
+    };
+    const olderObservation = {
+      ...browserObservation,
+      checked_at: "2026-09-06T00:30:00+14:00",
+      access_label: "実時刻が古い観測"
+    };
+    const item = {
+      ...browserItem,
+      source_metadata: {
+        ...browserItem.source_metadata,
+        browser_observations: [newerObservation, olderObservation]
+      }
+    };
+
+    const merged = mergeSameSourceRecordItems([{
+      tool: "jp_lit_record_ndl_browser_search",
+      item
+    }]);
+
+    expect(merged.source_metadata?.browser_observations).toEqual([
+      olderObservation,
+      newerObservation
+    ]);
+  });
+
+  it("同一 instant の browser observation は入力順に依存せず決定的に並べる", () => {
+    const left = {
+      ...browserObservation,
+      checked_at: "2026-09-06T00:00:00Z",
+      access_label: "A"
+    };
+    const right = {
+      ...browserObservation,
+      checked_at: "2026-09-06T00:00:00Z",
+      access_label: "B"
+    };
+    const merge = (browser_observations: unknown[]) => mergeSameSourceRecordItems([{
+      tool: "jp_lit_record_ndl_browser_search" as const,
+      item: {
+        ...browserItem,
+        source_metadata: {
+          ...browserItem.source_metadata,
+          browser_observations
+        }
+      }
+    }]).source_metadata?.browser_observations;
+
+    expect(merge([left, right])).toEqual(merge([right, left]));
   });
 
   it("日付組は issued_at の有無より tool 優先度順の最初の内容を採用する", () => {

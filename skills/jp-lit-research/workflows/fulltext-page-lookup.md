@@ -57,6 +57,8 @@
 
 filter の公開範囲は `public` / `transmission` / `ndl_onsite_only`、item の `access_scope` は `public` / `transmission_unspecified` / `individual_transmission` / `library_transmission` / `ndl_onsite_only` / `unknown` を使う。`print_file_state=saved` でも、PDF 本体や保存先は観測 schema に含めない。
 
+`snippets` は item ごとに最大5件、各 snippet の `text` は最大500文字とする。`locator_type` は `content_index | koma | filename | unknown` の4値、`locator` は `string | null` とする。画面に表示された locator を記録できない場合は `null` を使う。
+
 ### 公開 API を確認できないことによる欠点
 
 デジコレ本体の全文検索結果を返す公開・文書化 API は確認できていないため、MCP だけでは、公式画面側の総ヒット件数、該当コマ、スニペット、公開範囲を機械可読に一括取得できない。API としてのページング、キャッシュ、差分比較、安定した全件収集も保証できず、ブラウザ UI、セッション状態、表示遅延の影響を受ける。

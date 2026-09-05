@@ -4,6 +4,7 @@ import {
   candidateResultRefSchema,
   candidateResultToolSchema
 } from "./candidateResults.js";
+import { isValidNdlDigitalViewerUrl } from "./candidateResultHelpers.js";
 import {
   cachedToolSchema,
   cacheKeySchema
@@ -518,38 +519,11 @@ const browserSearchObservationItemSchema = z.object({
   content_state: browserContentStateSchema,
   print_file_state: browserPrintFileStateSchema
 }).strict().superRefine((item, ctx) => {
-  let viewer: URL;
-  try {
-    viewer = new URL(item.viewer_url);
-  } catch {
+  if (!isValidNdlDigitalViewerUrl(item.viewer_url, item.pid)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["viewer_url"],
-      message: "viewer_url must be a valid URL"
-    });
-    return;
-  }
-
-  const pathPid = viewer.pathname.match(/^\/pid\/(\d+)(?:\/|$)/)?.[1];
-  if (viewer.protocol !== "https:" || viewer.hostname !== "dl.ndl.go.jp") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["viewer_url"],
-      message: "viewer_url must use https://dl.ndl.go.jp"
-    });
-  }
-  if (viewer.username !== "" || viewer.password !== "") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["viewer_url"],
-      message: "viewer_url must not contain credentials"
-    });
-  }
-  if (pathPid !== item.pid) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["viewer_url"],
-      message: "viewer_url PID must match pid"
+      message: "viewer_url must be a canonical NDL Digital URL matching pid"
     });
   }
 });
@@ -629,38 +603,11 @@ const browserSearchOutputItemSchema = searchItemSchema.extend({
     });
   }
 
-  let viewer: URL;
-  try {
-    viewer = new URL(item.url);
-  } catch {
+  if (!isValidNdlDigitalViewerUrl(item.url, pid)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["url"],
-      message: "url must be a valid URL"
-    });
-    return;
-  }
-
-  const pathPid = viewer.pathname.match(/^\/pid\/(\d+)(?:\/|$)/)?.[1];
-  if (viewer.protocol !== "https:" || viewer.hostname !== "dl.ndl.go.jp") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["url"],
-      message: "url must use https://dl.ndl.go.jp"
-    });
-  }
-  if (viewer.username !== "" || viewer.password !== "") {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["url"],
-      message: "url must not contain credentials"
-    });
-  }
-  if (pathPid !== pid) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["url"],
-      message: "url PID must match source_metadata.pid"
+      message: "url must be a canonical NDL Digital URL matching source_metadata.pid"
     });
   }
 });

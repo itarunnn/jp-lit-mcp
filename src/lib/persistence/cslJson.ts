@@ -1,4 +1,5 @@
 import { extractCandidateItems } from "../candidateResultAdapters.js";
+import { latestBrowserObservation } from "../candidateResultHelpers.js";
 import type { CacheEnvelope, SessionDocument } from "./types.js";
 
 type SessionEntry = SessionDocument["entries"][number];
@@ -134,15 +135,12 @@ function readPages(item: Record<string, unknown>) {
   return extent?.match(/pp\.?\s*([0-9ivxlcdm]+(?:\s*-\s*[0-9ivxlcdm]+)?)/i)?.[1]?.replace(/\s+/g, "") ?? null;
 }
 
-function latestBrowserObservation(item: Record<string, unknown>) {
+function readLatestBrowserObservation(item: Record<string, unknown>) {
   const sourceMetadata = readRecord(item.source_metadata);
   if (!Array.isArray(sourceMetadata.browser_observations)) return null;
-  return sourceMetadata.browser_observations
+  return latestBrowserObservation(sourceMetadata.browser_observations
     .map(readRecord)
-    .filter((observation) => readString(observation.checked_at) !== null)
-    .sort((left, right) =>
-      (readString(right.checked_at) ?? "").localeCompare(readString(left.checked_at) ?? "")
-    )[0] ?? null;
+    .filter((observation) => readString(observation.checked_at) !== null)) ?? null;
 }
 
 function buildCslNote(item: Record<string, unknown>, selected: SelectedItem) {
@@ -163,7 +161,7 @@ function buildCslNote(item: Record<string, unknown>, selected: SelectedItem) {
         .filter((origin): origin is string => origin !== null)
     : [];
   if (origins.length > 0) lines.push(`acquisition: ${origins.join(", ")}`);
-  const latest = latestBrowserObservation(item);
+  const latest = readLatestBrowserObservation(item);
   if (latest) {
     lines.push(
       `browser checked_at: ${readString(latest.checked_at) ?? "unknown"}`,

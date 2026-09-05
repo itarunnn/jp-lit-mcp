@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { latestBrowserObservation } from "../lib/candidateResultHelpers.js";
 import { resolveExportTarget, writeExportFile } from "../lib/persistence/exportPath.js";
 import { getExportsRoot } from "../lib/persistence/paths.js";
 import {
@@ -104,9 +105,7 @@ function renderItemProvenance(item: SearchOutput["items"][number]) {
         .map(asRecord)
         .filter((observation): observation is Record<string, unknown> => observation !== null)
     : [];
-  const latest = [...observations].sort((left, right) =>
-    (readString(right.checked_at) ?? "").localeCompare(readString(left.checked_at) ?? "")
-  )[0];
+  const latest = latestBrowserObservation(observations);
   if (!latest) return lines;
 
   const hitLocations = Array.isArray(latest.hit_locations)

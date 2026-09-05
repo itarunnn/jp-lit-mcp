@@ -1,5 +1,10 @@
 import { normalizeIssuedAt } from "./date.js";
 import { InvalidRequestError, NotFoundError } from "./errors.js";
+import {
+  compareBrowserObservationsChronologically,
+  isValidNdlDigitalViewerUrl,
+  isValidNdlSearchDigitalItemIdentity
+} from "./candidateResultHelpers.js";
 import type { FileCache } from "./persistence/fileCache.js";
 import type { CacheEnvelope } from "./persistence/types.js";
 import {
@@ -94,7 +99,19 @@ function normalizeSearchResult(
     query: parsed.query,
     total: parsed.total,
     source: parsed.source,
-    items: parsed.items.map((item) => withCandidateOrigin(toSearchItem(item), origin))
+    items: parsed.items.map((item) => {
+      if (
+        item.source === "ndl_digital"
+        && !isValidNdlSearchDigitalItemIdentity(
+          item.source_id,
+          item.url,
+          item.source_metadata
+        )
+      ) {
+        throw new Error("invalid NDL Digital candidate identity");
+      }
+      return withCandidateOrigin(toSearchItem(item), origin);
+    })
   };
 }
 
@@ -104,6 +121,9 @@ function normalizeFulltextResult(
 ): CandidateResult {
   const parsed = searchFulltextOutputSchema.parse(structuredContent);
   const items = parsed.items.map((item): SearchItem => {
+    if (!isValidNdlDigitalViewerUrl(item.viewer_url, item.pid)) {
+      throw new Error("invalid NDL Digital viewer URL");
+    }
     const issued = normalizeIssuedAt(
       item.publishyear === null ? item.published : String(item.publishyear)
     );
@@ -304,11 +324,7 @@ function mergeSourceMetadata(entries: CandidateItemWithTool[]) {
       const value = entry.item.source_metadata?.browser_observations;
       return Array.isArray(value) ? value : [];
     })
-  ).sort((left, right) => {
-    const leftCheckedAt = asRecord(left)?.checked_at;
-    const rightCheckedAt = asRecord(right)?.checked_at;
-    return String(leftCheckedAt ?? "").localeCompare(String(rightCheckedAt ?? ""));
-  });
+  ).sort(compareBrowserObservationsChronologically);
   if (observations.length > 0) {
     merged.browser_observations = observations;
   }
