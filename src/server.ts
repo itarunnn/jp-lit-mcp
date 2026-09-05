@@ -38,6 +38,8 @@ import {
   searchPagesOutputSchema,
   searchFulltextInputSchema,
   searchFulltextOutputSchema,
+  recordNdlBrowserSearchInputSchema,
+  recordNdlBrowserSearchOutputSchema,
   searchIllustrationsInputSchema,
   searchIllustrationsOutputSchema,
   searchKokushoFulltextInputSchema,
@@ -119,6 +121,7 @@ import { createJpLitGetTextCoordinatesTool } from "./tools/jpLitGetTextCoordinat
 import { createJpLitGetFulltextTool } from "./tools/jpLitGetFulltext.js";
 import { createJpLitSearchPagesTool } from "./tools/jpLitSearchPages.js";
 import { createJpLitSearchFulltextTool } from "./tools/jpLitSearchFulltext.js";
+import { createJpLitRecordNdlBrowserSearchTool } from "./tools/jpLitRecordNdlBrowserSearch.js";
 import { createJpLitSearchIllustrationsTool } from "./tools/jpLitSearchIllustrations.js";
 import { createJpLitSearchKokushoFulltextTool } from "./tools/jpLitSearchKokushoFulltext.js";
 import { createJpLitSearchKokushoImageTagsTool } from "./tools/jpLitSearchKokushoImageTags.js";
@@ -462,6 +465,7 @@ export function createServer(env: ServerEnv = process.env) {
   const fulltextTool = createJpLitGetFulltextTool(recordService, nextDlClient, cache, sessions);
   const searchPagesTool = createJpLitSearchPagesTool(recordService, nextDlClient, cache, sessions);
   const searchFulltextTool = createJpLitSearchFulltextTool(nextDlClient, cache, sessions);
+  const recordNdlBrowserSearchTool = createJpLitRecordNdlBrowserSearchTool(cache, sessions);
   const searchIllustrationsTool = createJpLitSearchIllustrationsTool(nextDlClient, cache, sessions);
   const searchKokushoFulltextTool = createJpLitSearchKokushoFulltextTool(kokushoClient, cache, sessions);
   const searchKokushoImageTagsTool = createJpLitSearchKokushoImageTagsTool(kokushoClient, cache, sessions);
@@ -602,9 +606,20 @@ export function createServer(env: ServerEnv = process.env) {
   );
 
   server.registerTool(
+    "jp_lit_record_ndl_browser_search",
+    {
+      description: "local write。エージェントがデジコレ公式画面で観測した全文検索候補と閲覧・資料内検索・印刷用PDFの状態を検証してcache/sessionへ保存する。MCP自身はブラウザ操作・ログイン・外部通信を行わず、cookie、認証情報、画像、PDF本体・pathを受け取らない。保存後はjp_lit_refine_results、jp_lit_search_cache_index、jp_lit_annotate_session、jp_lit_export_view / jp_lit_export_sessionで通常候補と同様に扱う。",
+      inputSchema: recordNdlBrowserSearchInputSchema.innerType(),
+      outputSchema: recordNdlBrowserSearchOutputSchema.innerType(),
+      annotations: LOCAL_WRITE_ANNOTATIONS
+    },
+    recordNdlBrowserSearchTool
+  );
+
+  server.registerTool(
     "jp_lit_refine_results",
     {
-      description: "read-only。保存済み jp_lit_search 結果を upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。対象は cache_key / cache_keys / session_id のいずれか1つで明示する。include_enrichment=true なら session_id または enrichment_cache_keys で指定した保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。cache_key を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
+      description: "read-only。保存済みの三 candidate tool（jp_lit_search / jp_lit_search_fulltext / jp_lit_record_ndl_browser_search）の result_ref / result_refs を、upstream 再検索せずローカルでソート・フィルタ・集合演算し、必要時だけ重複候補クラスタも返す。互換入力の cache_key / cache_keys と session_id も利用できる。include_enrichment=true なら session_id または enrichment_cache_keys で指定した保存済み jp_lit_enrich_record cache を cluster に重ねるが、Crossref/OpenAlex へ新規照会しない。result_ref を探す段階では jp_lit_search_cache_index または jp_lit_list_cache を使う。cache や session は変更しない",
       inputSchema: refineResultsInputSchema,
       outputSchema: refineResultsOutputSchema,
       annotations: LOCAL_READ_ONLY_ANNOTATIONS
@@ -692,7 +707,7 @@ export function createServer(env: ServerEnv = process.env) {
   server.registerTool(
     "jp_lit_search_cache_index",
     {
-      description: "read-only。保存済み jp_lit_search cache を横断検索し、再抽出や export に渡せる cache_key 一覧を返す。新規に外部検索したい場合は jp_lit_search、保存済み cache の棚卸しは jp_lit_list_cache、検索結果の集合演算や重複確認は jp_lit_refine_results を使う。ローカル cache と session 紐づけを読むだけで、cache や session は変更しない",
+      description: "read-only。保存済みの三 candidate tool（jp_lit_search / jp_lit_search_fulltext / jp_lit_record_ndl_browser_search）の cache を横断検索し、再抽出や export に渡せる result_ref / result_refs と互換 cache_key 一覧を返す。新規に外部検索したい場合は jp_lit_search、保存済み cache の棚卸しは jp_lit_list_cache、検索結果の集合演算や重複確認は jp_lit_refine_results を使う。ローカル cache と session 紐づけを読むだけで、cache や session は変更しない",
       inputSchema: searchCacheIndexInputSchema,
       outputSchema: searchCacheIndexOutputSchema,
       annotations: LOCAL_READ_ONLY_ANNOTATIONS

@@ -38,6 +38,7 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
 type JsonSchemaBranch = {
   type?: string;
   properties?: Record<string, JsonSchemaBranch>;
+  items?: JsonSchemaBranch;
   required?: string[];
   additionalProperties?: boolean;
   anyOf?: JsonSchemaBranch[];
@@ -229,6 +230,7 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_list_cache",
       "jp_lit_list_sessions",
       "jp_lit_prune_cache",
+      "jp_lit_record_ndl_browser_search",
       "jp_lit_refine_results",
       "jp_lit_resolve_authority",
       "jp_lit_search",
@@ -245,6 +247,63 @@ describe("smoke-mcp tool manifest", () => {
       "jp_lit_suggest_classification_codes",
       "jp_lit_update_session_trace"
     ]);
+  });
+
+  it("publishes the browser observation recorder with a strict local-write manifest", async () => {
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-browser-observation-manifest-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const { tools } = await client.listTools();
+      const tool = tools.find(
+        (entry) => entry.name === "jp_lit_record_ndl_browser_search"
+      );
+      const inputSchema = tool?.inputSchema as JsonSchemaBranch | undefined;
+      const outputSchema = tool?.outputSchema as JsonSchemaBranch | undefined;
+      const itemSchema = inputSchema?.properties?.items?.items;
+
+      expect(tool).toBeDefined();
+      expect(tool?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false
+      });
+      expect(inputSchema?.required).toEqual(expect.arrayContaining([
+        "session_id",
+        "query",
+        "checked_at",
+        "login_state",
+        "page",
+        "reported_total",
+        "total_relation",
+        "filters",
+        "items"
+      ]));
+      expect(inputSchema?.additionalProperties).toBe(false);
+      expect(inputSchema?.properties?.filters?.additionalProperties).toBe(false);
+      expect(itemSchema?.additionalProperties).toBe(false);
+      expect(itemSchema?.properties?.snippets?.items?.additionalProperties).toBe(false);
+      expect(outputSchema?.required).toEqual(expect.arrayContaining([
+        "query",
+        "source",
+        "page",
+        "limit",
+        "total",
+        "items",
+        "observation"
+      ]));
+      expect(outputSchema?.additionalProperties).toBe(false);
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("publishes enrichment tool as a cached record verifier, not a search source", async () => {

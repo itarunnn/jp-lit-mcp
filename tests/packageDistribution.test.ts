@@ -1,11 +1,24 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+
+import { createServer } from "../src/server.js";
 
 interface PackageJson {
   bin?: Record<string, string>;
   files?: string[];
   scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+}
+
+interface JsonSchemaNode {
+  properties?: Record<string, JsonSchemaNode>;
+  items?: JsonSchemaNode;
+  anyOf?: JsonSchemaNode[];
+  allOf?: JsonSchemaNode[];
+  oneOf?: JsonSchemaNode[];
 }
 
 function collectFiles(directory: string, extension: string): string[] {
@@ -44,6 +57,23 @@ function collectEffectivePackageFiles(packageJson: PackageJson) {
       ].flatMap(collectPackagePath)
     )
   );
+}
+
+function collectSchemaPropertyNames(schema: JsonSchemaNode | undefined): string[] {
+  if (!schema) {
+    return [];
+  }
+
+  return [
+    ...Object.entries(schema.properties ?? {}).flatMap(([name, property]) => [
+      name,
+      ...collectSchemaPropertyNames(property)
+    ]),
+    ...collectSchemaPropertyNames(schema.items),
+    ...(schema.anyOf ?? []).flatMap(collectSchemaPropertyNames),
+    ...(schema.allOf ?? []).flatMap(collectSchemaPropertyNames),
+    ...(schema.oneOf ?? []).flatMap(collectSchemaPropertyNames)
+  ];
 }
 
 describe("npm package distribution", () => {
@@ -133,6 +163,61 @@ describe("npm package distribution", () => {
       ])
     );
     expect(effectivePackageText).not.toMatch(internalApiPattern);
+  });
+
+  it("browser観測記録toolはbrowser runtimeとcredential・binary・path入力を公開しない", async () => {
+    const forbiddenBrowserRuntimes = [
+      "playwright",
+      "chrome-launcher",
+      "puppeteer"
+    ];
+    const runtimeDependencies = Object.keys(packageJson.dependencies ?? {});
+    const publicRuntimeText = collectFiles("src", ".ts")
+      .map((file) => readFileSync(file, "utf8"))
+      .join("\n");
+
+    for (const runtime of forbiddenBrowserRuntimes) {
+      expect(runtimeDependencies).not.toContain(runtime);
+      expect(publicRuntimeText).not.toMatch(
+        new RegExp(`(?:from\\s+|import\\(\\s*)["']${runtime}(?:/[^"']*)?["']`)
+      );
+    }
+
+    const server = createServer();
+    const client = new Client({
+      name: "jp-lit-package-boundary-test-client",
+      version: "0.1.0"
+    });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const { tools } = await client.listTools();
+      const tool = tools.find(
+        (entry) => entry.name === "jp_lit_record_ndl_browser_search"
+      );
+      const propertyNames = collectSchemaPropertyNames(
+        tool?.inputSchema as JsonSchemaNode | undefined
+      ).map((name) => name.toLowerCase());
+
+      expect(tool).toBeDefined();
+      for (const forbiddenProperty of [
+        "cookie",
+        "password",
+        "session_token",
+        "user_id",
+        "user_name",
+        "pdf_path",
+        "screenshot",
+        "image"
+      ]) {
+        expect(propertyNames).not.toContain(forbiddenProperty);
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
   });
 
   it("uses a node shebang in the TypeScript entrypoint", () => {
