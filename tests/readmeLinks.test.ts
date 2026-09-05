@@ -10,7 +10,7 @@ import {
 } from "../src/lib/schemas.js";
 import {
   extractJsonToolCall,
-  findForbiddenBrowserClaims
+  lintForbiddenBrowserContractClaims
 } from "./helpers/browserDocumentContracts.js";
 
 function extractCapabilityTable(markdown: string) {
@@ -52,6 +52,40 @@ function githubHeadingSlugs(markdown: string) {
 
 describe("browser document contract helpers", () => {
   it.each([
+    ["mcp_performs_browser_operations", "MCP はブラウザ操作を行う。"],
+    ["search_hit_means_body_confirmed", "検索ヒットなら本文を確認したとみなす。"],
+    ["dialog_means_pdf_saved", "dialog_available は PDF を保存したことを意味する。"],
+    ["onsite_login_allows_remote_access", "ndl_onsite_only はログインすればリモートで閲覧できる。"],
+    [
+      "mcp_performs_browser_operations",
+      "MCP 本体はブラウザ操作を行うが、ログイン操作は行わない。"
+    ],
+    [
+      "onsite_login_allows_remote_access",
+      "ndl_onsite_only はログインすれば遠隔閲覧できるが、未ログインではできない。"
+    ]
+  ] as const)("detects the reviewed forbidden %s variant", (relation, text) => {
+    expect(lintForbiddenBrowserContractClaims(text)).toEqual([
+      expect.objectContaining({ relation })
+    ]);
+  });
+
+  it("does not flag the reviewed MCP predicate negation", () => {
+    expect(
+      lintForbiddenBrowserContractClaims("MCP はブラウザ操作を行うわけではない。")
+    ).toEqual([]);
+  });
+
+  it("does not let a different predicate negation cancel a forbidden claim", () => {
+    const text =
+      "MCP はブラウザ操作を行うものとし、ログイン操作は担当しない。";
+
+    expect(lintForbiddenBrowserContractClaims(text)).toEqual([
+      expect.objectContaining({ relation: "mcp_performs_browser_operations" })
+    ]);
+  });
+
+  it.each([
     ["mcp_performs_browser_operations", "MCP 本体がブラウザ操作を行う。"],
     ["mcp_performs_browser_operations", "ブラウザ操作は MCP 本体が担当する。"],
     ["search_hit_means_body_confirmed", "検索ヒットを本文確認済みとして扱う。"],
@@ -61,7 +95,7 @@ describe("browser document contract helpers", () => {
     ["onsite_login_allows_remote_access", "ndl_onsite_only はログイン済みなら遠隔可。"],
     ["onsite_login_allows_remote_access", "ログインすれば遠隔閲覧できるのが ndl_onsite_only です。"]
   ] as const)("detects forbidden %s claims independently of word order", (relation, text) => {
-    expect(findForbiddenBrowserClaims(text)).toEqual([
+    expect(lintForbiddenBrowserContractClaims(text)).toEqual([
       expect.objectContaining({ relation })
     ]);
   });
@@ -72,7 +106,7 @@ describe("browser document contract helpers", () => {
     "dialog_available は PDF 保存済みを意味しない。",
     "ndl_onsite_only はログインしても遠隔閲覧できない。"
   ])("does not flag an explicit negative contract: %s", (text) => {
-    expect(findForbiddenBrowserClaims(text)).toEqual([]);
+    expect(lintForbiddenBrowserContractClaims(text)).toEqual([]);
   });
 
   it("selects a minified JSON tool wrapper by parsed.tool", () => {
@@ -290,7 +324,9 @@ describe("README public onboarding", () => {
         "`ndl_onsite_only` はログインしても遠隔不可"
       );
 
-      expect.soft(findForbiddenBrowserClaims(doc), `${name}: forbidden claims`).toEqual([]);
+      expect
+        .soft(lintForbiddenBrowserContractClaims(doc), `${name}: forbidden claims`)
+        .toEqual([]);
     }
 
     expect(docs.status).toContain("公開ツール 30 種");
