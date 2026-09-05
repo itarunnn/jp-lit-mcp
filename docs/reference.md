@@ -464,7 +464,7 @@ OCR 系ツールは次世代デジタルライブラリー API の収録資料�
 | 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
 | --- | --- | --- | --- | --- | --- |
 | `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
 
 デジコレ本体の全文検索結果を取得する公開・文書化 API は確認できていません。このため、公式画面側の総ヒット件数、該当コマ、スニペット、公開範囲について、MCP ではAPIとしてのページング、キャッシュ、差分比較、安定した全件収集を保証できません。ブラウザ確認も UI、セッション状態、表示遅延に依存する補完経路であり、公開 API と同等の再現性はありません。画面内部 endpoint は公開 API として扱わず、MCP の通常機能・配布 package・公開 workflow へ組み込みません。
 
@@ -528,7 +528,7 @@ browser agent がデジコレ公式画面で観測した一回の全文検索候
 {
   "tool": "jp_lit_record_ndl_browser_search",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "query": "普通選挙法",
     "checked_at": "2026-09-05T12:00:00+09:00",
     "login_state": "logged_in_existing_session",
@@ -820,13 +820,13 @@ jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=N)
 
 ### API・browser・fulltext候補を統合して注釈・exportする
 
-API検索、許可済み公式ブラウザ、`jp_lit_record_ndl_browser_search` には同じ `session_id` を渡します。`jp_lit_refine_results(session_id=...)` は session 内の `jp_lit_search` / `jp_lit_search_fulltext` / `jp_lit_record_ndl_browser_search` を読み、同じ canonical `source` + `source_id` を一件へ統合します。候補は経路別に分断せず一つの候補リストとし、item ごとに発見経路と access / content / fulltext / print 状態を保持します。
+API tool と `jp_lit_record_ndl_browser_search` に同じ調査 `session_id` を渡し、browser 観測をその調査 session へ記録します。browser login session はデジコレ公式画面の認証状態で、`login_state` は観測時の状態です。どちらも MCP の調査 `session_id` とは別物です。`jp_lit_refine_results(session_id=...)` は調査 session 内の `jp_lit_search` / `jp_lit_search_fulltext` / `jp_lit_record_ndl_browser_search` を読み、同じ canonical `source` + `source_id` を一件へ統合します。候補は経路別に分断せず一つの候補リストとし、item ごとに発見経路と access / content / fulltext / print 状態を保持します。
 
 ```json
 {
   "tool": "jp_lit_refine_results",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "combine": "union",
     "key_by": "source_record"
   }
@@ -839,9 +839,9 @@ API検索、許可済み公式ブラウザ、`jp_lit_record_ndl_browser_search` 
 {
   "tool": "jp_lit_annotate_session",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "tool": "jp_lit_record_ndl_browser_search",
-    "cache_key": "<record-cache-key>",
+    "cache_key": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "selected_items": [{
       "source": "ndl_digital",
       "source_id": "R100000039-I1907653",
@@ -857,7 +857,7 @@ API検索、許可済み公式ブラウザ、`jp_lit_record_ndl_browser_search` 
 {
   "tool": "jp_lit_export_session",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "format": "json",
     "profile": "selected"
   }

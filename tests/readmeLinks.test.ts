@@ -1,7 +1,67 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { sourceSchema } from "../src/lib/schemas.js";
+import {
+  annotateSessionInputSchema,
+  exportSessionInputSchema,
+  recordNdlBrowserSearchInputSchema,
+  refineResultsInputSchema,
+  sourceSchema
+} from "../src/lib/schemas.js";
+
+type JsonToolCall = {
+  tool: string;
+  arguments: unknown;
+};
+
+function extractJsonToolCall(markdown: string, tool: string): JsonToolCall {
+  const block = [...markdown.matchAll(/```json\s*\r?\n([\s\S]*?)\r?\n```/g)]
+    .map((match) => match[1])
+    .find((candidate) => candidate.includes(`"tool": "${tool}"`));
+
+  if (!block) {
+    throw new Error(`JSON example not found for ${tool}`);
+  }
+
+  return JSON.parse(block) as JsonToolCall;
+}
+
+function extractCapabilityTable(markdown: string) {
+  const header = "| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |";
+  const start = markdown.indexOf(header);
+  if (start < 0) {
+    throw new Error("NDL browser capability table not found");
+  }
+
+  const rows: string[] = [];
+  for (const line of markdown.slice(start).split(/\r?\n/)) {
+    if (!line.startsWith("|")) {
+      break;
+    }
+    rows.push(line);
+  }
+  return rows;
+}
+
+function githubHeadingSlugs(markdown: string) {
+  const counts = new Map<string, number>();
+  const slugs = new Set<string>();
+
+  for (const match of markdown.matchAll(/^#{1,6}\s+(.+)$/gm)) {
+    const base = match[1]
+      .replace(/<[^>]*>/g, "")
+      .replace(/[`*~]/g, "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    const count = counts.get(base) ?? 0;
+    counts.set(base, count + 1);
+    slugs.add(count === 0 ? base : `${base}-${count}`);
+  }
+
+  return slugs;
+}
 
 describe("README public onboarding", () => {
   it("links to install guides", () => {
@@ -159,14 +219,13 @@ describe("README public onboarding", () => {
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");
   });
 
-  it("documents the NDL browser candidate capability and post-observation calls", () => {
+  it("documents the NDL browser capability independently in every public table and keeps README links resolvable", () => {
     const docs = {
       readme: readFileSync("README.md", "utf8"),
       usage: readFileSync("docs/usage-guide.md", "utf8"),
       reference: readFileSync("docs/reference.md", "utf8"),
       status: readFileSync("docs/project-status.md", "utf8")
     };
-    const publicDocs = Object.values(docs).join("\n");
 
     for (const [name, doc] of Object.entries(docs)) {
       expect.soft(doc, `${name}: browser record tool`).toContain(
@@ -175,41 +234,115 @@ describe("README public onboarding", () => {
       expect.soft(doc, `${name}: Next Digital boundary`).toContain(
         "jp_lit_search_fulltext"
       );
-    }
 
-    for (const heading of [
-      "全文候補検索",
-      "送信資料ヒット",
-      "本文画像確認",
-      "PDF状態",
-      "cache/session統合"
-    ]) {
-      expect.soft(publicDocs, heading).toContain(heading);
-    }
-
-    for (const tool of [
-      "jp_lit_record_ndl_browser_search",
-      "jp_lit_refine_results",
-      "jp_lit_annotate_session",
-      "jp_lit_export_session"
-    ]) {
-      expect.soft(docs.usage, `usage JSON: ${tool}`).toContain(
-        `\"tool\": \"${tool}\"`
+      const table = extractCapabilityTable(doc);
+      expect.soft(table[0], `${name}: capability headers`).toBe(
+        "| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |"
       );
-      expect.soft(docs.reference, `reference JSON: ${tool}`).toContain(
-        `\"tool\": \"${tool}\"`
+      const apiRow = table.find((row) => row.includes("`jp_lit_search_fulltext`"));
+      const browserRow = table.find((row) => row.includes("`jp_lit_record_ndl_browser_search`"));
+      expect.soft(apiRow, `${name}: Next Digital row`).toContain("デジコレ本体の範囲は網羅しない");
+      expect.soft(browserRow, `${name}: individual transmission boundary`).toContain(
+        "個人送信は許可済み既存ログインが必要"
       );
+      expect.soft(browserRow, `${name}: onsite boundary`).toContain(
+        "`ndl_onsite_only` はログインしても遠隔不可"
+      );
+
+      const forbiddenAssertions = [
+        /`?ndl_onsite_only`?.{0,40}ログイン(?:済み)?(?:なら|で|すれば).{0,40}遠隔閲覧(?:可能|できる|可)/,
+        /MCP 本体(?:が|は).{0,20}(?:ブラウザ|browser).{0,20}(?:ログイン|login).{0,20}(?:外部通信|network).{0,20}(?:を行う。|を実行する。|を担当する。)/,
+        /検索ヒット(?:だけ)?(?:は|なら|=).{0,20}本文(?:を)?確認済み/,
+        /`?dialog_available`?(?:\s*=\s*|.{0,12}(?:は|を意味する)).{0,12}(?:PDF)?保存済み/
+      ];
+      for (const forbidden of forbiddenAssertions) {
+        expect.soft(doc, `${name}: ${forbidden}`).not.toMatch(forbidden);
+      }
     }
 
-    expect(publicDocs).toContain("デジコレ本体の全文検索を網羅しません");
-    expect(publicDocs).toContain("一つの候補リスト");
-    expect(publicDocs).toContain("result_refs");
-    expect(publicDocs).toContain("logged_in_existing_session");
-    expect(publicDocs).toContain("page_image_checked");
-    expect(publicDocs).toContain("print_file_state");
     expect(docs.status).toContain("公開ツール 30 種");
-    expect(publicDocs).not.toMatch(
-      /jp_lit_search_fulltext[^\n]{0,80}デジコレ全資料/
+
+    const browserSection = docs.readme.slice(
+      docs.readme.indexOf("### NDL デジタルコレクション系の OCR 全文を探す"),
+      docs.readme.indexOf("\n### ", docs.readme.indexOf("### NDL デジタルコレクション系の OCR 全文を探す") + 4)
     );
+    const relativeLinks = [...browserSection.matchAll(/\[[^\]]+\]\((docs\/[^)#]+\.md)#([^)]+)\)/g)];
+    expect(relativeLinks).toHaveLength(2);
+    for (const [, targetPath, anchor] of relativeLinks) {
+      expect.soft(existsSync(targetPath), targetPath).toBe(true);
+      if (!existsSync(targetPath)) {
+        continue;
+      }
+      const headings = githubHeadingSlugs(readFileSync(targetPath, "utf8"));
+      expect.soft(headings, `${targetPath}#${anchor}`).toContain(anchor);
+    }
+  });
+
+  it("parses the public browser workflow JSON examples and validates every tool argument schema", () => {
+    const docs = {
+      usage: readFileSync("docs/usage-guide.md", "utf8"),
+      reference: readFileSync("docs/reference.md", "utf8")
+    };
+    const schemas = {
+      jp_lit_record_ndl_browser_search: recordNdlBrowserSearchInputSchema,
+      jp_lit_refine_results: refineResultsInputSchema,
+      jp_lit_annotate_session: annotateSessionInputSchema,
+      jp_lit_export_session: exportSessionInputSchema
+    };
+
+    for (const [docName, doc] of Object.entries(docs)) {
+      for (const [tool, schema] of Object.entries(schemas)) {
+        const call = extractJsonToolCall(doc, tool);
+        expect.soft(call.tool, `${docName}: ${tool} wrapper`).toBe(tool);
+        const result = schema.safeParse(call.arguments);
+        expect.soft(
+          result.success,
+          `${docName}: ${tool} arguments ${result.success ? "" : result.error.message}`
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("separates research session IDs from browser login sessions in usage and reference", () => {
+    const docs = {
+      usage: readFileSync("docs/usage-guide.md", "utf8"),
+      reference: readFileSync("docs/reference.md", "utf8")
+    };
+
+    for (const [name, doc] of Object.entries(docs)) {
+      const contractStart = doc.indexOf(
+        "API tool と `jp_lit_record_ndl_browser_search`"
+      );
+      expect.soft(contractStart, `${name}: research session contract`).toBeGreaterThanOrEqual(0);
+      if (contractStart < 0) {
+        continue;
+      }
+      const contract = doc.slice(contractStart, contractStart + 600);
+      const orderedContract = [
+        "API tool",
+        "jp_lit_record_ndl_browser_search",
+        "同じ調査 `session_id`",
+        "browser 観測をその調査 session へ記録",
+        "browser login session",
+        "`login_state`",
+        "MCP の調査 `session_id` とは別物"
+      ];
+      let previous = -1;
+      for (const phrase of orderedContract) {
+        const index = contract.indexOf(phrase);
+        expect.soft(index, `${name}: ${phrase}`).toBeGreaterThan(previous);
+        previous = index;
+      }
+
+      expect.soft(doc, `${name}: ambiguous API/browser wording`).not.toContain(
+        "API 検索と公式画面の観測には同じ `session_id`"
+      );
+      expect.soft(doc, `${name}: browser does not receive research SID`).not.toMatch(
+        /(?:公式ブラウザ|ブラウザ|browser)(?:にも|へ)同じ `session_id`/
+      );
+      expect.soft(doc, `${name}: authorized browser is not a research SID consumer`).not.toMatch(
+        /API検索、許可済み公式ブラウザ、`jp_lit_record_ndl_browser_search` には同じ `session_id`/
+      );
+    }
   });
 });

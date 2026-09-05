@@ -262,7 +262,7 @@ J-STAGE など一部 source では、API がアブストラクトを返さない
 | 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
 | --- | --- | --- | --- | --- | --- |
 | `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
 
 `jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。公式画面をユーザーが許可した場合、browser agent は画面を確認し、その観測値を `jp_lit_record_ndl_browser_search` で API 検索と同じ `session_id` へ保存できます。MCP 本体は browser / login / network を担当せず、観測値を検証して local cache/session へ記録するだけです。
 

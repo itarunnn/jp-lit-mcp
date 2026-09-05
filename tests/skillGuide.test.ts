@@ -1,6 +1,20 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { exportViewInputSchema } from "../src/lib/schemas.js";
+
+function extractJsonToolCall(markdown: string, tool: string) {
+  const block = [...markdown.matchAll(/```json\s*\r?\n([\s\S]*?)\r?\n```/g)]
+    .map((match) => match[1])
+    .find((candidate) => candidate.includes(`"tool": "${tool}"`));
+
+  if (!block) {
+    throw new Error(`JSON example not found for ${tool}`);
+  }
+
+  return JSON.parse(block) as { tool: string; arguments: unknown };
+}
+
 describe("jp-lit-research skill guide", () => {
   it("routes reference-book research from guides to detail and holdings confirmation", () => {
     const sourceAndQuery = readFileSync(
@@ -377,6 +391,35 @@ describe("jp-lit-research skill guide", () => {
     expect(skillAndReferences).not.toMatch(
       /jp_lit_search_fulltext[^\n]{0,80}デジコレ全資料/
     );
+  });
+
+  it("provides an executable refined-results export example without collapsing browser states", () => {
+    const workflow = readFileSync(
+      "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+      "utf8"
+    );
+    const call = extractJsonToolCall(workflow, "jp_lit_export_view");
+
+    expect(call.tool).toBe("jp_lit_export_view");
+    const result = exportViewInputSchema.safeParse(call.arguments);
+    expect(result.success, result.success ? "" : result.error.message).toBe(true);
+
+    const exportExample = JSON.stringify(call.arguments);
+    const orderedFields = ["refined_results", "params", "result_refs"];
+    let previous = -1;
+    for (const field of orderedFields) {
+      const index = exportExample.indexOf(field);
+      expect.soft(index, field).toBeGreaterThan(previous);
+      previous = index;
+    }
+
+    for (const forbidden of [
+      /検索ヒット(?:だけ)?(?:は|なら|=).{0,20}本文(?:を)?確認済み/,
+      /`?dialog_available`?(?:\s*=\s*|.{0,12}(?:は|を意味する)).{0,12}(?:PDF)?保存済み/,
+      /`?ndl_onsite_only`?.{0,40}ログイン(?:済み)?(?:なら|で|すれば).{0,40}遠隔閲覧(?:可能|できる|可)/
+    ]) {
+      expect.soft(workflow, forbidden.toString()).not.toMatch(forbidden);
+    }
   });
 
   it("documents rolling checkpoints and environment-neutral delegation contracts", () => {
