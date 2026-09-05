@@ -48,7 +48,7 @@
 
 | 対象 | field / 状態 | 読み方 |
 | --- | --- | --- |
-| browser login | `login_state`: `logged_out` / `logged_in_existing_session` | 利用した既存 session の状態。認証情報そのものではない |
+| browser login | `login_state`: `logged_out` / `logged_in_existing_session` | デジコレ公式画面の認証状態。MCP の調査 `session_id` とは別物で、認証情報そのものでもない |
 | 検索ヒット | `reported_total` + `total_relation`: `reported_exact` / `reported_approximate` / `observed_lower_bound` | ヒット表示を観測した状態。資料詳細や本文確認を意味しない |
 | 資料詳細 | `jp_lit_get_record` / `jp_lit_get_records` の `content_access.manual_viewing` | 書誌・手動閲覧導線の確認。browser の本文状態とは別 |
 | 資料内全文検索 | `item_fulltext_state`: `not_checked` / `unavailable` / `available` / `searched` | `searched` だけが資料内検索を実行した状態 |
@@ -76,7 +76,37 @@ filter の公開範囲は `public` / `transmission` / `ndl_onsite_only`、item �
 3. 観測値を `jp_lit_record_ndl_browser_search` へ渡し、同じ `session_id` に browser candidate result を保存する。
 4. `jp_lit_refine_results(session_id=..., combine="union", key_by="source_record")` で API / browser / fulltext 候補を統合する。個別指定では `result_refs` に `{ tool, cache_key }` を渡す。
 5. 採用候補を `jp_lit_annotate_session` で同じ session に記録する。
-6. `jp_lit_export_session` で調査 session を、または `jp_lit_export_view(view="refined_results", params={ result_refs=[...] })` で統合結果を export する。
+6. `jp_lit_export_session` で調査 session を、または次の完全な JSON のように `jp_lit_export_view` で統合結果を export する。`cache_key` は各 candidate tool の実際の返り値に置き換える。
+
+```json
+{
+  "tool": "jp_lit_export_view",
+  "arguments": {
+    "view": "refined_results",
+    "params": {
+      "result_refs": [
+        {
+          "tool": "jp_lit_search",
+          "cache_key": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "tool": "jp_lit_search_fulltext",
+          "cache_key": "sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "tool": "jp_lit_record_ndl_browser_search",
+          "cache_key": "sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "combine": "union",
+      "key_by": "source_record",
+      "limit": 30
+    },
+    "format": "json",
+    "export_all": true
+  }
+}
+```
 
 同じデジコレ PID は canonical な `source="ndl_digital"` + `source_id="R100000039-I<PID>"` で一件へ merge される。書誌は API、全文 highlight は次世代 API、access/content/fulltext/print は browser observation の来歴を保つ。ユーザーには経路別の別一覧ではなく一つの候補リストを返し、item ごとに発見経路、`access`、`content`、`fulltext`、`print` を示す。検索概要と調査ログの total・取得件数・確認日時は経路別に残す。
 

@@ -461,7 +461,7 @@ batch 全体の独自 cache/session は作らず、成功 item は `jp_lit_get_r
 | 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
 | --- | --- | --- | --- | --- | --- |
 | `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
 
 `jp_lit_search_fulltext` はデジコレ本体の検索画面そのものを API 化したものではありません。上流は次世代デジタルライブラリー API であり、デジコレ本体の全文検索を網羅しません。デジコレ本体の「ログインなしで閲覧可能」資料全体を検索するものでも、全文検索画面で見える館内限定・送信サービス限定資料の OCR ヒットを網羅するものでもありません。`content_access.manual_viewing` は、MCP から本文を自動取得できない資料を人間が公式画面で読むための導線であり、MCP がデジコレ本体の全文検索結果を取得済みであることを意味しません。
 
@@ -512,13 +512,13 @@ jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=...)
 
 #### browser観測を同じsessionへ統合する
 
-API 検索と公式画面の観測には同じ `session_id` を使います。browser agent が公式画面を確認した後、次の record / refine / annotate / export を順に行います。browser の操作方法、認証情報、cookie、画像、生成 PDF、保存先 path は入力しません。
+API tool と `jp_lit_record_ndl_browser_search` に同じ調査 `session_id` を渡し、browser 観測をその調査 session へ記録します。browser login session はデジコレ公式画面の認証状態で、`login_state` は観測時の状態です。どちらも MCP の調査 `session_id` とは別物です。browser agent が公式画面を確認した後、次の record / refine / annotate / export を順に行います。browser の操作方法、認証情報、cookie、画像、生成 PDF、保存先 path は入力しません。
 
 ```json
 {
   "tool": "jp_lit_record_ndl_browser_search",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "query": "普通選挙法",
     "checked_at": "2026-09-05T12:00:00+09:00",
     "login_state": "logged_in_existing_session",
@@ -560,7 +560,7 @@ record の返り値にある `cache.cache_key` を控えます。同じ session 
 {
   "tool": "jp_lit_refine_results",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "combine": "union",
     "key_by": "source_record",
     "limit": 30
@@ -572,9 +572,9 @@ record の返り値にある `cache.cache_key` を控えます。同じ session 
 {
   "tool": "jp_lit_annotate_session",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "tool": "jp_lit_record_ndl_browser_search",
-    "cache_key": "<record-cache-key>",
+    "cache_key": "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "selected_items": [{
       "source": "ndl_digital",
       "source_id": "R100000039-I1907653",
@@ -590,7 +590,7 @@ record の返り値にある `cache.cache_key` を控えます。同じ session 
 {
   "tool": "jp_lit_export_session",
   "arguments": {
-    "session_id": "<SID>",
+    "session_id": "2026-09-05-120000-a1b2c3d4",
     "format": "json",
     "profile": "selected"
   }

@@ -21,7 +21,7 @@
 | 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
 | --- | --- | --- | --- | --- | --- |
 | `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済みの既存ログインが必要 | 生成物ではなく状態だけ記録 | 対応 |
+| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
 
 `jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。許可済み browser の観測は `jp_lit_record_ndl_browser_search` で同じ `session_id` に保存し、`jp_lit_refine_results` の `session_id` / `result_refs` で canonical merge します。候補は一つの候補リストに統合し、各 item の発見経路と `access` / `content` / `fulltext` / `print_file_state` を保ちます。観測後の record / refine / annotate / export JSON 例は `docs/usage-guide.md` と `docs/reference.md` にあります。
 
