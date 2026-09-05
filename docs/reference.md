@@ -514,6 +514,8 @@ browser agent がデジコレ公式画面で観測した一回の全文検索候
 
 各 item は `pid`、`title`、`volume`、`authors`、`publisher`、`published`、`viewer_url`、`access_scope`、`access_label`、`snippets`、`item_fulltext_state`、`hit_locations`、`content_state`、`print_file_state` をすべて指定します。`access_scope` は `public` / `transmission_unspecified` / `individual_transmission` / `library_transmission` / `ndl_onsite_only` / `unknown` です。
 
+`snippets` は item ごとに最大5件、各 snippet の `text` は最大500文字です。`locator_type` は `content_index | koma | filename | unknown` の4値です。`locator` は `string | null` で、画面に表示された locator を記録できない場合は `null` を使います。
+
 検索ヒット、資料詳細、本文画像、資料内全文検索、印刷ダイアログ、PDF生成、保存は別状態です。
 
 | field | enum | 意味 |

@@ -435,4 +435,29 @@ describe("README public onboarding", () => {
       );
     }
   });
+
+  it("documents the bounded browser snippet locator contract", () => {
+    const docs = {
+      reference: readFileSync("docs/reference.md", "utf8"),
+      workflow: readFileSync(
+        "skills/jp-lit-research/workflows/fulltext-page-lookup.md",
+        "utf8"
+      )
+    };
+
+    for (const [name, doc] of Object.entries(docs)) {
+      expect.soft(doc, `${name}: locator_type`).toContain(
+        "`content_index | koma | filename | unknown`"
+      );
+      expect.soft(doc, `${name}: locator type`).toContain(
+        "`locator` は `string | null`"
+      );
+      expect.soft(doc, `${name}: null meaning`).toContain(
+        "画面に表示された locator を記録できない場合は `null`"
+      );
+      expect.soft(doc, `${name}: snippet bounds`).toContain(
+        "`snippets` は item ごとに最大5件、各 snippet の `text` は最大500文字"
+      );
+    }
+  });
 });

@@ -133,6 +133,9 @@ describe("recordNdlBrowserSearchInputSchema", () => {
     ["別 host", (input: any) => { input.items[0].viewer_url = "https://example.com/pid/1907653"; }],
     ["credential 付き URL", (input: any) => { input.items[0].viewer_url = "https://user:password@dl.ndl.go.jp/pid/1907653"; }],
     ["URL と PID の不一致", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/9999999"; }],
+    ["非標準 port", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp:8443/pid/1907653"; }],
+    ["token 風 query", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/1907653?token=secret"; }],
+    ["fragment", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/1907653#detail"; }],
     ["101 items", (input: any) => { input.items = Array.from({ length: 101 }, () => structuredClone(input.items[0])); }],
     ["6 snippets", (input: any) => { input.items[0].snippets = Array.from({ length: 6 }, () => ({ text: "hit", locator_type: "koma", locator: "1" })); }],
     ["501文字 snippet", (input: any) => { input.items[0].snippets[0].text = "あ".repeat(501); }],
@@ -165,6 +168,16 @@ describe("recordNdlBrowserSearchInputSchema", () => {
       total_relation: "observed_lower_bound"
     }).success).toBe(true);
   });
+
+  it("clean なデジコレ subpath を受理する", () => {
+    const input = mutableObservation() as any;
+    input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/1907653/1/36";
+
+    expect(recordNdlBrowserSearchInputSchema.safeParse({
+      session_id: "2026-09-05-120000-0123abcd",
+      ...input
+    }).success).toBe(true);
+  });
 });
 
 describe("recordNdlBrowserSearchOutputSchema", () => {
@@ -180,6 +193,13 @@ describe("recordNdlBrowserSearchOutputSchema", () => {
 
     expect(recordNdlBrowserSearchOutputSchema.safeParse(topLevel).success).toBe(false);
     expect(recordNdlBrowserSearchOutputSchema.safeParse(metadata).success).toBe(false);
+  });
+
+  it("output の clean なデジコレ subpath を受理する", () => {
+    const output = structuredClone(OUTPUT) as any;
+    output.items[0].url = "https://dl.ndl.go.jp/pid/1907653/1/36";
+
+    expect(recordNdlBrowserSearchOutputSchema.safeParse(output).success).toBe(true);
   });
 });
 

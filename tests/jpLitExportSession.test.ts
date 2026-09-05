@@ -107,7 +107,7 @@ describe("jp_lit_export_session", () => {
           },
           {
             source: "ndl_digital",
-            source_id: "456",
+            source_id: "R100000039-I456",
             title: "bar",
             subtitle: null,
             title_reading: null,
@@ -118,7 +118,7 @@ describe("jp_lit_export_session", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I456",
             availability: {
               online: false,
               digital_collection: true
@@ -414,7 +414,7 @@ describe("jp_lit_export_session", () => {
         items: [
           {
             source: "ndl_digital",
-            source_id: "456",
+            source_id: "R100000039-I456",
             title: "bar",
             subtitle: null,
             title_reading: null,
@@ -425,7 +425,7 @@ describe("jp_lit_export_session", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I456",
             availability: {
               online: false,
               digital_collection: true
@@ -717,7 +717,7 @@ describe("jp_lit_export_session", () => {
     const tool = createJpLitExportSessionTool(sessions, exporter);
     const cacheKey = fixtureCacheKey("sha256-browser-csl");
     const olderObservation = {
-      checked_at: "2026-09-04T12:00:00+09:00",
+      checked_at: "2026-09-06T00:30:00+14:00",
       login_state: "logged_out",
       query: "普通選挙法",
       access_scope: "ndl_onsite_only",
@@ -729,7 +729,7 @@ describe("jp_lit_export_session", () => {
       print_file_state: "unavailable"
     };
     const latestObservation = {
-      checked_at: "2026-09-05T12:00:00+09:00",
+      checked_at: "2026-09-05T23:45:00-12:00",
       login_state: "logged_in_existing_session",
       query: "普通選挙法",
       access_scope: "individual_transmission",
@@ -831,12 +831,12 @@ describe("jp_lit_export_session", () => {
     });
     expect(written[0]?.note).toContain("selection note: review after browser check");
     expect(written[0]?.note).toContain("acquisition: ndl_digital_browser");
-    expect(written[0]?.note).toContain("browser checked_at: 2026-09-05T12:00:00+09:00");
+    expect(written[0]?.note).toContain("browser checked_at: 2026-09-05T23:45:00-12:00");
     expect(written[0]?.note).toContain("browser access: individual_transmission");
     expect(written[0]?.note).toContain(
       "browser evidence: item_fulltext=searched, content=page_image_checked, print=dialog_available"
     );
-    expect(written[0]?.note).not.toContain("2026-09-04T12:00:00+09:00");
+    expect(written[0]?.note).not.toContain("2026-09-06T00:30:00+14:00");
   });
 
   it("writes cinii_dissertations records as CSL thesis items", async () => {
@@ -1137,7 +1137,7 @@ describe("jp_lit_export_session", () => {
           },
           {
             source: "ndl_digital",
-            source_id: "456",
+            source_id: "R100000039-I456",
             title: "unselected item",
             subtitle: null,
             title_reading: null,
@@ -1148,7 +1148,7 @@ describe("jp_lit_export_session", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I456",
             availability: {
               online: false,
               digital_collection: true
@@ -1247,7 +1247,7 @@ describe("jp_lit_export_session", () => {
           },
           {
             source: "ndl_digital",
-            source_id: "222",
+            source_id: "R100000039-I222",
             title: "candidate item",
             subtitle: null,
             title_reading: null,
@@ -1258,7 +1258,7 @@ describe("jp_lit_export_session", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I222",
             availability: {
               online: false,
               digital_collection: true
@@ -1317,7 +1317,7 @@ describe("jp_lit_export_session", () => {
         },
         {
           source: "ndl_digital",
-          source_id: "222",
+          source_id: "R100000039-I222",
           title: "candidate item",
           label: "strong_candidate",
           note: "review later"
@@ -1390,7 +1390,7 @@ describe("jp_lit_export_session", () => {
           },
           {
             source: "ndl_digital",
-            source_id: "222",
+            source_id: "R100000039-I222",
             title: "unselected item",
             subtitle: null,
             title_reading: null,
@@ -1401,7 +1401,7 @@ describe("jp_lit_export_session", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I222",
             availability: {
               online: false,
               digital_collection: true

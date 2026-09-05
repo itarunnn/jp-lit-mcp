@@ -169,7 +169,7 @@ describe("jp_lit_export_session history", () => {
           },
           {
             source: "ndl_digital",
-            source_id: "archived-2",
+            source_id: "R100000039-I2",
             title: "archived unselected",
             subtitle: null,
             title_reading: null,
@@ -180,7 +180,7 @@ describe("jp_lit_export_session history", () => {
             issued_at_label: null,
             issued_at_precision: "unknown",
             summary: null,
-            url: null,
+            url: "https://ndlsearch.ndl.go.jp/books/R100000039-I2",
             availability: {
               online: false,
               digital_collection: true
