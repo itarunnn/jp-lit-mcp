@@ -136,6 +136,7 @@ describe("recordNdlBrowserSearchInputSchema", () => {
     ["非標準 port", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp:8443/pid/1907653"; }],
     ["token 風 query", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/1907653?token=secret"; }],
     ["fragment", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pid/1907653#detail"; }],
+    ["埋め込み CR", (input: any) => { input.items[0].viewer_url = "https://dl.ndl.go.jp/pi\rd/1907653"; }],
     ["101 items", (input: any) => { input.items = Array.from({ length: 101 }, () => structuredClone(input.items[0])); }],
     ["6 snippets", (input: any) => { input.items[0].snippets = Array.from({ length: 6 }, () => ({ text: "hit", locator_type: "koma", locator: "1" })); }],
     ["501文字 snippet", (input: any) => { input.items[0].snippets[0].text = "あ".repeat(501); }],

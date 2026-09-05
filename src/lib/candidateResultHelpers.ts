@@ -5,7 +5,13 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function parseStrictUrl(value: unknown): URL | null {
-  if (typeof value !== "string" || value.trim() !== value) return null;
+  if (
+    typeof value !== "string"
+    || value.trim() !== value
+    || /[\u0000-\u001F\u007F]/.test(value)
+  ) {
+    return null;
+  }
   try {
     return new URL(value);
   } catch {

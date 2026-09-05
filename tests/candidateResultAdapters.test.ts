@@ -236,6 +236,9 @@ describe("candidate result adapters", () => {
     ["credential 付き URL", (item: any) => {
       item.url = "https://user:password@ndlsearch.ndl.go.jp/books/R100000039-I1907653";
     }],
+    ["埋め込み改行付き URL", (item: any) => {
+      item.url = "https://ndlsearch.ndl.go.jp/bo\noks/R100000039-I1907653";
+    }],
     ["URL 欠落", (item: any) => {
       item.url = null;
     }]
@@ -351,6 +354,9 @@ describe("candidate result adapters", () => {
     }],
     ["credential 付き URL", (item: any) => {
       item.viewer_url = "https://user:password@dl.ndl.go.jp/pid/1907653";
+    }],
+    ["埋め込み tab 付き URL", (item: any) => {
+      item.viewer_url = "https://dl.ndl.go.jp/pid/190\t7653";
     }]
   ])("jp_lit_search_fulltext は%sを拒否する", (_label, mutate) => {
     const payload = structuredClone(fulltextPayload) as any;
