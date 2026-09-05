@@ -423,4 +423,33 @@ describe("candidate result adapters", () => {
       issued_at_precision: "unknown"
     });
   });
+
+  it.each([
+    ["空文字", ""],
+    ["空白のみ", "   "]
+  ])("上位の日付 label が%sなら下位の有効な日付組を採用する", (_case, label) => {
+    const apiItem = {
+      ...searchItem,
+      issued_at: null,
+      issued_at_label: label,
+      issued_at_precision: "unknown" as const
+    };
+    const fulltextItem = {
+      ...searchItem,
+      issued_at: "1926",
+      issued_at_label: "1926",
+      issued_at_precision: "year" as const
+    };
+
+    const merged = mergeSameSourceRecordItems([
+      { tool: "jp_lit_search_fulltext", item: fulltextItem },
+      { tool: "jp_lit_search", item: apiItem }
+    ]);
+
+    expect(merged).toMatchObject({
+      issued_at: "1926",
+      issued_at_label: "1926",
+      issued_at_precision: "year"
+    });
+  });
 });

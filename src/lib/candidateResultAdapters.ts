@@ -312,7 +312,7 @@ export function mergeSameSourceRecordItems(
   };
   const dateEntry = sorted.find(
     (entry) =>
-      entry.item.issued_at !== null || entry.item.issued_at_label !== null
+      hasValue(entry.item.issued_at) || hasValue(entry.item.issued_at_label)
   )
     ?? preferred;
   const dateFields = toDateFields(
