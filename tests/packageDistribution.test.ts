@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -113,6 +113,11 @@ describe("npm package distribution", () => {
   it("builds before packing and ships the compiled server", () => {
     expect(packageJson.scripts?.prepack).toBe("npm run build");
     expect(packageJson.files).toContain("dist/");
+  });
+
+  it("ships the Digital Collections search guide", () => {
+    expect(existsSync("docs/ndl-digital-collections.md")).toBe(true);
+    expect(packageJson.files).toContain("docs/ndl-digital-collections.md");
   });
 
   it("keeps local planning notes out of the npm package allowlist", () => {

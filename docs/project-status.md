@@ -2,7 +2,7 @@
 
 2026-09-06 時点の状態:
 
-- 公開ツール 30 種。対応 source 21 種（`ndl_reference_books` を含む）。この未リリース機能と最終レビュー修正を含む fresh `npm test` は 83 files / 903 tests で通過
+- 公開ツール 30 種。対応 source 21 種（`ndl_reference_books` を含む）。この未リリース機能と最終レビュー修正を含む fresh `npm test` は 83 files / 904 tests で通過
 - `npm run build` / `npm run typecheck:scripts` / `npm run smoke:mcp:offline` は fresh 実行で通過
 - 2026-08-25 10:04 JST に `ndl_reference_books` を adapter 直結（cache bypass、`force_refresh=true` 相当）で live 確認した。`query="哲学"`、`limit=2`、`page=1` の検索は1回だけ成功し、total 197、取得2件、抽出2件で、全件が `source_metadata.reference_book=true`、`reference_ndc=["103.3"]` だった。紹介文あり候補は1件だけ選び、detailも1回だけ成功した（`R100000002-I000002972211`、`summary` / `introduction` = 「第4版(1985年刊)と同内容。」、公式 URL: `https://ndlsearch.ndl.go.jp/books/R100000002-I000002972211`）。この確認は候補メタデータと詳細経路に限り、本文・現物・所蔵・閲覧可否は未確認である。
 - `ndl_digital` の詳細取得では `pids` は1〜10件を受け付ける。運用上は1件なら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使い、canonical な `R100000039-I<PID>` source ID と同じ cache を共有する。PID と source ID は排他的で、他 source の PID 入力は拒否する
@@ -16,14 +16,7 @@
 - README / install docs / usage guide / source-usage-conditions を整備済み
 - ライセンスは `MIT`
 
-デジコレ全文候補の現在の能力境界:
-
-| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
-| --- | --- | --- | --- | --- | --- |
-| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
-
-`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。許可済み browser の観測は `jp_lit_record_ndl_browser_search` で同じ `session_id` に保存し、`jp_lit_refine_results` の `session_id` / `result_refs` で canonical merge します。候補は一つの候補リストに統合し、各 item の発見経路と `access` / `content` / `fulltext` / `print_file_state` を保ちます。観測後の record / refine / annotate / export JSON 例は `docs/usage-guide.md` と `docs/reference.md` にあります。
+デジコレ全文候補の現在の能力境界は、[デジコレ全文検索ガイド](ndl-digital-collections.md)にまとめています。`jp_lit_search_fulltext` は次世代デジタルライブラリー API の範囲、`jp_lit_record_ndl_browser_search` は許可済みブラウザで観測したデジコレ本体の候補を扱います。両者と書誌検索の候補は、同じ調査 session で一つの候補リストへ統合できます。
 
 ## 実装済み
 

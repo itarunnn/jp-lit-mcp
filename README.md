@@ -249,24 +249,15 @@ J-STAGE など一部 source では、API がアブストラクトを返さない
 
 ### NDL デジタルコレクション系の OCR 全文を探す
 
-次世代デジタルライブラリー API の収録資料について、OCR 全文検索、ページ単位検索、文字座標、図版・挿絵検索を使えます。
+デジコレの検索には、役割の違う三つの経路があります。
 
-この OCR 系機能は、次世代デジタルライブラリー API を使います。デジコレ本体の全文検索画面/API ではなく、デジコレの「ログインなしで閲覧可能」資料全体を検索するものでもありません。デジコレ本体の検索画面に出るログインなし公開資料、館内限定資料、送信サービス限定資料の全文検索結果を、MCP が API として網羅取得するものではありません。
+- `jp_lit_search(source=ndl_digital)`: 資料名、著者、出版年などの書誌から探す
+- `jp_lit_search_fulltext`: 次世代デジタルライブラリー API の収録範囲を OCR 全文検索する
+- デジコレ公式画面 + `jp_lit_record_ndl_browser_search`: ブラウザでデジコレ本体の全文検索範囲を確認し、観測結果を調査 session へ保存する
 
-重要: 網羅性が必要な調査では、`jp_lit_search_fulltext` だけで「デジコレ全文にヒットなし」と断定しないでください。次世代デジタルライブラリーで扱える資料と、デジコレ本体でログインなし閲覧できる資料は近い範囲ですが同一ではありません。デジコレ本体の公式検索画面では、MCP が取得できないログインなし公開資料や、館内限定・送信サービス限定資料の全文ヒットが見える場合があります。
+`jp_lit_search_fulltext` は、デジコレ本体の全文検索を網羅しません。API で 0 件でも、公式画面ではログインなし公開資料や送信サービス対象・館内限定資料を含む別の候補が見つかることがあります。ブラウザ操作は明示的に許可された場合だけ行い、ログイン済みタブの利用は未ログイン検索とは別の権限として扱います。
 
-デジコレ本体の全文検索結果を取得する公開・文書化 API は確認できていないため、MCP だけでは公式画面側の総件数、該当コマ、スニペット、公開範囲を安定して全件収集・比較できません。一方、公式画面をブラウザで検索すれば、次世代 API のヒット件数にかかわらず、API 範囲外の全文ヒットと公開範囲表示を補完できます。
-
-`jp-lit-research` では、デジコレ公式画面のブラウザ操作は明示的に許可された場合だけ行います。既定は MCP のみです。未ログイン検索とログイン済み Chrome の利用は別の権限であり、前者の許可から後者を推定しません。回答では「MCP の次世代デジタルライブラリー API 範囲」と「デジコレ公式画面範囲」を分けて書きます。
-
-| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |
-| --- | --- | --- | --- | --- | --- |
-| `jp_lit_search_fulltext` | 次世代デジタルライブラリー収録範囲 | デジコレ本体の範囲は網羅しない | API で取得できる公開範囲 | 対象外 | 対応 |
-| デジコレ公式画面 + `jp_lit_record_ndl_browser_search` | 公式画面で観測した範囲 | 検索候補は未ログインでも確認可能 | 個人送信は許可済み既存ログインが必要。`ndl_onsite_only` はログインしても遠隔不可 | 生成物ではなく状態だけ記録 | 対応 |
-
-`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅しません。公式画面をユーザーが許可した場合、browser agent は画面を確認し、その観測値を `jp_lit_record_ndl_browser_search` で API 検索と同じ `session_id` へ保存できます。MCP 本体は browser / login / network を担当せず、観測値を検証して local cache/session へ記録するだけです。
-
-保存後は `jp_lit_refine_results(session_id=...)` または `result_refs` で API / browser / fulltext の同一 PID を統合し、ユーザーには一つの候補リストを返します。各候補には発見経路と access / content / fulltext / print 状態を残し、検索概要の件数・確認時刻は経路別に示します。観測後の record / refine / annotate / export JSON 例は [使い方ガイド](docs/usage-guide.md#browser観測を同じsessionへ統合する) と [技術リファレンス](docs/reference.md#jp_lit_record_ndl_browser_search) を参照してください。
+保存した API / browser / fulltext 候補は同じ PID で統合し、ユーザーには一つの候補リストとして返します。検索経路の違い、依頼例、ログイン、本文確認、印刷用 PDF の状態は [デジコレ全文検索ガイド](docs/ndl-digital-collections.md) を参照してください。実際の JSON は [使い方ガイド](docs/usage-guide.md#browser観測を同じsessionへ統合する)、入出力 schema は [技術リファレンス](docs/reference.md#jp_lit_record_ndl_browser_search) にあります。
 
 `ndl_digital` の検索後は、選別済み候補の `content_access.manual_viewing` と `source_metadata.next_digital_library.available` を `jp_lit_get_records` で候補ごとに独立して確認できます。手動閲覧導線と MCP の OCR 利用可否を分けて判断してから、OCR または許可済みのブラウザ確認へ進みます。デジコレ PID が既知なら、`pids` は1〜10件を受け付けますが、1件だけなら `jp_lit_get_record` の `pid`、2〜10件なら `jp_lit_get_records` の `pids` を使うのが基本です。
 
@@ -457,6 +448,7 @@ Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存�
 ## ドキュメント
 
 - [使い方ガイド](docs/usage-guide.md): 実際の依頼例、調査フロー、出力の読み方
+- [デジコレ全文検索ガイド](docs/ndl-digital-collections.md): 書誌検索・API全文検索・公式ブラウザ検索、ログイン、本文・PDF確認の違い
 - [Cursor での導入手順](docs/install/cursor.md): Cursor で MCP と Skills を使う
 - [Claude Code での導入手順](docs/install/claude-code.md): Claude Code で MCP と Skills を使う
 - [Codex CLI での導入手順](docs/install/codex-cli.md): Codex CLI で MCP と Skills を使う

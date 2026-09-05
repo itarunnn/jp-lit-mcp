@@ -13,11 +13,11 @@ import {
   lintForbiddenBrowserContractClaims
 } from "./helpers/browserDocumentContracts.js";
 
-function extractCapabilityTable(markdown: string) {
-  const header = "| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |";
+function extractDigitalCollectionsRouteTable(markdown: string) {
+  const header = "| 調べたいこと | 使う経路 | 分かること | 主な限界 |";
   const start = markdown.indexOf(header);
   if (start < 0) {
-    throw new Error("NDL browser capability table not found");
+    throw new Error("NDL Digital Collections route table not found");
   }
 
   const rows: string[] = [];
@@ -28,26 +28,6 @@ function extractCapabilityTable(markdown: string) {
     rows.push(line);
   }
   return rows;
-}
-
-function githubHeadingSlugs(markdown: string) {
-  const counts = new Map<string, number>();
-  const slugs = new Set<string>();
-
-  for (const match of markdown.matchAll(/^#{1,6}\s+(.+)$/gm)) {
-    const base = match[1]
-      .replace(/<[^>]*>/g, "")
-      .replace(/[`*~]/g, "")
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-      .trim()
-      .replace(/\s+/g, "-");
-    const count = counts.get(base) ?? 0;
-    counts.set(base, count + 1);
-    slugs.add(count === 0 ? base : `${base}-${count}`);
-  }
-
-  return slugs;
 }
 
 describe("browser document contract helpers", () => {
@@ -294,7 +274,8 @@ describe("README public onboarding", () => {
     expect(regionalDoc).toContain("scripts/plan-regional-library-search.mjs");
   });
 
-  it("documents the NDL browser capability independently in every public table and keeps README links resolvable", () => {
+  it("publishes one Digital Collections guide and routes public docs to it", () => {
+    const guidePath = "docs/ndl-digital-collections.md";
     const docs = {
       readme: readFileSync("README.md", "utf8"),
       usage: readFileSync("docs/usage-guide.md", "utf8"),
@@ -302,26 +283,31 @@ describe("README public onboarding", () => {
       status: readFileSync("docs/project-status.md", "utf8")
     };
 
-    for (const [name, doc] of Object.entries(docs)) {
+    expect(existsSync(guidePath)).toBe(true);
+    if (!existsSync(guidePath)) {
+      return;
+    }
+
+    const guide = readFileSync(guidePath, "utf8");
+    const routeTable = extractDigitalCollectionsRouteTable(guide);
+    expect(routeTable.some((row) => row.includes("`jp_lit_search(source=ndl_digital)`"))).toBe(true);
+    expect(routeTable.some((row) => row.includes("`jp_lit_search_fulltext`"))).toBe(true);
+    expect(routeTable.some((row) => row.includes("`jp_lit_record_ndl_browser_search`"))).toBe(true);
+    expect(guide).toContain("https://dl.ndl.go.jp/ja/fulltext-search");
+    expect(guide).toContain("https://ndlsearch.ndl.go.jp/rnavi/plan/fulltext_tips");
+    expect(guide).toContain("https://www.ndl.go.jp/use/digital_transmission_individuals");
+
+    expect(docs.readme).toContain("(docs/ndl-digital-collections.md)");
+    for (const doc of [docs.usage, docs.reference, docs.status]) {
+      expect(doc).toContain("(ndl-digital-collections.md)");
+    }
+
+    for (const [name, doc] of Object.entries({ ...docs, guide })) {
       expect.soft(doc, `${name}: browser record tool`).toContain(
         "jp_lit_record_ndl_browser_search"
       );
       expect.soft(doc, `${name}: Next Digital boundary`).toContain(
         "jp_lit_search_fulltext"
-      );
-
-      const table = extractCapabilityTable(doc);
-      expect.soft(table[0], `${name}: capability headers`).toBe(
-        "| 経路 | 全文候補検索 | 送信資料ヒット | 本文画像確認 | PDF状態 | cache/session統合 |"
-      );
-      const apiRow = table.find((row) => row.includes("`jp_lit_search_fulltext`"));
-      const browserRow = table.find((row) => row.includes("`jp_lit_record_ndl_browser_search`"));
-      expect.soft(apiRow, `${name}: Next Digital row`).toContain("デジコレ本体の範囲は網羅しない");
-      expect.soft(browserRow, `${name}: individual transmission boundary`).toContain(
-        "個人送信は許可済み既存ログインが必要"
-      );
-      expect.soft(browserRow, `${name}: onsite boundary`).toContain(
-        "`ndl_onsite_only` はログインしても遠隔不可"
       );
 
       expect
@@ -335,24 +321,7 @@ describe("README public onboarding", () => {
       docs.readme.indexOf("### NDL デジタルコレクション系の OCR 全文を探す"),
       docs.readme.indexOf("\n### ", docs.readme.indexOf("### NDL デジタルコレクション系の OCR 全文を探す") + 4)
     );
-    const relativeLinks = [...browserSection.matchAll(/\[[^\]]+\]\((docs\/[^)#]+\.md)#([^)]+)\)/g)];
-    const requiredLinks = [
-      ["docs/usage-guide.md", "browser観測を同じsessionへ統合する"],
-      ["docs/reference.md", "jp_lit_record_ndl_browser_search"]
-    ];
-    for (const [targetPath, anchor] of requiredLinks) {
-      expect
-        .soft(relativeLinks.some((link) => link[1] === targetPath && link[2] === anchor), `${targetPath}#${anchor}`)
-        .toBe(true);
-    }
-    for (const [, targetPath, anchor] of relativeLinks) {
-      expect.soft(existsSync(targetPath), targetPath).toBe(true);
-      if (!existsSync(targetPath)) {
-        continue;
-      }
-      const headings = githubHeadingSlugs(readFileSync(targetPath, "utf8"));
-      expect.soft(headings, `${targetPath}#${anchor}`).toContain(anchor);
-    }
+    expect(browserSection).toContain("[デジコレ全文検索ガイド](docs/ndl-digital-collections.md)");
   });
 
   it("parses the public browser workflow JSON examples and validates every tool argument schema", () => {
