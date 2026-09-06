@@ -445,6 +445,10 @@ Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存�
 
 対応 source や MCP ツールの詳細は [技術リファレンス](docs/reference.md) を参照してください。
 
+## 姉妹 project
+
+外国語資料の調査経路と、BnF・Library of Congress・台湾国家図書館・韓国国立中央図書館・OpenAIRE の固定 metadata source を調べる場合は、[multilingual-research-mcp](https://github.com/itarunnn/multilingual-research-mcp) を使います。本 project は日本語文献の書誌・所蔵・本文到達性を扱います。両者は互いを置き換えず、evidence を自動統合しません。
+
 ## ドキュメント
 
 - [使い方ガイド](docs/usage-guide.md): 実際の依頼例、調査フロー、出力の読み方

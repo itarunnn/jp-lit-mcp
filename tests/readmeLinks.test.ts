@@ -145,6 +145,15 @@ describe("README public onboarding", () => {
     expect(readme).toContain("docs/source-usage-conditions.md");
   });
 
+  it("links to the complementary multilingual research project without claiming shared evidence", () => {
+    const readme = readFileSync("README.md", "utf8");
+
+    expect(readme).toContain("https://github.com/itarunnn/multilingual-research-mcp");
+    expect(readme).toContain("外国語資料の調査経路");
+    expect(readme).toContain("本 project は日本語文献の書誌・所蔵・本文到達性を扱います");
+    expect(readme).toContain("両者は互いを置き換えず、evidence を自動統合しません");
+  });
+
   it("mentions the jp-lit verification skill and its role", () => {
     const readme = readFileSync("README.md", "utf8");
     expect(readme).toContain("jp-lit-verification");
