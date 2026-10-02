@@ -76,6 +76,14 @@ jobs:
           cache: npm
           cache-dependency-path: package/package-lock.json
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.10"
+
+      - name: Install reader Python
+        run: uv python install 3.13.15
+
       - name: Validate package version
         shell: pwsh
         working-directory: package
@@ -127,6 +135,10 @@ jobs:
       - name: Test
         working-directory: package
         run: npm test
+
+      - name: Test TEI reader
+        working-directory: package
+        run: npm run test:tei
 
       - name: Publish to npm
         working-directory: package

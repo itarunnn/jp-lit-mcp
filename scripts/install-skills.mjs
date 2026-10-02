@@ -8,7 +8,7 @@ const platform = process.argv[2] ?? "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
 const skillsRoot = join(repoRoot, "skills");
-const skillNames = ["jp-lit-research", "jp-lit-verification"];
+const skillNames = ["jp-lit-research", "jp-lit-verification", "jp-lit-tei"];
 
 const home = process.env.JP_LIT_SKILLS_HOME ?? process.env.USERPROFILE ?? process.env.HOME;
 if (!home) {

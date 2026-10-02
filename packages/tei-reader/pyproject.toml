@@ -1,0 +1,9 @@
+[project]
+name = "jp-lit-tei-reader"
+version = "0.2.0"
+description = "TEIの構造と出典位置を保持するローカル読解CLI"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[tool.uv]
+package = false

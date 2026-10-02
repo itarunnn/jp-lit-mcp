@@ -36,7 +36,7 @@ Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、trusted p
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.agents/skills/` に入ります。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`が `~/.agents/skills/` に入ります。
 
 ```bash
 npx -y jp-lit-mcp install-skills codex

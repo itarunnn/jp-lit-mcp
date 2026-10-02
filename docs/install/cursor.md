@@ -40,7 +40,7 @@
 
 2. `Skills` をインストールします。
 
-この手順で、同梱されている文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方を user-level の `~/.cursor/skills/` に配置します。
+この手順で、同梱されている文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`を user-level の `~/.cursor/skills/` に配置します。
 
 ```bash
 npx -y jp-lit-mcp install-skills cursor
@@ -91,7 +91,7 @@ npx -y jp-lit-mcp doctor
 よくある見分け方:
 
 - 文献DBモードが起動しない
-  - `~/.cursor/skills/` に `jp-lit-research` と `jp-lit-verification` が入っているか確認してください
+  - `~/.cursor/skills/` に `jp-lit-research`、`jp-lit-verification`、`jp-lit-tei` が入っているか確認してください
 - MCP が使われない
   - `.cursor/mcp.json` の `type` / `command` / `args` が正しいか確認してください
 

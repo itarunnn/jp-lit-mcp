@@ -48,7 +48,7 @@ Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、Codex CLI
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が `~/.agents/skills/` に入ります。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`が `~/.agents/skills/` に入ります。
 
 現行の `jp-lit-mcp` は npm package として Skills インストーラーを配布しているため、Skills についてはこのコマンドを使います。MCP 追加まで含めて Codex App の UI だけで完結させたい場合は、将来的に Skills と MCP 設定を Codex plugin として package するのが自然な導線です。
 

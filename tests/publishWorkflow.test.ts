@@ -204,11 +204,14 @@ describe("publish workflow", () => {
       "Check out qualified package tag",
       "Verify tag commit matches package HEAD",
       "Set up Node.js",
+      "Set up uv",
+      "Install reader Python",
       "Validate package version",
       "Check package version is unpublished",
       "Install dependencies",
       "Build",
       "Test",
+      "Test TEI reader",
       "Publish to npm"
     ];
 
@@ -226,6 +229,7 @@ describe("publish workflow", () => {
       "Install dependencies": "npm ci",
       Build: "npm run build",
       Test: "npm test",
+      "Test TEI reader": "npm run test:tei",
       "Publish to npm": "npm publish"
     };
     for (const [name, command] of Object.entries(packageCommands)) {
@@ -234,5 +238,7 @@ describe("publish workflow", () => {
         run: command
       });
     }
+    expect(steps[stepIndex("Set up uv")]?.with?.version).toBe("0.12.10");
+    expect(steps[stepIndex("Install reader Python")]?.run).toBe("uv python install 3.13.15");
   });
 });

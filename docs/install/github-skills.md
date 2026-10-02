@@ -69,6 +69,7 @@ gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
 ```bash
 gh skill install itarunnn/jp-lit-mcp jp-lit-research --agent codex --scope user
 gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-tei --agent codex --scope user
 ```
 
 ここでは Codex の user scope に入れる例を示しています。Cursor や Claude Code に入れる場合は `--agent` を読み替えてください。
