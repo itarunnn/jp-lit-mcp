@@ -309,7 +309,7 @@ readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.15.1 jp-lit-tei-reader --help
 ```
 
 資料の公開先・取得版・底本はSkillで確認し、readerは保存済みXMLを処理します。画像や外部リンクの実見・校合は別に記録します。[TEIの使い方](docs/tei-reader.md)に、文学・歴史の依頼例、付属サンプルでの実行、応答の読み方、エラー対応があります。
