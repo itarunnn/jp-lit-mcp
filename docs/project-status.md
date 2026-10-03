@@ -1,5 +1,13 @@
 # 実装状況
 
+## 2026-10-03: v0.15.2
+
+- TEIの基本、XMLとタグ、データ作成者の判断を、漱石・古典・歴史史料の具体例とともに[利用ガイド](tei-reader.md)へ追加した。
+- 『こころ』と廣瀬本万葉集を例に、本文の語・主題から関連文献を探し、先行研究を確かめて同じ箇所を再読する手順とAIへの依頼文を示した。
+- デジタル漱石、廣瀬本万葉集、校異源氏物語、延喜式の公開入口と、書誌検索・公開TEI探索・保存XML読解の役割を説明した。
+- READMEと使い方ガイドの入口を更新。MCP 30 tools、21 sources、TEI readerの4操作と利用条件を維持する。[リリースノート](releases/v0.15.2.md)に変更範囲を記載する。
+- 公開状態は[GitHub Release](https://github.com/itarunnn/jp-lit-mcp/releases/tag/v0.15.2)と[npm](https://www.npmjs.com/package/jp-lit-mcp)で確認できる。
+
 ## 2026-10-03: v0.15.1
 
 - 日本文学・日本史の研究者向けに、TEIの用途、依頼例、導入、4操作のPowerShell例、出力の読み方、エラー対応を[利用ガイド](tei-reader.md)へ追加した。
