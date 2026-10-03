@@ -45,13 +45,13 @@ Node.js22以上、[uv](https://docs.astral.sh/uv/getting-started/installation/)�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.0 jp-lit-tei-reader --help
-npx --yes jp-lit-mcp@0.15.0 install-skills codex
+npx --yes --package=jp-lit-mcp@0.15.1 jp-lit-tei-reader --help
+npx --yes jp-lit-mcp@0.15.1 install-skills codex
 ```
 
 Skills installerはjp-lit-research、jp-lit-verification、jp-lit-teiを導入する。MCPの書誌検索はNode.jsだけで動き、uv/PythonはTEI読解時に必要になる。
 
-`codex`はCodex CLI / App向け。Cursorは`cursor`、Claude Codeは`claude`に置き換える。導入後はアプリで新しい対話を開き、`jp-lit-tei`が見えることを確認する。ここで指定した`0.15.0`はTEI readerを含む版で、既存のMCP設定を変更する必要はない。
+`codex`はCodex CLI / App向け。Cursorは`cursor`、Claude Codeは`claude`に置き換える。導入後はアプリで新しい対話を開き、`jp-lit-tei`が見えることを確認する。ここで指定した`0.15.1`はTEI readerと本ガイドを含む版で、既存のMCP設定を変更する必要はない。
 
 source checkoutではrootから次を実行する。
 

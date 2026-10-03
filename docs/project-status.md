@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-03: v0.15.1
+
+- 日本文学・日本史の研究者向けに、TEIの用途、依頼例、導入、4操作のPowerShell例、出力の読み方、エラー対応を[利用ガイド](tei-reader.md)へ追加した。
+- READMEと使い方ガイドからTEIの入口を整え、利用文書をnpm配布物に含める。
+- MCP 30 tools、21 sources、TEI readerの操作と利用条件を維持する。[リリースノート](releases/v0.15.1.md)に変更範囲を記載する。
+- 公開状態は[GitHub Release](https://github.com/itarunnn/jp-lit-mcp/releases/tag/v0.15.1)と[npm](https://www.npmjs.com/package/jp-lit-mcp)で確認できる。
+
 ## 2026-10-03: v0.15.0
 
 - 任意CLI `jp-lit-tei-reader` と `jp-lit-tei` Skillを同梱。MCPの公開tool 30種・source 21種は維持する。
