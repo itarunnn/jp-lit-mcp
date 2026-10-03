@@ -2,6 +2,9 @@ node_modules/
 dist/
 .env
 coverage/
+__pycache__/
+*.pyc
+.venv/
 .cache/
 .codex/
 .worktrees/

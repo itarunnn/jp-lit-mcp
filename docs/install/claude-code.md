@@ -36,7 +36,7 @@ Claude Code の `--env` は複数の `KEY=value` を受け取れるため、上�
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research` と文献実在性確認用の `jp-lit-verification` の両方が Claude Code の Skills ディレクトリに入ります。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`が Claude Code の Skills ディレクトリに入ります。
 
 ```bash
 npx -y jp-lit-mcp install-skills claude

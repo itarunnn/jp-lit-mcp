@@ -1,6 +1,6 @@
 {
   "name": "jp-lit-mcp",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -11,7 +11,8 @@
   },
   "bin": {
     "jp-lit-mcp": "dist/src/index.js",
-    "jp-lit-mcp-install-skills": "scripts/install-skills.mjs"
+    "jp-lit-mcp-install-skills": "scripts/install-skills.mjs",
+    "jp-lit-tei-reader": "scripts/tei-reader.mjs"
   },
   "files": [
     "dist/",
@@ -24,8 +25,25 @@
     "docs/regional-public-library-research.md",
     "docs/source-usage-conditions.md",
     "docs/usage-guide.md",
+    "docs/tei-reader.md",
+    "docs/releases/v0.15.0.md",
+    "packages/tei-reader/.python-version",
+    "packages/tei-reader/pyproject.toml",
+    "packages/tei-reader/uv.lock",
+    "packages/tei-reader/README.md",
+    "packages/tei-reader/examples/sample.xml",
+    "packages/tei-reader/tei_reader/__init__.py",
+    "packages/tei-reader/tei_reader/__main__.py",
+    "packages/tei-reader/tei_reader/document.py",
+    "packages/tei-reader/tei_reader/locator.py",
+    "packages/tei-reader/tei_reader/model.py",
+    "packages/tei-reader/tei_reader/operations.py",
+    "packages/tei-reader/tei_reader/protocol.py",
+    "packages/tei-reader/tei_reader/references.py",
+    "packages/tei-reader/tei_reader/tree.py",
     "skills/",
     "scripts/install-skills.mjs",
+    "scripts/tei-reader.mjs",
     "scripts/install-skills.ps1",
     "scripts/install-skills.sh",
     "README.md",
@@ -41,6 +59,7 @@
     "smoke:mcp:live-matrix": "cross-env SMOKE_LIVE_MATRIX=1 SMOKE_LIVE=1 tsx scripts/smoke-mcp.ts",
     "smoke:calil-mcp": "tsx scripts/smoke-calil-mcp.ts",
     "test": "vitest run",
+    "test:tei": "uv run --directory packages/tei-reader --frozen python -m unittest discover -s tests -v",
     "test:watch": "vitest",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "skills:install": "node scripts/install-skills.mjs"
@@ -58,7 +77,7 @@
     "cross-env": "^10.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
-    "vitest": "^3.2.0",
+    "vitest": "^4.1.11",
     "yaml": "^2.9.0"
   }
 }

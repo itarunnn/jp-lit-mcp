@@ -9,6 +9,8 @@
 - `MCP サーバー`: AI アプリから各種文献データベースを検索・取得するための接続口
 - `Skills`: 「どの DB から見るか」「検索語をどう広げるか」「結果をどう読むか」を AI に指示する調査手順
 
+TEI/XMLの構造読解には、任意の `jp-lit-tei-reader` CLIを追加で使えます。書誌探索をMCP、版固定と読解判断をSkill、ローカルXML処理をreaderが担当します。
+
 通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
 
 ## 何をしたい人向けか
@@ -44,6 +46,7 @@ Skills によって実際の調査を進めます。どの source から入る�
 
 - `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料、本文・図版探索などを扱います。プロンプトに「文献DB」を入れることで発動します。
 - `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill です。プロンプトに「文献検証」を入れることで発動します。
+- `jp-lit-tei`: 公開TEIの探索、取得版・hashの記録、章・歌・異読・注記の構造読解を進めるSkillです。「TEIを探して」「このTEIを構造付きで読んで」などで使います。[TEI readerの導入手順](docs/tei-reader.md)を参照してください。readerにはuvとPython3.13が必要です。
 
 ## 導入前の確認
 
@@ -444,6 +447,10 @@ Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存�
 国書データベースについては、書誌・所在確認の `jp_lit_search(source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。
 
 対応 source や MCP ツールの詳細は [技術リファレンス](docs/reference.md) を参照してください。
+
+## 姉妹 project
+
+外国語資料の調査経路と、BnF・Library of Congress・台湾国家図書館・韓国国立中央図書館・OpenAIRE の固定 metadata source を調べる場合は、[multilingual-research-mcp](https://github.com/itarunnn/multilingual-research-mcp) を使います。本 project は日本語文献の書誌・所蔵・本文到達性を扱います。両者は互いを置き換えず、evidence を自動統合しません。
 
 ## ドキュメント
 

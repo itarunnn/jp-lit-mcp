@@ -58,10 +58,16 @@ describe("CI workflow", () => {
             cache: "npm"
           }
         },
+        {
+          uses: "astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9",
+          with: { version: "0.12.10" }
+        },
+        { run: "uv python install 3.13.15" },
         { run: "npm ci" },
         { run: "npm run build" },
         { run: "npm run typecheck:scripts" },
         { run: "npm test" },
+        { run: "npm run test:tei" },
         { run: "npm run smoke:mcp:offline" }
       ]
     });

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt><title>TEI読解の自作例</title></titleStmt>
+      <publicationStmt><p>jp-litの操作説明用に作成した合成資料。</p></publicationStmt>
+      <sourceDesc><p>実在する文学作品・底本の翻刻ではない。</p></sourceDesc>
+    </fileDesc>
+  </teiHeader>
+  <text>
+    <body>
+      <div type="chapter" n="1">
+        <head>第一章</head>
+        <p xml:id="p1">前<choice><orig>舊</orig><reg>旧</reg></choice>後。</p>
+        <p>訂正<subst><del>い</del><add>ハ</add></subst><note target="#p1">注記</note>。</p>
+      </div>
+    </body>
+  </text>
+</TEI>
