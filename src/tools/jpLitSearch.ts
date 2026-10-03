@@ -1,3 +1,6 @@
+import { detectQueryScript } from "../lib/searchContext.js";
+import { readPackageVersion } from "../lib/packageInfo.js";
+import { buildSearchMethodSnapshot } from "../lib/persistence/searchMethodSnapshot.js";
 import { createFileCache } from "../lib/persistence/fileCache.js";
 import type { FileCache } from "../lib/persistence/fileCache.js";
 import { runCachedTool } from "../lib/persistence/runCachedTool.js";
@@ -34,6 +37,10 @@ export function createJpLitSearchTool(
       cache,
       sessions,
       bypassCache: force_refresh,
+      createSessionEntry: ({input, cacheKey, structuredContent, cacheHit, savedAt}) => ({
+        tool: "jp_lit_search", input, cache_key: cacheKey, result_ref: {tool: "jp_lit_search", cache_key: cacheKey}, selected_items: [], notes: [],
+        method_snapshot: buildSearchMethodSnapshot({result: structuredContent, cacheHit, savedAt, observedAt: new Date().toISOString()})
+      }),
       live: async () => {
         const searchResult = await searchService.search({
           query: parsed.query,
@@ -48,6 +55,10 @@ export function createJpLitSearchTool(
         });
 
         return {
+          search_context: {
+            schema_version: 1, producer_version: readPackageVersion(), requested_query: parsed.query, query_script: detectQueryScript(parsed.query),
+            aggregation: searchResult.aggregation, fetch_limit_per_source: searchResult.fetch_limit_per_source, total_semantics: searchResult.total_semantics, sources: searchResult.sources
+          },
           query: parsed.query,
           source: parsed.source ?? null,
           page: parsed.page,
@@ -55,7 +66,7 @@ export function createJpLitSearchTool(
           total: searchResult.total,
           items: searchResult.items,
           facets: searchResult.facets,
-          ...(searchResult.source_errors
+          ...("source_errors" in searchResult && searchResult.source_errors
             ? { source_errors: searchResult.source_errors }
             : {})
         };

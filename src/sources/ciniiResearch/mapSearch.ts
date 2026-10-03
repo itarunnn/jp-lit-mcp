@@ -1,3 +1,4 @@
+import { summarizeSearchTotal } from "../../lib/searchContext.js";
 import { normalizeIssuedAt } from "../../lib/date.js";
 import type { SearchItem, SourceName } from "../../lib/types.js";
 import { normalizeText } from "../../lib/normalize.js";
@@ -212,6 +213,7 @@ export function mapCiniiSearchResponseForSource(
   const total = Number(record["opensearch:totalResults"]);
 
   return {
+    summary: summarizeSearchTotal(record["opensearch:totalResults"], "completed", Number.isFinite(total) ? "unknown" : "returned_count"),
     total: Number.isFinite(total) ? total : items.length,
     items
   };

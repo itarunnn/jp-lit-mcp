@@ -1,6 +1,11 @@
+import { createHash } from "node:crypto";
+import { createCiniiBooksAdapter } from "../src/sources/ciniiResearch/adapter.js";
+import { detectQueryScript } from "../src/lib/searchContext.js";
+import { readPackageVersion } from "../src/lib/packageInfo.js";
+import { createSessionStore } from "../src/lib/persistence/sessionStore.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -353,6 +358,10 @@ async function seedOfflineSearchCache(baseDir: string) {
     saved_at: "2000-01-01T00:00:00.000Z",
     input: normalizedInput,
     structured_content: {
+      search_context: {
+        schema_version: 1, producer_version: readPackageVersion(), requested_query: OFFLINE_LOCAL_SEARCH.query, query_script: detectQueryScript(OFFLINE_LOCAL_SEARCH.query), aggregation: "single", fetch_limit_per_source: 1, total_semantics: "source_reported",
+        sources: [{source: "cinii_books", outcome: "completed", request: createCiniiBooksAdapter().describeSearch!(searchArgs), reported_total: 1, total_basis: "source_reported", fetched_count: 1, included_count: 1, error_category: null}]
+      },
       query: OFFLINE_LOCAL_SEARCH.query,
       source: OFFLINE_LOCAL_SEARCH.source,
       page: 1,
@@ -467,6 +476,17 @@ interface LocalPersistenceSmokeSummary {
   startedNewSession: boolean;
   archivedSessionExported: boolean;
   batchRecordCount: number;
+  methodsExported: boolean;
+}
+
+async function hashSavedState(root: string): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  for (const entry of await readdir(root, {withFileTypes: true})) {
+    const file = path.join(root, entry.name);
+    if (entry.isDirectory()) Object.assign(result, await hashSavedState(file));
+    else result[file] = createHash("sha256").update(await readFile(file)).digest("hex");
+  }
+  return result;
 }
 
 async function runLocalPersistenceSmoke(
@@ -700,6 +720,19 @@ async function runLocalPersistenceSmoke(
     throw new Error("Offline batch record smoke used an unexpected session namespace.");
   }
 
+  const savedStateBefore = await hashSavedState(getPersistenceRoot());
+  const methodsResult = await client.callTool({name: "jp_lit_export_session", arguments: {session_id: options.sessionId, profile: "methods", format: "json"}});
+  const methodsData = methodsResult.structuredContent as {path?: string; item_count?: number; search_count?: number} | undefined;
+  if (!methodsData?.path || methodsData.item_count !== 0 || methodsData.search_count !== 1) throw new Error("Methods export did not expose the saved search count.");
+  const manifest = JSON.parse(await readFile(methodsData.path, "utf8")) as {methods: Array<{evidence_origin: string; snapshot: {cache_hit: boolean; context: unknown}}>};
+  if (manifest.methods[0]?.evidence_origin !== "session_snapshot") throw new Error("Methods export did not use its session snapshot.");
+  if (options.expectCacheHit) {
+    const saved = await createSessionStore().readById(options.sessionId);
+    const snapshot = saved.entries.find(entry=>entry.tool === "jp_lit_search")?.method_snapshot;
+    if (!snapshot?.context || snapshot.result_saved_at !== "2000-01-01T00:00:00.000Z" || snapshot.cache_hit !== true) throw new Error("Offline fixture acquisition context was not preserved.");
+  }
+  if (JSON.stringify(await hashSavedState(getPersistenceRoot())) !== JSON.stringify(savedStateBefore)) throw new Error("Methods export mutated saved state.");
+
   const startResult = await client.callTool({
     name: "jp_lit_start_session",
     arguments: {
@@ -745,6 +778,7 @@ async function runLocalPersistenceSmoke(
     exportContainsSelection: true,
     startedNewSession: true,
     archivedSessionExported: true,
+    methodsExported: true,
     batchRecordCount
   };
 }

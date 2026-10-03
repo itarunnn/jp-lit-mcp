@@ -1,3 +1,4 @@
+import { buildSearchMethodsManifest, renderSearchMethodsMarkdown } from "./searchMethods.js";
 import path from "node:path";
 
 import { extractCandidateItems } from "../candidateResultAdapters.js";
@@ -16,18 +17,18 @@ export interface SessionExporter {
   exportSession(input: {
     session: SessionDocument;
     format: "markdown" | "json" | "csl-json";
-    profile: "full_log" | "selected" | "unselected";
+    profile: "full_log" | "selected" | "unselected" | "methods";
     outputPath?: string;
     allowExternalPath: boolean;
     overwrite: boolean;
     includeUnselected: boolean;
-  }): Promise<{ path: string; itemCount: number }>;
+  }): Promise<{ path: string; itemCount: number; searchCount?: number }>;
 }
 
 function defaultExportPath(
   baseDir: string,
   sessionId: string,
-  profile: "full_log" | "selected" | "unselected",
+  profile: "full_log" | "selected" | "unselected" | "methods",
   format: "markdown" | "json" | "csl-json"
 ) {
   const extension = format === "markdown" ? "md" : format === "csl-json" ? "csl.json" : "json";
@@ -406,11 +407,24 @@ export function createSessionExporter(
       overwrite,
       includeUnselected
     }) {
+      if (profile === "methods" && format === "csl-json") throw new Error("methods profile supports markdown or json");
       const target = await resolveExportTarget({
         baseDir,
         outputPath: outputPath ?? defaultExportPath(baseDir, session.session_id, profile, format),
         allowExternalPath
       });
+      if (profile === "methods") {
+        const cacheByKey = new Map<string, CacheEnvelope<unknown> | null>();
+        for (const entry of session.entries) {
+          if (entry.tool === "jp_lit_search" && !entry.method_snapshot) {
+            cacheByKey.set(`${entry.tool}/${entry.cache_key}`, await cache.read<unknown>(entry.tool, entry.cache_key));
+          }
+        }
+        const manifest = buildSearchMethodsManifest(session, cacheByKey, new Date().toISOString());
+        const text = format === "markdown" ? renderSearchMethodsMarkdown(manifest) : JSON.stringify(manifest, null, 2);
+        await writeExportFile(target, text, overwrite, {baseDir, allowExternalPath});
+        return {path: target, itemCount: 0, searchCount: manifest.search_count};
+      }
       const unresolvedItems = new Map<string, Array<Record<string, unknown>>>();
 
       if ((profile === "full_log" && includeUnselected) || profile === "unselected") {

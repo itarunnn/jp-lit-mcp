@@ -1,3 +1,5 @@
+import type { SearchSourceContext } from "../lib/searchContext.js";
+import type { SearchParams } from "../sources/types.js";
 import type {
   CiniiSearchFilters,
   SearchFacets,
@@ -270,6 +272,31 @@ function mergeFacets(results: Array<{ facets?: SearchFacets }>): SearchFacets | 
   return hasAnyFacet ? merged : undefined;
 }
 
+function describeSource(
+  adapter: SourceAdapter,
+  params: SearchParams,
+  result: SearchResult | null,
+  error?: unknown
+): SearchSourceContext {
+  const failed = result === null || result.summary?.outcome === "failed";
+  let request: SearchSourceContext["request"] = null;
+  try {
+    request = adapter.describeSearch?.(params) ?? null;
+  } catch {
+    // 条件記述は補助情報。元の検索結果・失敗分類を保全する。
+  }
+  return {
+    source: adapter.source,
+    outcome: failed ? "failed" : result.summary?.outcome ?? "unknown",
+    request,
+    reported_total: result?.summary?.reported_total ?? null,
+    total_basis: result?.summary?.total_basis ?? "unknown",
+    fetched_count: result && !failed ? result.items.length : null,
+    included_count: 0,
+    error_category: failed ? (result ? "unknown" : classifySourceError(error)) : null
+  };
+}
+
 export function createSearchService(adapters: SourceAdapter[]) {
   const registry = createSourceRegistry(adapters);
 
@@ -278,9 +305,17 @@ export function createSearchService(adapters: SourceAdapter[]) {
       const effectiveLimit = input.limit ?? (input.source ? DEFAULT_LIMIT_SINGLE : DEFAULT_LIMIT_CROSS);
 
       if (input.source) {
-        const result = await registry.get(input.source).search({ ...input, limit: effectiveLimit });
+        const adapter = registry.get(input.source);
+        const params = {...input, limit: effectiveLimit};
+        const result = await adapter.search(params);
+        const description = describeSource(adapter, params, result);
+        description.included_count = result.items.length;
 
         return {
+          aggregation: "single" as const,
+          fetch_limit_per_source: effectiveLimit,
+          total_semantics: description.total_basis,
+          sources: [description],
           total: result.total,
           items: withDefaultDuplicateInfo(result.items),
           facets: result.facets
@@ -322,7 +357,17 @@ export function createSearchService(adapters: SourceAdapter[]) {
         effectiveLimit
       );
 
+      const descriptions = settledResults.map((settled, index) => {
+        const source = sources[index]!;
+        const description = describeSource(registry.get(source), {...input, limit: CROSS_SOURCE_FETCH_SIZE}, settled.status === "fulfilled" ? settled.value : null, settled.status === "rejected" ? settled.reason : undefined);
+        description.included_count = mergedItems.filter(item => item.source === source).length;
+        return description;
+      });
       return {
+        aggregation: "round_robin" as const,
+        fetch_limit_per_source: CROSS_SOURCE_FETCH_SIZE,
+        total_semantics: "sum_of_source_totals" as const,
+        sources: descriptions,
         total: results.reduce((sum, result) => sum + result.total, 0),
         items: annotateDuplicateCandidates(mergedItems),
         facets: mergeFacets(results),

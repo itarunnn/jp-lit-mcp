@@ -1,3 +1,4 @@
+import type { SearchMethodSnapshot } from "./searchMethodSnapshot.js";
 export interface CacheEnvelope<T> {
   version: number;
   tool: string;
@@ -165,6 +166,7 @@ export interface SessionEntryTrace {
 }
 
 export interface SessionEntry {
+  method_snapshot?: SearchMethodSnapshot;
   tool: string;
   input: Record<string, unknown>;
   cache_key: string;

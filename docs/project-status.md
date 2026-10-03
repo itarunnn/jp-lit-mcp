@@ -1,10 +1,17 @@
 # 実装状況
 
+## 2026-10-03: v0.16.0 検索条件・調査方法export
+
+- `jp_lit_search` に取得時contextとsource別件数根拠を追加。NDL・CiNii・J-STAGEの実送信builderと記録条件を共有する。
+- sessionごとの `method_snapshot` を保存し、共有cacheのrefreshと過去sessionの取得時情報を分ける。
+- `jp_lit_export_session(profile="methods")` でMarkdown/JSONを出力。検索条件ごとの最新entry、未記録情報、agentの申告、対象外toolと限界を示す。
+- 補助漢字を含む検索語の文字種判定を修正。MCP 30 tools、21 sources、既存検索/旧export/TEI契約を維持する。package versionは0.16.0。[リリースノート](releases/v0.16.0.md)に変更と互換性の範囲を記載する。
+
 ## 2026-10-03: TEI利用ガイドのAI依頼中心への整理
 
 - [TEI利用ガイド](tei-reader.md)を、導入、AIへの読解依頼、結果の確認と研究記録の流れに整理した。通常の読解ではAIがreaderの呼び出しを担当することを明記した。
 - 手動PowerShell例、要求JSON、応答と上限・エラーの詳細を[CLI技術資料](../packages/tei-reader/README.md)へ移した。TEIの研究例、公開資料、文献調査と再読の往復を保持した。
-- この変更は文書の更新であり、MCP・readerの操作、依存関係、package versionを維持する。npm公開版はv0.15.2で、本改稿の配布は次回の公開版更新で行う。
+- この改稿自体は文書の更新であり、MCP・readerの操作と依存関係を維持する。v0.16.0の配布物に同梱する。
 
 ## 2026-10-03: v0.15.2
 

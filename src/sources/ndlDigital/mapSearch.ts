@@ -21,6 +21,7 @@ export function mapNdlDigitalSearchResponse(payload: unknown): SearchResult {
 
   return {
     total: base.total,
+    summary: base.summary,
     items
   };
 }

@@ -890,3 +890,11 @@ describe("jp-lit-research skill guide", () => {
     expect(projectStatus).toContain("fresh `npm test`");
   });
 });
+
+it("documents the methods profile with its observation boundaries", () => {
+  const skill = readFileSync("skills/jp-lit-research/SKILL.md", "utf8");
+  expect(skill).toContain('profile="methods"');
+  expect(skill).toContain("search_context");
+  expect(skill).toContain("検索条件ごとの最新entry");
+  expect(skill).toContain("agent_annotations");
+});

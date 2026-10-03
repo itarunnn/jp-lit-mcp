@@ -331,7 +331,7 @@ readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.2 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.16.0 jp-lit-tei-reader --help
 ```
 
 [TEIの使い方](docs/tei-reader.md)に、万葉集・延喜式の研究例と論文、廣瀬本での読解と文献調査の往復、漱石・源氏物語も含む公開資料の案内、jp-litでの検索例、導入とAIへの依頼・結果の確認をまとめています。手動実行や要求JSONは[CLI技術資料](packages/tei-reader/README.md)を参照してください。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。
@@ -411,6 +411,17 @@ Web NDL Authorities を使い、人名、団体名、件名、NDC などから�
 - Markdown / JSON / CSL JSON で書き出す
 
 CSL JSON で書き出した採用候補は、Zotero、Pandoc、citeproc 系ツールなどの文献管理・引用処理に渡せます。
+
+### 検索条件と調査方法を保存する
+
+`jp_lit_search` の新しい検索結果には `search_context` が入り、送信条件、適用されなかった入力、sourceごとの取得件数と返却件数を確認できます。NDL・CiNii・J-STAGE以外の未計測sourceや旧cacheは、記録された範囲だけを示します。
+
+```text
+jp_lit_export_session(session_id=SID, profile="methods", format="markdown")
+jp_lit_export_session(session_id=SID, profile="methods", format="json")
+```
+
+methodsは検索条件ごとの最新entryを調査方法として出力します。全実行履歴、本文確認、全件収集の記録は保証しません。横断totalの重複可能性やagentの申告を区別する読み方は[使い方ガイド](docs/usage-guide.md#検索条件と調査方法を保存する)を参照してください。
 
 ### 調査成果物と調査経過を残す
 

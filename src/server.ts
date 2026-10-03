@@ -7,7 +7,7 @@ import {
   annotateSessionOutputSchema,
   refineResultsInputSchema,
   refineResultsOutputSchema,
-  exportSessionInputSchema,
+  exportSessionInputToolSchema,
   exportSessionOutputSchema,
   exportViewInputSchema,
   exportViewOutputSchema,
@@ -664,7 +664,7 @@ export function createServer(env: ServerEnv = process.env) {
     "jp_lit_export_session",
     {
       description: "export/write file。session_id で明示した調査セッションを repo 内の exports/ または output_path に書き出す。既定は Markdown で、人間が読み返しやすい形に整形する。session は読み取るだけで変更しない。cache 一覧や再抽出結果だけを書き出す場合は jp_lit_export_view を使う",
-      inputSchema: exportSessionInputSchema,
+      inputSchema: exportSessionInputToolSchema,
       outputSchema: exportSessionOutputSchema,
       annotations: LOCAL_WRITE_ANNOTATIONS
     },

@@ -1,10 +1,11 @@
+import { buildNdlSruSearchRequest } from "../ndlSearch/searchRequest.js";
 import {
   fetchWithTimeout,
   UnsupportedPayloadError,
   UpstreamHttpError
 } from "../../lib/http.js";
 import { assertXmlPayload } from "../../lib/xml.js";
-import type { NdlSearchFilters, SourceAdapter } from "../types.js";
+import type { SourceAdapter } from "../types.js";
 import { projectNdlSearchDetailXml } from "../ndlSearch/projectOpenSearch.js";
 import { projectNdlSruSearchResponse } from "../ndlSearch/parseSru.js";
 import { createNextDigitalLibraryClient } from "../nextDigitalLibrary/adapter.js";
@@ -100,73 +101,6 @@ async function fetchNdlDigitalSruPayload(url: string): Promise<unknown> {
   };
 }
 
-function normalizeSruSearchBaseUrl(baseUrl: string): string {
-  return baseUrl
-    .replace(/\/api\/opensearch\/?$/i, "/api/sru")
-    .replace(/\/opensearch\/?$/i, "/sru");
-}
-
-function escapeCqlKeyword(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function buildIssuedClause(
-  issuedFrom?: string,
-  issuedTo?: string
-): string[] {
-  const clauses: string[] = [];
-
-  if (issuedFrom) {
-    clauses.push(`dcterms.issued >= "${escapeCqlKeyword(issuedFrom)}"`);
-  }
-  if (issuedTo) {
-    clauses.push(`dcterms.issued <= "${escapeCqlKeyword(issuedTo)}"`);
-  }
-
-  return clauses;
-}
-
-function normalizeNdlcFilter(value: string): string {
-  const trimmed = value.trim();
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `http://id.ndl.go.jp/class/ndlc/${trimmed}`;
-}
-
-function buildNdlFilterClauses(filters?: NdlSearchFilters): string[] {
-  const clauses: string[] = [];
-
-  if (filters?.subject) {
-    clauses.push(`dcterms.subject="${escapeCqlKeyword(filters.subject)}"`);
-  }
-  if (filters?.ndc) {
-    clauses.push(`dc.subject="${escapeCqlKeyword(filters.ndc)}"`);
-  }
-  if (filters?.ndlc) {
-    clauses.push(
-      `dcterms.subject="${escapeCqlKeyword(normalizeNdlcFilter(filters.ndlc))}"`
-    );
-  }
-
-  return clauses;
-}
-
-function buildSortBy(
-  sortBy?: "title" | "creator" | "issued_date" | "created_date" | "modified_date",
-  sortOrder?: "asc" | "desc"
-) {
-  if (!sortBy) {
-    return null;
-  }
-
-  const direction = sortOrder === "desc" ? "descending" : "ascending";
-
-  return `${sortBy}/sort.${direction}`;
-}
-
 export function createNdlDigitalAdapter(
   options: NdlDigitalAdapterOptions = {}
 ): SourceAdapter {
@@ -177,28 +111,9 @@ export function createNdlDigitalAdapter(
 
   return {
     source: "ndl_digital",
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
-      const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
-      url.searchParams.set("operation", "searchRetrieve");
-      url.searchParams.set("version", "1.2");
-      url.searchParams.set("recordSchema", "dcndl");
-      url.searchParams.set("recordPacking", "xml");
-      url.searchParams.set("maximumRecords", String(limit));
-      url.searchParams.set("startRecord", String((page - 1) * limit + 1));
-      url.searchParams.set(
-        "query",
-        [
-          "dpid=ndl-dl",
-          ...buildIssuedClause(issued_from, issued_to),
-          ...buildNdlFilterClauses(filters?.ndl),
-          `anywhere="${escapeCqlKeyword(query)}"`
-        ].join(" AND ")
-      );
-      const sort = buildSortBy(sort_by, sort_order);
-      if (sort) {
-        url.searchParams.set("sortBy", sort);
-      }
-
+    describeSearch(params) { return buildNdlSruSearchRequest(params, {source: "ndl_digital", searchBaseUrl, providerId: "ndl-dl"}).description; },
+    async search(params) {
+      const {url} = buildNdlSruSearchRequest(params, {source: "ndl_digital", searchBaseUrl, providerId: "ndl-dl"});
       const projected = await fetchNdlDigitalSruPayload(url.toString()) as {
         totalResults?: string;
         items?: unknown[];
@@ -213,6 +128,7 @@ export function createNdlDigitalAdapter(
 
       return {
         total: result.total,
+        summary: result.summary,
         items: result.items,
         facets: projected.facets
       };

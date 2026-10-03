@@ -379,7 +379,7 @@ describe("createSearchService", () => {
       page: 1
     });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       total: 1,
       items: [createSearchItem("ndl_search", "1", "吾輩は猫である")]
     });
@@ -414,7 +414,7 @@ describe("createSearchService", () => {
       sort_order: "asc"
     });
 
-    expect(result.structuredContent).toEqual({
+    expect(result.structuredContent).toMatchObject({
       query: "夏目漱石",
       source: "ndl_search",
       page: 1,

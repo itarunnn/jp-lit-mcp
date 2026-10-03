@@ -1,45 +1,10 @@
+import { detectQueryScript } from "./searchContext.js";
 import type {
   SearchBreadth,
   SearchDiagnostic,
   SearchInterpretation,
   SourceName
 } from "./types.js";
-
-function detectScript(value: string) {
-  let hasLatinLetter = false;
-  let hasKana = false;
-  let hasHan = false;
-
-  for (const char of value) {
-    if (/[a-z]/i.test(char)) {
-      hasLatinLetter = true;
-    }
-    if (/[\u3040-\u30ff\uff66-\uff9d]/u.test(char)) {
-      hasKana = true;
-    }
-    if (/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/u.test(char)) {
-      hasHan = true;
-    }
-  }
-
-  if (hasLatinLetter && !hasKana && !hasHan) {
-    return "latin";
-  }
-  if (hasLatinLetter && (hasKana || hasHan)) {
-    return "mixed";
-  }
-  if (hasHan && hasKana) {
-    return "han_kana";
-  }
-  if (hasHan) {
-    return "han";
-  }
-  if (hasKana) {
-    return "kana";
-  }
-
-  return "other";
-}
 
 export function classifySearchBreadth(total: number): SearchBreadth {
   if (total <= 0) {
@@ -113,7 +78,7 @@ export function buildSearchDiagnostics(input: {
     });
   }
 
-  if (isCinii && detectScript(input.query) === "latin") {
+  if (isCinii && detectQueryScript(input.query) === "latin") {
     diagnostics.push({
       level: "warning",
       code: "SCRIPT_LATIN_QUERY",

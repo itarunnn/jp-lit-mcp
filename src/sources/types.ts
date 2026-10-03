@@ -1,3 +1,4 @@
+import type { SafeSearchRequest, SearchResultSummary } from "../lib/searchContext.js";
 import type {
   CiniiSearchFilters,
   RecordItem,
@@ -69,12 +70,14 @@ export interface SearchParams {
 }
 
 export interface SearchResult {
+  summary?: SearchResultSummary;
   total: number;
   items: SearchItem[];
   facets?: SearchFacets;
 }
 
 export interface SourceAdapter {
+  describeSearch?(params: SearchParams): SafeSearchRequest;
   source: SourceName;
   search(params: SearchParams): Promise<SearchResult>;
   getRecord(sourceId: string): Promise<RecordItem | null>;

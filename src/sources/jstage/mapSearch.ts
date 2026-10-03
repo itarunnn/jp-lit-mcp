@@ -1,3 +1,4 @@
+import { summarizeSearchTotal } from "../../lib/searchContext.js";
 import { normalizeIssuedAt } from "../../lib/date.js";
 import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import type { SearchItem } from "../../lib/types.js";
@@ -155,6 +156,7 @@ export function mapJstageSearchResponse(xml: string): SearchResult {
 
   if (status && status !== "0") {
     return {
+      summary: summarizeSearchTotal(null, "failed"),
       total: 0,
       items: []
     };
@@ -164,6 +166,7 @@ export function mapJstageSearchResponse(xml: string): SearchResult {
   const total = Number(readString(feed?.["opensearch:totalResults"]));
 
   return {
+    summary: summarizeSearchTotal(readString(feed?.["opensearch:totalResults"]), "completed", Number.isFinite(total) ? "unknown" : "returned_count"),
     total: Number.isFinite(total) ? total : items.length,
     items
   };
