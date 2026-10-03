@@ -2,7 +2,7 @@
 
 TEIは、文学作品や歴史史料の本文に、章・歌・人物・注記・訂正などの情報を付けて扱うための共通の記述方法です。このガイドでは、万葉集の諸本比較や延喜式の数量記述を扱う実際の研究と、廣瀬本万葉集・漱石『こころ』の公開データを紹介します。研究でTEIが果たす役割を知り、jp-litで資料の読解と関連文献の調査を往復する手順を説明します。
 
-初めての方は、次の順に読むと資料を探すところから始められます。保存済みXMLがある方は[AIに依頼して読む](#aiに依頼して読む)へ進めます。
+初めての方は、次の順に読むと資料を探すところから始められます。保存済みXMLがある方は[導入](#導入)を確認し、[AIに依頼して読む](#aiに依頼して読む)へ進めます。
 
 1. [TEIとは何か](#teiとは何か)
 2. [研究・読解に使う具体例](#研究読解に使う具体例)
@@ -10,7 +10,10 @@ TEIは、文学作品や歴史史料の本文に、章・歌・人物・注記�
 4. [jp-litが支える作業](#jp-litが支える作業)
 5. [TEI読解と文献調査を往復する](#tei読解と文献調査を往復する)
 6. [jp-litで公開TEIを探す](#jp-litで公開teiを探す)
-7. [AIへの読解依頼](#aiに依頼して読む)と[CLIの導入](#導入)
+7. [導入](#導入)
+8. [AIに依頼して読む](#aiに依頼して読む)
+9. [結果を確認して研究記録へ残す](#結果を確認して研究記録へ残す)
+10. [読解が進まないとき](#読解が進まないとき)
 
 ## TEIとは何か
 
@@ -217,9 +220,29 @@ jp_lit_search(session_id=SID, source="kokusho", query="萬葉集", limit=5)
 
 各sourceの検索対象と語の扱いは[文献調査Skill](../skills/jp-lit-research/SKILL.md)に従います。書誌検索が0件でも、公開TEIの不存在を意味しません。上の公開資料表から探す方法も併用し、書誌と公開データの対応は作品・底本・範囲の一致で確かめます。READMEやデータの利用条件と、XML内の権利記述に差があれば、両方を記録して公開者の説明を確認します。
 
+## 導入
+
+TEI読解には、`jp-lit-tei` Skillを読み込めてローカルコマンドを実行できるAIアプリを使います。Node.js22以上、[uv](https://docs.astral.sh/uv/getting-started/installation/)、Python3.13.15を用意し、初回に次のコマンドでPythonとSkillsを導入してreaderの起動を確認します。
+
+```sh
+uv python install 3.13.15
+npx --yes --package=jp-lit-mcp@0.15.2 jp-lit-tei-reader --help
+npx --yes jp-lit-mcp@0.15.2 install-skills codex
+```
+
+`codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。Skills installerはjp-lit-research、jp-lit-verification、jp-lit-teiを導入します。導入後はアプリで新しい対話を開き、`jp-lit-tei`が利用できることを確認してください。
+
+通常導入の`npx --package=...`は、cloneしたjp-lit repositoryの外で実行してください。npmが同名のローカルpackageを参照すると、readerの実行名が見つからない場合があります。初回にはnpm packageやPythonがダウンロードされることがあります。
+
+ここで指定した`0.15.2`はTEI readerを含む公開版です。MCPの書誌検索はNode.jsだけで動き、uv/PythonはTEI読解に使います。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。
+
+導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
+
 ## AIに依頼して読む
 
-公開元から保存したXMLを、`jp-lit-tei` SkillとCLIを使えるAIアプリへ渡します。MCPは書誌探索に使い、保存済みXMLの読解はreaderだけでも進められます。次のpathは例なので、自分の保存先へ置き換えてください。
+導入済みのAIアプリへ、公開元から保存したXMLの場所、読みたい範囲、調べたい問いを伝えます。AIはSkillに従い、XMLの版と章・歌などの区切りを確認し、対象を抽出して参照を点検します。MCPは関連研究の書誌探索に使います。保存済みXMLの読解は、MCPが使えない環境でもSkillとreaderで進められます。
+
+次のpathは例なので、自分の保存先へ置き換えてください。XMLの区切りやIDを知らない場合は、「まず章や歌の一覧を示して」と依頼できます。複数の候補がある場合は、見出しや前後を確かめて対象を選びます。
 
 漱石『こころ』の依頼例:
 
@@ -252,209 +275,46 @@ XML: J:\Research\tei\diary.xml
 
 AIには取得版、読む単位、原構造と解釈、画像の実見・校合の状態を残すよう依頼します。本文だけを読みやすく整える場合も、元のタグ付き結果を先に保存すると、採用した表記や注記を後から確かめられます。
 
-## 導入
+## 結果を確認して研究記録へ残す
 
-Node.js22以上、[uv](https://docs.astral.sh/uv/getting-started/installation/)、Python3.13.15を使う。TEI readerのPython依存は標準ライブラリのみ。Pythonはuvで用意できる。初回はPythonをdownloadする場合がある。
+AIの返答では、読んだ資料と範囲、本文と注釈、研究と解釈をそれぞれ確認します。研究ノートには、次の情報を残してください。
 
-```sh
-uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.2 jp-lit-tei-reader --help
-npx --yes jp-lit-mcp@0.15.2 install-skills codex
-```
-
-Skills installerはjp-lit-research、jp-lit-verification、jp-lit-teiを導入する。MCPの書誌検索はNode.jsだけで動き、uv/PythonはTEI読解時に必要になる。
-
-`codex`はCodex CLI / App向け。Cursorは`cursor`、Claude Codeは`claude`に置き換える。導入後はアプリで新しい対話を開き、`jp-lit-tei`が見えることを確認する。ここで指定した`0.15.2`はTEI readerと本ガイドを含む版で、既存のMCP設定を変更する必要はない。
-
-source checkoutではrootから次を実行する。
-
-```sh
-node scripts/tei-reader.mjs --request request.json
-npm run test:tei
-```
-
-cloneしたrepository内では`node scripts/tei-reader.mjs`を使う。通常導入の`npx --package=...`はrepository外で実行する。npmが同名のローカルpackageを参照すると、readerの実行名が見つからない場合がある。
-
-Python project単独なら`packages/tei-reader`へ移動し、`uv run --frozen python -m tei_reader --request /absolute/path/request.json`を使える。npm launcherはcallerの相対要求pathを解決し、package外のcacheにPython環境を作る。UV_PROJECT_ENVIRONMENTを指定すると環境配置を変更できる。
-
-## PowerShell 7で一通り試す
-
-この例はrepositoryをcloneしたdirectoryのrootで実行する。付属の[sample.xml](../packages/tei-reader/examples/sample.xml)は操作説明用の合成資料で、第一章に異表記・訂正・注記を含む。保存済み資料で試す場合は`$teiFile`をそのXMLの絶対pathに替え、一覧で得た実際の区切りを使う。
-
-以下を順に実行すると、同じXMLのhashと、readerが返したlocatorを次の操作へ引き継げる。関数は要求JSONをstdinで渡し、CLI終了値・JSON変換・`ok`を確認する。
-
-```powershell
-$teiFile = (Resolve-Path './packages/tei-reader/examples/sample.xml').Path
-
-function Invoke-TeiReader {
-    param([hashtable]$Request)
-    $raw = ($Request | ConvertTo-Json -Depth 20 -Compress) |
-        node scripts/tei-reader.mjs --request -
-    $exitCode = $LASTEXITCODE
-    $response = $raw | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-    if ($exitCode -ne 0 -or -not $response.ok) {
-        throw "TEI reader: $($response.error.code) (exit $exitCode)"
-    }
-    return $response
-}
-
-# 1. XMLと版を確認し、bodyの位置を得る。
-$inspect = Invoke-TeiReader @{
-    operation = 'inspect_document'
-    file_path = $teiFile
-}
-$documentHash = $inspect.document.sha256
-$body = $inspect.result.body_locators[0]
-
-# 2. body直下の章を一覧にする。
-$chapters = Invoke-TeiReader @{
-    operation = 'list_units'
-    file_path = $teiFile
-    expected_sha256 = $documentHash
-    scope_xpath = $body.xpath
-    relation = 'children'
-    element = '{http://www.tei-c.org/ns/1.0}div'
-    attribute_equals = @{ type = 'chapter' }
-    limit = 20
-    offset = 0
-}
-$chapters.result.items | ConvertTo-Json -Depth 20
-
-# 3. サンプルの最初の章を、返された位置から抽出する。
-$chapter = $chapters.result.items[0].locator
-$extract = Invoke-TeiReader @{
-    operation = 'extract_unit'
-    file_path = $teiFile
-    expected_sha256 = $documentHash
-    locator = $chapter
-    view = 'structured'
-}
-$extract.result | ConvertTo-Json -Depth 100
-
-# 4. その章にある参照を点検する。
-$references = Invoke-TeiReader @{
-    operation = 'check_references'
-    file_path = $teiFile
-    expected_sha256 = $documentHash
-    scope_xpath = $chapter.xpath
-    attributes = @('target', 'facs', 'corresp', 'resp')
-    limit = 20
-    offset = 0
-}
-$references.result | ConvertTo-Json -Depth 30
-```
-
-付属サンプルは章が1件で、抽出結果に`orig`の「舊」と`reg`の「旧」、`del`の「い」と`add`の「ハ」、`note`が別要素として残る。`note`の`target="#p1"`は`resolved_local`になる。どの枝を読む本文に採用するかは、この結果を見て判断する。
-
-`total_matching`は条件に一致した全件数、`items`は今回のpageで返された候補、`next_offset`は続きの開始位置。複数の候補があるときは番号・見出し・原属性と位置を確認してから選ぶ。実資料ではchapter以外の`type`や歌の`lg`などを使う場合があるため、付属例の区切りをそのまま当てはめない。
-
-## 応答を研究記録へ残す
-
-各操作は`ok`、`document`、`result`を持つJSONを返す。`document.sha256`は読んだXMLの版を確かめる値で、locatorのXPathはそのXML内の位置を示す。引用や読解メモにはXMLの取得元・版・hash、採用したlocator、対象範囲、原文と解釈の区別を残す。
-
-抽出結果の`selection_applied=false`と`reading_text=null`は、元の枝を保持した状態を示す。構造付き結果から読みやすい本文や訳を作る場合も、採用した枝と原位置を別記し、原資料との照合状態を添える。
-
-参照点検の`resolved_local`は、指定XML内の参照先が一意に見つかった状態を示す。外部URLや画像の存在、到達、実見を確認した値へ読み替えない。`ok=true`でも未解決・未確認の参照が残る場合がある。
-
-## 自作例から始める
-
-[sample.xml](../packages/tei-reader/examples/sample.xml)は操作説明用の合成資料。repositoryから取得するか自分のXMLを使い、以下のfile_pathを実際の絶対pathへ置き換える。
-
-```json
-{
-  "operation": "inspect_document",
-  "file_path": "/absolute/path/sample.xml"
-}
-```
-
-UTF-8でrequest.jsonへ保存してCLIへ渡す。inspectはexpected_sha256を省略できる。以後の操作では応答document.sha256を使い、例の64桁hash部分を置き換える。
-
-```json
-{
-  "operation": "list_units",
-  "file_path": "/absolute/path/sample.xml",
-  "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "scope_xpath": "/t:TEI[1]/t:text[1]/t:body[1]",
-  "relation": "children",
-  "element": "{http://www.tei-c.org/ns/1.0}div",
-  "attribute_equals": {"type": "chapter"},
-  "limit": 20,
-  "offset": 0
-}
-```
-
-一覧のlocatorを使ってextractする。ここでは自作例の第一段落を示す。
-
-```json
-{
-  "operation": "extract_unit",
-  "file_path": "/absolute/path/sample.xml",
-  "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "locator": {
-    "document_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-    "xpath": "/t:TEI[1]/t:text[1]/t:body[1]/t:div[1]/t:p[1]"
-  },
-  "view": "structured"
-}
-```
-
-章内だけの参照点検にはscope_xpathを指定する。
-
-```json
-{
-  "operation": "check_references",
-  "file_path": "/absolute/path/sample.xml",
-  "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "scope_xpath": "/t:TEI[1]/t:text[1]/t:body[1]/t:div[1]",
-  "attributes": ["target", "facs", "corresp", "resp"],
-  "limit": 20,
-  "offset": 0
-}
-```
-
-## 位置と構造の保持
-
-locatorはdocument_sha256と正規絶対XPath、一意な場合の補助xml_id。XPathはreaderが返した位置を再利用する。tはTEI、xmlはXML、他namespaceはURI順のn1/n2…でdocument.namespacesに返す。要素・属性名は`{URI}local`、namespaceなし属性はtype/n等の原key。
-
-extractはelement/text/comment/PI順序、属性、元のin-scope namespaceを保持する。choiceのorig/reg・sic/corr、substのdel/add、本文/訓/noteを別要素のまま返す。selection_applied=false、reading_text=null。単一本文を作る場合の枝の選択は読解側の解釈として別記する。
-
-XMLパーサー処理後の論理内容を扱う。CDATA境界、entityの元表記、元prefix、属性順序、byte round-tripは再現範囲から除く。XML名の入力受け入れは使用するパーサーに従う。locatorのXML名は[XML1.0のNCName文字範囲](https://www.w3.org/TR/xml/#NT-NameStartChar)で点検する。
-
-## 範囲と参照
-
-listのchildren/descendantsはscope自身を除外する。checkのscopeは自身と子孫を含み、summary・total_occurrences・paginationも選択範囲。checkのscope省略/nullは全文書。参照先xml:idの一意性と祖先xml:baseは全文書で確認する。
-
-参照statusはresolved_local、unresolved_local、ambiguous_local、empty_fragment_unverified、base_context_unverified、external_unverified、relative_or_bare_unverified。XML空白でtokenを区切り、コンマやUnicodeを補正しない。処理成功でも未解決参照が残る。
-
-## 来歴と確認状態
-
-inspectのprovenance_manifest_pathは任意。台帳はJSON arrayで、local_path/sha256/bytesが必須。local_pathは台帳parent基準で解決し、指定XMLへ一意に一致するrecordを確認する。url/repository/commit/path/retrieved_atは任意string。
-
-manifest_claimsは台帳とlocal bytesの対応。URL/commitは申告来歴として保持する。XML headerの書誌・底本・権利・校合宣言と、公開元をこちらで確認した記録を分ける。README/LICENSE/XMLの記述差は原位置付きで残す。
-
-画像URI/zoneの記述、文書内リンク解決、画像への到達、実見、校合は個別の確認状態。readerは外部資源を取得しない。検証flagはxml_well_formed=true、tei_schema_validated=false、remote_resources_fetched=false、source_collated=false。
-
-## 上限とエラー
-
-よくある問題は、終了値と`error.code`から次の順で切り分ける。
-
-| code / 状況 | 確認することと次の操作 |
+| 確認するもの | 記録する内容 |
 | --- | --- |
-| `runtime_launch_failed` | Node.js、uv、Python3.13の導入・PATHを確認し、`--help`から再実行する |
-| `file_access_error` | XMLまたは要求JSONのpathと読み取り権限を確認する |
-| `invalid_request` | 操作名、要求field、hashの形式を確認する。inspect以外は`expected_sha256`を指定する |
-| `invalid_xml` | XMLの整形式を確認する |
-| `unsupported_document` / `doctype_forbidden` | TEI namespaceの`TEI` rootと、DOCTYPEを含まない対象条件を確認する |
-| `hash_mismatch` | 保存XMLと取得版を再確認し、inspectからやり直す。以前のlocatorを新しい版へそのまま流用しない |
-| `unit_too_large` / `output_too_large` | 章を節・段落・歌に分け、返す単位やpageを小さくする |
-| 参照の未解決・未確認 | 元のtoken、参照先ID、対象範囲を確認し、残る問題を記録する |
+| 資料と版 | 公開元、底本・収録範囲、保存XMLの場所とhash。hashはAIがreaderで計測した値を記録する |
+| 読んだ範囲 | 章・節・歌などの単位と元XMLへ戻れる位置（locator）。前後を読んだ範囲と、上限によって抽出を分けた箇所も記録する |
+| 本文とデータ側の注釈 | 原文、異読、訂正、訓、注記を区別する。読みやすい本文を作った場合は採用した表記を明記する |
+| 先行研究とこちらの解釈 | 検索語、文献の書誌、要旨・本文の確認範囲と根拠頁、研究の主張、今回の解釈を分ける |
+| 参照・画像の確認 | XML内の参照先が見つかった状態、画像の所在記述、画像を実際に見た状態、校合した状態を分ける |
 
-要求/manifest64KiB、XML10MiB、深度256、要素10万/全node20万、属性/namespace宣言各20万、XPath索引の全文字列累計16,777,216文字、一覧/参照既定20件・最大100件、抽出2,000要素/4,000node/20,000 payload文字、UTF-8応答1MiB。manifest最大100record。大きい章は節・歌へ分割する。
+廣瀬本万葉集で訂正や異訓を読むなら、次のように確認を続けられます。
 
-長い祖先名による索引増幅もdocument_too_complexへ分類する。文字数上限はXPathごとの完全pathを足した値で、Unicode code pointを数える。これは索引文字列の上限であり、process全体のメモリや実行時間のhard limitは提供しない。
+```text
+いま読んだ歌について、歌本文・訓・訂正・注記を分けて研究ノートにしてください。
+読みやすい本文を作る場合は、採用した表記とその根拠を明記してください。
+関連研究の主張には読めた頁を付け、今回の解釈を別に示してください。
+元XMLへ戻れる位置、まだ確かめていない参照、次に読む歌や文献も残してください。
+```
 
-通常応答はstdoutのUTF-8 JSON1件とLF。成功0、要求エラー2、XML/hash/上限/locatorエラー3、内部/launcherエラー4。起動環境の問題はruntime_launch_failed。PowerShell 7ではConvertFrom-Json -AsHashtable -ErrorAction Stopを使い、空namespace keyを保持する。CLI終了値とokも確認する。
+元XMLの位置は、AIがreaderから受け取ったlocatorを記録します。XMLを差し替えた場合は版を確認し直します。以前の位置を別版へそのまま流用すると、同じ箇所を指しているか確かめられません。
 
-DOCTYPE、外部実体、XInclude展開、ネットワーク取得、XMLへの書込みは提供範囲から除く。Expat2.7.2以上を実行時確認する。TEI namespaceのTEI rootが対象で、teiCorpus/schema検証は対象外。固定資料と合成fixtureで検証した範囲を超える一般適合や原画像校合を保証しない。
+readerは訂正前後や異読の枝を保持します。たとえば「ニ」と「ノ」のどちらを読解用の本文に採用するかは、資料と研究に基づく判断として別記します。文書内の参照が解決していても、外部画像を見たことや原資料との校合が済んだことは別の確認です。
 
-[利用ガイド](usage-guide.md) / [公開Skill](../skills/jp-lit-tei/SKILL.md) / [Python reader](../packages/tei-reader/README.md)
+## 読解が進まないとき
+
+読解が止まった場合は、AIへ状況を伝え、次の確認を依頼できます。文書や応答には大きさの上限があるため、大きい章は節・段落・歌などへ分けて読みます。
+
+| 状況 | AIへの追加依頼 |
+| --- | --- |
+| readerを起動できない | 「Node.js、uv、Pythonとreaderの起動を確認し、不足している準備を教えてください」 |
+| XMLを開けない | 「指定した保存先にXMLがあるか、読み取り可能か確認してください」 |
+| 対象の章・歌が見つからない | 「実際の区切り、番号、見出しと一致件数を確認し、候補を示してください」 |
+| 抽出範囲が大きい | 「章全体を小さい単位に分け、今回は対象の節・歌と必要な前後だけを読んでください」 |
+| XMLの版が変わった | 「新しいXMLの版を確認し直し、その版の一覧から対象位置を取り直してください」 |
+| 参照が未解決・未確認 | 「元の参照記述と対象範囲を示し、確認できた状態と残った疑問を分けてください」 |
+
+readerはローカルXMLの構造読解を支えます。画像や外部資源の取得、XMLの編集、TEI schema検証は提供範囲から除きます。画像を見比べる作業は公開元のビューワなどで行い、実見した範囲を記録してください。
+
+CLIの要求JSON、手動PowerShell例、応答の仕様と詳細な上限・エラーは[CLI技術資料](../packages/tei-reader/README.md)にまとめています。
+
+[利用ガイド](usage-guide.md) / [公開Skill](../skills/jp-lit-tei/SKILL.md)
