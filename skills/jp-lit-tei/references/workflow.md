@@ -29,7 +29,7 @@ CLIはUTF-8要求JSONを1件受け、stdoutへJSON1件とLFを返す。XMLとman
 
 scope省略/nullのcheckは全文書点検。選択範囲の参照先は全文書のIDに解決する。xml:baseが祖先にある場合もそのchainを保持し、解釈を保留する。XML空白以外でtokenを区切らず、コンマ・Unicode・percent表記を補正しない。
 
-上限はXML10MiB、深度256、10万要素、XPath索引の全文字列累計16,777,216文字、要求/manifest64KiB、一覧最大100件、抽出2,000要素/4,000node/20,000 payload文字、応答1MiB。document_too_complexは文書構造または索引の上限超過。詳細はCLIに同梱された公開repositoryの `docs/tei-reader.md` を参照する。
+上限はXML10MiB、深度256、10万要素、XPath索引の全文字列累計16,777,216文字、要求/manifest64KiB、一覧最大100件、抽出2,000要素/4,000node/20,000 payload文字、応答1MiB。document_too_complexは文書構造または索引の上限超過。詳細はCLIに同梱された公開repositoryの `packages/tei-reader/README.md` を参照する。
 
 ## 実行とJSONの消費
 
