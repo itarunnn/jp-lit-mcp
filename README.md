@@ -295,24 +295,45 @@ OCR は誤読や欠落があります。完全一致で出ない場合は、旧�
 
 ### TEIで文学資料・歴史史料を読む
 
-TEIは、本文とともに章・歌・異読・訂正・注記などをXMLのタグで表した資料です。日本文学では作品の章や歌、日本史では日記・書簡などの史料の項目を、付された構造と位置を保って確認できます。資料ごとにタグの使い方や区切りが異なるため、まず構造を調べます。
+TEI（Text Encoding Initiative）は、文学作品や歴史史料の本文に、章・歌・人物・注記・訂正などの情報を付けて扱う共通の記述方法です。TEI/XMLを使うと、読む箇所を章や歌で絞り、本文と注記・書き入れを分けたまま確認できます。
 
-`jp-lit-tei` Skillを入れたAIアプリへ、保存したXMLのpathと読みたい範囲を伝えます。
+たとえば[デジタル漱石](https://github.com/Yosh-Hibi/digital-soseki/tree/main/data/tei/soseki)の『こころ』では、章・節と人物・発話のタグを手掛かりに読めます。[廣瀬本万葉集](https://github.com/kokubunken/nijl-manyoshuTEI)では、歌本文と訓、訂正・書き入れを構造ごとに取り出せます。タグにはデータ作成者の判断も含まれるため、底本と作成方針を確かめ、原資料と照合して使います。
+
+jp-litは、**MCPで作品・関連研究の書誌を探す → `jp-lit-tei` Skillと通常のWeb検索で公開TEI・取得版を確認する → `jp-lit-tei-reader`で保存XMLの必要な箇所を読む**という流れを支えます。書誌検索と公開TEIの探索を組み合わせて、まず次のように依頼できます。
 
 ```text
-jp-lit-teiを使って、このTEIの章一覧を確認し、第一章を構造付きで読んでください。
-異読・訂正・注記は分けて示し、元XMLの位置と、今回の抽出範囲を残してください。
-XML: J:\Research\tei\sample.xml
+jp-lit-teiを使って、漱石『こころ』の公開TEIを探してください。
+jp-litで関連書誌を調べ、公開元からXMLの公開先、底本、収録範囲、利用条件を確認してください。
+人物と発話を読みたいので、どんなタグが付いているかも示してください。
+```
+
+保存したXMLを読む場合は、AIアプリへpathと読みたい範囲を伝えます。
+
+```text
+jp-lit-teiを使って、この『こころ』TEIの章・節を確認し、「上　先生と私」の最初の節を読んでください。
+人物・発話のタグと本文を示し、データ側の注釈とこちらの解釈を分けてください。
+元XMLの位置と、今回の抽出範囲を残してください。
+XML: J:\Research\tei\digital-soseki-kokoro-tei.xml
+```
+
+**読解で気になった語や主題から、関連文献を調べて本文へ戻る使い方もできます。** たとえば『こころ』の「淋しい」という言葉から孤独や語りの研究をjp-litで探し、その論点を手掛かりに同じ節を読み直します。万葉集なら、歌の語句から訓・注釈の研究へ進み、歌本文と訓を見直します。
+
+```text
+この『こころ』TEIの「上　先生と私」第七節を読み、先生の「淋しい」という言葉と前後を確認してください。
+jp-litで孤独や語りに関する研究を探し、各文献の書誌と、要旨・本文のどこまで確認できたかを示してください。
+読めた文献の論点を手掛かりに同じ節を再読し、本文と先行研究の主張、こちらの解釈を分けてください。
+元XMLの位置、検索語、残った疑問を残してください。
+XML: J:\Research\tei\digital-soseki-kokoro-tei.xml
 ```
 
 readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確認するには次を使います。
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.1 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.15.2 jp-lit-tei-reader --help
 ```
 
-資料の公開先・取得版・底本はSkillで確認し、readerは保存済みXMLを処理します。画像や外部リンクの実見・校合は別に記録します。[TEIの使い方](docs/tei-reader.md)に、文学・歴史の依頼例、付属サンプルでの実行、応答の読み方、エラー対応があります。
+[TEIの使い方](docs/tei-reader.md)に、TEIの基本、漱石・万葉集での読解と文献調査の往復、源氏物語・延喜式も含む公開資料の案内、jp-litでの検索例、CLI手順をまとめています。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。
 
 ### 国会・帝国議会会議録を探す
 
@@ -478,7 +499,7 @@ Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存�
 
 - [使い方ガイド](docs/usage-guide.md): 実際の依頼例、調査フロー、出力の読み方
 - [デジコレ全文検索ガイド](docs/ndl-digital-collections.md): 書誌検索・API全文検索・公式ブラウザ検索、ログイン、本文・PDF確認の違い
-- [TEIの使い方](docs/tei-reader.md): 日本文学・日本史の依頼例、導入、章・歌・史料の項目の抽出、参照点検
+- [TEIの使い方](docs/tei-reader.md): TEIの基本、漱石・古典・歴史史料の公開例、資料の探索、読解と文献調査の往復
 - [Cursor での導入手順](docs/install/cursor.md): Cursor で MCP と Skills を使う
 - [Claude Code での導入手順](docs/install/claude-code.md): Claude Code で MCP と Skills を使う
 - [Codex CLI での導入手順](docs/install/codex-cli.md): Codex CLI で MCP と Skills を使う
