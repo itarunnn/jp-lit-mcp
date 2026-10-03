@@ -61,13 +61,18 @@ export function detectQueryScript(query: string): QueryScript {
   return "other";
 }
 
-export function summarizeSearchTotal(raw: unknown, outcome: "completed" | "failed" = "completed"): SearchResultSummary {
+/** 既存totalの互換変換と、実際にitems件数へfallbackした経路を区別する。 */
+export function summarizeSearchTotal(
+  raw: unknown,
+  outcome: "completed" | "failed" = "completed",
+  unreportedBasis: "returned_count" | "unknown" = "unknown"
+): SearchResultSummary {
   const value = typeof raw === "number" || (typeof raw === "string" && /^\d+$/.test(raw.trim())) ? Number(raw) : null;
   const total = outcome === "completed" && value !== null && Number.isSafeInteger(value) && value >= 0 ? value : null;
   return {
     outcome,
     reported_total: total,
-    total_basis: total !== null ? "source_reported" : outcome === "failed" ? "unknown" : "returned_count"
+    total_basis: total !== null ? "source_reported" : outcome === "failed" ? "unknown" : unreportedBasis
   };
 }
 /** 指定されたfilterのうち適用しないfield名だけを列挙する。値は記録しない。 */

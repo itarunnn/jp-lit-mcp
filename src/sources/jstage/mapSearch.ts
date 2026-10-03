@@ -166,7 +166,7 @@ export function mapJstageSearchResponse(xml: string): SearchResult {
   const total = Number(readString(feed?.["opensearch:totalResults"]));
 
   return {
-    summary: summarizeSearchTotal(readString(feed?.["opensearch:totalResults"])),
+    summary: summarizeSearchTotal(readString(feed?.["opensearch:totalResults"]), "completed", Number.isFinite(total) ? "unknown" : "returned_count"),
     total: Number.isFinite(total) ? total : items.length,
     items
   };

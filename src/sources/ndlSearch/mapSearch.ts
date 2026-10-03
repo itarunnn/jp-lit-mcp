@@ -394,11 +394,12 @@ export function mapNdlSearchSearchResponse(payload: unknown): SearchResult {
     readNdlSearchString(channel?.totalResults) ??
     readNdlSearchString(channel?.["openSearch:totalResults"]);
   const total = Number(totalValue);
+  const projectedSummary = asRecord(record.summary);
 
   return {
-    summary: record.summary && typeof record.summary === "object"
-      ? summarizeSearchTotal((record.summary as {reported_total?: unknown}).reported_total)
-      : summarizeSearchTotal(totalValue),
+    summary: projectedSummary
+      ? summarizeSearchTotal(projectedSummary.reported_total, "completed", projectedSummary.total_basis === "returned_count" ? "returned_count" : "unknown")
+      : summarizeSearchTotal(totalValue, "completed", Number.isFinite(total) ? "unknown" : "returned_count"),
     total: Number.isFinite(total) ? total : items.length,
     items
   };

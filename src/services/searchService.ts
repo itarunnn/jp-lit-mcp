@@ -272,12 +272,29 @@ function mergeFacets(results: Array<{ facets?: SearchFacets }>): SearchFacets | 
   return hasAnyFacet ? merged : undefined;
 }
 
-function describeSource(adapter: SourceAdapter, params: SearchParams, result: SearchResult | null, error?: unknown): SearchSourceContext {
+function describeSource(
+  adapter: SourceAdapter,
+  params: SearchParams,
+  result: SearchResult | null,
+  error?: unknown
+): SearchSourceContext {
   const failed = result === null || result.summary?.outcome === "failed";
-  return {source: adapter.source, outcome: failed ? "failed" : result.summary?.outcome ?? "unknown", request: adapter.describeSearch?.(params) ?? null,
-    reported_total: result?.summary?.reported_total ?? null, total_basis: result?.summary?.total_basis ?? "unknown",
-    fetched_count: result && !failed ? result.items.length : null, included_count: 0,
-    error_category: failed ? (result ? "unknown" : classifySourceError(error)) : null};
+  let request: SearchSourceContext["request"] = null;
+  try {
+    request = adapter.describeSearch?.(params) ?? null;
+  } catch {
+    // 条件記述は補助情報。元の検索結果・失敗分類を保全する。
+  }
+  return {
+    source: adapter.source,
+    outcome: failed ? "failed" : result.summary?.outcome ?? "unknown",
+    request,
+    reported_total: result?.summary?.reported_total ?? null,
+    total_basis: result?.summary?.total_basis ?? "unknown",
+    fetched_count: result && !failed ? result.items.length : null,
+    included_count: 0,
+    error_category: failed ? (result ? "unknown" : classifySourceError(error)) : null
+  };
 }
 
 export function createSearchService(adapters: SourceAdapter[]) {

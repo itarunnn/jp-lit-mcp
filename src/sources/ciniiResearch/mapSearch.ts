@@ -213,7 +213,7 @@ export function mapCiniiSearchResponseForSource(
   const total = Number(record["opensearch:totalResults"]);
 
   return {
-    summary: summarizeSearchTotal(record["opensearch:totalResults"]),
+    summary: summarizeSearchTotal(record["opensearch:totalResults"], "completed", Number.isFinite(total) ? "unknown" : "returned_count"),
     total: Number.isFinite(total) ? total : items.length,
     items
   };

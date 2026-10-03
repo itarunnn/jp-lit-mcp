@@ -73,13 +73,13 @@ describe("CiNii and J-STAGE descriptions", () => {
     for (const [key, value] of Object.entries(description.parameters))
       expect(new URL(sent).searchParams.get(key)).toBe(String(value));
   });
-  it.each([undefined, "", "invalid", -1])("keeps unreported CiNii totals unknown: %s", raw => {
+  it.each([[undefined, "returned_count"], ["", "unknown"], ["invalid", "returned_count"], [-1, "unknown"]] as const)("keeps unreported CiNii totals unknown: %s", (raw, basis) => {
     expect(mapCiniiSearchResponseForSource({
       items: [],
       "opensearch:totalResults": raw
     }, "cinii_articles").summary).toMatchObject({
       reported_total: null,
-      total_basis: "returned_count"
+      total_basis: basis
     });
   });
   it("distinguishes J-STAGE provider failure from a reported zero", () => {

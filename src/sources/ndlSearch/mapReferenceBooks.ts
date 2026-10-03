@@ -129,7 +129,7 @@ export function mapNdlReferenceBooksSearchResponse(payload: unknown): SearchResu
   const facets = readFacets(record.facets);
 
   return {
-    summary: summarizeSearchTotal(hitValue),
+    summary: summarizeSearchTotal(hitValue, "completed", hit !== null && Number.isFinite(hit) ? "unknown" : "returned_count"),
     total: hit !== null && Number.isFinite(hit) ? hit : items.length,
     items,
     ...(facets ? { facets } : {})
