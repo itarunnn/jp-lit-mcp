@@ -331,7 +331,7 @@ readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.15.2 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.16.0 jp-lit-tei-reader --help
 ```
 
 [TEIの使い方](docs/tei-reader.md)に、万葉集・延喜式の研究例と論文、廣瀬本での読解と文献調査の往復、漱石・源氏物語も含む公開資料の案内、jp-litでの検索例、導入とAIへの依頼・結果の確認をまとめています。手動実行や要求JSONは[CLI技術資料](packages/tei-reader/README.md)を参照してください。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。

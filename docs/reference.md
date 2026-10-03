@@ -1172,3 +1172,5 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 sourceごとの `outcome` はcompleted/failed/unknown、`total_basis` はsource_reported/returned_count/unknown。`reported_total` と `fetched_count` のnullは未記録、0は実測・報告0件です。`returned_count` は実際にitems数へfallbackした経路だけを示し、空値などの互換数値変換で維持するtotalの来歴は `unknown` とします。`included_count` は最終応答への寄与数、`error_category` は失敗分類です。SafeSearchRequestは `api_kind`、API別allowlistの `parameters`、`ignored_input_fields`、`matching_mode`、`coverage_note`、任意creditの `attribution`（未確認はnull）を持ちます。credential、URL、headerは追加記録に含めません。
 
 `SessionEntry.method_snapshot` は任意fieldで、`observed_at`（session利用時）、`result_saved_at`（cache取得結果の保存時）、`cache_hit`、`total`、`returned_count`、`context` を保持します。旧cacheのcontextはnullのまま保存します。既存cache identity・session ID・total・items・旧export profileは維持します。
+
+v0.16.0の追加記録は `jp_lit_search` を対象とします。既存の検索の既定source・limit・page・部分成功、他のcached tool、TEI readerの契約を維持します。sessionの同一tool・同一cache keyのentry更新でも `selected_items`、`notes`、`trace` は保全されます。`full_log` のJSONには任意の `method_snapshot` も含まれるため、利用側は追加fieldを許容してください。

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm, readFile, readdir, symlink, mkdir } from "node:fs/promises";
 import os from "node:os";
@@ -9,6 +10,8 @@ import { createSessionExporter } from "../src/lib/persistence/exportSession.js";
 import { createJpLitExportSessionTool } from "../src/tools/jpLitExportSession.js";
 import { createJpLitSearchTool } from "../src/tools/jpLitSearch.js";
 import { createSearchService } from "../src/services/searchService.js";
+
+const packageVersion = (JSON.parse(readFileSync("package.json", "utf8")) as {version: string}).version;
 
 const dirs: string[] = [];
 afterEach(async () => { vi.unstubAllGlobals(); for (const dir of dirs.splice(0))
@@ -86,7 +89,7 @@ it("exports methods markdown and JSON without modifying saved state or fetching"
     else {
       const manifest = JSON.parse(text);
       expect(manifest.methods[0].evidence_origin).toBe("session_snapshot");
-      expect(manifest.methods[0].snapshot.context.producer_version).toBe("0.15.2");
+      expect(manifest.methods[0].snapshot.context.producer_version).toBe(packageVersion);
     }
   }
   expect(await hashes(path.join(dir, ".cache"))).toEqual(before);
