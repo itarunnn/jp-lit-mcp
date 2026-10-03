@@ -9,7 +9,7 @@
 - [Cursor](install/cursor.md)
 - [Claude Code](install/claude-code.md)
 - [GitHub CLI で Skills を入れる](install/github-skills.md)
-- [TEIの使い方](tei-reader.md): TEIの基本、漱石・万葉集での読解と文献調査の往復、公開資料とjp-litでの探し方、保存XMLの読解手順
+- [TEIの使い方](tei-reader.md): 万葉集・延喜式でTEIを使う実研究と論文、廣瀬本での読解と文献調査の往復、公開資料とjp-litでの探し方、保存XMLの読解手順
 
 導入後に環境だけ切り分けたい場合は、次の軽量診断を使えます。
 
