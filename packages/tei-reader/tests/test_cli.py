@@ -3,6 +3,7 @@
 from dataclasses import replace
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tracemalloc
@@ -109,6 +110,16 @@ class CLITests(ReaderCase):
             self.assertEqual(completed.returncode,0)
             self.assertEqual(completed.stderr,b'')
             self.assertTrue(completed.stdout)
+
+    def test_help_is_utf8_with_ascii_pipe_encoding(self):
+        completed=subprocess.run(
+            [sys.executable,'-m','tei_reader','--help'],
+            input=b'',capture_output=True,
+            env=dict(os.environ,PYTHONIOENCODING='ascii'),
+        )
+        self.assertEqual(completed.returncode,0,completed.stdout)
+        self.assertEqual(completed.stderr,b'')
+        self.assertIn('ローカルTEI',completed.stdout.decode('utf-8'))
 
     def test_response_budget_stops_generation(self):
         # 同一の長い原属性値をoccurrenceごとに保持する参照応答を再現する。

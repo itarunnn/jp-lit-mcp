@@ -1,12 +1,12 @@
 # 実装状況
 
-## 2026-10-03: v0.15.0公開候補
+## 2026-10-03: v0.15.0
 
 - 任意CLI `jp-lit-tei-reader` と `jp-lit-tei` Skillを同梱。MCPの公開tool 30種・source 21種は維持する。
 - Python readerの4操作、hash付きlocator、原構造の保持、scope付き参照点検を提供する。[導入・契約](tei-reader.md)を参照。
 - Node.jsのみのMCPと、uv/Python3.13を使うTEI読解を別々に起動できる。
-- GitHub/npmへのv0.15.0公開は準備段階。[リリースノート](releases/v0.15.0.md)に変更・検証範囲を記載する。
-- Windowsの最終検証でNode24は85 files / 912 tests、Pythonは48 tests、build / scripts typecheck / offline MCP smoke、audit 0件。配布tarballからreaderとSkillを実行し、独立レビューの索引容量の指摘を修正した。
+- [リリースノート](releases/v0.15.0.md)に変更・検証範囲を記載する。公開状態は[GitHub Release](https://github.com/itarunnn/jp-lit-mcp/releases/tag/v0.15.0)と[npm](https://www.npmjs.com/package/jp-lit-mcp)で確認できる。
+- Windowsの最終検証でNode24は85 files / 912 tests、Pythonは49 tests、build / scripts typecheck / offline MCP smoke、audit 0件。配布tarballからreaderとSkillを実行し、独立レビューの索引容量の指摘を修正した。Windowsのpipe encodingに依存するヘルプ表示も回帰検証を追加した。
 
 ## 過去の検証記録
 

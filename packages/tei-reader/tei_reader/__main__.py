@@ -14,6 +14,7 @@ class _Parser(argparse.ArgumentParser):
 
 
 def main(argv: list[str] | None = None) -> int:
+    sys.stdout.reconfigure(encoding='utf-8')
     limits=Limits()
     parser=_Parser(description='ローカルTEIの構造・出典位置・文書内参照をJSONで確認する。')
     parser.add_argument('--version',action='version',version=__version__)
