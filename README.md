@@ -412,6 +412,17 @@ Web NDL Authorities を使い、人名、団体名、件名、NDC などから�
 
 CSL JSON で書き出した採用候補は、Zotero、Pandoc、citeproc 系ツールなどの文献管理・引用処理に渡せます。
 
+### 検索条件と調査方法を保存する
+
+`jp_lit_search` の新しい検索結果には `search_context` が入り、送信条件、適用されなかった入力、sourceごとの取得件数と返却件数を確認できます。NDL・CiNii・J-STAGE以外の未計測sourceや旧cacheは、記録された範囲だけを示します。
+
+```text
+jp_lit_export_session(session_id=SID, profile="methods", format="markdown")
+jp_lit_export_session(session_id=SID, profile="methods", format="json")
+```
+
+methodsは検索条件ごとの最新entryを調査方法として出力します。全実行履歴、本文確認、全件収集の記録は保証しません。横断totalの重複可能性やagentの申告を区別する読み方は[使い方ガイド](docs/usage-guide.md#検索条件と調査方法を保存する)を参照してください。
+
 ### 調査成果物と調査経過を残す
 
 長い調査では、検索結果だけでなく、調査目的、source を選んだ理由、検索試行、採用・保留・除外理由、本文確認範囲、未確認事項、次アクションを session trace として残せます。

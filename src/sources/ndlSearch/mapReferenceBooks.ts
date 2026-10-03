@@ -1,3 +1,4 @@
+import { summarizeSearchTotal } from "../../lib/searchContext.js";
 import type { SearchFacets, SearchItem } from "../../lib/types.js";
 import type { SearchResult } from "../types.js";
 import {
@@ -128,6 +129,7 @@ export function mapNdlReferenceBooksSearchResponse(payload: unknown): SearchResu
   const facets = readFacets(record.facets);
 
   return {
+    summary: summarizeSearchTotal(hitValue),
     total: hit !== null && Number.isFinite(hit) ? hit : items.length,
     items,
     ...(facets ? { facets } : {})

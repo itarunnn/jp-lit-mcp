@@ -14,6 +14,9 @@ interface RunCachedToolOptions<T> {
   createSessionEntry?: (args: {
     input: Record<string, unknown>;
     cacheKey: string;
+    structuredContent: T;
+    cacheHit: boolean;
+    savedAt: string;
   }) => SessionEntry;
 }
 
@@ -29,22 +32,16 @@ export async function runCachedTool<T>({
 }: RunCachedToolOptions<T>) {
   const normalizedInput = normalizeCacheInput(input);
   const cacheKey = createCacheKey(tool, normalizedInput);
-  const entry =
-    createSessionEntry?.({ input: normalizedInput, cacheKey }) ?? {
-      tool,
-      input: normalizedInput,
-      cache_key: cacheKey,
-      result_ref: {
-        tool,
-        cache_key: cacheKey
-      },
-      selected_items: [],
-      notes: []
-    };
   const cached = bypassCache ? null : await cache.read<T>(tool, cacheKey);
 
+  function entryFor(structuredContent: T, cacheHit: boolean, savedAt: string): SessionEntry {
+    return createSessionEntry?.({input: normalizedInput, cacheKey, structuredContent, cacheHit, savedAt}) ?? {
+      tool, input: normalizedInput, cache_key: cacheKey, result_ref: {tool, cache_key: cacheKey}, selected_items: [], notes: []
+    };
+  }
+
   if (cached) {
-    await sessions.appendEntry(entry, sessionId);
+    await sessions.appendEntry(entryFor(cached.structured_content, true, cached.saved_at), sessionId);
 
     return {
       cacheKey,
@@ -65,7 +62,7 @@ export async function runCachedTool<T>({
   };
 
   await cache.write(tool, envelope);
-  await sessions.appendEntry(entry, sessionId);
+  await sessions.appendEntry(entryFor(structuredContent, false, envelope.saved_at), sessionId);
 
   return {
     cacheKey,

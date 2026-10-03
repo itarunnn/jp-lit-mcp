@@ -1,3 +1,4 @@
+import { summarizeSearchTotal } from "../../lib/searchContext.js";
 import { createHash } from "node:crypto";
 import type { PersonRole, SearchItem } from "../../lib/types.js";
 import { normalizeIssuedAt } from "../../lib/date.js";
@@ -395,6 +396,9 @@ export function mapNdlSearchSearchResponse(payload: unknown): SearchResult {
   const total = Number(totalValue);
 
   return {
+    summary: record.summary && typeof record.summary === "object"
+      ? summarizeSearchTotal((record.summary as {reported_total?: unknown}).reported_total)
+      : summarizeSearchTotal(totalValue),
     total: Number.isFinite(total) ? total : items.length,
     items
   };

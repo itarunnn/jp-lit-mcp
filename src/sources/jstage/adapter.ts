@@ -1,3 +1,4 @@
+import { buildJstageSearchRequest } from "./searchRequest.js";
 import { fetchText, UpstreamHttpError } from "../../lib/http.js";
 import type { SourceAdapter } from "../types.js";
 import { mapJstageRecordResponse } from "./mapRecord.js";
@@ -27,20 +28,9 @@ export function createJstageArticlesAdapter(
 
   return {
     source: "jstage_articles",
-    async search({ query, limit, page, issued_from, issued_to }) {
-      const url = new URL(searchBaseUrl);
-
-      url.searchParams.set("service", "3");
-      url.searchParams.set("article", query);
-      url.searchParams.set("count", String(limit));
-      url.searchParams.set("start", String((page - 1) * limit + 1));
-      if (issued_from) {
-        url.searchParams.set("pubyearfrom", issued_from);
-      }
-      if (issued_to) {
-        url.searchParams.set("pubyearto", issued_to);
-      }
-
+    describeSearch(params) { return buildJstageSearchRequest(params, searchBaseUrl).description; },
+    async search(params) {
+      const {url} = buildJstageSearchRequest(params, searchBaseUrl);
       const payload = await fetchText(url.toString());
 
       return mapJstageSearchResponse(payload.text);

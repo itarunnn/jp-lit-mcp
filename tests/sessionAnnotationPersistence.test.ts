@@ -186,9 +186,10 @@ describe("cached tool session annotation persistence", () => {
         "exports/after-refresh.json"
       );
       expect(afterRefresh.entries).toHaveLength(1);
-      expect(afterRefresh.entries[0]).toMatchObject(
-        afterCacheHit.entries[0] as Record<string, unknown>
-      );
+      const {method_snapshot: previousSnapshot, ...retainedEntry} = afterCacheHit.entries[0] as Record<string, unknown>;
+      expect(afterRefresh.entries[0]).toMatchObject(retainedEntry);
+      expect(previousSnapshot).toMatchObject({cache_hit: true});
+      expect(afterRefresh.entries[0]).toMatchObject({method_snapshot: {cache_hit: false}});
     } finally {
       await client.close();
       await server.close();

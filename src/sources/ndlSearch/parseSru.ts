@@ -1,5 +1,6 @@
+import { summarizeSearchTotal } from "../../lib/searchContext.js";
 import type { XmlObject } from "../../lib/xml.js";
-import { parseSruXml } from "../../lib/xml.js";
+import { parseSruXml, parseXml } from "../../lib/xml.js";
 import { compactStrings, normalizeText } from "../../lib/normalize.js";
 import { readNdlSearchString, readNdlSearchStringList } from "./mapSearch.js";
 
@@ -364,6 +365,7 @@ export function projectNdlSruSearchResponse(xml: string): JsonRecord {
 
   return {
     totalResults: String(parsed.numberOfRecords),
+    summary: summarizeSearchTotal(asRecord(parseXml(xml).searchRetrieveResponse)?.numberOfRecords),
     items,
     facets: {
       providers: parseFacetGroup(parsed.extraResponseData, "REPOSITORY_NO"),

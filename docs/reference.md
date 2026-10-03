@@ -729,9 +729,13 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 | ---- | -- | ---- | ---- |
 | `session_id` | string | 必須 | 新形式 `YYYY-MM-DD-HHMMSS-<8桁hex>`。旧 `YYYY-MM-DD-HHMMSS` も受理 |
 | `format` | string | `markdown` | `markdown` / `json` / `csl-json` |
-| `profile` | string | `full_log` | `full_log` / `selected` / `unselected` |
+| `profile` | string | `full_log` | `full_log` / `selected` / `unselected` / `methods` |
 | `output_path` | string | 自動 | 出力先 |
 | `include_unselected` | boolean | true | 未採用候補を含めるか |
+
+`profile="methods"` はmarkdown/json専用。methods+csl-jsonは書き込み前の入力検証で拒否します。methodsは `item_count=0` と任意の `search_count`（保存検索entry数）を返し、書誌itemsを含めません。既存の出力path・上書きflagを使用し、session/cacheを更新せずnetworkを呼びません。
+
+methods manifestは `schema_version=1`、`record_basis="latest_saved_entry_per_query"`、`methods`、`agent_annotations`、`exclusions`、`limitations` を含みます。方法情報の優先順位はsession snapshot→現在のcache→保存入力です。cacheから復元した情報には当該session利用時との同一性保証を付けず、取得時contextの欠落を保持します。[読み方と利用例](usage-guide.md#検索条件と調査方法を保存する)を参照してください。
 
 `format="csl-json"` は、文献管理・引用処理ツールへ渡すための CSL JSON 配列を書き出します。`profile="selected"` で確認済み・候補化した文献だけを書き出す使い方を推奨します。CSL JSON では `profile="full_log"` でも未採用候補を混ぜず、未採用候補だけを確認したい場合は `profile="unselected"` を指定します。RIS / BibTeX が必要な場合は、Zotero や変換ツール側で変換してください。CSL JSON には trace を混ぜません。
 
@@ -1160,3 +1164,11 @@ $env:SMOKE_LIVE="1"; $env:SMOKE_LIVE_EXTRA_TOOLS="jp_lit_search_kaken_projects,j
 | `limit` | number | 100 | 最大 500 |
 
 `saved_on` ショートハンドはサーバー側で `Asia/Tokyo` 基準に解決されます。`saved_on` を指定した場合、出力には解決後の日付（`saved_on_resolved`）も含まれます。
+
+### 検索条件の追加応答契約
+
+`jp_lit_search.search_context` は任意field（schema_version=1）。`producer_version`、`requested_query`、`query_script`、`aggregation`（single/round_robin）、`fetch_limit_per_source`、`total_semantics`、`sources` を含みます。query_scriptはlatin/kana/han/han_kana/mixed/other。
+
+sourceごとの `outcome` はcompleted/failed/unknown、`total_basis` はsource_reported/returned_count/unknown。`reported_total` と `fetched_count` のnullは未記録、0は実測・報告0件です。`included_count` は最終応答への寄与数、`error_category` は失敗分類です。SafeSearchRequestは `api_kind`、API別allowlistの `parameters`、`ignored_input_fields`、`matching_mode`、`coverage_note`、任意creditの `attribution`（未確認はnull）を持ちます。credential、URL、headerは追加記録に含めません。
+
+`SessionEntry.method_snapshot` は任意fieldで、`observed_at`（session利用時）、`result_saved_at`（cache取得結果の保存時）、`cache_hit`、`total`、`returned_count`、`context` を保持します。旧cacheのcontextはnullのまま保存します。既存cache identity・session ID・total・items・旧export profileは維持します。

@@ -1,3 +1,4 @@
+import { sourceSchema, searchContextSchema } from "./searchContextSchema.js";
 import { z } from "zod";
 
 import {
@@ -10,29 +11,7 @@ import {
   cacheKeySchema
 } from "./persistence/cacheIdentity.js";
 
-export const sourceSchema = z.enum([
-  "ndl_search",
-  "ndl_reference_books",
-  "ndl_catalog",
-  "ndl_digital",
-  "ndl_articles",
-  "ndl_articles_online",
-  "irdb",
-  "jdcat",
-  "jstage_articles",
-  "japan_search",
-  "cinii_articles",
-  "cinii_dissertations",
-  "cinii_books",
-  "kokkai_minutes",
-  "teikoku_minutes",
-  "nihu_bridge",
-  "national_archives",
-  "jacar",
-  "nijl_articles",
-  "kokusho",
-  "ninjal_bibliography"
-]);
+export { sourceSchema } from "./searchContextSchema.js";
 export const issuedAtPrecisionSchema = z.enum(["day", "month", "year", "unknown"]);
 
 const personRoleSchema = z.object({
@@ -686,6 +665,7 @@ export const recordNdlBrowserSearchOutputSchema = z.object({
 });
 
 export const searchOutputSchema = z.object({
+  search_context: searchContextSchema.optional(),
   query: z.string(),
   source: sourceSchema.nullable(),
   page: z.number().int().positive(),
@@ -1093,26 +1073,32 @@ export const updateSessionTraceOutputSchema = z.object({
   next_action_count: z.number().int().nonnegative()
 });
 
-export const exportSessionInputSchema = z.object({
+export const exportSessionInputToolSchema = z.object({
   session_id: sessionIdInputFieldSchema.describe("書き出す調査セッションID。"),
   format: z.enum(["markdown", "json", "csl-json"]).default("markdown").describe("出力形式。markdown は人間向け、json は完全な構造化ログ、csl-json は文献管理向け。"),
   profile: z
-    .enum(["full_log", "selected", "unselected"])
+    .enum(["full_log", "selected", "unselected", "methods"])
     .default("full_log")
-    .describe("書き出す範囲。full_log は全履歴、selected は選別済み候補、unselected は未選別候補。"),
+    .describe("書き出す範囲。full_log は全履歴、selected は選別済み候補、unselected は未選別候補、methods は保存された検索方法（markdown/json）。"),
   output_path: z.string().trim().min(1).optional().describe("出力先ファイルパス。未指定なら repo 内 exports/ に自動生成する。"),
   allow_external_path: z.boolean().default(false).describe("true の場合のみ repo 内 exports/ 外への書き出しを許可する。"),
   overwrite: z.boolean().default(false).describe("true の場合のみ既存ファイルの上書きを許可する。"),
   include_unselected: z.boolean().default(true).describe("markdown/json の full_log で未選別候補を含めるかどうか。")
 });
 
+export const exportSessionInputSchema = exportSessionInputToolSchema.refine(
+  input => input.profile !== "methods" || input.format !== "csl-json",
+  {message: "methods profile supports markdown or json", path: ["format"]}
+);
+
 export const exportSessionOutputSchema = z.object({
   session_id: z.string(),
   format: z.enum(["markdown", "json", "csl-json"]),
-  profile: z.enum(["full_log", "selected", "unselected"]),
+  profile: z.enum(["full_log", "selected", "unselected", "methods"]),
   path: z.string(),
   exported_at: z.string(),
-  item_count: z.number().int().nonnegative()
+  item_count: z.number().int().nonnegative(),
+  search_count: z.number().int().nonnegative().optional()
 });
 
 export const findSessionsInputSchema = z.object({

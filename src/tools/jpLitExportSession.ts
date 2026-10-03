@@ -29,7 +29,8 @@ export function createJpLitExportSessionTool(
       profile: parsed.profile,
       path: exported.path,
       exported_at: new Date().toISOString(),
-      item_count: exported.itemCount
+      item_count: exported.itemCount,
+      ...(exported.searchCount !== undefined ? {search_count: exported.searchCount} : {})
     });
 
     return {

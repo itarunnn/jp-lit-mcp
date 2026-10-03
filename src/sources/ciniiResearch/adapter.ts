@@ -1,3 +1,4 @@
+import { buildCiniiSearchRequest } from "./searchRequest.js";
 import {
   fetchWithTimeout,
   UnsupportedPayloadError,
@@ -7,7 +8,6 @@ import type { SourceAdapter } from "../types.js";
 import type { SourceName } from "../../lib/types.js";
 import { mapCiniiRecordResponseForSource } from "./mapRecord.js";
 import { mapCiniiSearchResponseForSource } from "./mapSearch.js";
-import type { SearchParams } from "../types.js";
 
 const DEFAULT_SEARCH_BASE_URL = "https://cir.nii.ac.jp/opensearch/articles";
 const DEFAULT_RECORD_BASE_URL = "https://cir.nii.ac.jp/crid";
@@ -37,21 +37,6 @@ function normalizeSearchBaseUrl(
   );
 
   return url.toString();
-}
-
-function resolveCiniiSortOrder(
-  searchType: "articles" | "dissertations" | "books",
-  params: Pick<SearchParams, "sort_by" | "sort_order">
-): string | null {
-  if (params.sort_by !== "issued_date") {
-    return null;
-  }
-
-  if (searchType === "books") {
-    return params.sort_order === "asc" ? "2" : "3";
-  }
-
-  return params.sort_order === "asc" ? "1" : "0";
 }
 
 function isJsonContentType(contentType: string | null): boolean {
@@ -253,33 +238,11 @@ export function createCiniiResearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
-      const url = new URL(searchBaseUrl);
-      url.searchParams.set("q", query);
-      url.searchParams.set("count", String(limit));
-      url.searchParams.set("start", String((page - 1) * limit + 1));
-      url.searchParams.set("format", "json");
-      if (issued_from) {
-        url.searchParams.set("from", issued_from);
-      }
-      if (issued_to) {
-        url.searchParams.set("until", issued_to);
-      }
-      if (searchType === "books" && filters?.cinii?.category) {
-        url.searchParams.set("category", filters.cinii.category);
-      }
-      const sortOrder = resolveCiniiSortOrder(searchType, {
-        sort_by,
-        sort_order
-      });
-
-      if (sortOrder) {
-        url.searchParams.set("sortorder", sortOrder);
-      }
-      if (options.appId) {
-        url.searchParams.set("appid", options.appId);
-      }
-
+    describeSearch(params) {
+      return buildCiniiSearchRequest(params, {source, searchType, searchBaseUrl, appId: options.appId}).description;
+    },
+    async search(params) {
+      const {url} = buildCiniiSearchRequest(params, {source, searchType, searchBaseUrl, appId: options.appId});
       return mapCiniiSearchResponseForSource(
         await fetchJsonPayload(url.toString(), "application/json"),
         source

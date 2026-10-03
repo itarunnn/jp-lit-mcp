@@ -168,6 +168,7 @@ describe("deterministic offline smoke", () => {
         exportContainsSelection: true,
         startedNewSession: true,
         archivedSessionExported: true,
+        methodsExported: true,
         batchRecordCount: 2
       }
     });

@@ -1,3 +1,4 @@
+import { buildNdlSruSearchRequest, buildNdlReferenceBooksSearchRequest } from "./searchRequest.js";
 import {
   fetchWithTimeout,
   UnsupportedPayloadError,
@@ -5,7 +6,7 @@ import {
 } from "../../lib/http.js";
 import { assertXmlPayload } from "../../lib/xml.js";
 import type { RecordItem, SearchItem, SourceName } from "../../lib/types.js";
-import type { NdlSearchFilters, SourceAdapter } from "../types.js";
+import type { SourceAdapter } from "../types.js";
 import { mapCiniiRecordResponseForSource } from "../ciniiResearch/mapRecord.js";
 import { mapNdlSearchRecordResponse } from "./mapRecord.js";
 import { mapNdlReferenceBooksSearchResponse } from "./mapReferenceBooks.js";
@@ -104,94 +105,6 @@ async function fetchNdlSearchSruPayload(url: string): Promise<unknown> {
   return projectNdlSruSearchResponse(await response.text());
 }
 
-function normalizeSruSearchBaseUrl(baseUrl: string): string {
-  return baseUrl
-    .replace(/\/api\/opensearch\/?$/i, "/api/sru")
-    .replace(/\/opensearch\/?$/i, "/sru");
-}
-
-function escapeCqlKeyword(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function buildIssuedClause(
-  issuedFrom?: string,
-  issuedTo?: string
-): string[] {
-  const clauses: string[] = [];
-
-  if (issuedFrom) {
-    clauses.push(`dcterms.issued >= "${escapeCqlKeyword(issuedFrom)}"`);
-  }
-  if (issuedTo) {
-    clauses.push(`dcterms.issued <= "${escapeCqlKeyword(issuedTo)}"`);
-  }
-
-  return clauses;
-}
-
-function normalizeNdlcFilter(value: string): string {
-  const trimmed = value.trim();
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `http://id.ndl.go.jp/class/ndlc/${trimmed}`;
-}
-
-function buildNdlFilterClauses(filters?: NdlSearchFilters): string[] {
-  const clauses: string[] = [];
-
-  if (filters?.subject) {
-    clauses.push(`dcterms.subject="${escapeCqlKeyword(filters.subject)}"`);
-  }
-  if (filters?.ndc) {
-    clauses.push(`dc.subject="${escapeCqlKeyword(filters.ndc)}"`);
-  }
-  if (filters?.ndlc) {
-    clauses.push(
-      `dcterms.subject="${escapeCqlKeyword(normalizeNdlcFilter(filters.ndlc))}"`
-    );
-  }
-
-  return clauses;
-}
-
-function buildCqlQuery(
-  keyword: string,
-  dpid?: string,
-  issuedFrom?: string,
-  issuedTo?: string,
-  filters?: NdlSearchFilters
-): string {
-  const keywordClause = `anywhere="${escapeCqlKeyword(keyword)}"`;
-  const clauses = [
-    ...buildIssuedClause(issuedFrom, issuedTo),
-    ...buildNdlFilterClauses(filters),
-    keywordClause
-  ];
-
-  if (dpid) {
-    clauses.unshift(`dpid=${dpid}`);
-  }
-
-  return clauses.join(" AND ");
-}
-
-function buildSortBy(
-  sortBy?: "title" | "creator" | "issued_date" | "created_date" | "modified_date",
-  sortOrder?: "asc" | "desc"
-) {
-  if (!sortBy) {
-    return null;
-  }
-
-  const direction = sortOrder === "desc" ? "descending" : "ascending";
-
-  return `${sortBy}/sort.${direction}`;
-}
-
 export function createNdlSearchAdapter(
   options: NdlSearchAdapterOptions = {}
 ): SourceAdapter {
@@ -203,41 +116,25 @@ export function createNdlSearchAdapter(
 
   return {
     source,
-    async search({ query, limit, page, sort_by, sort_order, issued_from, issued_to, filters }) {
+    describeSearch(params) {
+      return source === "ndl_reference_books" ? buildNdlReferenceBooksSearchRequest(params, recordBaseUrl).description : buildNdlSruSearchRequest(params, {source, searchBaseUrl, providerId}).description;
+    },
+    async search(params) {
       if (source === "ndl_reference_books") {
-        const url = new URL(recordBaseUrl);
-        url.searchParams.set("cs", "sanko");
-        url.searchParams.set("keyword", query);
-        url.searchParams.set("size", String(limit));
-        url.searchParams.set("from", String((page - 1) * limit));
-
+        const {url} = buildNdlReferenceBooksSearchRequest(params, recordBaseUrl);
         const result = mapNdlReferenceBooksSearchResponse(
           await fetchNdlSearchPayload(url.toString())
         );
 
         return {
           total: result.total,
+          summary: result.summary,
           items: result.items.map((item) => withSource(item, source)),
           facets: result.facets
         };
       }
 
-      const url = new URL(normalizeSruSearchBaseUrl(searchBaseUrl));
-      url.searchParams.set("operation", "searchRetrieve");
-      url.searchParams.set("version", "1.2");
-      url.searchParams.set("recordSchema", "dcndl");
-      url.searchParams.set("recordPacking", "xml");
-      url.searchParams.set("maximumRecords", String(limit));
-      url.searchParams.set("startRecord", String((page - 1) * limit + 1));
-      url.searchParams.set(
-        "query",
-        buildCqlQuery(query, providerId, issued_from, issued_to, filters?.ndl)
-      );
-      const sort = buildSortBy(sort_by, sort_order);
-      if (sort) {
-        url.searchParams.set("sortBy", sort);
-      }
-
+      const {url} = buildNdlSruSearchRequest(params, {source, searchBaseUrl, providerId});
       const projected = await fetchNdlSearchSruPayload(url.toString()) as {
         totalResults?: string;
         items?: unknown[];
@@ -251,6 +148,7 @@ export function createNdlSearchAdapter(
 
       return {
         total: result.total,
+          summary: result.summary,
         items: result.items.map((item) => withSource(item, source)),
         facets: projected.facets
       };

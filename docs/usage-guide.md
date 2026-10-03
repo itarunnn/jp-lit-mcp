@@ -867,6 +867,24 @@ jp_lit_export_view(view="refined_results", format="markdown", output_path="expor
   - ラベル付けした候補だけを出す
 - `unselected`
   - 候補に残さなかった項目だけを出す
+- `methods`
+  - 保存された検索方法をMarkdown / JSONへ出す
+
+### 検索条件と調査方法を保存する
+
+AIには「この調査の検索条件と取得範囲を、調査方法として保存して」と依頼できます。明示したsessionに対して次のtoolを呼びます。
+
+```json
+{"session_id":"2026-10-03-120000-a1b2c3d4","profile":"methods","format":"markdown"}
+```
+
+`jp_lit_export_session` のmethodsはMarkdownとJSONに対応します。既定の出力先は `exports/<session_id>.methods.md` または `.json`。`item_count=0`、`search_count` は保存された `jp_lit_search` のentry数です。`include_unselected` を指定しても書誌本文は入りません。CSL JSONは文献候補用のprofileで利用します。
+
+`jp_lit_search.search_context` には取得時のpackage版、検索語の文字種、送信したAPI条件、`ignored_input_fields`、source別の成否と件数が入ります。NDL・CiNii・J-STAGEの条件を記録し、未計測sourceのrequestはnull、件数根拠はunknownです。`reported_total` は提供元が報告した総件数、`fetched_count` は取得件数、`included_count` は最終応答に含めた件数です。横断検索は各sourceから最大30件取得して順に混ぜ、既定48件を返します。totalの合算には同一文献の重複があり、一意文献数とは区別します。
+
+新しいsession entryの `method_snapshot` は、そのsessionが利用した取得時contextとcacheの保存日時を保持します。別sessionによる共有cache更新やcache削除後も、そのsnapshotから出力できます。cache hitは元の版・保存日時を維持します。旧cacheには未記録の条件や現行版を補填しません。
+
+methodsの記録単位は検索条件ごとの最新entryです。同じ条件の再利用でentryが更新され、全実行履歴は保証しません。旧entryの `cache_snapshot` は現在のcacheの情報であり、当該session利用時との同一性未保証です。cacheもなければ `input_only` として保存入力と未記録状態を表示します。traceの `source_plans`、`search_attempt`、`evidence_scope` は `agent_annotations` に分け、機械観測と区別します。browser・本文/OCR・TEIなどの対象外tool数はexclusionsに示します。
 
 ### 不要になったらどうするか
 
