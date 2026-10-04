@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IIIF 資料比較室 · jp-lit</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/vendor/mirador.min.js" defer></script>
+    <script type="module" src="/app.mjs"></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">JP-LIT / IMAGE WORKBENCH</span>
+        <h1>資料比較室</h1>
+        <p>ページを並べ、気になる部分を出典とともに残す。</p>
+      </div>
+      <nav aria-label="workspace操作">
+        <button id="save">作業を保存</button
+        ><label class="button"
+          >作業を読み込む<input
+            id="import-workspace"
+            type="file"
+            accept="application/json"
+            hidden /></label
+        ><button id="download">作業JSON</button>
+      </nav>
+    </header>
+    <p id="status" role="status" aria-live="polite">作業を読み込んでいます…</p>
+    <main>
+      <section class="comparison" aria-label="資料比較">
+        <div id="window-controls"></div>
+        <div id="viewer"></div>
+        <p class="caption">
+          共通の操作で比較できます。撮影の色・照明・解像度・実寸は資料ごとに異なります。
+        </p>
+      </section>
+      <aside>
+        <section>
+          <span class="eyebrow">CURATION</span>
+          <h2>領域を記録</h2>
+          <label>対象の窓<select id="active-window"></select></label>
+          <div class="actions">
+            <button id="select-region">矩形を選ぶ</button
+            ><button id="whole-page">ページ全体</button
+            ><button id="cancel-region" hidden>選択を取り消す</button>
+          </div>
+          <p id="coordinates">画像上で矩形を選んでください。</p>
+          <fieldset>
+            <legend>座標を指定する</legend>
+            <div class="coordinates">
+              <label>x<input id="x" type="number" min="0" value="0" /></label
+              ><label>y<input id="y" type="number" min="0" value="0" /></label
+              ><label>幅<input id="w" type="number" min="1" value="1" /></label
+              ><label
+                >高さ<input id="h" type="number" min="1" value="1"
+              /></label>
+            </div>
+            <button id="manual-region">座標を適用</button>
+          </fieldset>
+          <label
+            >選んだ理由<input
+              id="reason"
+              placeholder="例：同じ場面の図版を比較する" /></label
+          ><label>タグ<input id="tags" placeholder="図版, 人物, 表記" /></label
+          ><label>注記<textarea id="note" rows="2"></textarea></label
+          ><button id="add-region" class="primary" disabled>
+            領域コレクションに追加
+          </button>
+        </section>
+        <section>
+          <h2>領域コレクション <span id="region-count">0</span></h2>
+          <p class="hint">最大4領域を選んで読解資料を作成します。</p>
+          <div id="regions"></div>
+          <button id="annotations">Annotation JSON</button
+          ><label class="button"
+            >Annotationを読み込む<input
+              id="import-annotations"
+              type="file"
+              accept="application/json"
+              hidden
+          /></label>
+        </section>
+        <section>
+          <h2>テキストを併読</h2>
+          <button id="load-text">表示ページの既存テキストを読む</button
+          ><label class="button"
+            >テキストJSONを読み込む<input
+              id="import-text"
+              type="file"
+              accept="application/json"
+              hidden
+          /></label>
+          <div id="texts"></div>
+        </section>
+        <section>
+          <h2>AIへ渡す読解資料</h2>
+          <label
+            >保存先の絶対path<input
+              id="export-dir"
+              placeholder="ResearchLibraryのproject配下" /></label
+          ><label class="check"
+            ><input
+              id="image-permission"
+              type="checkbox"
+            />選択画像の取得・利用条件を確認した</label
+          ><button id="export" class="primary">画像と出典を保存</button>
+          <pre id="export-result"></pre>
+          <p class="hint">
+            画像、原テキスト、出典JSON、依頼文を保存します。既存のAIアプリで画像を開いて読解できます。
+          </p>
+        </section>
+        <details>
+          <summary>出典と取得記録</summary>
+          <div id="sources"></div>
+        </details>
+      </aside>
+    </main>
+    <footer>
+      jp-lit · IIIF 2 / 3 · 領域のIDとCanvas座標を保存して再開できます。
+    </footer>
+  </body>
+</html>

@@ -12,7 +12,8 @@
   "bin": {
     "jp-lit-mcp": "dist/src/index.js",
     "jp-lit-mcp-install-skills": "scripts/install-skills.mjs",
-    "jp-lit-tei-reader": "scripts/tei-reader.mjs"
+    "jp-lit-tei-reader": "scripts/tei-reader.mjs",
+    "jp-lit-iiif": "scripts/iiif-workbench.mjs"
   },
   "files": [
     "dist/",
@@ -26,6 +27,8 @@
     "docs/source-usage-conditions.md",
     "docs/usage-guide.md",
     "docs/tei-reader.md",
+    "docs/iiif-workbench.md",
+    "docs/third-party-notices.md",
     "docs/releases/v0.15.0.md",
     "docs/releases/v0.15.1.md",
     "docs/releases/v0.15.2.md",
@@ -47,6 +50,7 @@
     "skills/",
     "scripts/install-skills.mjs",
     "scripts/tei-reader.mjs",
+    "scripts/iiif-workbench.mjs",
     "scripts/install-skills.ps1",
     "scripts/install-skills.sh",
     "README.md",
@@ -54,7 +58,7 @@
     "mcp-config.example.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/build-iiif-assets.mjs",
     "dev": "tsx src/index.ts",
     "prepack": "npm run build",
     "smoke:mcp": "tsx scripts/smoke-mcp.ts",
@@ -78,6 +82,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "cross-env": "^10.0.0",
+    "mirador": "4.2.6",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.11",

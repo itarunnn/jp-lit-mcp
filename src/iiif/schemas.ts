@@ -1,55 +1,208 @@
-import { z } from 'zod';
-import path from 'node:path';
+import { z } from "zod";
+import path from "node:path";
 
 const id = z.string().min(1).max(4096);
 const num = z.number().finite();
 const positive = num.positive();
-export const xywhSchema = z.tuple([num.nonnegative(), num.nonnegative(), positive, positive]);
-export const languageSchema = z.array(z.object({ language: z.string().nullable(), values: z.array(z.string()) }));
-export const candidateSchema = z.object({
-  source: id, source_id: id, record_url: z.string().nullable(), manifest_url: z.string().url(),
-  acquisition: z.enum(['provider_metadata','derived_from_pid','manual_url']), verification_state: z.literal('candidate'),
-});
-export const receiptSchema = z.object({ requested_url: z.string().url(), final_url: z.string().url(), retrieved_at: z.string().datetime(), sha256: z.string().regex(/^[a-f0-9]{64}$/), bytes: z.number().int().nonnegative() });
-export const imageSchema = z.object({
-  image_id: id, width: positive.nullable(), height: positive.nullable(), target: z.unknown(),
-  service: z.object({ service_id: id, version: z.enum(['1','2','3']), profile: z.unknown() }).nullable(),
-});
-export const canvasSchema = z.object({ canvas_id: id, label: languageSchema, canvas_index_1based: z.number().int().positive(), width: positive, height: positive, images: z.array(imageSchema), text_refs: z.array(z.unknown()), rights: z.array(z.unknown()).default([]) });
-export const documentSchema = z.object({
-  document_id: id, candidate: candidateSchema, receipt: receiptSchema, declared_id: id, presentation_version: z.enum(['2','3']),
-  label: languageSchema, sequences: z.array(z.object({ sequence_id: id, label: languageSchema })), selected_sequence_id: id,
-  canvases: z.array(canvasSchema).min(1).max(2000), rights: z.array(z.unknown()), diagnostics: z.array(z.string()),
-});
-export const windowSchema = z.object({ window_id: id, document_id: id, canvas_id: id });
-export const selectionSchema = z.object({ region_id: id, window_id: id, canvas_id: id, xywh: xywhSchema, coordinate_space: z.literal('canvas'), rotation_degrees: num });
-export const regionSchema = z.object({ selection: selectionSchema, mapping_state: z.enum(['manifest_declared','image_observed','human_verified','unsupported']), tags: z.array(z.string()).max(30), selection_reason: z.string(), note: z.string(), text_evidence_ids: z.array(id) });
-export const textSchema = z.object({ text_id: id, canvas_id: id, target_xywh: xywhSchema.nullable(), source_ref: id, source_sha256: z.string().regex(/^[a-f0-9]{64}$/), text: z.string().max(2 * 1024 * 1024), origin: z.enum(['provider_annotation','manual_transcription','ocr_candidate']), verification_state: z.enum(['provider_text','unverified','human_verified']) });
-export const viewerSchema = z.object({ adapter_version: id, windows: z.array(windowSchema).max(4), native_state: z.unknown() });
-export const workspaceSchema = z.object({ schema_version: z.literal('0.1'), workspace_id: id, created_at: z.string().datetime(), documents: z.array(documentSchema).min(1).max(4), windows: z.array(windowSchema).min(1).max(4), regions: z.array(regionSchema).max(1000), texts: z.array(textSchema).max(2000), viewer_state: viewerSchema });
-const absolute = z.string().refine(v => path.isAbsolute(v), '絶対pathを指定してください');
-export const requestSchema = z.discriminatedUnion('operation', [
-  z.object({ api_version: z.literal('0.1'), operation: z.literal('inspect_manifest'), manifest_url: z.string().url(), source: id.optional(), source_id: id.optional(), record_url: z.string().nullable().optional(), sequence_id: id.optional() }),
-  z.object({ api_version: z.literal('0.1'), operation: z.literal('prepare_workspace'), candidates: z.array(candidateSchema).min(1).max(4), output_dir: absolute, overwrite: z.boolean().default(false), sequence_ids: z.record(z.string()).optional() }),
-  z.object({ api_version: z.literal('0.1'), operation: z.literal('export_evidence'), workspace_path: absolute, region_ids: z.array(id).min(1).max(4), output_dir: absolute, overwrite: z.boolean().default(false), image_permission_confirmed: z.boolean().default(false) }),
+export const xywhSchema = z.tuple([
+  num.nonnegative(),
+  num.nonnegative(),
+  positive,
+  positive,
 ]);
-export function parseIiifRequest(input: unknown) { return requestSchema.parse(input); }
+export const languageSchema = z.array(
+  z.object({ language: z.string().nullable(), values: z.array(z.string()) }),
+);
+export const candidateSchema = z.object({
+  source: id,
+  source_id: id,
+  record_url: z.string().nullable(),
+  manifest_url: z.string().url(),
+  acquisition: z.enum(["provider_metadata", "derived_from_pid", "manual_url"]),
+  verification_state: z.literal("candidate"),
+});
+export const receiptSchema = z.object({
+  requested_url: z.string().url(),
+  final_url: z.string().url(),
+  retrieved_at: z.string().datetime(),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  bytes: z.number().int().nonnegative(),
+});
+export const imageSchema = z.object({
+  image_id: id,
+  width: positive.nullable(),
+  height: positive.nullable(),
+  target: z.unknown(),
+  service: z
+    .object({
+      service_id: id,
+      version: z.enum(["1", "2", "3"]),
+      profile: z.unknown(),
+    })
+    .nullable(),
+});
+export const canvasSchema = z.object({
+  canvas_id: id,
+  label: languageSchema,
+  canvas_index_1based: z.number().int().positive(),
+  width: positive,
+  height: positive,
+  images: z.array(imageSchema),
+  text_refs: z.array(z.unknown()),
+  rights: z.array(z.unknown()).default([]),
+});
+export const documentSchema = z.object({
+  document_id: id,
+  candidate: candidateSchema,
+  receipt: receiptSchema,
+  declared_id: id,
+  presentation_version: z.enum(["2", "3"]),
+  label: languageSchema,
+  sequences: z.array(z.object({ sequence_id: id, label: languageSchema })),
+  selected_sequence_id: id,
+  canvases: z.array(canvasSchema).min(1).max(2000),
+  rights: z.array(z.unknown()),
+  diagnostics: z.array(z.string()),
+});
+export const windowSchema = z.object({
+  window_id: id,
+  document_id: id,
+  canvas_id: id,
+});
+export const selectionSchema = z.object({
+  region_id: id,
+  window_id: id,
+  canvas_id: id,
+  xywh: xywhSchema,
+  coordinate_space: z.literal("canvas"),
+  rotation_degrees: num,
+});
+export const regionSchema = z.object({
+  selection: selectionSchema,
+  mapping_state: z.enum([
+    "manifest_declared",
+    "image_observed",
+    "human_verified",
+    "unsupported",
+  ]),
+  tags: z.array(z.string()).max(30),
+  selection_reason: z.string(),
+  note: z.string(),
+  text_evidence_ids: z.array(id),
+});
+export const textSchema = z.object({
+  text_id: id,
+  canvas_id: id,
+  target_xywh: xywhSchema.nullable(),
+  source_ref: id,
+  source_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  text: z.string().max(2 * 1024 * 1024),
+  origin: z.enum([
+    "provider_annotation",
+    "manual_transcription",
+    "ocr_candidate",
+  ]),
+  verification_state: z.enum(["provider_text", "unverified", "human_verified"]),
+});
+export const viewerSchema = z.object({
+  adapter_version: id,
+  windows: z.array(windowSchema).max(4),
+  native_state: z.unknown(),
+});
+export const workspaceSchema = z.object({
+  schema_version: z.literal("0.1"),
+  workspace_id: id,
+  created_at: z.string().datetime(),
+  documents: z.array(documentSchema).min(1).max(4),
+  windows: z.array(windowSchema).min(1).max(4),
+  regions: z.array(regionSchema).max(1000),
+  texts: z.array(textSchema).max(2000),
+  viewer_state: viewerSchema,
+});
+const absolute = z
+  .string()
+  .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
+export const requestSchema = z.discriminatedUnion("operation", [
+  z.object({
+    api_version: z.literal("0.1"),
+    operation: z.literal("inspect_manifest"),
+    manifest_url: z.string().url(),
+    source: id.optional(),
+    source_id: id.optional(),
+    record_url: z.string().nullable().optional(),
+    sequence_id: id.optional(),
+  }),
+  z.object({
+    api_version: z.literal("0.1"),
+    operation: z.literal("prepare_workspace"),
+    candidates: z.array(candidateSchema).min(1).max(4),
+    output_dir: absolute,
+    overwrite: z.boolean().default(false),
+    sequence_ids: z.record(z.string()).optional(),
+  }),
+  z.object({
+    api_version: z.literal("0.1"),
+    operation: z.literal("export_evidence"),
+    workspace_path: absolute,
+    region_ids: z.array(id).min(1).max(4),
+    output_dir: absolute,
+    overwrite: z.boolean().default(false),
+    image_permission_confirmed: z.boolean().default(false),
+  }),
+]);
+export function parseIiifRequest(input: unknown) {
+  return requestSchema.parse(input);
+}
 export function validateWorkspace(input: unknown) {
   const w = workspaceSchema.parse(input);
-  const unique = (values: string[]) => { if (new Set(values).size !== values.length) throw new Error('IDの重複があります'); };
-  unique(w.documents.map(d => d.document_id)); unique(w.windows.map(v => v.window_id)); unique(w.regions.map(r => r.selection.region_id)); unique(w.texts.map(t => t.text_id));
-  for (const d of w.documents) { unique(d.canvases.map(c => c.canvas_id)); if (!d.sequences.some(s => s.sequence_id === d.selected_sequence_id)) throw new Error('sequence参照が未解決です'); }
-  for (const v of w.windows) if (!w.documents.find(d => d.document_id === v.document_id)?.canvases.some(c => c.canvas_id === v.canvas_id)) throw new Error('window参照が未解決です');
-  const canvases = w.documents.flatMap(d => d.canvases);
-  for (const t of w.texts) if (!canvases.some(c => c.canvas_id === t.canvas_id)) throw new Error('text参照が未解決です');
-  for (const r of w.regions) {
-    const v = w.windows.find(v => v.window_id === r.selection.window_id);
-    const c = w.documents.find(d => d.document_id === v?.document_id)?.canvases.find(c => c.canvas_id === r.selection.canvas_id);
-    if (!c) throw new Error('region参照が未解決です');
-    const [x,y,width,height] = r.selection.xywh;
-    if (x + width > c.width || y + height > c.height) throw new Error('領域がCanvasの外にあります');
-    for (const tid of r.text_evidence_ids) if (!w.texts.some(t => t.text_id === tid && t.canvas_id === c.canvas_id)) throw new Error('領域のtext参照が未解決です');
+  const unique = (values: string[]) => {
+    if (new Set(values).size !== values.length)
+      throw new Error("IDの重複があります");
+  };
+  unique(w.documents.map((d) => d.document_id));
+  unique(w.windows.map((v) => v.window_id));
+  unique(w.regions.map((r) => r.selection.region_id));
+  unique(w.texts.map((t) => t.text_id));
+  for (const d of w.documents) {
+    unique(d.canvases.map((c) => c.canvas_id));
+    if (!d.sequences.some((s) => s.sequence_id === d.selected_sequence_id))
+      throw new Error("sequence参照が未解決です");
   }
-  for (const v of w.viewer_state.windows) if (!w.windows.some(x => x.window_id === v.window_id && x.document_id === v.document_id && x.canvas_id === v.canvas_id)) throw new Error('viewer参照が未解決です');
+  for (const v of w.windows)
+    if (
+      !w.documents
+        .find((d) => d.document_id === v.document_id)
+        ?.canvases.some((c) => c.canvas_id === v.canvas_id)
+    )
+      throw new Error("window参照が未解決です");
+  const canvases = w.documents.flatMap((d) => d.canvases);
+  for (const t of w.texts)
+    if (!canvases.some((c) => c.canvas_id === t.canvas_id))
+      throw new Error("text参照が未解決です");
+  for (const r of w.regions) {
+    const v = w.windows.find((v) => v.window_id === r.selection.window_id);
+    const c = w.documents
+      .find((d) => d.document_id === v?.document_id)
+      ?.canvases.find((c) => c.canvas_id === r.selection.canvas_id);
+    if (!c) throw new Error("region参照が未解決です");
+    const [x, y, width, height] = r.selection.xywh;
+    if (x + width > c.width || y + height > c.height)
+      throw new Error("領域がCanvasの外にあります");
+    for (const tid of r.text_evidence_ids)
+      if (
+        !w.texts.some((t) => t.text_id === tid && t.canvas_id === c.canvas_id)
+      )
+        throw new Error("領域のtext参照が未解決です");
+  }
+  for (const v of w.viewer_state.windows)
+    if (
+      !w.windows.some(
+        (x) =>
+          x.window_id === v.window_id &&
+          x.document_id === v.document_id &&
+          x.canvas_id === v.canvas_id,
+      )
+    )
+      throw new Error("viewer参照が未解決です");
   return w;
 }
