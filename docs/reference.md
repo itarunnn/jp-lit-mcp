@@ -4,6 +4,16 @@
 
 ## 全体仕様
 
+### 調査IDと呼び出し例
+
+検索・取得・照合・典拠補助などのcached toolと、注釈・trace更新・session exportには `session_id` が必須です。先に `jp_lit_start_session` を呼び、返されたIDを保持します。各入力表では、個別の引数に加えてこの共通引数を指定してください。
+
+```text
+SID = jp_lit_start_session(research_goal="調査テーマ").session_id
+```
+
+以下の呼び出し例は引数の関係を示す擬似コードです。`SID` を取得したIDに置き換え、同じ調査の呼び出しへ毎回明示します。`jp_lit_list_cache` / `jp_lit_search_cache_index` / `jp_lit_refine_results` の `session_id` は任意で、指定すると対象sessionで絞り込みます。
+
 ### 検索モデル
 
 `jp_lit_search` は `source` を指定すると個別 source を検索し、指定しない場合は既定の横断検索になります。
@@ -248,7 +258,7 @@ source 未指定の横断検索は、1 source 以上が応答すれば成功分�
 NDL「参考図書紹介」の候補を検索する明示指定 source です。参考図書・レファ本・事典・辞典・書誌・索引・年鑑が、レファ協または NDL リサーチ・ナビで示唆された場合に使います。source 未指定の既定8-source横断には含まれません。
 
 ```text
-jp_lit_search(source=ndl_reference_books, query="人物事典")
+jp_lit_search(session_id=SID, source=ndl_reference_books, query="人物事典")
 ```
 
 検索 item と detail の `source_metadata` には、`reference_book: true`、`reference_ndc: string[]`、`introduction: string | null`、`has_introduction: boolean` を保持します。`introduction` が `null`、`has_introduction` が `false` のレコードもあります。`reference_ndc` は通常の書誌分類 `classification.ndc` と統合しません。
@@ -463,7 +473,7 @@ KAKEN の研究課題を検索し、研究テーマ、キーワード、研究�
 
 OCR 系ツールは次世代デジタルライブラリー API の収録資料に対応します。`jp_lit_search_fulltext` はデジコレ本体の全文検索を網羅せず、デジコレ本体の全文検索結果を取得する公開・文書化 API でもありません。公式画面の安定した全件収集は保証しません。画面内部 endpoint は、MCP の通常機能・配布 package・公開 workflow へ組み込みません。
 
-`source_id` 経由で呼ぶ場合は、先に `jp_lit_get_record(source=ndl_digital, source_id=...)` で `source_metadata.next_digital_library.available=true` を確認してください。`jp_lit_search_fulltext` / `jp_lit_search_illustrations` の結果に含まれる `pid` は、そのまま OCR 系ツールへ渡せます。
+`source_id` 経由で呼ぶ場合は、先に `jp_lit_get_record(session_id=SID, source=ndl_digital, source_id=...)` で `source_metadata.next_digital_library.available=true` を確認してください。`jp_lit_search_fulltext` / `jp_lit_search_illustrations` の結果に含まれる `pid` は、そのまま OCR 系ツールへ渡せます。
 
 #### `jp_lit_search_fulltext`
 
@@ -648,8 +658,8 @@ Web NDL Authorities で件名語から NDC / NDLC 分類記号を探し、CiNii 
 主な使い方:
 
 ```text
-jp_lit_suggest_classification_codes(term="近代日本文学", schemes=["NDC10","NDLC"])
-jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{category:"910.26 KG311"}})
+jp_lit_suggest_classification_codes(session_id=SID, term="近代日本文学", schemes=["NDC10","NDLC"])
+jp_lit_search(session_id=SID, source=cinii_books, query="近代日本文学", filters={cinii:{category:"910.26 KG311"}})
 ```
 
 `total_codes` は `max_codes` で切り詰める前に見つかった distinct な分類記号数、`used_codes` は実際に `suggested_category_param` に使った分類記号リストです。`suggested_search` には上の `jp_lit_search` 呼び出し例が入ります。分類記号は未知の本を広げる補助線であり、候補の書誌確定や所蔵確認は `jp_lit_get_record` と公式ページで再確認します。分類記号が既に分かっていて件名語を探す場合は `jp_lit_find_authority_terms_by_classification` を使います。
@@ -731,6 +741,8 @@ jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{ca
 | `format` | string | `markdown` | `markdown` / `json` / `csl-json` |
 | `profile` | string | `full_log` | `full_log` / `selected` / `unselected` / `methods` |
 | `output_path` | string | 自動 | 出力先 |
+| `allow_external_path` | boolean | false | `exports/` 外へ出力する場合に明示的にtrueを指定する |
+| `overwrite` | boolean | false | 出力先の既存ファイルを上書きする場合に明示的にtrueを指定する |
 | `include_unselected` | boolean | true | 未採用候補を含めるか |
 
 `profile="methods"` はmarkdown/json専用。methods+csl-jsonは書き込み前の入力検証で拒否します。methodsは `item_count=0` と任意の `search_count`（保存検索entry数）を返し、書誌itemsを含めません。既存の出力path・上書きflagを使用し、session/cacheを更新せずnetworkを呼びません。
@@ -753,7 +765,7 @@ methods manifestは `schema_version=1`、`record_basis="latest_saved_entry_per_q
 | `output_path` | string | 自動 | 出力先（未指定時は `exports/{view}.{timestamp}.{ext}`） |
 
 返り値の `item_count` は、`cache_list` / `cache_query` では `total`、`refined_results` では `total_after` を使います。
-`duplicate_notes=true` は全件確認用の作業台です。CSL JSON へ渡す候補を整える前に、Markdown / JSON で重複候補を確認し、採用する項目を `jp_lit_annotate_session` に保存してから `jp_lit_export_session(format="csl-json", profile="selected")` を使う流れを推奨します。
+`duplicate_notes=true` は全件確認用の作業台です。CSL JSON へ渡す候補を整える前に、Markdown / JSON で重複候補を確認し、採用する項目を `jp_lit_annotate_session` に保存してから `jp_lit_export_session(session_id=SID, format="csl-json", profile="selected")` を使う流れを推奨します。
 
 #### `jp_lit_find_sessions`
 
@@ -790,29 +802,29 @@ methods manifestは `schema_version=1`、`record_basis="latest_saved_entry_per_q
 ### メタデータ検索から詳細取得
 
 ```text
-jp_lit_search(source=ndl_catalog, query="...")
+jp_lit_search(session_id=SID, source=ndl_catalog, query="...")
   -> items[].source_id
-jp_lit_get_record(source=ndl_catalog, source_id="...")
+jp_lit_get_record(session_id=SID, source=ndl_catalog, source_id="...")
 ```
 
 ### デジコレ書誌から OCR へ進む
 
 ```text
-jp_lit_search(source=ndl_digital, query="...")
+jp_lit_search(session_id=SID, source=ndl_digital, query="...")
   -> items[].source_id
-jp_lit_get_record(source=ndl_digital, source_id="...")
+jp_lit_get_record(session_id=SID, source=ndl_digital, source_id="...")
   -> source_metadata.next_digital_library.available を確認
-jp_lit_get_text_coordinates(source=ndl_digital, source_id="...", page=N)
+jp_lit_get_text_coordinates(session_id=SID, source=ndl_digital, source_id="...", page=N)
 ```
 
 ### 全文検索からページ画像へ進む
 
 ```text
-jp_lit_search_fulltext(keyword="大政奉還")
+jp_lit_search_fulltext(session_id=SID, keyword="大政奉還")
   -> items[].pid
-jp_lit_search_pages(source=ndl_digital, pid="...", keyword="大政奉還")
+jp_lit_search_pages(session_id=SID, source=ndl_digital, pid="...", keyword="大政奉還")
   -> items[].page
-jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=N)
+jp_lit_get_text_coordinates(session_id=SID, source=ndl_digital, pid="...", page=N)
 ```
 
 ### API・browser・fulltext候補を統合して注釈・exportする
@@ -866,13 +878,13 @@ API tool と `jp_lit_record_ndl_browser_search` に同じ調査 `session_id` を
 ### 図版検索から画像 URL を使う
 
 ```text
-jp_lit_search_illustrations(keyword="富士山")
+jp_lit_search_illustrations(session_id=SID, keyword="富士山")
   -> items[].illustration_image_url
 ```
 
 ## `next_digital_library`
 
-`jp_lit_get_record(source=ndl_digital)` の `source_metadata.next_digital_library` は、次世代デジタルライブラリー側の OCR ツール利用可否を表します。
+`jp_lit_get_record(session_id=SID, source=ndl_digital)` の `source_metadata.next_digital_library` は、次世代デジタルライブラリー側の OCR ツール利用可否を表します。
 
 ```json
 {

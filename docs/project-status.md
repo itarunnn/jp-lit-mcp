@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-05: ドキュメントと現行仕様の整合
+
+- TEI通常導入を0.16.0へ揃え、installerが既存の同名3 Skillsを更新することを明記した。
+- README・技術リファレンス・使い方ガイドの呼び出し例へ必須の `session_id` を補い、調査開始時に取得する `SID` を説明した。
+- session exportの `allow_external_path` / `overwrite`、Skill詳細の `methods`、TEIの `unsupported_runtime` と終了値を現行実装に合わせた。
+- package versionは0.16.0、機能・依存関係は継続する。文書更新はGitHubへ反映し、npm同梱文書への反映は次回リリースで行う。
+
 ## 2026-10-03: v0.16.0 検索条件・調査方法export
 
 - `jp_lit_search` に取得時contextとsource別件数根拠を追加。NDL・CiNii・J-STAGEの実送信builderと記録条件を共有する。
