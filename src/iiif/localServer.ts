@@ -27,6 +27,7 @@ export async function startLocalServer(
     "/": ["index.html", "text/html; charset=utf-8"],
     "/app.mjs": ["app.mjs", "text/javascript"],
     "/viewer-adapter.mjs": ["viewer-adapter.mjs", "text/javascript"],
+    "/workspace-state.mjs": ["workspace-state.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
     "/vendor/mirador.min.js": ["vendor/mirador.min.js", "text/javascript"],
   };

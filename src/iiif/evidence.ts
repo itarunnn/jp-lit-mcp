@@ -15,7 +15,7 @@ import type {
 import { normalizeServiceInfo } from "./serviceInfo.js";
 import { resourceId } from "./manifest.js";
 import { parseIiifRequest } from "./schemas.js";
-import { readWorkspace, atomicWrite } from "./workspace.js";
+import { readWorkspace } from "./workspace.js";
 import { loadPublicResource } from "./publicResource.js";
 import { imageDimensions } from "./imageMetadata.js";
 export function regionToImageCrop(
@@ -140,7 +140,7 @@ export async function exportEvidence(
       throw e;
     },
   );
-  if (existing !== null && !request.overwrite)
+  if (existing !== null)
     throw new Error(
       "出力directoryが存在します。新しい保存先を指定してください",
     );
@@ -322,17 +322,7 @@ export async function exportEvidence(
         2,
       ) + "\n",
     );
-    if (existing === null) await rename(stage, request.output_dir);
-    else {
-      for (const file of await readdir(stage))
-        await atomicWrite(
-          path.join(request.output_dir, file),
-          await import("node:fs/promises").then((fs) =>
-            fs.readFile(path.join(stage, file)),
-          ),
-          true,
-        );
-    }
+    await rename(stage, request.output_dir);
     return {
       evidence_json_path: path.join(request.output_dir, "evidence.json"),
       prompt_path: path.join(request.output_dir, "prompt.md"),

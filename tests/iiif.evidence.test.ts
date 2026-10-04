@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -11,6 +11,29 @@ import {
 import { saveWorkspace } from "../src/iiif/workspace.js";
 import { sampleWorkspace } from "./fixtures/iiif/sample.js";
 describe("IIIF evidence and reading provenance", () => {
+  it("rejects an existing bundle even with overwrite and preserves source images and user analysis without fetching", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "iiif-existing-bundle-"));
+    try {
+      const file = path.join(dir, "w.json"), out = path.join(dir, "export");
+      await saveWorkspace(file, sampleWorkspace(), false);
+      await mkdir(out);
+      const originals = {
+        "evidence.json": '{"items":[{"evidence_id":"previous-region"}]}',
+        "region-1.png": "previous-image-bytes",
+        "region-1.info.json": '{"width":900,"height":1200}',
+        "analysis.json": '{"researcher_note":"preserve my collation"}',
+      };
+      for (const [name, bytes] of Object.entries(originals)) await writeFile(path.join(out, name), bytes);
+      let calls = 0;
+      await expect(exportEvidence({
+        api_version: "0.1", operation: "export_evidence", workspace_path: file,
+        region_ids: ["r1"], output_dir: out, overwrite: true, image_permission_confirmed: true,
+      }, async () => { calls++; throw new Error("Must not fetch"); })).rejects.toThrow(/新しい保存先/);
+      expect(calls).toBe(0);
+      expect((await readdir(out)).sort()).toEqual(Object.keys(originals).sort());
+      for (const [name, bytes] of Object.entries(originals)) expect(await readFile(path.join(out, name), "utf8")).toBe(bytes);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
   it("exports selected provenance while deferring acquisition until permission is confirmed", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "iiif-evidence-"));
     try {

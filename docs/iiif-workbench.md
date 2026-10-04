@@ -78,6 +78,8 @@ v3の既存テキストがあるページは「表示ページの既存テキス
 
 コレクションから1〜4領域を選び、新しい保存先を指定します。選択資料の取得・利用条件を確認したらcheckboxを入れて書き出します。取得確認を保留した場合は出典とテキストが保存され、画像の取得状態が明示されます。
 
+読解資料の書き出しは、存在しない新しいdirectoryを指定します。CLIの`export_evidence`も既存directoryへの書き出しを拒否し、`overwrite=true`による置換は初版では対応しません。再取得時は別の保存先を使い、以前の画像・出典・AI読解結果を一緒に保全します。
+
 書き出す資料は画像、原テキスト、`evidence.json`、`prompt.md`、`analysis-template.json`です。切り出し前に選択したImage Serviceの`info.json`を取得し、原画像寸法・API版・対応levelを確認します。このJSONも保存し、要求URL・最終URL・hashとCanvasからの変換を`evidence.json`へ残します。painting bodyの縮小画像寸法を原画像寸法として使いません。
 
 画像を実際に開いてから、観察・翻刻候補・解釈・疑義を領域IDごとに記録します。AIの候補は`analysis.json` / `analysis.md`へ保存し、原資料との校合を別に行います。画像のURLと取得hashは`evidence.json`に残ります。

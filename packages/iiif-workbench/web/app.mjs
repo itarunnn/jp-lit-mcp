@@ -5,6 +5,7 @@ import {
   setCanvas,
   showRegion,
 } from "./viewer-adapter.mjs";
+import { mergeTextResult, addComparisonWindow } from "./workspace-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
 let workspace, viewer, pendingRegion;
@@ -109,7 +110,7 @@ function build() {
     select.value = w.canvas_id;
     select.onchange = () => {
       setCanvas(viewer, w.window_id, select.value);
-      w.canvas_id = select.value;
+      workspace.windows.find((v) => v.window_id === w.window_id).canvas_id = select.value;
       pendingRegion = null;
       $("add-region").disabled = true;
       renderTexts();
@@ -120,7 +121,7 @@ function build() {
     add.disabled = workspace.windows.length >= 4;
     add.onclick = () => {
       snapshot();
-      workspace.windows.push({ ...w, window_id: crypto.randomUUID() });
+      addComparisonWindow(workspace, w.window_id, crypto.randomUUID());
       build();
     };
     control.append(add);
@@ -344,11 +345,7 @@ action("load-text", async () => {
     document_id: w.document_id,
     canvas_id: c.canvas_id,
   });
-  workspace.texts = [
-    ...new Map(
-      [...workspace.texts, ...result.texts].map((t) => [t.text_id, t]),
-    ).values(),
-  ];
+  mergeTextResult(workspace, w.document_id, result);
   renderTexts();
   status(
     `${result.texts.length}件の既存テキストを読み込みました。${result.diagnostics?.length ? " " + result.diagnostics.join("; ") : ""}`,
