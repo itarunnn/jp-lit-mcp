@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { exportEvidence, validateAnalysis } from "../src/iiif/evidence.js";
 import {
   toWebAnnotations,
@@ -52,6 +53,93 @@ describe("IIIF evidence and reading provenance", () => {
     expect(fromWebAnnotations(page)).toEqual(regions);
     (page.items[0].target.selector as any).type = "SvgSelector";
     expect(() => fromWebAnnotations(page)).toThrow();
+  });
+  it("fetches service info before cropping a thumbnail and exports metadata receipts and image rights", async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), "iiif-service-evidence-"));
+    try {
+      const w = sampleWorkspace(),
+        image = w.documents[0].canvases[0].images[0];
+      image.width = 500;
+      image.height = 1000;
+      (image as any).rights = [
+        {
+          scope: "image:" + image.image_id,
+          field: "requiredStatement",
+          value: "Image Credit",
+        },
+      ];
+      const file = path.join(dir, "w.json");
+      await saveWorkspace(file, w, false);
+      const info = Buffer.from(
+        JSON.stringify({
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": image.service.service_id,
+          width: 2000,
+          height: 4000,
+          profile: "http://iiif.io/api/image/2/level1.json",
+          attribution: "Service Credit",
+        }),
+      );
+      const png = Buffer.alloc(24);
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(png);
+      png.write("IHDR", 12, "ascii");
+      png.writeUInt32BE(600, 16);
+      png.writeUInt32BE(800, 20);
+      const urls: string[] = [];
+      const r = await exportEvidence(
+        {
+          api_version: "0.1",
+          operation: "export_evidence",
+          workspace_path: file,
+          region_ids: ["r1"],
+          output_dir: path.join(dir, "export"),
+          overwrite: false,
+          image_permission_confirmed: true,
+        },
+        async (url: string) => {
+          urls.push(url);
+          const body = url.endsWith("info.json") ? info : png;
+          return {
+            body,
+            content_type: url.endsWith("info.json")
+              ? "application/json"
+              : "image/png",
+            receipt: {
+              ...w.documents[0].receipt,
+              requested_url: url,
+              final_url: url,
+              sha256: createHash("sha256").update(body).digest("hex"),
+              bytes: body.length,
+            },
+          };
+        },
+      );
+      expect(urls).toEqual([
+        "https://example.org/image/info.json",
+        "https://example.org/image/200,400,600,800/,800/0/default.jpg",
+      ]);
+      const e = JSON.parse(await readFile(r.evidence_json_path, "utf8"));
+      expect(e.items[0].image_service.width).toBe(2000);
+      expect(e.items[0].image_service.receipt.sha256).toBe(
+        createHash("sha256").update(info).digest("hex"),
+      );
+      expect(
+        await readFile(
+          path.join(dir, "export", e.items[0].image_service.raw_path),
+        ),
+      ).toEqual(info);
+      expect(JSON.stringify(e.items[0].source.rights)).toContain(
+        "Image Credit",
+      );
+      expect(JSON.stringify(e.items[0].source.rights)).toContain(
+        "Service Credit",
+      );
+      expect(e.items[0].display_image.original_image_xywh).toEqual([
+        200, 400, 600, 800,
+      ]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
   it("requires real evidence IDs and keeps AI candidates separate from source text", () => {
     const valid = {

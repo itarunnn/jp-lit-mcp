@@ -1,22 +1,8 @@
 import type { ManifestDocument } from "./types.js";
-import { isIP } from "node:net";
-import { isPublicAddress, validatePublicUrl } from "./publicResource.js";
+import { publicHttpsUrl, validatePublicUrl } from "./publicResource.js";
 export function safeDisplayUrl(value: string): string | null {
   try {
-    const u = new URL(value),
-      host = u.hostname.replace(/^\[|\]$/g, "");
-    if (
-      u.protocol !== "https:" ||
-      u.username ||
-      u.password ||
-      (u.port && u.port !== "443") ||
-      (isIP(host) && !isPublicAddress(host)) ||
-      /token|credential|password|signature|^sig$|auth|cookie|session|^key$/i.test(
-        [...u.searchParams.keys()].join(" "),
-      )
-    )
-      return null;
-    return u.href;
+    return publicHttpsUrl(value).href;
   } catch {
     return null;
   }

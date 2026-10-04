@@ -41,6 +41,15 @@ export interface FetchedResource {
   content_type: string;
   receipt: ResourceReceipt;
 }
+export interface ImageServiceInfo {
+  service_id: string;
+  version: "2" | "3";
+  width: number;
+  height: number;
+  profile: unknown;
+  rights: unknown[];
+  receipt: ResourceReceipt;
+}
 export interface CropResult {
   status: "supported" | "unsupported";
   image_url: string | null;

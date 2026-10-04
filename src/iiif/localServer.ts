@@ -183,12 +183,14 @@ export async function startLocalServer(
         )
       )
         throw new Error("表示中Canvasを指定してください");
+      const diagnostics: string[] = [];
       const texts =
         pathname === "/api/text"
-          ? await loadSelectedText(doc, body.canvas_id)
+          ? await loadSelectedText(doc, body.canvas_id, diagnostics)
           : [textSchema.parse(body.text)];
       if (texts.some((t) => t.canvas_id !== body.canvas_id))
         throw new Error("textのCanvasが一致しません");
+      doc.diagnostics.push(...diagnostics);
       workspace = validateWorkspace({
         ...workspace,
         texts: [
@@ -198,7 +200,7 @@ export async function startLocalServer(
         ],
       });
       await saveWorkspace(options.workspace_path, workspace, true);
-      json(200, { texts });
+      json(200, { texts, diagnostics });
     } catch (error) {
       if (!res.headersSent)
         json(400, {

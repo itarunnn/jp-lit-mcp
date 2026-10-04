@@ -31,7 +31,7 @@ export function languageText(value: unknown): LanguageText {
       values: asList(vals),
     }));
 }
-function rights(value: any, scope: string) {
+export function scopedRights(value: any, scope: string) {
   return [
     "license",
     "attribution",
@@ -112,6 +112,7 @@ export function normalizeManifest(
           width: positive(b.width),
           height: positive(b.height),
           target: v === "2" ? a.on : a.target,
+          rights: scopedRights(b, `image:${resourceId(b)}`),
           service: imageService(b.service),
         })),
     );
@@ -123,7 +124,7 @@ export function normalizeManifest(
       height: c.height,
       images,
       text_refs: v === "3" ? asList(c.annotations) : [],
-      rights: rights(c, `canvas:${canvasId}`),
+      rights: scopedRights(c, `canvas:${canvasId}`),
     };
   });
   const result = documentSchema.parse({
@@ -147,8 +148,11 @@ export function normalizeManifest(
     selected_sequence_id: summaries[index].sequence_id,
     canvases,
     rights: [
-      ...rights(m, "manifest"),
-      ...rights(sequences[index], `sequence:${summaries[index].sequence_id}`),
+      ...scopedRights(m, "manifest"),
+      ...scopedRights(
+        sequences[index],
+        `sequence:${summaries[index].sequence_id}`,
+      ),
     ],
     diagnostics: [],
   });

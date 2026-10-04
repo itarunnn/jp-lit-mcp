@@ -3,6 +3,8 @@ import {
   loadPublicResource,
   validatePublicUrl,
 } from "../src/iiif/publicResource.js";
+import { safeDisplayUrl, viewerManifest } from "../src/iiif/viewerManifest.js";
+import { sampleWorkspace } from "./fixtures/iiif/sample.js";
 const policy = {
   max_bytes: 20,
   timeout_ms: 50,
@@ -39,6 +41,18 @@ describe("bounded public IIIF resource acquisition", () => {
         { address: "10.0.0.1", family: 4 },
       ]),
     ).rejects.toThrow();
+  });
+  it("checks every display URL and every query key, including later URLs on the same host", async () => {
+    for (const key of ["key", "sig", "secret", "api_key"]) {
+      const url = `https://example.org/image?${key}=credential&size=small`;
+      expect(safeDisplayUrl(url)).toBeNull();
+      await expect(validatePublicUrl(url, resolve)).rejects.toThrow();
+    }
+    const document = sampleWorkspace().documents[0];
+    document.canvases[0].images[0].image_id = "https://8.8.8.8/image.jpg";
+    document.canvases[0].images[0].service.service_id =
+      "https://8.8.8.8/image?size=small&key=credential";
+    await expect(viewerManifest(document as any)).rejects.toThrow();
   });
   it("hashes received bytes and rejects HTML and streamed oversized resources", async () => {
     const r = await loadPublicResource("https://example.org/m", policy, {

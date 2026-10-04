@@ -33,6 +33,7 @@ export const imageSchema = z.object({
   width: positive.nullable(),
   height: positive.nullable(),
   target: z.unknown(),
+  rights: z.array(z.unknown()).default([]),
   service: z
     .object({
       service_id: id,
@@ -176,9 +177,16 @@ export function validateWorkspace(input: unknown) {
     )
       throw new Error("window参照が未解決です");
   const canvases = w.documents.flatMap((d) => d.canvases);
-  for (const t of w.texts)
-    if (!canvases.some((c) => c.canvas_id === t.canvas_id))
-      throw new Error("text参照が未解決です");
+  for (const t of w.texts) {
+    const c = canvases.find((c) => c.canvas_id === t.canvas_id);
+    if (!c) throw new Error("text参照が未解決です");
+    if (
+      t.target_xywh &&
+      (t.target_xywh[0] + t.target_xywh[2] > c.width ||
+        t.target_xywh[1] + t.target_xywh[3] > c.height)
+    )
+      throw new Error("text領域がCanvasの外にあります");
+  }
   for (const r of w.regions) {
     const v = w.windows.find((v) => v.window_id === r.selection.window_id);
     const c = w.documents

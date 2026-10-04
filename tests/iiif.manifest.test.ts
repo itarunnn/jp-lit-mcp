@@ -140,6 +140,80 @@ describe("IIIF manifest inspection", () => {
       ),
     ).toThrow();
   });
+  it("preserves SpecificResource rectangles and skips unknown selectors with their original target", () => {
+    const target = {
+      type: "SpecificResource",
+      source: "https://example.org/c",
+      selector: { type: "FragmentSelector", value: "xywh=10,20,30,40" },
+    };
+    const page = {
+      id: "page",
+      items: [
+        { id: "a", target, body: { type: "TextualBody", value: "原文" } },
+      ],
+    };
+    expect(
+      collectText(page, target.source, receipt.sha256)[0].target_xywh,
+    ).toEqual([10, 20, 30, 40]);
+    const diagnostics: string[] = [];
+    const unsupported = {
+      ...page,
+      items: [
+        {
+          ...page.items[0],
+          target: {
+            ...target,
+            selector: { type: "SvgSelector", value: "<svg/>" },
+          },
+        },
+      ],
+    };
+    expect(
+      collectText(unsupported, target.source, receipt.sha256, diagnostics),
+    ).toEqual([]);
+    expect(diagnostics.join(" ")).toContain("SvgSelector");
+    expect(diagnostics.join(" ")).toContain("<svg/>");
+    expect(
+      collectText(
+        {
+          ...page,
+          items: [
+            { ...page.items[0], target: target.source + "#xywh=pct:1,2,3,4" },
+          ],
+        },
+        target.source,
+        receipt.sha256,
+      ),
+    ).toEqual([]);
+  });
+  it("retains image-level rights and credits in their source hierarchy", () => {
+    const body = {
+      ...c.images[0].resource,
+      rights: "https://example.org/image-license",
+      requiredStatement: {
+        label: { en: ["Credit"] },
+        value: { en: ["Provider Credit"] },
+      },
+    };
+    const m = normalizeManifest(
+      {
+        "@id": "https://example.org/m",
+        "@type": "sc:Manifest",
+        sequences: [
+          {
+            "@id": "s",
+            canvases: [{ ...c, images: [{ ...c.images[0], resource: body }] }],
+          },
+        ],
+      },
+      receipt,
+    );
+    expect(m.canvases[0].images[0].rights).toContainEqual({
+      scope: "image:" + body["@id"],
+      field: "requiredStatement",
+      value: body.requiredStatement,
+    });
+  });
   it("extracts provider candidates without fetching and marks NDL-derived URLs as candidates", () => {
     const records = [
       {

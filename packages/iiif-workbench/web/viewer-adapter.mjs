@@ -1,16 +1,53 @@
 export function validLayout(layout, windowIds) {
-  const leaves=[];
-  function visit(value,depth=0) {
-    if(depth>4)return false;
-    if(typeof value==='string'){leaves.push(value);return windowIds.includes(value);}
-    return value && ['row','column'].includes(value.direction) && (value.splitPercentage===undefined || (Number.isFinite(value.splitPercentage)&&value.splitPercentage>0&&value.splitPercentage<100)) && visit(value.first,depth+1)&&visit(value.second,depth+1);
+  const leaves = [];
+  function visit(value, depth = 0) {
+    if (depth > 4) return false;
+    if (typeof value === "string") {
+      leaves.push(value);
+      return windowIds.includes(value);
+    }
+    if (value?.type === "split")
+      return (
+        ["row", "column"].includes(value.direction) &&
+        Array.isArray(value.children) &&
+        value.children.length >= 2 &&
+        value.children.length <= 4 &&
+        Array.isArray(value.splitPercentages) &&
+        value.splitPercentages.length === value.children.length &&
+        value.splitPercentages.every(
+          (n) => Number.isFinite(n) && n > 0 && n < 100,
+        ) &&
+        Math.abs(value.splitPercentages.reduce((a, b) => a + b, 0) - 100) <
+          1e-6 &&
+        value.children.every((child) => visit(child, depth + 1))
+      );
+    return (
+      value &&
+      ["row", "column"].includes(value.direction) &&
+      (value.splitPercentage === undefined ||
+        (Number.isFinite(value.splitPercentage) &&
+          value.splitPercentage > 0 &&
+          value.splitPercentage < 100)) &&
+      visit(value.first, depth + 1) &&
+      visit(value.second, depth + 1)
+    );
   }
-  return Boolean(visit(layout)&&leaves.length===windowIds.length&&new Set(leaves).size===leaves.length);
+  return Boolean(
+    visit(layout) &&
+    leaves.length === windowIds.length &&
+    new Set(leaves).size === leaves.length,
+  );
 }
-export function createViewer(element, workspace, token) {
+export function createViewer(element, workspace, token, onError = () => {}) {
   const handles = new Map(),
     restored = new Set();
-  const handle = { workspace, handles, viewer: null, cancelSelection: null, pendingFocus:new Map() };
+  const handle = {
+    workspace,
+    handles,
+    viewer: null,
+    cancelSelection: null,
+    pendingFocus: new Map(),
+  };
   const saved =
     workspace.viewer_state?.adapter_version === "mirador-4.2.6-v1"
       ? workspace.viewer_state.native_state
@@ -48,9 +85,10 @@ export function createViewer(element, workspace, token) {
         });
         if (previous?.viewer !== p.viewer)
           p.viewer.world.addHandler("add-item", () => {
-            restore(p.windowId,p.viewer);
-            const selection=handle.pendingFocus.get(p.windowId);
-            if(selection&&focusRegion(handle,selection))handle.pendingFocus.delete(p.windowId);
+            restore(p.windowId, p.viewer);
+            const selection = handle.pendingFocus.get(p.windowId);
+            if (selection && focusRegion(handle, selection))
+              handle.pendingFocus.delete(p.windowId);
           });
         restore(p.windowId, p.viewer);
       }
@@ -58,6 +96,15 @@ export function createViewer(element, workspace, token) {
     },
   };
   const origin = location.origin;
+  const errorPlugin = {
+    name: "jp-lit-inline-error",
+    target: "ErrorDialog",
+    mode: "wrap",
+    component(p) {
+      if (p.error) queueMicrotask(() => onError(p.error));
+      return null;
+    },
+  };
   handle.viewer = Mirador.viewer(
     {
       id: element.id,
@@ -74,7 +121,16 @@ export function createViewer(element, workspace, token) {
         allowWindowSideBar: false,
         defaultView: "single",
       },
-      workspace: { type: "mosaic", allowNewWindows: false },
+      workspace: {
+        type: "mosaic",
+        allowNewWindows: false,
+        ...(validLayout(
+          saved?.layout,
+          workspace.windows.map((w) => w.window_id),
+        )
+          ? { layout: saved.layout }
+          : {}),
+      },
       workspaceControlPanel: { enabled: false },
       requests: {
         preprocessors: [
@@ -92,15 +148,9 @@ export function createViewer(element, workspace, token) {
         typography: { fontFamily: '"Yu Gothic UI", Meiryo, sans-serif' },
       },
     },
-    [plugin],
+    [plugin, errorPlugin],
   );
-  let unsubscribe=()=>{};
-  if(validLayout(saved?.layout,workspace.windows.map(w=>w.window_id))) {
-    const restoreLayout=()=>{if(workspace.windows.every(w=>handle.viewer.store.getState().windows[w.window_id])){unsubscribe();handle.viewer.store.dispatch(Mirador.updateWorkspaceMosaicLayout(saved.layout));return true;}return false;};
-    if(!restoreLayout())unsubscribe=handle.viewer.store.subscribe(restoreLayout);
-  }
   handle.destroy = () => {
-    unsubscribe();
     handle.cancelSelection?.();
     handle.viewer.unmount();
     handles.clear();
@@ -126,7 +176,7 @@ export function readViewerState(handle) {
   return {
     adapter_version: "mirador-4.2.6-v1",
     windows,
-    native_state: { viewports, layout:state.workspace.layout },
+    native_state: { viewports, layout: state.workspace.layout },
   };
 }
 export function setCanvas(handle, windowId, canvasId) {
@@ -134,12 +184,14 @@ export function setCanvas(handle, windowId, canvasId) {
   handle.viewer.store.dispatch(Mirador.setCanvas(windowId, canvasId));
 }
 export function showRegion(handle, selection) {
-  const current=handle.viewer.store.getState().windows[selection.window_id]?.canvasId;
-  if(current!==selection.canvas_id)handle.pendingFocus.set(selection.window_id,selection);
+  const current =
+    handle.viewer.store.getState().windows[selection.window_id]?.canvasId;
+  if (current !== selection.canvas_id)
+    handle.pendingFocus.set(selection.window_id, selection);
   setCanvas(handle, selection.window_id, selection.canvas_id);
-  if(current===selection.canvas_id)focusRegion(handle,selection);
+  if (current === selection.canvas_id) focusRegion(handle, selection);
 }
-function focusRegion(handle,selection) {
+function focusRegion(handle, selection) {
   const h = handle.handles.get(selection.window_id);
   if (h?.canvasWorld.canvasIds.includes(selection.canvas_id)) {
     const [cx, cy, cw, ch] = h.canvasWorld.canvasToWorldCoordinates(

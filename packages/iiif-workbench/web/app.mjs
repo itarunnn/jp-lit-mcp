@@ -7,7 +7,6 @@ import {
 } from "./viewer-adapter.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-history.replaceState(null, "", location.pathname);
 let workspace, viewer, pendingRegion;
 const status = (text) => {
   $("status").textContent = text;
@@ -80,7 +79,18 @@ function build() {
   viewer?.destroy();
   pendingRegion = null;
   $("add-region").disabled = true;
-  viewer = createViewer($("viewer"), workspace, token);
+  const errors = new Set();
+  viewer = createViewer($("viewer"), workspace, token, (error) => {
+    if (errors.has(error.id)) return;
+    errors.add(error.id);
+    const message = node(
+      "p",
+      `画像を取得できませんでした: ${error.id} / ${error.message}`,
+    );
+    message.setAttribute("role", "status");
+    $("viewer-errors").append(message);
+  });
+  $("viewer-errors").replaceChildren();
   $("window-controls").replaceChildren();
   $("active-window").replaceChildren();
   for (const [index, w] of workspace.windows.entries()) {
@@ -103,6 +113,7 @@ function build() {
       pendingRegion = null;
       $("add-region").disabled = true;
       renderTexts();
+      renderSources();
     };
     control.append(select);
     const add = node("button", "別窓で比較");
@@ -136,6 +147,34 @@ function build() {
     option.value = w.window_id;
     $("active-window").append(option);
   }
+  const unsubscribe = viewer.viewer.store.subscribe(() => {
+    let changed = false;
+    for (const [i, w] of workspace.windows.entries()) {
+      const canvasId =
+        viewer.viewer.store.getState().windows[w.window_id]?.canvasId;
+      if (canvasId && canvasId !== w.canvas_id) {
+        w.canvas_id = canvasId;
+        $("window-controls").querySelectorAll("select")[i].value = canvasId;
+        changed = true;
+      }
+    }
+    if (changed) {
+      pendingRegion = null;
+      $("add-region").disabled = true;
+      renderTexts();
+      renderSources();
+    }
+  });
+  const destroy = viewer.destroy;
+  viewer.destroy = () => {
+    unsubscribe();
+    destroy();
+  };
+  renderSources();
+  renderRegions();
+  renderTexts();
+}
+function renderSources() {
   $("sources").replaceChildren();
   for (const d of workspace.documents) {
     const article = node("article");
@@ -151,6 +190,22 @@ function build() {
             final_url: d.receipt.final_url,
             sha256: d.receipt.sha256,
             rights: d.rights,
+            page_rights: d.canvases
+              .filter((c) =>
+                workspace.windows.some(
+                  (w) =>
+                    w.document_id === d.document_id &&
+                    w.canvas_id === c.canvas_id,
+                ),
+              )
+              .map((c) => ({
+                canvas_id: c.canvas_id,
+                rights: c.rights,
+                images: c.images.map((im) => ({
+                  image_id: im.image_id,
+                  rights: im.rights,
+                })),
+              })),
             diagnostics: d.diagnostics,
           },
           null,
@@ -160,8 +215,6 @@ function build() {
     );
     $("sources").append(article);
   }
-  renderRegions();
-  renderTexts();
 }
 function renderRegions() {
   $("region-count").textContent = workspace.regions.length;
@@ -297,7 +350,9 @@ action("load-text", async () => {
     ).values(),
   ];
   renderTexts();
-  status(`${result.texts.length}件の既存テキストを読み込みました。`);
+  status(
+    `${result.texts.length}件の既存テキストを読み込みました。${result.diagnostics?.length ? " " + result.diagnostics.join("; ") : ""}`,
+  );
 });
 action("export", async () => {
   const ids = [...document.querySelectorAll("input[name=region]:checked")].map(

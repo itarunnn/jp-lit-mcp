@@ -8,7 +8,11 @@ import type {
   RegionSelection,
   ExportEvidenceRequest,
   EvidenceExport,
+  ImageServiceInfo,
+  FetchedResource,
+  ResourcePolicy,
 } from "./types.js";
+import { normalizeServiceInfo } from "./serviceInfo.js";
 import { resourceId } from "./manifest.js";
 import { parseIiifRequest } from "./schemas.js";
 import { readWorkspace, atomicWrite } from "./workspace.js";
@@ -17,6 +21,7 @@ import { imageDimensions } from "./imageMetadata.js";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
+  info?: ImageServiceInfo,
 ): CropResult {
   const unsupported = (reason: string): CropResult => ({
     status: "unsupported",
@@ -47,30 +52,42 @@ export function regionToImageCrop(
   )
     return unsupported("画像配置が全Canvasの単純painting以外です");
   if (
-    !image.width ||
-    !image.height ||
     !service ||
-    !["2", "3"].includes(service.version)
+    !info ||
+    info.version !== service.version ||
+    info.service_id.replace(/\/$/, "") !==
+      service.service_id.replace(/\/$/, "") ||
+    ![info.width, info.height].every((v) => Number.isSafeInteger(v) && v > 0)
   )
-    return unsupported("寸法とImage API 2/3のserviceが必要です");
-  const profile = JSON.stringify(service.profile);
-  if (!/level[12]/.test(profile))
+    return unsupported("Image API 2/3のinfo.jsonで原画像寸法の確認が必要です");
+  const profiles = Array.isArray(info.profile) ? info.profile : [info.profile];
+  if (
+    !profiles.some(
+      (p) =>
+        typeof p === "string" &&
+        /^(?:https?:\/\/iiif.io\/api\/image\/[23]\/)?level[12](?:\.json)?$/.test(
+          p,
+        ),
+    )
+  )
     return unsupported(
       "任意領域・サイズに対応するImage API level1/2を確認してください",
     );
-  const sx = image.width / canvas.width,
-    sy = image.height / canvas.height;
+  const sx = info.width / canvas.width,
+    sy = info.height / canvas.height;
   const ix = Math.floor(x * sx),
     iy = Math.floor(y * sy),
-    iw = Math.min(image.width - ix, Math.ceil((x + w) * sx) - ix),
-    ih = Math.min(image.height - iy, Math.ceil((y + h) * sy) - iy);
+    iw = Math.min(info.width - ix, Math.ceil((x + w) * sx) - ix),
+    ih = Math.min(info.height - iy, Math.ceil((y + h) * sy) - iy);
   const scale = Math.min(1, 2048 / Math.max(iw, ih));
   const dw = Math.max(1, Math.round(iw * scale)),
     dh = Math.max(1, Math.round(ih * scale));
   const image_xywh: [number, number, number, number] = [ix, iy, iw, ih];
+  // level1の必須機能で縦横比を保ち、長辺だけを指定する。
+  const size = iw >= ih ? `${dw},` : `,${dh}`;
   return {
     status: "supported",
-    image_url: `${service.service_id.replace(/\/$/, "")}/${image_xywh.join(",")}/${dw},${dh}/0/default.jpg`,
+    image_url: `${service.service_id.replace(/\/$/, "")}/${image_xywh.join(",")}/${size}/0/default.jpg`,
     image_xywh,
     transform: { scale_x: sx, scale_y: sy, display_max_edge: 2048 },
     diagnostics: [],
@@ -101,6 +118,10 @@ export function validateAnalysis(value: unknown, evidenceIds: string[]) {
 }
 export async function exportEvidence(
   input: ExportEvidenceRequest,
+  loadResource: (
+    url: string,
+    policy: ResourcePolicy,
+  ) => Promise<FetchedResource> = loadPublicResource,
 ): Promise<EvidenceExport> {
   const request = parseIiifRequest(input);
   if (request.operation !== "export_evidence")
@@ -132,16 +153,53 @@ export async function exportEvidence(
     texts: string[] = [],
     diagnostics: string[] = [],
     items: unknown[] = [];
+  const services = new Map<
+    string,
+    { info: ImageServiceInfo; raw: Uint8Array; raw_path: string }
+  >();
   try {
     for (const [index, r] of selected.entries()) {
       const win = w.windows.find((v) => v.window_id === r.selection.window_id)!;
       const d = w.documents.find((d) => d.document_id === win.document_id)!;
       const c = d.canvases.find((c) => c.canvas_id === r.selection.canvas_id)!;
-      const crop = regionToImageCrop(r.selection, c);
       const name = `region-${index + 1}`;
+      const image = c.images[0],
+        service = image?.service;
+      let metadata:
+        | { info: ImageServiceInfo; raw: Uint8Array; raw_path: string }
+        | undefined;
+      if (
+        request.image_permission_confirmed &&
+        c.images.length === 1 &&
+        typeof image.target === "string" &&
+        image.target === c.canvas_id &&
+        service &&
+        ["2", "3"].includes(service.version)
+      ) {
+        metadata = services.get(service.service_id);
+        if (!metadata) {
+          const fetched = await loadResource(
+            `${service.service_id.replace(/\/$/, "")}/info.json`,
+            {
+              max_bytes: 2 * 1024 * 1024,
+              timeout_ms: 15000,
+              max_redirects: 3,
+              kind: "json",
+            },
+          );
+          metadata = {
+            info: normalizeServiceInfo(fetched, service),
+            raw: fetched.body,
+            raw_path: `${name}.info.json`,
+          };
+          await writeFile(path.join(stage, metadata.raw_path), metadata.raw);
+          services.set(service.service_id, metadata);
+        }
+      }
+      const crop = regionToImageCrop(r.selection, c, metadata?.info);
       let display: unknown = null;
       if (crop.status === "supported" && request.image_permission_confirmed) {
-        const resource = await loadPublicResource(crop.image_url!, {
+        const resource = await loadResource(crop.image_url!, {
           max_bytes: 10 * 1024 * 1024,
           timeout_ms: 15000,
           max_redirects: 3,
@@ -197,7 +255,12 @@ export async function exportEvidence(
           declared_id: d.declared_id,
           label: d.label,
           sequence_id: d.selected_sequence_id,
-          rights: [...d.rights, ...c.rights],
+          rights: [
+            ...d.rights,
+            ...c.rights,
+            ...(image?.rights ?? []),
+            ...(metadata?.info.rights ?? []),
+          ],
         },
         canvas: {
           canvas_id: c.canvas_id,
@@ -207,6 +270,9 @@ export async function exportEvidence(
           height: c.height,
         },
         crop,
+        image_service: metadata
+          ? { ...metadata.info, raw_path: metadata.raw_path }
+          : null,
         original_image: {
           url: c.images[0]?.image_id ?? null,
           sha256: null,

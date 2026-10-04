@@ -47,10 +47,7 @@ export function isPublicAddress(address: string): boolean {
   }
   return false;
 }
-export async function validatePublicUrl(
-  value: string,
-  resolve: Resolver = resolver,
-) {
+export function publicHttpsUrl(value: string): URL {
   const url = new URL(value);
   if (
     url.protocol !== "https:" ||
@@ -64,6 +61,16 @@ export async function validatePublicUrl(
     )
   )
     throw new Error("公開HTTPS URLを指定してください");
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host) && !isPublicAddress(host))
+    throw new Error("public宛以外の取得は扱いません");
+  return url;
+}
+export async function validatePublicUrl(
+  value: string,
+  resolve: Resolver = resolver,
+) {
+  const url = publicHttpsUrl(value);
   const host = url.hostname.replace(/^\[|\]$/g, "");
   const addresses = isIP(host)
     ? [{ address: host, family: isIP(host) }]

@@ -31,7 +31,7 @@ Node22以上を使う。source checkoutは`npm ci` / `npm run build`後に`node 
 
 画面で矩形、タグ、選択理由を記録して保存する。`export_evidence`には`workspace_path`、1〜4個の`region_ids`、新しい`output_dir`を渡す。`image_permission_confirmed`は、選択資料の画像取得・利用条件が確認済みの場合にtrueへ設定する。利用条件の原記述はworkspaceに残る。
 
-返った`image_paths`の画像を実際に開いてから観察する。`evidence.json`はmanifest hash、Canvas ID、矩形、画像URL、取得画像hash、縮小寸法、テキストの出典を持つ。`original_image.sha256=null`は原画像本体を取得していない状態で、取得したcropのhashは`display_image.receipt.sha256`にある。
+返った`image_paths`の画像を実際に開いてから観察する。`evidence.json`はmanifest hash、Canvas ID、矩形、画像URL、取得画像hash、縮小寸法、テキストの出典を持つ。`image_service`は限定取得したinfo.jsonの原画像寸法、receipt、保存pathと原利用条件を持つ。painting bodyの寸法が縮小表現である場合も、この原画像寸法で座標を変換する。`original_image.sha256=null`は原画像本体を取得していない状態で、取得したcropのhashは`display_image.receipt.sha256`にある。
 
 `analysis-template.json`をコピーし、生成者・実行時刻、evidence_idごとの観察、翻刻候補、解釈、疑義を記入する。原テキストのtxtをAI候補で上書きしない。`analysis.json`を検査するときはpackageの`dist/src/iiif/evidence.js`がexportする`validateAnalysis(value, evidenceIds)`を使える。
 
