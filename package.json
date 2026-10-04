@@ -1,6 +1,6 @@
 {
   "name": "jp-lit-mcp",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -33,6 +33,7 @@
     "docs/releases/v0.15.1.md",
     "docs/releases/v0.15.2.md",
     "docs/releases/v0.16.0.md",
+    "docs/releases/v0.17.0.md",
     "packages/tei-reader/.python-version",
     "packages/tei-reader/pyproject.toml",
     "packages/tei-reader/uv.lock",

@@ -10,6 +10,7 @@
 - [Claude Code](install/claude-code.md)
 - [GitHub CLI で Skills を入れる](install/github-skills.md)
 - [TEIの使い方](tei-reader.md): 万葉集・延喜式でTEIを使う実研究と論文、廣瀬本での読解と文献調査の往復、公開資料とjp-litでの探し方、保存XMLの読解手順
+- [IIIF比較・画像読解](iiif-workbench.md): 複数機関の公開画像を並べ、選択ページ・矩形と原テキストを出典付きでAIへ渡す手順。v0.17.0の任意CLIを使います。
 
 呼び出し例の `SID` は、調査開始時に `jp_lit_start_session` が返す `session_id` です。検索・取得・照合・注釈・exportには同じIDを毎回指定します。通常はAIが調査IDを管理します。以下のtool呼び出しは引数を示す擬似コードなので、直接呼ぶ場合は `SID` を実際のIDに置き換えてください。
 

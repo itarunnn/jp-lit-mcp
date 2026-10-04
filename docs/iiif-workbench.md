@@ -2,26 +2,67 @@
 
 IIIF比較画面は、複数の機関が公開する資料を同じ操作で並べ、必要なページや矩形を出典付きで保存するローカルアプリです。「この2資料を並べて」「選んだ部分を画像と翻刻で比べて」とAIへ依頼できます。選択した画像と出典を既存AIアプリに渡して読み、元の場所へ戻って確認する流れを支えます。
 
-## 開発版を起動する
+## 導入してAIへ依頼する
 
-初版は開発版です。公開npm 0.16.0への搭載は次回リリースで扱います。Node22以上でcheckoutを準備します。
+v0.17.0からCLIと比較画面を同梱します。Node.js22以上とnpm、ローカルコマンド・画像読解を使えるAIアプリを用意します。repoの外に研究用directoryを作り、そこで導入と起動確認を行います。
 
 ```powershell
-npm ci
-npm run build
-node scripts/iiif-workbench.mjs --help
+npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-iiif --help
+npx --yes jp-lit-mcp@0.17.0 install-skills codex
 ```
 
-AIには「jp-lit-iiifを使って、選んだ公開資料を比較してください」と依頼します。Skillの[呼び出し資料](../skills/jp-lit-iiif/references/workflow.md)にmanifest指定と保存先の契約があります。画像・テキスト・読解候補の保存先は利用者の研究project directoryを指定します。
+`codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。installerはjp-lit-research、jp-lit-verification、jp-lit-tei、jp-lit-iiifの4種を導入し、既存の同名Skillsを置き換えます。個別に編集した内容は導入前に退避してください。導入後はAIアプリで新しい対話を開き、資料URLと保存先を渡します。
+
+```text
+jp-lit-iiifを使って、次の公開資料をローカル比較画面に並べてください。
+https://kokusho.nijl.ac.jp/biblio/100335909
+https://dl.ndl.go.jp/pid/3048007
+保存先はJ:\Research\iiif-comparisonです。manifestと利用条件を確認し、起動URLを教えてください。
+選択後は、2つの画像を実際に開き、見える特徴と翻刻候補を出典付きで示してください。
+```
+
+AIはSkillの[呼び出し資料](../skills/jp-lit-iiif/references/workflow.md)に従って公開manifestを確認し、workspaceを準備します。画像・テキスト・読解候補の保存先は利用者の研究directoryです。比較と書き出しにPython、OCRモデル、外部モデルのAPI keyは必要ありません。AI読解には利用中のアプリの画像読解機能を使います。
+
+## 自分で比較画面を起動する
+
+手動起動では、次のUTF-8 JSONを`prepare.json`に保存します。`output_dir`は自分の研究directoryの絶対pathへ変更してください。例の2件は動作確認に使った公開資料で、資料間の研究上の関係を示す組み合わせではありません。
+
+```json
+{
+  "api_version": "0.1",
+  "operation": "prepare_workspace",
+  "output_dir": "J:/Research/iiif-comparison",
+  "candidates": [
+    {
+      "source": "kokusho",
+      "source_id": "100335909",
+      "record_url": "https://kokusho.nijl.ac.jp/biblio/100335909",
+      "manifest_url": "https://kokusho.nijl.ac.jp/biblio/100335909/manifest",
+      "acquisition": "provider_metadata",
+      "verification_state": "candidate"
+    },
+    {
+      "source": "ndl_search",
+      "source_id": "3048007",
+      "record_url": "https://dl.ndl.go.jp/pid/3048007",
+      "manifest_url": "https://dl.ndl.go.jp/api/iiif/3048007/manifest.json",
+      "acquisition": "derived_from_pid",
+      "verification_state": "candidate"
+    }
+  ]
+}
+```
 
 workspaceを作成した後、比較画面を起動します。表示された起動URLをブラウザで開きます。再起動時は新しいURLを使います。終了はターミナルのCtrl+Cです。
 
 ```powershell
-node scripts/iiif-workbench.mjs --request .\prepare.json
-node scripts/iiif-workbench.mjs serve --workspace <workspace.jsonの絶対path>
+npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-iiif --request .\prepare.json
+npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-iiif serve --workspace "J:/Research/iiif-comparison/workspace.json"
 ```
 
-配布済みpackageを導入した環境では`jp-lit-iiif`が同じCLIになります。Python、OCRモデル、外部モデルのAPI keyは初版の比較・書き出しに必要ありません。
+最初の要求はmanifestを取得し、画像は比較画面で提供元から表示します。返された`workspace_path`が上の起動pathと一致することを確認してください。既存のworkspaceがある場合は保存先を変えるか、そのworkspaceを再開します。初回にはnpm packageがダウンロードされることがあります。
+
+開発checkoutでは`npm ci` / `npm run build`後、同じ引数を`node scripts/iiif-workbench.mjs`へ渡します。global/local install済みの配布packageでは`jp-lit-iiif`を使えます。
 
 ## ページと領域を比べる
 
