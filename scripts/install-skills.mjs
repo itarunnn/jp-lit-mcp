@@ -8,7 +8,7 @@ const platform = process.argv[2] ?? "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
 const skillsRoot = join(repoRoot, "skills");
-const skillNames = ["jp-lit-research", "jp-lit-verification", "jp-lit-tei"];
+const skillNames = ["jp-lit-research", "jp-lit-verification", "jp-lit-tei", "jp-lit-iiif"];
 
 const home = process.env.JP_LIT_SKILLS_HOME ?? process.env.USERPROFILE ?? process.env.HOME;
 if (!home) {
@@ -40,7 +40,7 @@ function copySkillTree(skillName, destinationRoot) {
   return destination;
 }
 
-function patchCodexSkill(destination) {
+function patchCodexSkill(destination, skillName) {
   const skillPath = join(destination, "SKILL.md");
   const content = readFileSync(skillPath, "utf8");
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
@@ -62,7 +62,8 @@ metadata:
   }
 
   if (!body.includes("<codex_skill_adapter>")) {
-    body = `${codexAdapter}${body.replace(/^\s+/, "")}`;
+    const adapter = skillName === "jp-lit-iiif" ? codexAdapter.replace("jp-lit MCP を使った日本語文献調査または文献検証", "任意CLI jp-lit-iiif を使った画像比較または画像読解") : codexAdapter;
+    body = `${adapter}${body.replace(/^\s+/, "")}`;
   }
 
   writeFileSync(skillPath, `---\n${frontmatter.trimEnd()}\n---\n\n${body}`, "utf8");
@@ -78,7 +79,7 @@ function install(target) {
     const skillDestination = copySkillTree(skillName, destination);
     console.log(`[${target}] ${skillDestination}`);
     if (target === "codex") {
-      patchCodexSkill(skillDestination);
+      patchCodexSkill(skillDestination, skillName);
     }
   }
 }

@@ -2,6 +2,8 @@
 
 このページは、`jp-lit-mcp` の MCP ツール仕様、source、環境変数、保存形式、既知の制約を引くためのリファレンスです。使い始めるための説明は [README](../README.md)、調査依頼の出し方は [使い方ガイド](usage-guide.md) を参照してください。
 
+任意CLI `jp-lit-iiif`は[IIIFガイド](iiif-workbench.md)と[JSON呼び出し契約](../skills/jp-lit-iiif/references/workflow.md)を参照してください。利用者が指定した公開manifest・選択画像を扱い、以下のMCP tool/sourceの取得範囲は維持します。IIIF workspaceとMCP sessionは別の記録です。
+
 ## 全体仕様
 
 ### 調査IDと呼び出し例

@@ -226,15 +226,15 @@ TEI読解には、`jp-lit-tei` Skillを読み込めてローカルコマンド�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.16.0 jp-lit-tei-reader --help
-npx --yes jp-lit-mcp@0.16.0 install-skills codex
+npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-tei-reader --help
+npx --yes jp-lit-mcp@0.17.0 install-skills codex
 ```
 
-`codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。Skills installerはjp-lit-research、jp-lit-verification、jp-lit-teiを導入し、既存の同名Skillsも指定版で置き換えます。導入後はアプリで新しい対話を開き、`jp-lit-tei`が利用できることを確認してください。
+`codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。Skills installerはjp-lit-research、jp-lit-verification、jp-lit-tei、jp-lit-iiifの4種を導入し、既存の同名Skillsも指定版で置き換えます。個別に編集した内容は導入前に退避してください。導入後はアプリで新しい対話を開き、`jp-lit-tei`が利用できることを確認してください。
 
 通常導入の`npx --package=...`は、cloneしたjp-lit repositoryの外で実行してください。npmが同名のローカルpackageを参照すると、readerの実行名が見つからない場合があります。初回にはnpm packageやPythonがダウンロードされることがあります。
 
-ここで指定した`0.16.0`はTEI readerと検索条件・調査方法exportを含む公開版です。MCPの書誌検索はNode.jsだけで動き、uv/PythonはTEI読解に使います。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。
+ここで指定した`0.17.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。MCPの書誌検索とIIIF CLIはNode.jsだけで動き、uv/PythonはTEI読解に使います。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。TEIのfacs/surface/zoneとIIIF領域の自動対応は後続段階です。
 
 導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
 

@@ -36,7 +36,7 @@ Claude Code の `--env` は複数の `KEY=value` を受け取れるため、上�
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`が Claude Code の Skills ディレクトリに入ります。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`が Claude Code の Skills ディレクトリに入ります。既存の同名Skillsは指定版で置き換わるため、個別に編集した内容は導入前に退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
 
 ```bash
 npx -y jp-lit-mcp install-skills claude

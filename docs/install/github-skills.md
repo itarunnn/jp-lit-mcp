@@ -70,9 +70,12 @@ gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
 gh skill install itarunnn/jp-lit-mcp jp-lit-research --agent codex --scope user
 gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope user
 gh skill install itarunnn/jp-lit-mcp jp-lit-tei --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-iiif --agent codex --scope user
 ```
 
 ここでは Codex の user scope に入れる例を示しています。Cursor や Claude Code に入れる場合は `--agent` を読み替えてください。
+
+IIIFの比較画面と画像読解は[IIIFガイド](../iiif-workbench.md)を参照してください。Skillは手順を提供し、CLIは同ガイドのnpmコマンドで起動します。
 
 ### version を明示して入れる
 
