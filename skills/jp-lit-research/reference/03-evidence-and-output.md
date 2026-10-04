@@ -376,6 +376,9 @@ report 内では、total は検索元が返した総ヒット数、取得件数�
 - `full_log`
 - `selected`
 - `unselected`
+- `methods`: 検索条件ごとの最新保存entryから調査方法を出力する。対応formatはMarkdown / JSON
+
+`methods` は機械が記録した検索条件・件数根拠と、agentが申告した目的・判断を区別する。取得時contextがない旧cacheは欠落を残し、全実行履歴、全件収集、本文確認を保証しない。CSL JSONには対応しない。詳細と呼び出し例は[使い方ガイド](https://github.com/itarunnn/jp-lit-mcp/blob/main/docs/usage-guide.md#検索条件と調査方法を保存する)を参照する。
 
 ## 参照
 

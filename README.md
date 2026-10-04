@@ -37,6 +37,12 @@ MCPはタイトル、要旨、目次、書誌、所蔵情報、全文検索ス�
 - `session_id`: 複数回の検索・判断・注釈を一つの調査案件へまとめる jp-lit のアプリケーション側 ID です。MCP 通信の `Mcp-Session-Id` とは別物です。
 - `cache_key`: 個々の検索結果・取得結果の保存場所を指すキーです。`session_id` は調査ノート、`cache_key` は保存結果を管理します。
 
+呼び出し例の `SID` は、先に `jp_lit_start_session` を呼んで取得した `session_id` に置き換えます。検索・取得・照合・注釈・exportでは、同じ調査のIDを毎回指定します。通常はAIがこのIDを保持して呼び出します。
+
+```text
+SID = jp_lit_start_session(research_goal="調査テーマ").session_id
+```
+
 通常は、MCP と Skills の両方を入れるのがおすすめです。
 
 ## Skill と MCP の役割
@@ -255,7 +261,7 @@ J-STAGE など一部 source では、API がアブストラクトを返さない
 
 デジコレの検索には、役割の違う三つの経路があります。
 
-- `jp_lit_search(source=ndl_digital)`: 資料名、著者、出版年などの書誌から探す
+- `jp_lit_search(session_id=SID, source=ndl_digital)`: 資料名、著者、出版年などの書誌から探す
 - `jp_lit_search_fulltext`: 次世代デジタルライブラリー API の収録範囲を OCR 全文検索する
 - デジコレ公式画面 + `jp_lit_record_ndl_browser_search`: ブラウザでデジコレ本体の全文検索範囲を確認し、観測結果を調査 session へ保存する
 
@@ -499,7 +505,7 @@ Skill を使わない場合は `文献DBで` / `文献検証で` などの Skill
 
 Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存候補を照合する補助 provider として使います。
 
-国書データベースについては、書誌・所在確認の `jp_lit_search(source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。
+国書データベースについては、書誌・所在確認の `jp_lit_search(session_id=SID, source=kokusho, ...)` とは別に、本文スニペット検索の `jp_lit_search_kokusho_fulltext` と画像タグ検索の `jp_lit_search_kokusho_image_tags` も使えます。どちらも本文全体、画像本体、manifest 本体は取得せず、公式画面で確認するための URL とメタデータを返します。
 
 対応 source や MCP ツールの詳細は [技術リファレンス](docs/reference.md) を参照してください。
 

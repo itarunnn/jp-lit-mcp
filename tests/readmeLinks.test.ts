@@ -217,11 +217,11 @@ describe("README public onboarding", () => {
     expect(readme).toContain("docs/reference.md");
 
     expect(usageGuide).toContain("日本文学論文");
-    expect(usageGuide).toContain("jp_lit_search(source=nijl_articles");
-    expect(usageGuide).toContain("jp_lit_search(source=kokusho");
+    expect(usageGuide).toContain("jp_lit_search(session_id=SID, source=nijl_articles");
+    expect(usageGuide).toContain("jp_lit_search(session_id=SID, source=kokusho");
     expect(usageGuide).toContain("jp_lit_search_kokusho_fulltext");
     expect(usageGuide).toContain("jp_lit_search_kokusho_image_tags");
-    expect(usageGuide).toContain("jp_lit_search(source=ninjal_bibliography");
+    expect(usageGuide).toContain("jp_lit_search(session_id=SID, source=ninjal_bibliography");
     expect(usageGuide).toContain("文化資源 DB や地域アーカイブ DB は固定 source 化しません");
 
     expect(projectStatus).toContain("対応 source 21 種");

@@ -11,6 +11,12 @@
 - [GitHub CLI で Skills を入れる](install/github-skills.md)
 - [TEIの使い方](tei-reader.md): 万葉集・延喜式でTEIを使う実研究と論文、廣瀬本での読解と文献調査の往復、公開資料とjp-litでの探し方、保存XMLの読解手順
 
+呼び出し例の `SID` は、調査開始時に `jp_lit_start_session` が返す `session_id` です。検索・取得・照合・注釈・exportには同じIDを毎回指定します。通常はAIが調査IDを管理します。以下のtool呼び出しは引数を示す擬似コードなので、直接呼ぶ場合は `SID` を実際のIDに置き換えてください。
+
+```text
+SID = jp_lit_start_session(research_goal="調査テーマ").session_id
+```
+
 導入後に環境だけ切り分けたい場合は、次の軽量診断を使えます。
 
 ```bash
@@ -350,7 +356,7 @@ jp_lit_search(session_id=SID, source=ndl_reference_books, query="人物事典")
 色川武大の別名義も含めて探したい。
 ```
 
-この場合、`jp_lit_resolve_authority(query="色川武大", type="person")` で筆名・別名義を確認し、名義別に探すか、まとめて探すかを分けて考えます。
+この場合、`jp_lit_resolve_authority(session_id=SID, query="色川武大", type="person")` で筆名・別名義を確認し、名義別に探すか、まとめて探すかを分けて考えます。
 
 件名の場合、上位語・下位語・関連語は調査意図を広げることがあるため、最初から全部を検索語に入れず、必要に応じて使います。
 
@@ -360,13 +366,13 @@ jp_lit_search(session_id=SID, source=ndl_reference_books, query="人物事典")
 NDC 596.7 から飲料関係の件名標目を出してください。
 ```
 
-この場合、`jp_lit_find_authority_terms_by_classification(classification="596.7", scheme="NDC10")` で件名標目候補を確認し、未知の本を探すための検索語として使います。戦前・古い図書では `NDC6` も検討します。
+この場合、`jp_lit_find_authority_terms_by_classification(session_id=SID, classification="596.7", scheme="NDC10")` で件名標目候補を確認し、未知の本を探すための検索語として使います。戦前・古い図書では `NDC6` も検討します。
 
 件名語から図書分類で CiNii Books を広げたい場合は、まず `jp_lit_suggest_classification_codes` で NDC / NDLC を取り出し、`suggested_search` の `filters.cinii.category` を使って `cinii_books` を検索します。
 
 ```text
-jp_lit_suggest_classification_codes(term="近代日本文学")
-jp_lit_search(source=cinii_books, query="近代日本文学", filters={cinii:{category:"910.26 KG311"}})
+jp_lit_suggest_classification_codes(session_id=SID, term="近代日本文学")
+jp_lit_search(session_id=SID, source=cinii_books, query="近代日本文学", filters={cinii:{category:"910.26 KG311"}})
 ```
 
 これは書誌分類から未知の図書候補を広げるための補助であり、分類だけで主題適合を確定しません。
@@ -393,6 +399,7 @@ NDL / CiNii / J-STAGE / IRDB などで見つけた単一候補について、DOI
 
 ```text
 jp_lit_enrich_record(
+  session_id=SID,
   title="源氏物語研究",
   authors=["山田太郎"],
   issued_year="2020"
@@ -430,6 +437,7 @@ jp_lit_get_records(session_id=SID, source=ndl_digital, pids=["1794357", "1223710
 
 ```text
 jp_lit_get_records(
+  session_id=SID,
   source="ndl_digital",
   source_ids=[
     "R100000002-I000000011084-d1403198",
@@ -474,9 +482,9 @@ batch 全体の独自 cache/session は作らず、成功 item は `jp_lit_get_r
 標準的な流れはこうなります。
 
 ```text
-jp_lit_search_fulltext(keyword="普通選挙法 公布")
-jp_lit_search_pages(source=ndl_digital, pid="...", keyword="普通選挙法 公布")
-jp_lit_get_text_coordinates(source=ndl_digital, pid="...", page=...)
+jp_lit_search_fulltext(session_id=SID, keyword="普通選挙法 公布")
+jp_lit_search_pages(session_id=SID, source=ndl_digital, pid="...", keyword="普通選挙法 公布")
+jp_lit_get_text_coordinates(session_id=SID, source=ndl_digital, pid="...", page=...)
 ```
 
 #### browser観測を同じsessionへ統合する
@@ -568,7 +576,7 @@ record の返り値にある `cache.cache_key` を控えます。同じ session 
 
 `result_refs` を使う場合は、`[{ "tool": "jp_lit_search", "cache_key": "..." }, { "tool": "jp_lit_search_fulltext", "cache_key": "..." }, { "tool": "jp_lit_record_ndl_browser_search", "cache_key": "..." }]` のように tool と cache key を組にします。`key_by="source_record"` では同じ PID が canonical な `source="ndl_digital"` / `source_id="R100000039-I<PID>"` で一件にまとまり、発見経路と browser observation は失われません。
 
-`jp_lit_search_fulltext` の結果に含まれる `pid` は、そのまま `jp_lit_search_pages` や `jp_lit_get_text_coordinates` に渡せます。`source_id` 経由で OCR を使う場合は、先に `jp_lit_get_record(source=ndl_digital, source_id=...)` で `source_metadata.next_digital_library.available=true` を確認しておくとスムーズです。
+`jp_lit_search_fulltext` の結果に含まれる `pid` は、そのまま `jp_lit_search_pages` や `jp_lit_get_text_coordinates` に渡せます。`source_id` 経由で OCR を使う場合は、先に `jp_lit_get_record(session_id=SID, source=ndl_digital, source_id=...)` で `source_metadata.next_digital_library.available=true` を確認しておくとスムーズです。
 
 デジコレ本体の検索画面でヒットするのに `jp_lit_search_fulltext` では出ない資料がある場合は、検索漏れではなく収録範囲の差である可能性があります。これは館内限定・送信サービス限定資料だけでなく、デジコレ本体ではログインなしで閲覧できるが次世代デジタルライブラリー API の収録・検索対象ではない資料でも起こりえます。その場合は `ndl_digital` のメタデータ検索と、利用者が許可した範囲の公式画面確認を別々に記録してください。
 
@@ -603,7 +611,7 @@ Skill 併用時は、次のような語群を自動的に試みます。
 ```
 
 ```text
-jp_lit_search_illustrations(keyword="錦帯橋")
+jp_lit_search_illustrations(session_id=SID, keyword="錦帯橋")
 ```
 
 美術・文化財・博物館資料を扱う場合は、`japan_search` も併用するとカバー範囲が広がります。
@@ -612,17 +620,17 @@ jp_lit_search_illustrations(keyword="錦帯橋")
 
 ### 国書DBの本文スニペット・画像タグを探したい
 
-古典籍の書誌・所在を確認する場合は `jp_lit_search(source=kokusho, query="...")` を使います。国書DB収録資料の本文中の語や画像タグを探す場合は、専用 tool を使い分けます。
+古典籍の書誌・所在を確認する場合は `jp_lit_search(session_id=SID, source=kokusho, query="...")` を使います。国書DB収録資料の本文中の語や画像タグを探す場合は、専用 tool を使い分けます。
 
 | ツール | 何をするか | 注意点 |
 | ------ | ---------- | ------ |
-| `jp_lit_search(source=kokusho)` | 国書・古典籍の書誌、著作、所在を検索する | 本文中の語や画像タグは検索しません |
+| `jp_lit_search(session_id=SID, source=kokusho)` | 国書・古典籍の書誌、著作、所在を検索する | 本文中の語や画像タグは検索しません |
 | `jp_lit_search_kokusho_fulltext` | 国書DBの本文スニペットを検索する | 本文全体は取得しません。公式画面で確認してください |
 | `jp_lit_search_kokusho_image_tags` | 国書DBの画像タグを検索する | 画像本体は取得せず、タグと画像パス文字列を返します |
 
 ```text
-jp_lit_search_kokusho_fulltext(keyword="春")
-jp_lit_search_kokusho_image_tags(keyword="桜")
+jp_lit_search_kokusho_fulltext(session_id=SID, keyword="春")
+jp_lit_search_kokusho_image_tags(session_id=SID, keyword="桜")
 ```
 
 ---
@@ -641,7 +649,7 @@ jp_lit_search_kokusho_image_tags(keyword="桜")
 ```
 
 ```text
-jp_lit_search(source=kokkai_minutes, query="私的録音録画 著作権法改正")
+jp_lit_search(session_id=SID, source=kokkai_minutes, query="私的録音録画 著作権法改正")
 ```
 
 ---
@@ -746,7 +754,7 @@ jp_lit_export_view(
 
 `include_enrichment=true` は任意です。同じ session に `jp_lit_enrich_record` の保存済み照合結果がある場合だけ、cluster に DOI、provider status、`match_confidence`、`matched_cache_keys` を付与します。cluster に載る外部候補は `match_confidence=high` / `medium` に限り、`low` / `none` の候補 DOI は識別子として採用しません。DOI だけで照合した cache は、検索 item 側にも同じ DOI metadata がある場合だけ cluster に結びます。これは書誌一致の補助で、本文確認・本文到達性・重要度評価ではありません。
 
-CSL JSON は Zotero、citeproc、Pandoc などに取り込むための形式なので、検索結果をそのまま全件入れるより、重複候補を先に見てから「使う項目だけ」を出す方が後工程で扱いやすくなります。`duplicate_notes=true` の export は、重複を自動削除する機能ではなく、同じ資料かもしれない候補を並べて確認するための作業台です。確認後に採用する項目を `jp_lit_annotate_session` へ保存し、最後に `jp_lit_export_session(format="csl-json", profile="selected")` で CSL JSON を作ります。
+CSL JSON は Zotero、citeproc、Pandoc などに取り込むための形式なので、検索結果をそのまま全件入れるより、重複候補を先に見てから「使う項目だけ」を出す方が後工程で扱いやすくなります。`duplicate_notes=true` の export は、重複を自動削除する機能ではなく、同じ資料かもしれない候補を並べて確認するための作業台です。確認後に採用する項目を `jp_lit_annotate_session` へ保存し、最後に `jp_lit_export_session(session_id=SID, format="csl-json", profile="selected")` で CSL JSON を作ります。
 
 取り込み前の流れは、だいたい次の形です。
 
@@ -761,10 +769,10 @@ jp_lit_export_view(
 )
 
 # 2. export を見て、採用する候補だけをセッションに保存
-jp_lit_annotate_session(tool="jp_lit_search", cache_key="...", selected_items=[...])
+jp_lit_annotate_session(session_id=SID, tool="jp_lit_search", cache_key="...", selected_items=[...])
 
 # 3. 採用候補だけを CSL JSON にする
-jp_lit_export_session(format="csl-json", profile="selected")
+jp_lit_export_session(session_id=SID, format="csl-json", profile="selected")
 ```
 
 ### 調査セッションの保存・エクスポート
@@ -926,7 +934,7 @@ Skill 併用時は、長い調査でも検索結果や OCR 全文を会話へ大
 
 ### 横断検索について
 
-source を指定しない `jp_lit_search(query="...")` は横断検索になりますが、対象は限られています。
+source を指定しない `jp_lit_search(session_id=SID, query="...")` は横断検索になりますが、対象は限られています。
 
 #### 横断検索に含まれる source
 
@@ -963,10 +971,10 @@ ninjal_bibliography
 博士論文、日本文学論文、古典籍、日本語研究・日本語教育文献を狙う場合は、既定横断ではなく専門 source を明示します。
 
 ```text
-jp_lit_search(source=cinii_dissertations, query="源氏物語 受容")
-jp_lit_search(source=nijl_articles, query="源氏物語 受容")
-jp_lit_search(source=kokusho, query="伊勢物語")
-jp_lit_search(source=ninjal_bibliography, query="日本語教育 文法")
+jp_lit_search(session_id=SID, source=cinii_dissertations, query="源氏物語 受容")
+jp_lit_search(session_id=SID, source=nijl_articles, query="源氏物語 受容")
+jp_lit_search(session_id=SID, source=kokusho, query="伊勢物語")
+jp_lit_search(session_id=SID, source=ninjal_bibliography, query="日本語教育 文法")
 ```
 
 - 博士論文・学位論文: `cinii_dissertations`
@@ -1193,14 +1201,15 @@ query expansion → ndl_digital → jp_lit_search_fulltext → nihu_bridge
 Skill を使わずに MCP 単体で進める場合は、必要に応じて source やツール名を明示します。たとえば書誌・所蔵を直接確認したい場合は、次のように依頼できます。
 
 ```text
-jp_lit_search(source=ndl_catalog, query="中央公論")
-jp_lit_search(source=cinii_books, query="中央公論")
+jp_lit_search(session_id=SID, source=ndl_catalog, query="中央公論")
+jp_lit_search(session_id=SID, source=cinii_books, query="中央公論")
 ```
 
 件名・NDC・NDLC から NDL 系 source を絞り込む場合は `filters.ndl` を使えます。
 
 ```text
 jp_lit_search(
+  session_id=SID,
   source=ndl_catalog,
   query="神保町",
   filters={ ndl: { subject: "書籍商", ndc: "024.1" } }
@@ -1211,6 +1220,7 @@ CiNii Books で件名語から得た NDC / NDLC によって図書候補を広�
 
 ```text
 jp_lit_search(
+  session_id=SID,
   source=cinii_books,
   query="近代日本文学",
   filters={ cinii: { category: "910.26 KG311" } }

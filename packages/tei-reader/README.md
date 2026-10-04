@@ -199,6 +199,7 @@ manifest_claimsは台帳とlocal bytesの対応。URL/commitは申告来歴と�
 | code / 状況 | 確認することと次の操作 |
 | --- | --- |
 | `runtime_launch_failed` | Node.js、uv、Python3.13の導入・PATHを確認し、`--help`から再実行する |
+| `unsupported_runtime` | readerのXML処理に必要なExpat2.7.2以上を確認する。指定のPython3.13.15を使っているか、readerの起動環境を確認する |
 | `file_access_error` | XMLまたは要求JSONのpathと読み取り権限を確認する |
 | `invalid_request` | 操作名、要求field、hashの形式を確認する。inspect以外は`expected_sha256`を指定する |
 | `invalid_xml` | XMLの整形式を確認する |
@@ -211,7 +212,7 @@ manifest_claimsは台帳とlocal bytesの対応。URL/commitは申告来歴と�
 
 長い祖先名による索引増幅もdocument_too_complexへ分類する。文字数上限はXPathごとの完全pathを足した値で、Unicode code pointを数える。これは索引文字列の上限であり、process全体のメモリや実行時間のhard limitは提供しない。
 
-通常応答はstdoutのUTF-8 JSON1件とLF。成功0、要求エラー2、XML/hash/上限/locatorエラー3、内部/launcherエラー4。起動環境の問題はruntime_launch_failed。PowerShell 7ではConvertFrom-Json -AsHashtable -ErrorAction Stopを使い、空namespace keyを保持する。CLI終了値とokも確認する。
+通常応答はstdoutのUTF-8 JSON1件とLF。成功0、要求エラー2、XML/hash/上限/locatorエラー3、内部/launcherエラー4。launcherの起動失敗はruntime_launch_failedで終了4、reader内のExpat要件不適合はunsupported_runtimeで終了3。PowerShell 7ではConvertFrom-Json -AsHashtable -ErrorAction Stopを使い、空namespace keyを保持する。CLI終了値とokも確認する。
 
 DOCTYPE、外部実体、XInclude展開、ネットワーク取得、XMLへの書込みは提供範囲から除く。Expat2.7.2以上を実行時確認する。TEI namespaceのTEI rootが対象で、teiCorpus/schema検証は対象外。固定資料と合成fixtureで検証した範囲を超える一般適合や原画像校合を保証しない。
 
