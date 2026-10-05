@@ -130,6 +130,10 @@ const absolute = z
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
   z.object({
+    api_version: z.literal("0.1"), operation: z.literal("evaluate_ocr"),
+    workspace_path: absolute, evaluation_path: absolute, output_path: absolute, overwrite: z.boolean().default(false),
+  }),
+  z.object({
     api_version: z.literal("0.1"), operation: z.literal("import_ocr"),
     workspace_path: absolute, run_path: absolute, output_path: absolute, overwrite: z.boolean().default(false),
   }),

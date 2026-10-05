@@ -37,4 +37,8 @@ describe("OCR reference agreement", () => {
     const { compareOcrText } = await import("../src/iiif/ocrMetrics.js");
     expect(() => compareOcrText("甲".repeat(2001), "乙".repeat(2001))).toThrow(/上限/);
   });
+  it("reports zero F1 when OCR returns no text against a nonempty reference",async()=>{
+    const {compareOcrText}=await import("../src/iiif/ocrMetrics.js");
+    expect(compareOcrText("甲乙","").strict).toMatchObject({deletions:2,cer:1,recall:0,f1:0});
+  });
 });

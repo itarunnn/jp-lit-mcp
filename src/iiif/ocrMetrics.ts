@@ -28,7 +28,7 @@ function agreement(reference: string, candidate: string) {
     distance: previous[0][b.length], substitutions: previous[1][b.length], deletions: previous[2][b.length], insertions: previous[3][b.length],
     cer: a.length ? previous[0][b.length] / a.length : null, matched_characters: matches,
     precision: b.length ? matches / b.length : null, recall: a.length ? matches / a.length : null,
-    f1: a.length && b.length ? 2 * matches / (a.length + b.length) : null };
+    f1: a.length ? 2 * matches / (a.length + b.length) : null };
 }
 export function compareOcrText(reference: string, candidate: string) {
   const layout = (s: string) => s.normalize("NFC").replace(/\p{White_Space}/gu, "");
