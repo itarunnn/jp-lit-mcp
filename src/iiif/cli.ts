@@ -6,12 +6,13 @@ import { ZodError } from "zod";
 import { parseIiifRequest } from "./schemas.js";
 import { loadPublicResource } from "./publicResource.js";
 import { normalizeManifest } from "./manifest.js";
-import { saveWorkspace, atomicWrite } from "./workspace.js";
+import { saveWorkspace, readWorkspace, atomicWrite } from "./workspace.js";
+import { linkTei, readTeiLinks } from "./tei.js";
 import { exportEvidence } from "./evidence.js";
 import { startLocalServer } from "./localServer.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
-  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence\n';
+  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei\n';
 export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
   let phase: "input" | "operation" = "input";
   try {
@@ -53,7 +54,15 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     );
     phase = "operation";
     let result: unknown;
-    if (request.operation === "export_evidence")
+    if (request.operation === "link_tei") {
+      const w = await readWorkspace(request.workspace_path);
+      const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset);
+      const next = linkTei(w, response, request);
+      await saveWorkspace(request.output_path, next, request.overwrite);
+      const page = response as { result: { total_occurrences: number; next_offset: number | null } };
+      result = { workspace_path: request.output_path, total_occurrences: page.result.total_occurrences, next_offset: page.result.next_offset,
+        states: { resolved: next.tei_links!.filter((l) => l.state === "resolved").length, candidate: next.tei_links!.filter((l) => l.state === "candidate").length, unresolved: next.tei_links!.filter((l) => l.state === "unresolved").length } };
+    } else if (request.operation === "export_evidence")
       result = await exportEvidence(request);
     else if (request.operation === "inspect_manifest") {
       const r = await loadPublicResource(request.manifest_url, {

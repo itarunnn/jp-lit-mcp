@@ -1,5 +1,6 @@
 import { z } from "zod";
 import path from "node:path";
+import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
 
 const id = z.string().min(1).max(4096);
 const num = z.number().finite();
@@ -119,11 +120,20 @@ export const workspaceSchema = z.object({
   regions: z.array(regionSchema).max(1000),
   texts: z.array(textSchema).max(2000),
   viewer_state: viewerSchema,
+  tei_links: z.array(teiLinkSchema).max(2000).optional(),
 });
 const absolute = z
   .string()
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
+  z.object({
+    api_version: z.literal("0.1"), operation: z.literal("link_tei"),
+    workspace_path: absolute, output_path: absolute, file_path: absolute,
+    expected_sha256: teiHashSchema, document_id: id,
+    surface_bindings: z.array(surfaceBindingSchema).max(2000).default([]),
+    limit: z.number().int().min(1).max(100).default(20), offset: z.number().int().nonnegative().default(0),
+    overwrite: z.boolean().default(false),
+  }),
   z.object({
     api_version: z.literal("0.1"),
     operation: z.literal("inspect_manifest"),
@@ -164,6 +174,7 @@ export function validateWorkspace(input: unknown) {
   unique(w.windows.map((v) => v.window_id));
   unique(w.regions.map((r) => r.selection.region_id));
   unique(w.texts.map((t) => t.text_id));
+  unique((w.tei_links ?? []).map((l) => l.link_id));
   for (const d of w.documents) {
     unique(d.canvases.map((c) => c.canvas_id));
     if (!d.sequences.some((s) => s.sequence_id === d.selected_sequence_id))
@@ -212,5 +223,19 @@ export function validateWorkspace(input: unknown) {
       )
     )
       throw new Error("viewer参照が未解決です");
+  for (const link of w.tei_links ?? []) {
+    const doc = w.documents.find((d) => d.document_id === link.document_id);
+    if (!doc) throw new Error("TEI document参照が未解決です");
+    if ((link.state === "resolved") !== (link.target !== null)) throw new Error("TEI対応状態が一致しません");
+    if (link.target) {
+      const t = link.target, c = doc.canvases.find((c) => c.canvas_id === t.canvas_id);
+      if (!c || (t.xywh && (t.xywh[0] + t.xywh[2] > c.width || t.xywh[1] + t.xywh[3] > c.height))) throw new Error("TEI対応先のCanvas/矩形が不正です");
+      if (t.region_id && !w.regions.some((r) => r.selection.region_id === t.region_id && r.selection.canvas_id === t.canvas_id && w.windows.find((v) => v.window_id === r.selection.window_id)?.document_id === doc.document_id && JSON.stringify(r.selection.xywh) === JSON.stringify(t.xywh))) throw new Error("TEI領域参照が不正です");
+    }
+    if (link.candidates.some((t) => !doc.canvases.some((c) => c.canvas_id === t.canvas_id))) throw new Error("TEI候補Canvas参照が未解決です");
+    const hash = link.reference.source_locator.document_sha256;
+    for (const n of [link.reference.target, link.reference.surface, ...link.reference.graphics])
+      if (n && n.locator.document_sha256 !== hash) throw new Error("TEI locatorのhashが一致しません");
+  }
   return w;
 }
