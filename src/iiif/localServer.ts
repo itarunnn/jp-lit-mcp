@@ -28,6 +28,8 @@ export async function startLocalServer(
     "/app.mjs": ["app.mjs", "text/javascript"],
     "/viewer-adapter.mjs": ["viewer-adapter.mjs", "text/javascript"],
     "/workspace-state.mjs": ["workspace-state.mjs", "text/javascript"],
+    "/tei-state.mjs": ["tei-state.mjs", "text/javascript"],
+    "/tei-panel.mjs": ["tei-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
     "/vendor/mirador.min.js": ["vendor/mirador.min.js", "text/javascript"],
   };

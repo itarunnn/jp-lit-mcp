@@ -17,7 +17,7 @@ export const facsimileItemSchema = z.object({
 });
 export const teiTargetSchema = z.object({
   canvas_id: id, xywh: xywh.nullable(), region_id: id.nullable(),
-  basis: z.enum(["direct_canvas", "surface_binding", "manual_region"]),
+  basis: z.enum(["direct_canvas", "surface_binding", "surface_same_as", "manual_region"]),
 });
 const record = z.object({ recorded_at: z.string().datetime(), recorded_by: z.string().trim().min(1).max(1024), note: z.string().trim().min(1).max(20000), target: teiTargetSchema });
 export const teiLinkSchema = z.object({

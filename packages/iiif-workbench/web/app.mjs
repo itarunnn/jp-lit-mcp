@@ -6,12 +6,15 @@ import {
   showRegion,
 } from "./viewer-adapter.mjs";
 import { mergeTextResult, addComparisonWindow } from "./workspace-state.mjs";
+import { createTeiPanel } from "./tei-panel.mjs";
+import { detachTeiRegion } from "./tei-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion;
+let workspace, viewer, pendingRegion, teiPanel;
 const status = (text) => {
   $("status").textContent = text;
 };
+const selectedRegions = () => [...document.querySelectorAll("input[name=region]:checked")].map((e) => e.value);
 async function api(route, body) {
   const r = await fetch(route, {
     method: body === undefined ? "GET" : "POST",
@@ -115,6 +118,7 @@ function build() {
       $("add-region").disabled = true;
       renderTexts();
       renderSources();
+      teiPanel?.render();
     };
     control.append(select);
     const add = node("button", "別窓で比較");
@@ -247,17 +251,21 @@ function renderRegions() {
         .map((t) => t.text_id);
       status(`${r.text_evidence_ids.length}件の原テキストを関連付けました。`);
     };
+    const tei = node("button", "関連TEI本文");
+    tei.onclick = () => teiPanel.showRegion(r);
     const remove = node("button", "削除");
     remove.onclick = () => {
+      detachTeiRegion(workspace, r.selection.region_id);
       workspace.regions = workspace.regions.filter((v) => v !== r);
       renderRegions();
     };
-    buttons.append(back, link, remove);
+    buttons.append(back, link, tei, remove);
     article.append(buttons);
     $("regions").append(article);
   }
 }
 function renderTexts() {
+  teiPanel?.render();
   if (!workspace) return;
   const { c } = current();
   $("texts").replaceChildren();
@@ -419,7 +427,18 @@ $("active-window").onchange = () => {
 try {
   if (!token) throw new Error("CLIが表示した起動URLを開いてください");
   workspace = await api("/api/workspace");
+  teiPanel = createTeiPanel({ element: $("tei-panel"), workspace: () => workspace, current, selectedRegions, status,
+    openImage(link) {
+      const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === link.document_id) ?? workspace.windows.find((w) => w.document_id === link.document_id);
+      if (!win) throw new Error("対応する資料の比較窓を開いてください");
+      const c = workspace.documents.find((d) => d.document_id === link.document_id).canvases.find((c) => c.canvas_id === link.target.canvas_id);
+      showRegion(viewer, { window_id: win.window_id, canvas_id: c.canvas_id, xywh: link.target.xywh ?? [0, 0, c.width, c.height] });
+      $("active-window").value = win.window_id;
+      status("TEI本文に対応する画像へ移動しました。原画像を確認して校合を記録できます。");
+    },
+  });
   build();
+  teiPanel.render();
   status(
     `${workspace.documents.length}資料を読み込みました。画像は各提供元から表示します。`,
   );

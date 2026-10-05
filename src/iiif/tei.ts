@@ -73,10 +73,11 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
   for (const ref of response.result.items) {
     if (ref.source_locator.document_sha256 !== response.document.sha256) throw new Error("TEI locatorのhashが一致しません");
     const link_id = "tei-" + createHash("sha256").update(JSON.stringify([response.document.sha256, ref.source_locator.xpath, ref.token_index, options.document_id])).digest("hex");
-    // 手動対応・校合を再importで上書きしない。同じhashの対応は同じsnapshot。
-    if (links.has(link_id)) continue;
+    // 実行者の記録を保全し、未記録の対応には後から明示bindingを適用できる。
+    const existing = links.get(link_id);
+    if (existing && (existing.assignments.length || existing.collations.length)) continue;
     const link: TeiLink = { link_id, document_id: doc.document_id, file_path: options.file_path,
-      imported_at: new Date().toISOString(), reference: ref, state: "unresolved", target: null,
+      imported_at: existing?.imported_at ?? new Date().toISOString(), reference: ref, state: "unresolved", target: null,
       candidates: [], diagnostics: [...ref.diagnostics], assignments: [], collations: [] };
     const based = ref.xml_base_chain.some((b) => b.value.length > 0);
     if (based) link.diagnostics.push("xml_base_requires_review");
@@ -89,18 +90,22 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
         else link.diagnostics.push("canvas_rectangle_out_of_bounds");
       } else if (ref.reference_status === "resolved_local" && ref.surface) {
         const surface = ref.surface, target = ref.target!;
-        const bound = bindings.get(surface.locator.xpath);
+        const binding = bindings.get(surface.locator.xpath);
+        const declared = surface.attributes.sameAs;
+        const bound = binding ?? declared;
+        const basis = binding ? "surface_binding" : "surface_same_as";
+        if (binding && declared && binding !== declared) link.diagnostics.push("surface_binding_overrides_same_as");
         const canvas = doc.canvases.find((c) => c.canvas_id === bound);
         const baseContext = [...surface.xml_base_chain, ...target.xml_base_chain].some((b) => b.value.length > 0);
         if (baseContext || ref.diagnostics.includes("nested_geometry") || geometryUnsupported(surface.attributes) || geometryUnsupported(target.attributes)) {
           link.diagnostics.push("unsupported_surface_geometry_or_base");
         } else if (canvas) {
-          if (target.name === "{http://www.tei-c.org/ns/1.0}surface") link.target = { canvas_id: canvas.canvas_id, xywh: null, region_id: null, basis: "surface_binding" };
+          if (target.name === "{http://www.tei-c.org/ns/1.0}surface") link.target = { canvas_id: canvas.canvas_id, xywh: null, region_id: null, basis };
           else if (target.name === "{http://www.tei-c.org/ns/1.0}zone") {
             const s = bounds(surface.attributes), t = bounds(target.attributes);
             if (s && t) {
               const rect: [number, number, number, number] = [(t[0] - s[0]) * canvas.width / s[2], (t[1] - s[1]) * canvas.height / s[3], t[2] * canvas.width / s[2], t[3] * canvas.height / s[3]];
-              if (inside(rect, canvas)) link.target = { canvas_id: canvas.canvas_id, xywh: rect, region_id: null, basis: "surface_binding" };
+              if (inside(rect, canvas)) link.target = { canvas_id: canvas.canvas_id, xywh: rect, region_id: null, basis };
               else link.diagnostics.push("zone_outside_surface");
             } else link.diagnostics.push("surface_or_zone_coordinates_missing");
           } else link.diagnostics.push("graphic_extent_requires_review");

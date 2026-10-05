@@ -61,6 +61,13 @@ describe("TEI to IIIF linking", () => {
     expect(result.w!.tei_links![0].candidates[0].canvas_id).toBe(canvas);
     expect(result.w!.tei_links![0].target).toBeNull();
   }, 60000);
+  it("uses an explicit surface sameAs Canvas declaration with its coordinate space", async () => {
+    const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><surface xml:id="s" sameAs="${canvas}" ulx="0" uly="0" lrx="2000" lry="1336"><zone xml:id="z" ulx="1000" uly="0" lrx="2000" lry="1336"/></surface><pb facs="#z"/></TEI>`);
+    expect(result.code, result.stdout).toBe(0);
+    expect(result.w!.tei_links![0].target?.xywh).toEqual([500, 0, 500, 2000]);
+    expect(result.w!.tei_links![0].target?.basis).toBe("surface_same_as");
+    expect(result.w!.tei_links![0].diagnostics).toContain("milestone_content_not_expanded");
+  }, 60000);
   it("keeps polygons and rotations unconfirmed, even with a surface binding", async () => {
     const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><surface xml:id="s" ulx="0" uly="0" lrx="100" lry="200"><zone xml:id="z" points="0,0 10,10 0,10" rotate="15"/></surface><p facs="#z"/><p facs="${canvas}#xywh=999,1,10,10"/></TEI>`, {
       surface_bindings: [{ surface_xpath: "/t:TEI[1]/t:surface[1]", canvas_id: canvas }],

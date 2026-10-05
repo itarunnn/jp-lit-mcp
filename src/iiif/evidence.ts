@@ -18,6 +18,8 @@ import { parseIiifRequest } from "./schemas.js";
 import { readWorkspace } from "./workspace.js";
 import { loadPublicResource } from "./publicResource.js";
 import { imageDimensions } from "./imageMetadata.js";
+// @ts-expect-error Nodeとブラウザが同じ対応判定を使う
+import { teiLinksForRegion } from "./tei-state.mjs";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
@@ -149,6 +151,7 @@ export async function exportEvidence(
     `.iiif-export-${randomUUID()}`,
   );
   await mkdir(stage, { recursive: true });
+  const teiFiles: string[] = [];
   const images: string[] = [],
     texts: string[] = [],
     diagnostics: string[] = [],
@@ -242,6 +245,12 @@ export async function exportEvidence(
         "utf8",
       );
       texts.push(file);
+      const tei = teiLinksForRegion(w, r);
+      const teiPath = tei.length ? `${name}.tei.json` : null;
+      if (teiPath) {
+        await writeFile(path.join(stage, teiPath), JSON.stringify(tei, null, 2) + "\n");
+        teiFiles.push(teiPath);
+      }
       items.push({
         evidence_id: r.selection.region_id,
         selection: r.selection,
@@ -281,6 +290,9 @@ export async function exportEvidence(
         display_image: display,
         text_evidence: linked,
         text_path: file,
+        tei_evidence: tei,
+        tei_path: teiPath,
+        tei_scope: "overlap_context",
         image_permission_confirmed: request.image_permission_confirmed,
       });
     }
@@ -328,6 +340,7 @@ export async function exportEvidence(
       prompt_path: path.join(request.output_dir, "prompt.md"),
       image_paths: images.map((f) => path.join(request.output_dir, f)),
       text_paths: texts.map((f) => path.join(request.output_dir, f)),
+      tei_paths: teiFiles.map((f) => path.join(request.output_dir, f)),
       diagnostics,
     };
   } finally {
