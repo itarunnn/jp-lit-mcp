@@ -36,7 +36,15 @@ Claude Code の `--env` は複数の `KEY=value` を受け取れるため、上�
 
 2. `Skills` をインストールします。
 
-この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`が Claude Code の Skills ディレクトリに入ります。既存の同名Skillsは指定版で置き換わるため、個別に編集した内容は導入前に退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`が個人用の `~/.claude/skills/` に入ります。個別に編集した同名Skillsは、導入・更新の前に編集内容を退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
+
+Skillsの導入・更新には、次のどちらか一方を選びます。GitHub CLIを既に使っている人や、取得元・版・更新を管理したい人にはGitHub経由をおすすめします。利用には `gh 2.90.0` 以上が必要で、`gh skill`はpublic previewです。版固定と更新手順は[GitHub Skillsガイド](github-skills.md)を参照してください。
+
+```bash
+gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
+```
+
+追加ツールを減らしたい人や、npm同梱版を使いたい人には次のコマンドをおすすめします。npm経由の更新もこのコマンドで行います。既存の同名Skillsは置き換わるため、GitHub経由で管理するSkillsへの重ねての実行は避けてください。
 
 ```bash
 npx -y jp-lit-mcp install-skills claude
@@ -94,7 +102,7 @@ npx -y jp-lit-mcp doctor
 - `jp-lit` は出るが、対話で反応しない
   - 新しいセッションを開くか、Claude Code を再起動してください
 - 文献DBモードが起動しない
-  - `npx -y jp-lit-mcp install-skills claude` を実行してください
+  - 手順2で選んだ導入方法と `~/.claude/skills/` の配置を確認してください。導入し直す場合も同じ方法を使います
 
 各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 
