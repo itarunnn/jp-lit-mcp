@@ -42,6 +42,7 @@
     "packages/tei-reader/tei_reader/__init__.py",
     "packages/tei-reader/tei_reader/__main__.py",
     "packages/tei-reader/tei_reader/document.py",
+    "packages/tei-reader/tei_reader/facsimile.py",
     "packages/tei-reader/tei_reader/locator.py",
     "packages/tei-reader/tei_reader/model.py",
     "packages/tei-reader/tei_reader/operations.py",
