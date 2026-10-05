@@ -2,7 +2,7 @@ import { bindTeiLink, recordTeiCollation, teiLinksForRegion, formatTei } from ".
 
 export function createTeiPanel({ element, workspace, current, openImage, selectedRegions, status }) {
   const node = (tag, text) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; return n; };
-  let regionFilter = null;
+  let regionFilter = null, page = 0;
   const heading = node("h2", "TEI本文と画像"), description = node("p", "本文の構造を保って画像と往復します。対応付けと本文の校合を別々に記録します。");
   description.className = "hint";
   const filterLabel = node("label", "表示範囲"), filter = node("select");
@@ -21,9 +21,19 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       const ids = regionFilter ? [regionFilter] : selectedRegions();
       links = [...new Map(w.regions.filter((r) => ids.includes(r.selection.region_id)).flatMap((r) => teiLinksForRegion(w, r)).map((l) => [l.link_id, l])).values()];
     }
-    list.append(node("p", `${links.length}件${links.length > 100 ? "（先頭100件を表示）" : ""}`));
+    page = Math.min(page, Math.max(0, Math.ceil(links.length / 100) - 1));
+    const start = page * 100, end = Math.min(start + 100, links.length);
+    list.append(node("p", `${links.length}件${links.length ? `（${start + 1}〜${end}件を表示）` : ""}`));
+    if (links.length > 100) {
+      const navigation = node("nav"); navigation.setAttribute("aria-label", "TEI対応のページ送り");
+      const previous = node("button", "前の100件"), next = node("button", "次の100件");
+      previous.disabled = page === 0; next.disabled = end === links.length;
+      previous.onclick = () => { page--; render(); };
+      next.onclick = () => { page++; render(); };
+      navigation.append(previous, next); list.append(navigation);
+    }
     if (!all.length) list.append(node("p", "TEIをCLIのlink_teiで結び付け、作業JSONを読み込むと本文が表示されます。"));
-    for (const link of links.slice(0, 100)) {
+    for (const link of links.slice(start, end)) {
       const article = node("article"); article.className = "tei-link"; article.dataset.linkId = link.link_id;
       const title = node("h3", link.reference.source_locator.xml_id || link.reference.source_locator.xpath);
       const states = { resolved: "対応あり", candidate: "候補", unresolved: "未解決" };
@@ -46,6 +56,6 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       article.append(details); list.append(article);
     }
   }
-  filter.onchange = () => { regionFilter = null; render(); };
-  return { render, showRegion(region) { regionFilter = region.selection.region_id; filter.value = "region"; render(); element.scrollIntoView({ block: "start", behavior: "smooth" }); } };
+  filter.onchange = () => { regionFilter = null; page = 0; render(); };
+  return { render, showRegion(region) { regionFilter = region.selection.region_id; filter.value = "region"; page = 0; render(); element.scrollIntoView({ block: "start", behavior: "smooth" }); } };
 }

@@ -53,7 +53,7 @@ function bounds(a: Record<string, string>): [number, number, number, number] | n
   const keys = ["ulx", "uly", "lrx", "lry"];
   if (keys.some((k) => !a[k]?.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(a[k]))) return null;
   const [x, y, right, bottom] = keys.map((k) => Number(a[k]));
-  return [x, y, right, bottom].every(Number.isFinite) && right > x && bottom > y ? [x, y, right - x, bottom - y] : null;
+  return [x, y, right, bottom].every(Number.isFinite) && right > x && bottom > y ? [x, y, right, bottom] : null;
 }
 function geometryUnsupported(a: Record<string, string>) {
   return ["points", "ulz", "lrz"].some((k) => k in a) || ("rotate" in a && (!Number.isFinite(Number(a.rotate)) || Number(a.rotate) !== 0));
@@ -104,9 +104,17 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
           else if (target.name === "{http://www.tei-c.org/ns/1.0}zone") {
             const s = bounds(surface.attributes), t = bounds(target.attributes);
             if (s && t) {
-              const rect: [number, number, number, number] = [(t[0] - s[0]) * canvas.width / s[2], (t[1] - s[1]) * canvas.height / s[3], t[2] * canvas.width / s[2], t[3] * canvas.height / s[3]];
-              if (inside(rect, canvas)) link.target = { canvas_id: canvas.canvas_id, xywh: rect, region_id: null, basis };
-              else link.diagnostics.push("zone_outside_surface");
+              // 原座標で包含を確かめ、境界点を変換してからxywhへ戻す。
+              // 包含済みの点だけをCanvas内に補正し、外側のzoneを丸めて採用しない。
+              if (t[0] < s[0] || t[1] < s[1] || t[2] > s[2] || t[3] > s[3]) link.diagnostics.push("zone_outside_surface");
+              else {
+                const map = (value: number, lo: number, hi: number, size: number) => Math.max(0, Math.min(size, (value - lo) / (hi - lo) * size));
+                const x = map(t[0], s[0], s[2], canvas.width), y = map(t[1], s[1], s[3], canvas.height);
+                const right = map(t[2], s[0], s[2], canvas.width), bottom = map(t[3], s[1], s[3], canvas.height);
+                const rect: [number, number, number, number] = [x, y, Math.min(right - x, canvas.width - x), Math.min(bottom - y, canvas.height - y)];
+                if (inside(rect, canvas)) link.target = { canvas_id: canvas.canvas_id, xywh: rect, region_id: null, basis };
+                else link.diagnostics.push("zone_outside_surface");
+              }
             } else link.diagnostics.push("surface_or_zone_coordinates_missing");
           } else link.diagnostics.push("graphic_extent_requires_review");
         }

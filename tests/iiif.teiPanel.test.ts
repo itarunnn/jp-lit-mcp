@@ -1,10 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 // @ts-expect-error ブラウザと共有するJS module
 import { bindTeiLink, recordTeiCollation, teiLinksForRegion, detachTeiRegion, formatTei } from "../src/iiif/tei-state.mjs";
 import { sampleWorkspace } from "./fixtures/iiif/sample.js";
 import { linkTei } from "../src/iiif/tei.js";
 import { validateWorkspace } from "../src/iiif/schemas.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, copyFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { saveWorkspace } from "../src/iiif/workspace.js";
@@ -23,6 +24,55 @@ function workspace() {
   }, { file_path: "J:/research/source.xml", expected_sha256: hash, document_id: "d1", surface_bindings: [] });
 }
 describe("TEI correspondence and collation", () => {
+  it("reaches and records an unresolved reference after the first 100 entries", async () => {
+    class Element {
+      children: Element[] = [];
+      textContent = ""; value = ""; disabled = false; dataset: Record<string, string> = {};
+      onclick?: () => void;
+      constructor(public tag: string) {}
+      append(...children: Element[]) { this.children.push(...children); }
+      replaceChildren(...children: Element[]) { this.children = children; }
+      scrollIntoView() {}
+      setAttribute() {}
+    }
+    const w = workspace(), template = w.tei_links![0];
+    w.tei_links = Array.from({ length: 101 }, (_, i) => ({ ...structuredClone(template), link_id: `tei-${i}` }));
+    const element = new Element("div"), messages: string[] = [];
+    const find = (root: Element, predicate: (e: Element) => boolean): Element | undefined => {
+      if (predicate(root)) return root;
+      for (const child of root.children) { const found = find(child, predicate); if (found) return found; }
+    };
+    // 配布時と同じ隣接module配置で、sourceのpanelそのものを実行する。
+    const dir = await mkdtemp(path.join(tmpdir(), "tei-panel-"));
+    try {
+      await Promise.all([
+        copyFile(new URL("../packages/iiif-workbench/web/tei-panel.mjs", import.meta.url), path.join(dir, "tei-panel.mjs")),
+        copyFile(new URL("../src/iiif/tei-state.mjs", import.meta.url), path.join(dir, "tei-state.mjs")),
+      ]);
+      const { createTeiPanel } = await import(/* @vite-ignore */ pathToFileURL(path.join(dir, "tei-panel.mjs")).href);
+      vi.stubGlobal("document", { createElement: (tag: string) => new Element(tag) });
+      const panel = createTeiPanel({ element, workspace: () => w, current: () => ({}), openImage: () => {}, selectedRegions: () => ["r1"], status: (s: string) => messages.push(s) });
+      panel.render();
+      const author = find(element, (e) => e.tag === "input")!;
+      author.value = "review-test";
+      const next = find(element, (e) => e.tag === "button" && e.textContent === "次の100件")!;
+      expect(next, "後半の未解決参照へ到達する操作が必要").toBeDefined();
+      next.onclick!();
+      let last = find(element, (e) => e.dataset.linkId === "tei-100")!;
+      expect(last).toBeDefined();
+      find(last, (e) => e.tag === "textarea")!.value = "合成参照の対応確認";
+      find(last, (e) => e.tag === "button" && e.textContent === "選択した1領域に結び付ける")!.onclick!();
+      last = find(element, (e) => e.dataset.linkId === "tei-100")!;
+      find(last, (e) => e.tag === "textarea")!.value = "合成fixtureの判断保留";
+      find(last, (e) => e.tag === "select")!.value = "uncertain";
+      find(last, (e) => e.tag === "button" && e.textContent === "原画像との校合を記録")!.onclick!();
+      expect(w.tei_links[100].assignments).toHaveLength(1);
+      expect(w.tei_links[100].collations[0].result).toBe("uncertain");
+      expect(messages).toHaveLength(2);
+      find(element, (e) => e.tag === "button" && e.textContent === "前の100件")!.onclick!();
+      expect(find(element, (e) => e.dataset.linkId === "tei-0")).toBeDefined();
+    } finally { vi.unstubAllGlobals(); await rm(dir, { recursive: true, force: true }); }
+  });
   it("applies a later explicit surface binding while preserving attributed manual records", () => {
     const w = workspace(), base = w.tei_links![0], reference = structuredClone(base.reference);
     reference.raw_token = "#s"; reference.reference_status = "resolved_local";

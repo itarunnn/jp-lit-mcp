@@ -31,8 +31,6 @@ scope省略/nullのcheckは全文書点検。選択範囲の参照先は全文�
 
 上限はXML10MiB、深度256、10万要素、XPath索引の全文字列累計16,777,216文字、要求/manifest64KiB、一覧最大100件、抽出2,000要素/4,000node/20,000 payload文字、応答1MiB。document_too_complexは文書構造または索引の上限超過。詳細はCLIに同梱された公開repositoryの `packages/tei-reader/README.md` を参照する。
 
-## 実行とJSONの消費
-
 ## IIIF画像との対応（開発版）
 
 開発版readerは`facsimile_links`にfile_path・expected_sha256・limit・offsetを渡すと、facs tokenごとのsource_locator/source_content、参照状態、surface/zone/graphicの原属性とlocatorを返す。外部画像を取得しない。pb等の後続本文を自動展開せず、大きい単位はomissionを残す。

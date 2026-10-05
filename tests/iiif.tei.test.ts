@@ -77,6 +77,19 @@ describe("TEI to IIIF linking", () => {
     expect(result.w!.tei_links![1].state).toBe("unresolved");
     expect(result.w!.tei_links!.every((l) => l.target === null)).toBe(true);
   }, 60000);
+  it("resolves decimal zones on surface edges while holding truly outside zones", async () => {
+    const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><surface xml:id="s" sameAs="${canvas}" ulx="0.1" uly="0.1" lrx="0.8" lry="0.8"><zone xml:id="edge" ulx="0.7" uly="0.7" lrx="0.8" lry="0.8"/><zone xml:id="outside" ulx="0.7" uly="0.7" lrx="0.8000001" lry="0.8"/></surface><p facs="#edge"/><p facs="#outside"/></TEI>`);
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    const [edge, outside] = result.w!.tei_links!;
+    expect(edge.state).toBe("resolved");
+    const [x, y, width, height] = edge.target!.xywh!;
+    expect(x).toBeCloseTo(6000 / 7);
+    expect(y).toBeCloseTo(12000 / 7);
+    expect(x + width).toBeLessThanOrEqual(1000);
+    expect(y + height).toBeLessThanOrEqual(2000);
+    expect(outside.state).toBe("unresolved");
+    expect(outside.diagnostics).toContain("zone_outside_surface");
+  }, 60000);
   it("rejects changed XML bytes before writing output", async () => {
     const result = await run('<TEI xmlns="http://www.tei-c.org/ns/1.0"><p/></TEI>', { expected_sha256: "0".repeat(64) });
     expect(result.code).toBe(4);

@@ -37,11 +37,11 @@ Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から
 
 `analysis-template.json`をコピーし、生成者・実行時刻、evidence_idごとの観察、翻刻候補、解釈、疑義を記入する。原テキストのtxtをAI候補で上書きしない。`analysis.json`を検査するときはpackageの`dist/src/iiif/evidence.js`がexportする`validateAnalysis(value, evidenceIds)`を使える。
 
-## 既存テキストと再開
-
 ## TEI本文と画像領域を結び付ける（開発版）
 
 CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初版の比較・書き出し機能を提供する。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
+
+link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像の取得、外部OCR／モデルへの送信を行わない。初回のuv環境準備ではPython runtimeを取得する場合がある。比較画面での画像表示は提供元へのアクセスとして別に扱う。
 
 ```json
 {
@@ -66,7 +66,7 @@ CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初�
 
 応答のokと終了値、states、next_offsetを確認する。続きはworkspace_path/output_pathを出力済みworkspaceへ揃え、offset=next_offset、overwrite=trueで追加する。limitは1〜100。XML hashが違う場合は版を点検する。同じ版の再実行は実行者付きの対応・校合記録を上書きしない。未記録の対応には後からsurface_bindingsを適用できる。
 
-`node scripts/iiif-workbench.mjs serve --workspace J:/research/linked.json`を起動する。「TEI本文と画像」の「対応する画像へ」で画像へ移動し、領域の「関連TEI本文」で戻る。手動対応は選択checkbox1件と記録者・理由を要求する。原画像との校合は実施後に結果・確認内容を別履歴へ追加する。未実施ならcollations=[]を保ち、resolvedを校合済みと解釈しない。
+`node scripts/iiif-workbench.mjs serve --workspace J:/research/linked.json`を起動する。「TEI本文と画像」の「対応する画像へ」で画像へ移動し、領域の「関連TEI本文」で戻る。一覧は100件ずつページを送り、未解決参照も全件を操作できる。手動対応は選択checkbox1件と記録者・理由を要求する。原画像との校合は実施後に結果・確認内容を別履歴へ追加する。未実施ならcollations=[]を保ち、resolvedを校合済みと解釈しない。
 
 exportのtei_evidence/tei_pathsはXML構造とlocatorを持つ併読用のoverlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。pb/cb/lbの後続本文範囲やfacsの継承は今回展開しない。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
 
