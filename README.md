@@ -90,6 +90,8 @@ CiNii Research の公式 API 仕様では `appid` が必須です。現在は未
 
 迷った場合は、まず普段文章やコードを書いているアプリに入れるのが楽です。複数のアプリに入れてもかまいませんが、それぞれで MCP 登録と Skills インストールが必要です。
 
+Skillsの導入方法は用途に合わせて選べます。GitHub CLIを既に使っている人や、Skillsの取得元・版・更新を管理したい人には[GitHub CLI経由](docs/install/github-skills.md)をおすすめします。追加ツールを減らしたい人や、npm同梱版を使いたい人には、各アプリのnpm導入手順をおすすめします。MCP登録は両経路に共通で、Skillsの導入・更新にはどちらか一方を使います。
+
 ## 追加で入れると便利な設定
 
 ### CiNii Research の appid
@@ -527,7 +529,7 @@ Crossref / OpenAlex は source ではなく、`jp_lit_enrich_record` で既存�
 - [Codex CLI での導入手順](docs/install/codex-cli.md): Codex CLI で MCP と Skills を使う
 - [Codex App での導入手順](docs/install/codex-app.md): Codex App で MCP と Skills を使う
 - [地方公共図書館・地域資料調査メモ](docs/regional-public-library-research.md): カーリル図書館MCPを併用する地域資料・地方公共図書館ルート
-- [GitHub CLI で Skills を入れる](docs/install/github-skills.md): `gh skill install` を使う別ルート
+- [GitHub CLI で Skills を入れる](docs/install/github-skills.md): Skillsの取得元・版・更新を管理する導入手順
 - [技術リファレンス](docs/reference.md): source、MCP ツール、環境変数、制約、開発・検証コマンド
 - [データ利用条件メモ](docs/source-usage-conditions.md): 外部 DB / API の表示要件や利用条件
 - [実装状況](docs/project-status.md): 現在の状態、最近の更新、公開後メモ

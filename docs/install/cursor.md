@@ -40,13 +40,21 @@
 
 2. `Skills` をインストールします。
 
-この手順で、同梱されている文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`を user-level の `~/.cursor/skills/` に配置します。既存の同名Skillsは指定版で置き換わるため、個別に編集した内容は導入前に退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
+この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`を user-level の `~/.cursor/skills/` に配置します。個別に編集した同名Skillsは、導入・更新の前に編集内容を退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
+
+Skillsの導入・更新には、次のどちらか一方を選びます。GitHub CLIを既に使っている人や、取得元・版・更新を管理したい人にはGitHub経由をおすすめします。利用には `gh 2.90.0` 以上が必要で、`gh skill`はpublic previewです。版固定と更新手順は[GitHub Skillsガイド](github-skills.md)を参照してください。
+
+```bash
+gh skill install itarunnn/jp-lit-mcp --all --agent cursor --scope user
+```
+
+追加ツールを減らしたい人や、npm同梱版を使いたい人には次のコマンドをおすすめします。npm経由の更新もこのコマンドで行います。既存の同名Skillsは置き換わるため、GitHub経由で管理するSkillsへの重ねての実行は避けてください。
 
 ```bash
 npx -y jp-lit-mcp install-skills cursor
 ```
 
-Cursor では project-level の Skill ディレクトリも使えます。ただし、この package の主導線は `npx -y jp-lit-mcp install-skills cursor` による user-level install です。
+このページの両コマンドはuser-levelへの導入です。Cursorではproject-levelのSkillディレクトリも使えます。作業repository内だけで管理する場合は、GitHub Skillsガイドの `--scope project` を参照してください。
 
 3. `Cursor` を再読込して、このリポジトリまたは調査したい作業フォルダで対話を始めます。
 
@@ -86,7 +94,7 @@ npx -y jp-lit-mcp doctor
 
 - `.cursor/mcp.json` ではなく別の JSON に書いている
 - `.cursor/mcp.json` を書き換えたあとに `Cursor` を再読込していない
-- `Skills` を使いたいのに、`npx -y jp-lit-mcp install-skills cursor` を実行していない
+- 手順2で選んだ方法によるSkillsの導入が完了していない
 
 よくある見分け方:
 

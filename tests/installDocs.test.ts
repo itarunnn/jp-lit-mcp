@@ -93,7 +93,7 @@ describe("install docs", () => {
     expect(docs).not.toContain("npm run skills:install");
   });
 
-  it("documents GitHub CLI skills as an explicit secondary route", () => {
+  it("documents GitHub CLI skills with explicit prerequisites, version resolution, and scope", () => {
     const githubSkills = readFileSync("docs/install/github-skills.md", "utf8");
     const githubSkillsPlain = githubSkills.replace(/`/g, "");
 
@@ -103,12 +103,12 @@ describe("install docs", () => {
     expect.soft(githubSkills).toContain("gh skills");
     expect.soft(githubSkills).toContain("最新タグ付き release");
     expect.soft(githubSkills).toContain("jp-lit-research@main");
-    expect.soft(githubSkills).toContain("gh skill update --dry-run");
+    expect.soft(githubSkills).toContain("gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif --dry-run");
     expect.soft(githubSkills).toContain("--agent codex");
     expect.soft(githubSkills).toContain("--agent cursor");
     expect.soft(githubSkills).toContain("--agent claude-code");
     expect.soft(githubSkills).toContain("--scope user");
-    expect.soft(githubSkillsPlain).toContain("MCP の登録までは行いません");
+    expect.soft(githubSkillsPlain).toContain("どちらもMCPの登録までは行いません");
   });
 
   it("mentions verification-mode examples in install and usage docs", () => {
