@@ -102,7 +102,7 @@ npx -y jp-lit-mcp doctor
 - `jp-lit` は出るが、対話で反応しない
   - 新しいセッションを開くか、Claude Code を再起動してください
 - 文献DBモードが起動しない
-  - `npx -y jp-lit-mcp install-skills claude` を実行してください
+  - 手順2で選んだ導入方法と `~/.claude/skills/` の配置を確認してください。導入し直す場合も同じ方法を使います
 
 各 source の base URL を明示・上書きしたい場合は [技術リファレンス](../reference.md#環境変数) を参照してください。
 
