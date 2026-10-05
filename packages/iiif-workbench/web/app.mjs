@@ -8,9 +8,11 @@ import {
 import { mergeTextResult, addComparisonWindow } from "./workspace-state.mjs";
 import { createTeiPanel } from "./tei-panel.mjs";
 import { detachTeiRegion } from "./tei-state.mjs";
+import { createOcrPanel } from "./ocr-panel.mjs";
+import { assertOcrTarget } from "./ocr-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion, teiPanel;
+let workspace, viewer, pendingRegion, teiPanel, ocrPanel;
 const status = (text) => {
   $("status").textContent = text;
 };
@@ -253,23 +255,27 @@ function renderRegions() {
     };
     const tei = node("button", "関連TEI本文");
     tei.onclick = () => teiPanel.showRegion(r);
+    const ocr = node("button", "関連OCR候補");
+    ocr.onclick = () => ocrPanel.showRegion(r);
     const remove = node("button", "削除");
     remove.onclick = () => {
       detachTeiRegion(workspace, r.selection.region_id);
       workspace.regions = workspace.regions.filter((v) => v !== r);
       renderRegions();
     };
-    buttons.append(back, link, tei, remove);
+    buttons.append(back, link, tei, ocr, remove);
     article.append(buttons);
     $("regions").append(article);
   }
+  ocrPanel?.render();
 }
 function renderTexts() {
   teiPanel?.render();
+  ocrPanel?.render();
   if (!workspace) return;
   const { c } = current();
   $("texts").replaceChildren();
-  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id))
+  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id && !t.ocr_provenance))
     $("texts").append(
       node("p", `${t.origin} / ${t.verification_state}`),
       node("pre", t.text),
@@ -427,6 +433,16 @@ $("active-window").onchange = () => {
 try {
   if (!token) throw new Error("CLIが表示した起動URLを開いてください");
   workspace = await api("/api/workspace");
+  ocrPanel = createOcrPanel({ element: $("ocr-panel"), workspace: () => workspace, current, status,
+    openImage(text, line) {
+      const { doc, source } = assertOcrTarget(workspace,text);
+      const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === doc.document_id) ?? workspace.windows.find((w) => w.document_id === doc.document_id);
+      if (!win) throw new Error("対応する資料の比較窓を開いてください");
+      showRegion(viewer,{window_id:win.window_id,canvas_id:source.selection.canvas_id,xywh:line?.canvas_xywh ?? source.selection.xywh});
+      $("active-window").value=win.window_id;
+      status("OCR候補に対応する画像へ移動しました。原画像で文字を確認できます。");
+    },
+  });
   teiPanel = createTeiPanel({ element: $("tei-panel"), workspace: () => workspace, current, selectedRegions, status,
     openImage(link) {
       const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === link.document_id) ?? workspace.windows.find((w) => w.document_id === link.document_id);

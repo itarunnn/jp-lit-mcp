@@ -13,6 +13,13 @@ describe("OCR provenance in existing workspaces", () => {
     (w.texts as unknown[]).push(t);
     expect(() => validateWorkspace(w)).toThrow(/OCR/);
   });
+  it.each(["manifest", "review", "line"])("rejects inconsistent saved OCR provenance: %s", (kind) => {
+    const w=sampleWorkspace(),t=ocrCandidate();
+    if(kind==="manifest")t.ocr_provenance.source.manifest_sha256="0".repeat(64);
+    if(kind==="review")(t.ocr_provenance.reviews as unknown[]).push({recorded_at:"2026-10-05T00:00:00Z",author:"校合者",result:"uncertain",note:"合成検証",corrected_text:null,image_sha256:"0".repeat(64)});
+    if(kind==="line")t.ocr_provenance.lines[0].canvas_xywh[0]++;
+    (w.texts as unknown[]).push(t);expect(()=>validateWorkspace(w)).toThrow(/OCR/);
+  });
 });
 describe("NDL Koten OCR line coordinates", () => {
   const raw = () => ({ imginfo: { img_width: 150, img_height: 200 }, contents: [[{

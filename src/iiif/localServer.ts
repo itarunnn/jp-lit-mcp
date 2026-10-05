@@ -30,6 +30,8 @@ export async function startLocalServer(
     "/workspace-state.mjs": ["workspace-state.mjs", "text/javascript"],
     "/tei-state.mjs": ["tei-state.mjs", "text/javascript"],
     "/tei-panel.mjs": ["tei-panel.mjs", "text/javascript"],
+    "/ocr-state.mjs": ["ocr-state.mjs", "text/javascript"],
+    "/ocr-panel.mjs": ["ocr-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
     "/vendor/mirador.min.js": ["vendor/mirador.min.js", "text/javascript"],
   };

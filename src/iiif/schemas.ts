@@ -2,6 +2,7 @@ import { z } from "zod";
 import path from "node:path";
 import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
+import { validateOcrSource, normalizeKotenOutput } from "./ocr.js";
 
 const id = z.string().min(1).max(4096);
 const num = z.number().finite();
@@ -129,6 +130,10 @@ const absolute = z
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
   z.object({
+    api_version: z.literal("0.1"), operation: z.literal("import_ocr"),
+    workspace_path: absolute, run_path: absolute, output_path: absolute, overwrite: z.boolean().default(false),
+  }),
+  z.object({
     api_version: z.literal("0.1"), operation: z.literal("inspect_ocr_provider"),
     engine_dir: absolute, python_path: absolute,
   }),
@@ -204,6 +209,15 @@ export function validateWorkspace(input: unknown) {
       throw new Error("OCR候補と校合記録を分離してください");
     const c = canvases.find((c) => c.canvas_id === t.canvas_id);
     if (!c) throw new Error("text参照が未解決です");
+    if (t.ocr_provenance) {
+      const p=t.ocr_provenance,s=validateOcrSource(p.source),doc=w.documents.find((d)=>d.document_id===s.document_id);
+      if(s.workspace_id!==w.workspace_id || doc?.receipt.sha256!==s.manifest_sha256 || !doc.canvases.some((x)=>x.canvas_id===t.canvas_id) ||
+          s.selection.canvas_id!==t.canvas_id || s.canvas_width!==c.width || s.canvas_height!==c.height ||
+          JSON.stringify(t.target_xywh)!==JSON.stringify(s.selection.xywh) || p.reviews.some((r)=>r.image_sha256!==s.image_sha256))
+        throw new Error("OCR出典・校合画像の参照が一致しません");
+      const lines=normalizeKotenOutput({imginfo:{img_width:s.image_width,img_height:s.image_height},contents:[p.lines.map((l)=>({id:l.line_id,text:l.text,boundingBox:l.bounding_box,...(l.detection_confidence===null?{}:{confidence:l.detection_confidence})}))]},s);
+      if(JSON.stringify(lines)!==JSON.stringify(p.lines))throw new Error("OCR行座標の記録が一致しません");
+    }
     if (
       t.target_xywh &&
       (t.target_xywh[0] + t.target_xywh[2] > c.width ||
