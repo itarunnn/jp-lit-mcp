@@ -33,6 +33,14 @@ scope省略/nullのcheckは全文書点検。選択範囲の参照先は全文�
 
 ## 実行とJSONの消費
 
+## IIIF画像との対応（開発版）
+
+開発版readerは`facsimile_links`にfile_path・expected_sha256・limit・offsetを渡すと、facs tokenごとのsource_locator/source_content、参照状態、surface/zone/graphicの原属性とlocatorを返す。外部画像を取得しない。pb等の後続本文を自動展開せず、大きい単位はomissionを残す。
+
+比較画面へつなぐ場合は、`jp-lit-iiif` Skillの[TEI連携の要求と操作](../../jp-lit-iiif/references/workflow.md#tei本文と画像領域を結び付ける開発版)を使う。CLI helpのlink_teiを確認し、固定XMLとhash、既存workspaceのdocument_id、出力pathを指定する。Canvasへの宣言上の対応と本文校合を分け、未校合ならcollations=[]を保持する。通常MCPの設定変更や外部OCR／モデル送信を行わず、この任意CLIの範囲で実行する。
+
+## JSONの実行と消費
+
 ```sh
 npx --yes --package=jp-lit-mcp jp-lit-tei-reader --request /absolute/path/request.json
 ```

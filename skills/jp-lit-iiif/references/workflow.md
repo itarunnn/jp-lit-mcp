@@ -39,6 +39,39 @@ Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から
 
 ## 既存テキストと再開
 
+## TEI本文と画像領域を結び付ける（開発版）
+
+CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初版の比較・書き出し機能を提供する。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
+
+```json
+{
+  "api_version": "0.1",
+  "operation": "link_tei",
+  "workspace_path": "J:/research/workspace.json",
+  "output_path": "J:/research/linked.json",
+  "file_path": "J:/research/source.xml",
+  "expected_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "document_id": "d1",
+  "surface_bindings": [{
+    "surface_xpath": "/t:TEI[1]/t:facsimile[1]/t:surface[1]",
+    "canvas_id": "https://example.org/c1"
+  }],
+  "limit": 20,
+  "offset": 0,
+  "overwrite": false
+}
+```
+
+例のpath・hash・IDを実測値とworkspaceのIDへ置き換える。surface_bindingsはsurface全域とCanvas全域の対応を確認した場合に指定する。直接Canvas URIを指すfacs、surfaceのsameAs宣言はworkspace内で一致するCanvasへ対応する。zone座標はsurface原点・範囲から変換する。graphic画像URL一致だけはcandidate、重複ID・base・座標不足・polygon・回転等は診断付きで保留する。
+
+応答のokと終了値、states、next_offsetを確認する。続きはworkspace_path/output_pathを出力済みworkspaceへ揃え、offset=next_offset、overwrite=trueで追加する。limitは1〜100。XML hashが違う場合は版を点検する。同じ版の再実行は実行者付きの対応・校合記録を上書きしない。未記録の対応には後からsurface_bindingsを適用できる。
+
+`node scripts/iiif-workbench.mjs serve --workspace J:/research/linked.json`を起動する。「TEI本文と画像」の「対応する画像へ」で画像へ移動し、領域の「関連TEI本文」で戻る。手動対応は選択checkbox1件と記録者・理由を要求する。原画像との校合は実施後に結果・確認内容を別履歴へ追加する。未実施ならcollations=[]を保ち、resolvedを校合済みと解釈しない。
+
+exportのtei_evidence/tei_pathsはXML構造とlocatorを持つ併読用のoverlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。pb/cb/lbの後続本文範囲やfacsの継承は今回展開しない。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
+
+## 既存テキストを読む
+
 画面の「表示ページの既存テキストを読む」はv3の単純なTextualBodyと明示された外部AnnotationPage最大1件を対象にする。取得後に「テキストを関連付ける」で同じCanvasの原テキストを領域へ結び付ける。
 
 手動テキストのJSONは`text_id`、`canvas_id`、`target_xywh`（全頁はnull）、`source_ref`（元path等）、`source_sha256`、`text`、`origin="manual_transcription"`、`verification_state="unverified"`を指定する。校訂済みの状態は実際の照合記録に従って指定する。

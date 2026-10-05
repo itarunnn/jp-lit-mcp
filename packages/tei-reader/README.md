@@ -6,6 +6,20 @@ readerは、固定したローカルTEI/XMLの情報・単位一覧・構造抽�
 
 ## 起動と開発時の検証
 
+開発版の任意操作`facsimile_links`は、画像対応用の原構造と参照材料を返します。従来4操作の契約を維持し、外部資源を取得しません。
+
+```json
+{
+  "operation": "facsimile_links",
+  "file_path": "/absolute/path/source.xml",
+  "expected_sha256": "取得版の小文字SHA-256・64桁",
+  "limit": 20,
+  "offset": 0
+}
+```
+
+各itemは`source_locator/source_content/omission`、facsの`raw_token/token_index/attribute_value`、`reference_status/xml_base_chain`、`target/surface/graphics`の原属性とlocator、`diagnostics`を持ちます。対応材料は最大100件／ページ、応答1MiBまで。大きい本文単位は`unit_too_large`をitemへ残し、`next_offset`で続きを指定します。pb等のmilestoneは要素自体を返し、後続本文を展開しません。Canvasへの対応と本文校合は[IIIF連携](../../docs/iiif-workbench.md#tei本文と画像領域を往復する開発版)へ渡します。
+
 repository内ではrootから次を実行します。
 
 ```sh

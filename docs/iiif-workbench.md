@@ -95,7 +95,56 @@ v3の既存テキストがあるページは「表示ページの既存テキス
 - manifestは10MiB・選択sequence2000Canvas、Image Service info.jsonは2MiB、timeout15秒・redirect3回・取得同時1件。全冊画像取得、認証・館内限定・送信限定資料の取得は対象外。
 - 公開HTTPSを限定取得し、画像表示は提供元へ直接アクセスする。CORSや閲覧権限の失敗は提供元の状態として扱う。失敗した窓があっても他の資料は操作できる。
 
-TEIのfacs/surface/zone対応、くずし字OCR、モデル接続、類似図版検索・整列差分は後続段階です。初版のID・座標・出典をその足場として使います。
+TEIのfacs/surface/zone対応は開発版の第2段階で利用できます。npm公開版0.17.0は初版の機能を提供します。くずし字OCR、モデル接続、類似図版検索・整列差分は第3・4段階です。
+
+## TEI本文と画像領域を往復する（開発版）
+
+TEIの対応表は、保存したXMLのSHA-256・XPath・xml:id、原属性、本文の構造とCanvas／矩形を結び付けます。本文から画像へ、領域から関連するTEI要素へ移動できます。`choice`、`app`、`del`、`add`、`note`の枝を保持し、タグ付きで表示します。
+
+この機能には、開発checkoutでの`npm ci`・`npm run build`と、[TEI readerのuv・Python環境](tei-reader.md#導入)が必要です。通常の比較画面やMCP起動はNode.jsだけで使えます。AIへ「このTEIの画像参照を比較画面に結び付けて」と依頼するか、次の要求JSONを保存して実行します。
+
+```json
+{
+  "api_version": "0.1",
+  "operation": "link_tei",
+  "workspace_path": "J:/ResearchLibrary/Projects/Example/workspace/workspace.json",
+  "output_path": "J:/ResearchLibrary/Projects/Example/workspace/tei-workspace.json",
+  "file_path": "J:/ResearchLibrary/Projects/Example/source.xml",
+  "expected_sha256": "XML取得版の小文字SHA-256・64桁",
+  "document_id": "workspace.documents内のdocument_id",
+  "limit": 20,
+  "offset": 0,
+  "overwrite": false,
+  "surface_bindings": []
+}
+```
+
+```powershell
+node scripts/iiif-workbench.mjs --request 'J:/ResearchLibrary/Projects/Example/link-tei.json'
+node scripts/iiif-workbench.mjs serve --workspace 'J:/ResearchLibrary/Projects/Example/workspace/tei-workspace.json'
+```
+
+`expected_sha256`には、既存TEI readerの文書検査か`(Get-FileHash -Algorithm SHA256 -LiteralPath <XML>).Hash.ToLowerInvariant()`で確認した値を入れます。`next_offset`が数値なら次の要求の`offset`へ渡します。続きの入力`workspace_path`と`output_path`を出力済みworkspaceへ揃え、`overwrite=true`で追加します。同じXML版・要素・token・資料の再実行は手動対応と校合履歴を保持します。
+
+| 対応の状態 | 根拠と操作 |
+| --- | --- |
+| 対応あり（resolved） | Canvasを直接指すfacs、surfaceのsameAs宣言、利用者のsurface対応指定、または手動領域指定。本文の校合は別に記録する。 |
+| 候補（candidate） | graphic画像URLとCanvasのpainting画像が一致する。確認した領域を手動で対応付ける。 |
+| 未解決（unresolved） | 欠けたID、重複ID、xml:base、未知URI、座標不足、polygon、回転・入れ子などを診断付きで残す。 |
+
+surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを明示していればその宣言を使います。利用者が全surfaceとCanvas全域の対応を確認した場合は、`surface_bindings`へ`{"surface_xpath":"/t:TEI[1]/t:facsimile[1]/t:surface[1]","canvas_id":"該当Canvas ID"}`を指定できます。zone矩形はsurfaceの原点・範囲からCanvasへ変換し、原属性を保持します。複雑な形状は手動の矩形対応で扱います。
+
+画面の「TEI本文と画像」から画像へ移動します。領域コレクションの「関連TEI本文」は同じ資料・ページで領域と重なる対応を表示します。手動対応ではcheckboxを1件選び、記録者と対応理由を入力します。本文校合は原画像を確認してから「一致を確認／相違あり／判断保留」と確認内容を別に追加します。「作業を保存」で保存し、校合履歴はその時点の対応先を保持します。
+
+読解資料は、重なるresolved対応を`region-N.tei.json`と`evidence.json`に保存します。範囲は`tei_scope="overlap_context"`で、全ページ対応や部分的な重なりも含む併読用の文脈です。選択矩形だけの翻刻を意味しません。原TEI構造と機械生成候補を分けて使います。
+
+今回の自動対応は明示的なfacsを持つ要素が対象です。`pb`・`cb`・`lb`の後続本文への範囲展開、facsを持たない本文への継承、任意のcorrespチェーン、外部XMLの参照解決は後続の対応です。大きい本文単位は省略診断を残し、TEI readerで小さい単位を取り出して併読できます。画像参照だけの要素から本文を推定しません。
+
+## OCR・モデル接続・画像解析への進め方
+
+第3段階は、選択領域のくずし字OCR、直接VLM読解、画像を併用したOCR修正を同じ資料12〜20ページで比較します。原出力・領域ID・費用・時間・誤字・欠落・表記変更を記録し、資料別の評価からproviderを選びます。送信先と対象の許可を具体化した上で任意実行する構成にします。
+
+第4段階は、手動で対応を定めた図版集合を使い、類似図版の検索順位と整列差分の誤検出を評価します。撮影条件に由来する差と史料上の差を区別し、TEI対応・領域ID・校合記録へ戻れる候補を保存します。
 
 ## 取得と利用条件
 
