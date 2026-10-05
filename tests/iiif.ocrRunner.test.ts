@@ -14,7 +14,7 @@ async function fixture(mode = "ok") {
   await writeFile(path.join(src,"ocr.py"), `const fs=require('node:fs'),p=require('node:path');
     const a=process.argv.slice(2), image=a[a.indexOf('--sourceimg')+1], out=a[a.indexOf('--output')+1];
     if(a.includes('--json-only')||a.includes('--viz')||a[a.indexOf('--device')+1]!=='cpu')process.exit(9);
-    if(${JSON.stringify(mode)}==='timeout'){setInterval(()=>{},1000);}else{
+    if(${JSON.stringify(mode)}==='timeout'||(${JSON.stringify(mode)}==='slow-second'&&image.includes('input-2.'))){fs.writeFileSync(p.join(out,'started'),'ready');setInterval(()=>{},1000);}else{
     const name=p.basename(image).split('.')[0];
     if(${JSON.stringify(mode)}==='fail'){fs.writeFileSync(p.join(out,name+'.xml'),'<partial/>');process.exit(7);}
     if(${JSON.stringify(mode)}!=='empty'){
@@ -40,6 +40,30 @@ async function fixture(mode = "ok") {
   return {dir,provider,inspected,request,evidence,evidencePath,configPath,api};
 }
 describe("optional local Koten OCR runner", () => {
+  it.each(["timeout","slow-second"])("records running and the complete requested IDs before interruption: %s",async(mode)=>{
+    const f=await fixture(mode),config=f.inspected.config;config.timeout_ms=1000;await writeFile(f.configPath,JSON.stringify(config));
+    if(mode==="slow-second"){
+      const second=structuredClone(f.evidence.items[0]);second.evidence_id="r2";second.selection.region_id="r2";
+      f.evidence.items.push(second);f.request.evidence_ids.push("r2");await writeFile(f.evidencePath,JSON.stringify(f.evidence));
+    }
+    const pending=f.api.runOcr(f.request);let snapshot:any;
+    try{
+      for(let i=0;i<100;i++){
+        try{await readFile(path.join(f.request.output_dir,mode==="timeout"?"item-1":"item-2","started"));snapshot=JSON.parse(await readFile(path.join(f.request.output_dir,"run.json"),"utf8"));break;}catch{}
+        await new Promise(resolve=>setTimeout(resolve,20));
+      }
+      expect(snapshot).toMatchObject({status:"running",requested_evidence_ids:f.request.evidence_ids});
+      expect(snapshot.items).toHaveLength(mode==="timeout"?0:1);
+    }finally{const final=await pending;expect(final.status).toBe(mode==="timeout"?"failed":"partial");}
+  });
+  it.each(["body","omission","milestone"])("requires explicit comparison for existing TEI context: %s",async(kind)=>{
+    const f=await fixture();
+    (f.evidence.items[0] as any).tei_evidence=[{reference:{source_content:kind==="omission"?null:{kind:"element",name:kind==="milestone"?"pb":"p",content:kind==="body"?[{kind:"text",value:"既存本文"}]:[]},omission:kind==="omission"?"content_limit":null}}];
+    await writeFile(f.evidencePath,JSON.stringify(f.evidence));
+    await expect(f.api.runOcr(f.request)).rejects.toThrow(/TEI/);
+    await expect(readdir(f.request.output_dir)).rejects.toThrow();
+    f.request.allow_existing_text=true;expect((await f.api.runOcr(f.request)).status).toBe("completed");
+  });
   it("exposes provider inspection and a local run through the JSON CLI", async () => {
     const f=await fixture(), outputs:string[]=[];
     const file=path.join(f.dir,"request.json"), io={cwd:f.dir,stdout:(s:string)=>outputs.push(s),stderr:()=>{}};

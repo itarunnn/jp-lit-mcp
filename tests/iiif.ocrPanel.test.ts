@@ -9,6 +9,7 @@ import { validateWorkspace } from "../src/iiif/schemas.js";
 class Element {
   children:Element[]=[]; textContent=""; value=""; disabled=false; dataset:Record<string,string>={};
   onclick?:()=>void; onchange?:()=>void; placeholder="";
+  oninput?:()=>void; ontoggle?:()=>void; open=false;
   constructor(public tag:string){}
   append(...children:Element[]){this.children.push(...children);}
   replaceChildren(...children:Element[]){this.children=children;}
@@ -35,6 +36,14 @@ it("navigates a later OCR line and records a correction without altering the ori
     expect(images[0][1].line_id).toBe("200");expect(images[0][1].canvas_xywh).toEqual([100,200,100,200]);
     find(element,e=>e.tag==="textarea"&&e.placeholder==="原画像で確認した内容")!.value="合成fixtureの保留";
     find(element,e=>e.tag==="textarea"&&e.placeholder==="任意の修訂候補")!.value="訂正候補<script>";
+    find(element,e=>e.tag==="textarea"&&e.placeholder==="原画像で確認した内容")!.oninput?.();
+    find(element,e=>e.tag==="textarea"&&e.placeholder==="任意の修訂候補")!.oninput?.();
+    const details=find(element,e=>e.tag==="details")!;details.open=true;details.ontoggle?.();
+    panel.render();
+    expect(find(element,e=>e.tag==="textarea"&&e.placeholder==="原画像で確認した内容")!.value).toBe("合成fixtureの保留");
+    expect(find(element,e=>e.tag==="textarea"&&e.placeholder==="任意の修訂候補")!.value).toBe("訂正候補<script>");
+    expect(find(element,e=>e.tag==="details")!.open).toBe(true);
+    expect(find(element,e=>e.tag==="input"&&e.value==="201")).toBeDefined();
     find(element,e=>e.tag==="button"&&e.textContent==="原画像との校合を記録")!.onclick!();
     expect(w.texts[0].text).toBe("古い本文\n");expect(w.texts[0].ocr_provenance!.reviews[0]).toMatchObject({result:"uncertain",author:"review-test",corrected_text:"訂正候補<script>"});
     expect(messages.at(-1)).toMatch(/保存/);expect(validateWorkspace(w).texts[0].verification_state).toBe("unverified");

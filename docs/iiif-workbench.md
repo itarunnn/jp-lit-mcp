@@ -195,9 +195,9 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 }
 ```
 
-1〜4領域を逐次実行します。`output_dir`は未作成のdirectoryにします。画像hash・寸法・crop・縮小率を確認し、入力のコピー、原JSON/TXT/XML/TEI、ログ、実行時間とengineのhashを残します。既存テキストがある領域は停止します。既存翻刻とOCRを比較する明示依頼がある場合は`allow_existing_text=true`を指定できます。
+1〜4領域を逐次実行します。`output_dir`は未作成のdirectoryにします。画像hash・寸法・crop・縮小率を確認し、入力のコピー、原JSON/TXT/XML/TEI、ログ、実行時間とengineのhashを残します。既存テキストやTEI併読情報がある領域は停止します。TEI本文の省略診断や空の改頁参照も、保存済み対応を使った比較として扱います。明示的に比較する場合は`allow_existing_text=true`を指定できます。
 
-終了値と`status`を確認します。`completed`は実行成功、`partial`は一部失敗、`failed`は全件失敗です。失敗を含むCLI実行は終了値4と`ok=false`を返し、`result.run_path`に原出力と失敗記録を保管します。再試行は新しい保存先で行います。自動再試行や外部providerへのfallbackはありません。
+終了値と`status`を確認します。`running`は処理途中で、初回実行前から要求ID一覧と処理中IDを保存します。全対象が終わるまでimportを保留します。`completed`は全対象の実行成功、`partial`は一部失敗、`failed`は全件失敗です。失敗を含むCLI実行は終了値4と`ok=false`を返し、`result.run_path`に原出力と失敗記録を保管します。再試行は新しい保存先で行います。自動再試行や外部providerへのfallbackはありません。
 
 ```json
 {

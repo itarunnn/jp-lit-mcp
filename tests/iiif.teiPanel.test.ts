@@ -29,6 +29,7 @@ describe("TEI correspondence and collation", () => {
       children: Element[] = [];
       textContent = ""; value = ""; disabled = false; dataset: Record<string, string> = {};
       onclick?: () => void;
+      oninput?: () => void; ontoggle?: () => void; open = false;
       constructor(public tag: string) {}
       append(...children: Element[]) { this.children.push(...children); }
       replaceChildren(...children: Element[]) { this.children = children; }
@@ -64,7 +65,13 @@ describe("TEI correspondence and collation", () => {
       find(last, (e) => e.tag === "button" && e.textContent === "選択した1領域に結び付ける")!.onclick!();
       last = find(element, (e) => e.dataset.linkId === "tei-100")!;
       find(last, (e) => e.tag === "textarea")!.value = "合成fixtureの判断保留";
+      find(last, (e) => e.tag === "textarea")!.oninput?.();
       find(last, (e) => e.tag === "select")!.value = "uncertain";
+      const details=find(last,(e)=>e.tag==="details")!;details.open=true;details.ontoggle?.();
+      panel.render();
+      last=find(element,(e)=>e.dataset.linkId==="tei-100")!;
+      expect(find(last,(e)=>e.tag==="textarea")!.value).toBe("合成fixtureの判断保留");
+      expect(find(last,(e)=>e.tag==="details")!.open).toBe(true);
       find(last, (e) => e.tag === "button" && e.textContent === "原画像との校合を記録")!.onclick!();
       expect(w.tei_links[100].assignments).toHaveLength(1);
       expect(w.tei_links[100].collations[0].result).toBe("uncertain");

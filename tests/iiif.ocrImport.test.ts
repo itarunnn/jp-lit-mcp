@@ -17,7 +17,12 @@ async function fixture() {
   const files:Record<string,string|Buffer>={"input.png":png,"raw/input.txt":t.text,
     "raw/input.json":JSON.stringify({imginfo:{img_width:150,img_height:200},contents:[p.lines.map(l=>({id:l.line_id,text:l.text,boundingBox:l.bounding_box,confidence:l.detection_confidence}))]})};
   for(const [file,bytes] of Object.entries(files))await writeFile(path.join(dir,file),bytes);
-  const evidence=JSON.stringify({workspace_id:"w1",items:[{evidence_id:"r1"}]}); await writeFile(path.join(dir,"evidence.json"),evidence);
+  const s=p.source;
+  const evidence=JSON.stringify({schema_version:"0.1",workspace_id:"w1",items:[{evidence_id:"r1",selection:s.selection,
+    source:{document_id:s.document_id,receipt:{sha256:s.manifest_sha256}},canvas:{canvas_id:s.selection.canvas_id,width:s.canvas_width,height:s.canvas_height},
+    crop:{status:"supported",image_xywh:s.original_image_xywh,transform:s.canvas_to_image},
+    display_image:{path:"region.png",receipt:{sha256:s.image_sha256},width:s.image_width,height:s.image_height,original_image_xywh:s.original_image_xywh,canvas_to_image:s.canvas_to_image,scale_x:s.scale_x,scale_y:s.scale_y},
+    image_permission_confirmed:true,text_evidence:[]}]}); await writeFile(path.join(dir,"evidence.json"),evidence);
   const run={schema_version:"0.1",run_id:p.run_id,status:"completed",image_transmission:"none",device:"cpu",engine:p.engine,
     evidence_path:path.join(dir,"original.json"),evidence_sha256:digest(evidence),items:[{status:"completed",source:p.source,started_at:p.started_at,finished_at:p.finished_at,duration_ms:p.duration_ms,
       text:t.text,lines:p.lines,artifacts:Object.entries(files).map(([file,b])=>({path:file,sha256:digest(b)})),diagnostics:[],error:null}]};
@@ -25,6 +30,13 @@ async function fixture() {
   const api=await import("../src/iiif/ocrImport.js"); return {dir,run,runPath,api};
 }
 describe("OCR import and separate collation",()=>{
+  it("rejects a run redirected to another region while its saved evidence is unchanged",async()=>{
+    const f=await fixture(),w=validateWorkspace(sampleWorkspace());
+    w.regions.push({...structuredClone(w.regions[0]),selection:{...w.regions[0].selection,region_id:"r2"}});
+    f.run.items[0].source.evidence_id="r2";f.run.items[0].source.selection.region_id="r2";
+    await writeFile(f.runPath,JSON.stringify(f.run));
+    await expect(f.api.importOcr(w,f.runPath)).rejects.toThrow(/evidence/);expect(w.texts).toHaveLength(0);
+  });
   it("imports unchanged raw candidates idempotently and round trips provenance",async()=>{
     const f=await fixture(), original=validateWorkspace(sampleWorkspace());
     const result=await f.api.importOcr(original,f.runPath), w=result.workspace;
@@ -33,6 +45,16 @@ describe("OCR import and separate collation",()=>{
     expect(w.regions[0].text_evidence_ids).toEqual([w.texts[0].text_id]);
     const twice=await f.api.importOcr(w,f.runPath);expect(twice.imported).toBe(0);expect(twice.workspace.texts).toHaveLength(1);
     const file=path.join(f.dir,"workspace.json");await saveWorkspace(file,w);expect(await readWorkspace(file)).toEqual(w);
+  });
+  it("imports the completed part and rejects a run that is still running",async()=>{
+    const f=await fixture(),w=validateWorkspace(sampleWorkspace());
+    f.run.status="running";await writeFile(f.runPath,JSON.stringify(f.run));
+    await expect(f.api.importOcr(w,f.runPath)).rejects.toThrow(/処理途中/);
+    f.run.status="partial";
+    (f.run.items as unknown[]).push({...structuredClone(f.run.items[0]),status:"failed",text:null,lines:[],error:"fixture failure",artifacts:[],
+      source:{...f.run.items[0].source,evidence_id:"r2",selection:{...f.run.items[0].source.selection,region_id:"r2"}}});
+    await writeFile(f.runPath,JSON.stringify(f.run));
+    const result=await f.api.importOcr(w,f.runPath);expect(result.imported).toBe(1);expect(result.skipped).toBe(1);expect(result.workspace.texts).toHaveLength(1);
   });
   it.each(["workspace","manifest","region","raw","image","lines","text","evidence"])("rejects incompatible or changed evidence: %s",async(kind)=>{
     const f=await fixture(), w=validateWorkspace(sampleWorkspace());

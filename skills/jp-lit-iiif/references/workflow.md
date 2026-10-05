@@ -76,8 +76,8 @@ helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-Lite�
 
 1. 利用条件を確認した領域をexport_evidenceで保存し、display_imageとevidence_idを確認する。raw成果物はResearchLibrary等の研究directoryのwork/ocr配下へ置く。
 2. inspect_ocr_providerで絶対pathのengine_dir、python_pathを指定し、返るresult.configをprovider.jsonへ保存する。期待hashの手作業による捏造・省略を避ける。
-3. run_ocrにevidence_path、重複しないevidence_ids（1〜4件）、provider_config_path、新規output_dirを指定する。既存翻刻がある場合は既定で停止。比較を明示依頼された場合だけallow_existing_text=trueを指定する。
-4. 終了値とstatusを確認する。completedは成功。partial/failedは終了値4、ok=falseでresult.run_pathに原出力・ログ・失敗記録を残す。partialは正常な領域だけimportできる。再試行は新しいdirectoryを使う。
+3. run_ocrにevidence_path、重複しないevidence_ids（1〜4件）、provider_config_path、新規output_dirを指定する。既存翻刻・TEI併読情報（本文の省略診断、空の改頁参照も含む）がある場合は既定で停止。比較を明示依頼された場合だけallow_existing_text=trueを指定する。
+4. 終了値とstatusを確認する。runningは処理途中で要求ID一覧と処理中IDを保存し、importを保留する。completedは全対象の成功。partial/failedは終了値4、ok=falseでresult.run_pathに原出力・ログ・失敗記録を残す。partialは正常な領域だけimportできる。再試行は新しいdirectoryを使う。
 5. import_ocrにworkspace_path、run_path、output_path、overwrite（既定false）を渡す。正常候補を追加し、失敗数をskippedで返す。同じrunの再importは候補・校合履歴を保持する。hash変更、別workspace、移動領域は診断後に停止する。
 
 ```json

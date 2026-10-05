@@ -1,7 +1,7 @@
 import path from "node:path";
 import { ocrRunSchema, ocrAbsoluteSchema } from "./ocrSchemas.js";
 import { normalizeKotenOutput, validateOcrSource } from "./ocr.js";
-import { ocrDigest, readOcrFile, resolveOcrArtifact } from "./ocrRunner.js";
+import { ocrDigest, readOcrFile, resolveOcrArtifact, ocrEvidenceSchema, ocrSourceFromEvidenceItem } from "./ocrRunner.js";
 import { imageDimensions } from "./imageMetadata.js";
 import { validateWorkspace } from "./schemas.js";
 // @ts-expect-error Nodeとブラウザが共有する判定
@@ -11,14 +11,24 @@ import type { IiifWorkspace, TextEvidence } from "./types.js";
 export async function importOcr(workspace: IiifWorkspace, runPath: string) {
   ocrAbsoluteSchema.parse(runPath);
   const bytes = await readOcrFile(runPath,32*1024*1024), run = ocrRunSchema.parse(JSON.parse(bytes.toString("utf8").replace(/^\uFEFF/,"")));
+  if(run.status==="running")throw new Error("OCRは処理途中です。完了と全対象の記録を確認してください");
+  if(run.requested_evidence_ids && JSON.stringify(run.requested_evidence_ids)!==JSON.stringify(run.items.map((i)=>i.source.evidence_id)))
+    throw new Error("OCR要求の全対象が記録されていません");
   const root = path.dirname(runPath), evidencePath = await resolveOcrArtifact(root,"evidence.json");
-  if (ocrDigest(await readOcrFile(evidencePath)) !== run.evidence_sha256) throw new Error("OCR evidenceのhashが一致しません");
+  const evidenceBytes=await readOcrFile(evidencePath);
+  if (ocrDigest(evidenceBytes) !== run.evidence_sha256) throw new Error("OCR evidenceのhashが一致しません");
+  const evidence=ocrEvidenceSchema.parse(JSON.parse(evidenceBytes.toString("utf8").replace(/^\uFEFF/,"")));
+  const evidenceIds=evidence.items.map((i)=>(i as {evidence_id?:string}).evidence_id);
+  if(new Set(evidenceIds).size!==evidenceIds.length)throw new Error("OCR evidence領域IDの重複があります");
   if (new Set(run.items.map((i) => i.source.evidence_id)).size !== run.items.length) throw new Error("OCR領域IDの重複があります");
   const w = structuredClone(validateWorkspace(workspace)), runHash=ocrDigest(bytes);
   let imported=0, skipped=0;
   for (const item of run.items) {
     if (item.status === "failed") { skipped++; continue; }
     const source = validateOcrSource(item.source);
+    const evidenceIndex=evidenceIds.indexOf(source.evidence_id);
+    if(evidenceIndex<0 || JSON.stringify(ocrSourceFromEvidenceItem(evidence.items[evidenceIndex],evidence.workspace_id))!==JSON.stringify(source))
+      throw new Error("OCR evidenceの内容とrun出典が一致しません");
     if (item.text === null) throw new Error("OCR正常出力の本文がありません");
     if (new Set(item.artifacts.map((a)=>a.path)).size !== item.artifacts.length) throw new Error("OCR artifactの重複があります");
     const artifacts:Array<{path:string;sha256:string;bytes:Buffer}>=[];

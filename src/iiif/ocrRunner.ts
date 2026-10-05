@@ -67,8 +67,18 @@ const itemSchema=z.object({
   crop:z.object({status:z.literal("supported"),image_xywh:z.unknown(),transform:z.unknown()}),
   display_image:z.object({path:z.string(),receipt:z.object({sha256:ocrHashSchema}),width:z.number(),height:z.number(),
     original_image_xywh:z.unknown(),canvas_to_image:z.unknown(),scale_x:z.number(),scale_y:z.number()}),
-  image_permission_confirmed:z.literal(true), text_evidence:z.array(z.unknown()).default([]),
+  image_permission_confirmed:z.literal(true), text_evidence:z.array(z.unknown()).default([]), tei_evidence:z.array(z.unknown()).default([]),
 });
+export const ocrEvidenceSchema=z.object({schema_version:z.literal("0.1"),workspace_id:z.string(),items:z.array(z.unknown()).max(4)});
+export function ocrSourceFromEvidenceItem(input:unknown,workspaceId:string) {
+  const item=itemSchema.parse(input), display=item.display_image;
+  if(!same(display.original_image_xywh,item.crop.image_xywh) || !same(display.canvas_to_image,item.crop.transform))throw new Error("evidence画像取得記録のcrop・変換が一致しません");
+  const source=validateOcrSource({workspace_id:workspaceId,document_id:item.source.document_id,manifest_sha256:item.source.receipt.sha256,
+    evidence_id:item.evidence_id,selection:item.selection,canvas_width:item.canvas.width,canvas_height:item.canvas.height,image_sha256:display.receipt.sha256,
+    image_width:display.width,image_height:display.height,original_image_xywh:display.original_image_xywh,canvas_to_image:display.canvas_to_image,scale_x:display.scale_x,scale_y:display.scale_y});
+  if(source.selection.canvas_id!==item.canvas.canvas_id)throw new Error("evidenceのOCR出典Canvasが一致しません");
+  return source;
+}
 export async function runOcr(request: { evidence_path:string; evidence_ids:string[]; provider_config_path:string; output_dir:string; allow_existing_text:boolean }) {
   for(const file of [request.evidence_path,request.provider_config_path,request.output_dir])ocrAbsoluteSchema.parse(file);
   if(!request.evidence_ids.length || request.evidence_ids.length > 4 || new Set(request.evidence_ids).size !== request.evidence_ids.length)
@@ -77,7 +87,7 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
   const {engine}=await inspectOcrProvider(config);
   if(engine.engine_sha256 !== config.expected_engine_sha256)throw new Error("OCR engineのhashが一致しません。変更内容を確認して再固定してください");
   if(inside(engine.engine_dir,path.resolve(request.output_dir)))throw new Error("OCR出力をengineの外へ保存してください");
-  const evidenceBytes=await readOcrFile(request.evidence_path), evidence=z.object({schema_version:z.literal("0.1"),workspace_id:z.string(),items:z.array(z.unknown()).max(4)}).parse(JSON.parse(evidenceBytes.toString("utf8").replace(/^\uFEFF/,"")));
+  const evidenceBytes=await readOcrFile(request.evidence_path), evidence=ocrEvidenceSchema.parse(JSON.parse(evidenceBytes.toString("utf8").replace(/^\uFEFF/,"")));
   const ids=evidence.items.map((item)=>z.object({evidence_id:z.string()}).parse(item).evidence_id);
   if(new Set(ids).size !== ids.length)throw new Error("evidence領域IDの重複があります");
   const inputs=[];
@@ -85,22 +95,20 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
     const index=ids.indexOf(id); if(index<0)throw new Error("OCR領域IDが見つかりません");
     const item=itemSchema.parse(evidence.items[index]), display=item.display_image;
     if(item.text_evidence.length && !request.allow_existing_text)throw new Error("既存テキストがあります。比較目的の場合はallow_existing_textを指定してください");
-    if(!same(display.original_image_xywh,item.crop.image_xywh) || !same(display.canvas_to_image,item.crop.transform))throw new Error("画像取得記録のcrop・変換が一致しません");
+    if(item.tei_evidence.length && !request.allow_existing_text)throw new Error("既存TEI併読情報があります。比較目的の場合はallow_existing_textを指定してください");
     const imagePath=await resolveOcrArtifact(path.dirname(request.evidence_path),display.path), bytes=await readOcrFile(imagePath), dim=imageDimensions(bytes);
     if(ocrDigest(bytes)!==display.receipt.sha256)throw new Error("OCR入力画像のhashが一致しません");
     if(dim.width !== display.width || dim.height !== display.height || dim.width*dim.height>16000000)throw new Error("OCR入力画像の寸法が一致しません");
-    const source=validateOcrSource({workspace_id:evidence.workspace_id,document_id:item.source.document_id,manifest_sha256:item.source.receipt.sha256,
-      evidence_id:id,selection:item.selection,canvas_width:item.canvas.width,canvas_height:item.canvas.height,image_sha256:display.receipt.sha256,
-      image_width:display.width,image_height:display.height,original_image_xywh:display.original_image_xywh,canvas_to_image:display.canvas_to_image,scale_x:display.scale_x,scale_y:display.scale_y});
-    if(source.selection.canvas_id !== item.canvas.canvas_id)throw new Error("OCR出典Canvasが一致しません");
+    const source=ocrSourceFromEvidenceItem(item,evidence.workspace_id);
     inputs.push({source,bytes,format:dim.format});
   }
   await mkdir(path.dirname(request.output_dir),{recursive:true});
   try { await mkdir(request.output_dir); } catch(error) { if((error as NodeJS.ErrnoException).code==="EEXIST")throw new Error("OCRには新しい保存先を指定してください"); throw error; }
   const outputRoot=await realpath(request.output_dir), runPath=path.join(outputRoot,"run.json");
   await writeFile(path.join(outputRoot,"evidence.json"),evidenceBytes,{flag:"wx"});
-  const run:OcrRun={schema_version:"0.1",run_id:randomUUID(),status:"failed",image_transmission:"none",device:"cpu",engine,
-    evidence_path:await realpath(request.evidence_path),evidence_sha256:ocrDigest(evidenceBytes),items:[]};
+  const run:OcrRun={schema_version:"0.1",run_id:randomUUID(),status:"running",image_transmission:"none",device:"cpu",engine,
+    evidence_path:await realpath(request.evidence_path),evidence_sha256:ocrDigest(evidenceBytes),items:[],requested_evidence_ids:[...request.evidence_ids],active_evidence_id:request.evidence_ids[0]};
+  await atomicWrite(runPath,JSON.stringify(ocrRunSchema.parse(run),null,2)+"\n",false);
   for(const [index,input] of inputs.entries()) {
     const name=`input-${index+1}`, imagePath=path.join(outputRoot,`${name}.${input.format}`), rawDir=path.join(outputRoot,`item-${index+1}`);
     await writeFile(imagePath,input.bytes,{flag:"wx"}); await mkdir(rawDir);
@@ -129,7 +137,8 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
     run.items.push({status:error?"failed":"completed",source:input.source,started_at,finished_at:new Date().toISOString(),duration_ms:Date.now()-started,
       artifacts,text,lines,diagnostics:lines.length?[]:["認識行なし。原出力と画像を確認してください"],error});
     const successes=run.items.filter((i)=>i.status==="completed").length;
-    run.status=successes===run.items.length?"completed":successes?"partial":"failed";
+    run.active_evidence_id=inputs[index+1]?.source.evidence_id??null;
+    run.status=index+1<inputs.length?"running":successes===inputs.length?"completed":successes?"partial":"failed";
     await atomicWrite(runPath,JSON.stringify(ocrRunSchema.parse(run),null,2)+"\n",true);
   }
   return {run_path:runPath,status:run.status,completed:run.items.filter((i)=>i.status==="completed").length,failed:run.items.filter((i)=>i.status==="failed").length};

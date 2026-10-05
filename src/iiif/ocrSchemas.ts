@@ -45,10 +45,11 @@ export const ocrRunItemSchema = z.object({
   lines: z.array(ocrLineSchema).max(10000), diagnostics: z.array(z.string()).max(10000), error: z.string().nullable(),
 });
 export const ocrRunSchema = z.object({
-  schema_version: z.literal("0.1"), run_id: id, status: z.enum(["completed", "partial", "failed"]),
+  schema_version: z.literal("0.1"), run_id: id, status: z.enum(["running", "completed", "partial", "failed"]),
   image_transmission: z.literal("none"), device: z.literal("cpu"), engine: ocrEngineSchema,
   evidence_path: ocrAbsoluteSchema, evidence_sha256: ocrHashSchema,
-  items: z.array(ocrRunItemSchema).min(1).max(4),
+  requested_evidence_ids: z.array(id).min(1).max(4).optional(), active_evidence_id: id.nullable().optional(),
+  items: z.array(ocrRunItemSchema).max(4),
 });
 export type OcrSource = z.infer<typeof ocrSourceSchema>;
 export type OcrLine = z.infer<typeof ocrLineSchema>;
