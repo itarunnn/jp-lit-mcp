@@ -10,9 +10,10 @@ import { saveWorkspace, readWorkspace, atomicWrite } from "./workspace.js";
 import { linkTei, readTeiLinks } from "./tei.js";
 import { exportEvidence } from "./evidence.js";
 import { startLocalServer } from "./localServer.js";
+import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
-  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei\n';
+  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr\n';
 export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
   let phase: "input" | "operation" = "input";
   try {
@@ -54,7 +55,16 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     );
     phase = "operation";
     let result: unknown;
-    if (request.operation === "link_tei") {
+    if (request.operation === "inspect_ocr_provider") {
+      result = await inspectOcrProvider(request);
+    } else if (request.operation === "run_ocr") {
+      const run = await runOcr(request);
+      if (run.status !== "completed") {
+        io.stdout(JSON.stringify({ok:false,result:run,error:"OCRの失敗があります。保存したrunと原出力を確認してください"})+"\n");
+        return 4;
+      }
+      result = run;
+    } else if (request.operation === "link_tei") {
       const w = await readWorkspace(request.workspace_path);
       const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset);
       const next = linkTei(w, response, request);

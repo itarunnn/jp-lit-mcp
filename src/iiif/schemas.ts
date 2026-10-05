@@ -129,6 +129,15 @@ const absolute = z
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
   z.object({
+    api_version: z.literal("0.1"), operation: z.literal("inspect_ocr_provider"),
+    engine_dir: absolute, python_path: absolute,
+  }),
+  z.object({
+    api_version: z.literal("0.1"), operation: z.literal("run_ocr"),
+    evidence_path: absolute, evidence_ids: z.array(id).min(1).max(4), provider_config_path: absolute,
+    output_dir: absolute, allow_existing_text: z.boolean().default(false),
+  }),
+  z.object({
     api_version: z.literal("0.1"), operation: z.literal("link_tei"),
     workspace_path: absolute, output_path: absolute, file_path: absolute,
     expected_sha256: teiHashSchema, document_id: id,
