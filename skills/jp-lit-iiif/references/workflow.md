@@ -70,6 +70,30 @@ link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像�
 
 exportのtei_evidence/tei_pathsはXML構造とlocatorを持つ併読用のoverlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。pb/cb/lbの後続本文範囲やfacsの継承は今回展開しない。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
 
+## ローカルくずし字OCR（開発版）
+
+helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-LiteとPythonを利用者が指定する。導入例は[IIIFガイド](../../../docs/iiif-workbench.md#ローカルくずし字ocrを使う開発版)。通常の比較・MCPはNode-only。engine・依存の準備はdownloadを伴うが、OCR実行は保存済み画像だけを読み、外部OCRサービスへ送信しない。
+
+1. 利用条件を確認した領域をexport_evidenceで保存し、display_imageとevidence_idを確認する。raw成果物はResearchLibrary等の研究directoryのwork/ocr配下へ置く。
+2. inspect_ocr_providerで絶対pathのengine_dir、python_pathを指定し、返るresult.configをprovider.jsonへ保存する。期待hashの手作業による捏造・省略を避ける。
+3. run_ocrにevidence_path、重複しないevidence_ids（1〜4件）、provider_config_path、新規output_dirを指定する。既存翻刻がある場合は既定で停止。比較を明示依頼された場合だけallow_existing_text=trueを指定する。
+4. 終了値とstatusを確認する。completedは成功。partial/failedは終了値4、ok=falseでresult.run_pathに原出力・ログ・失敗記録を残す。partialは正常な領域だけimportできる。再試行は新しいdirectoryを使う。
+5. import_ocrにworkspace_path、run_path、output_path、overwrite（既定false）を渡す。正常候補を追加し、失敗数をskippedで返す。同じrunの再importは候補・校合履歴を保持する。hash変更、別workspace、移動領域は診断後に停止する。
+
+```json
+{"api_version":"0.1","operation":"inspect_ocr_provider","engine_dir":"J:/ocr/engine","python_path":"J:/ocr/.venv/Scripts/python.exe"}
+```
+
+```json
+{"api_version":"0.1","operation":"run_ocr","evidence_path":"J:/research/evidence/evidence.json","evidence_ids":["r1"],"provider_config_path":"J:/research/provider.json","output_dir":"J:/research/work/ocr/run-01","allow_existing_text":false}
+```
+
+```json
+{"api_version":"0.1","operation":"import_ocr","workspace_path":"J:/research/workspace.json","run_path":"J:/research/work/ocr/run-01/run.json","output_path":"J:/research/with-ocr.json","overwrite":false}
+```
+
+各JSONを`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。with-ocr.jsonで比較画面を起動・読み込み、「原画像の領域へ」「この行の画像へ」で実見する。「関連OCR候補」は領域からの復路。OCRのtext・行boundingBox・Canvas変換・source hash・engine hash・時刻・原出力pathを保持する。confidenceは領域検出の信頼度。校合は実施後に記録者・結果・注記・任意の修訂候補を別履歴へ追加する。UI操作だけの確認はuncertainで未校合の範囲を明記する。原OCR本文はocr_candidate/unverifiedを維持し、原TEIと上流生成のraw TEIを別に保存する。
+
 ## 既存テキストを読む
 
 画面の「表示ページの既存テキストを読む」はv3の単純なTextualBodyと明示された外部AnnotationPage最大1件を対象にする。取得後に「テキストを関連付ける」で同じCanvasの原テキストを領域へ結び付ける。

@@ -95,7 +95,7 @@ v3の既存テキストがあるページは「表示ページの既存テキス
 - manifestは10MiB・選択sequence2000Canvas、Image Service info.jsonは2MiB、timeout15秒・redirect3回・取得同時1件。全冊画像取得、認証・館内限定・送信限定資料の取得は対象外。
 - 公開HTTPSを限定取得し、画像表示は提供元へ直接アクセスする。CORSや閲覧権限の失敗は提供元の状態として扱う。失敗した窓があっても他の資料は操作できる。
 
-TEIのfacs/surface/zone対応は開発版の第2段階で利用できます。npm公開版0.17.0は初版の機能を提供します。くずし字OCR、モデル接続、類似図版検索・整列差分は第3・4段階です。
+開発版ではTEIのfacs/surface/zone対応と、任意のローカルくずし字OCRを利用できます。npm公開版0.17.0は初版の比較・書き出し機能を提供します。モデル接続、資料別の品質評価、類似図版検索・整列差分は第3・4段階で進めます。
 
 ## TEI本文と画像領域を往復する（開発版）
 
@@ -140,6 +140,81 @@ surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを�
 
 今回の自動対応は明示的なfacsを持つ要素が対象です。`pb`・`cb`・`lb`の後続本文への範囲展開、facsを持たない本文への継承、任意のcorrespチェーン、外部XMLの参照解決は後続の対応です。大きい本文単位は省略診断を残し、TEI readerで小さい単位を取り出して併読できます。画像参照だけの要素から本文を推定しません。
 
+## ローカルくずし字OCRを使う（開発版）
+
+前近代の写本・版本を読む利用者向けに、[NDL古典籍OCR-Lite](https://github.com/ndl-lab/ndlkotenocr-lite)を任意のローカルengineとして接続します。[国会図書館の案内](https://lab.ndl.go.jp/news/2025/2026-02-24/)は、古典籍と近代活字の処理系を分けて紹介しています。ここで扱うのは古典籍用です。CPUで動き、実行時は保存済みのJPEG/PNGを読みます。通常の比較画面とMCPはNodeだけで使えます。
+
+OCR操作はCLIの`--help`に`run_ocr`がある開発checkoutで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。公開OCRサービスへの接続、画像の外部送信、自動インストールは行いません。
+
+### 任意のengineを導入する
+
+Windowsで検証した例はuvとPython3.12.12を使います。保存先を自分のtoolchain directoryへ変更してください。engineのcodeと重みは上流のCC BY 4.0に従い、研究画像の利用条件は資料ごとに確認します。
+
+```powershell
+git clone --depth 1 https://github.com/ndl-lab/ndlkotenocr-lite.git 'J:/toolchains/iiif-koten-ocr/engine'
+git -C 'J:/toolchains/iiif-koten-ocr/engine' rev-parse HEAD
+uv init --bare --no-workspace --python 3.12.12 --name jp-lit-local-koten-ocr 'J:/toolchains/iiif-koten-ocr'
+uv python pin --directory 'J:/toolchains/iiif-koten-ocr' 3.12.12
+uv add --directory 'J:/toolchains/iiif-koten-ocr' --python 3.12.12 -r 'J:/toolchains/iiif-koten-ocr/engine/requirements.txt'
+```
+
+2026-10-05の検証commitは`ede4283845cdc0ba2bda8b7ebfc3dc80b33c92c8`です。採用したcommitと生成された`pyproject.toml`・`uv.lock`・`.python-version`を保管します。上のcloneは実行時の上流版を取得するため、更新時は依存とCLIを再確認してください。`--bare`はPython固定fileを作らないので、`uv python pin`も実行します。準備にはengine・重み・依存packageのdownloadが伴います。画像を送信する処理はありません。
+
+### providerを確認して固定する
+
+次のJSONを`inspect-ocr.json`に保存し、開発checkoutで実行します。指定したPythonは実行file、engineは`src/ocr.py`を含むdirectoryです。provider設定はローカルcode実行の明示指定として扱い、採用した上流codeを確認して使います。
+
+```json
+{
+  "api_version": "0.1", "operation": "inspect_ocr_provider",
+  "engine_dir": "J:/toolchains/iiif-koten-ocr/engine",
+  "python_path": "J:/toolchains/iiif-koten-ocr/.venv/Scripts/python.exe"
+}
+```
+
+```powershell
+$inspection = node scripts/iiif-workbench.mjs --request './inspect-ocr.json' | ConvertFrom-Json
+if (-not $inspection.ok) { throw 'OCR providerの確認に失敗しました' }
+$inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 './provider.json'
+```
+
+設定には`provider="ndlkotenocr-lite"`、絶対pathの`engine_dir`・`python_path`、コード・設定・重みをまとめた`expected_engine_sha256`、`timeout_ms`が入ります。既定の上限は1領域180秒、指定範囲は1〜600秒です。engineの変更時は内容を確認して再固定します。
+
+### 選択画像をOCRし、候補を読み込む
+
+画面の「画像と出典を保存」で作った`evidence.json`を使います。対象領域の画像が取得済みであることを確認し、`evidence_ids`をそのIDへ置き換えます。raw成果物はrepoの外の研究directory、例えばResearchLibraryのproject配下`work/ocr`へ保存します。
+
+```json
+{
+  "api_version": "0.1", "operation": "run_ocr",
+  "evidence_path": "J:/ResearchLibrary/Projects/Example/reading-evidence/evidence.json",
+  "evidence_ids": ["選択した領域ID"],
+  "provider_config_path": "J:/ResearchLibrary/Projects/Example/provider.json",
+  "output_dir": "J:/ResearchLibrary/Projects/Example/work/ocr/run-01",
+  "allow_existing_text": false
+}
+```
+
+1〜4領域を逐次実行します。`output_dir`は未作成のdirectoryにします。画像hash・寸法・crop・縮小率を確認し、入力のコピー、原JSON/TXT/XML/TEI、ログ、実行時間とengineのhashを残します。既存テキストがある領域は停止します。既存翻刻とOCRを比較する明示依頼がある場合は`allow_existing_text=true`を指定できます。
+
+終了値と`status`を確認します。`completed`は実行成功、`partial`は一部失敗、`failed`は全件失敗です。失敗を含むCLI実行は終了値4と`ok=false`を返し、`result.run_path`に原出力と失敗記録を保管します。再試行は新しい保存先で行います。自動再試行や外部providerへのfallbackはありません。
+
+```json
+{
+  "api_version": "0.1", "operation": "import_ocr",
+  "workspace_path": "J:/ResearchLibrary/Projects/Example/workspace/workspace.json",
+  "run_path": "J:/ResearchLibrary/Projects/Example/work/ocr/run-01/run.json",
+  "output_path": "J:/ResearchLibrary/Projects/Example/workspace/with-ocr.json",
+  "overwrite": false
+}
+```
+
+各要求を`node scripts/iiif-workbench.mjs --request <要求JSON>`で実行します。importは正常な領域だけを追加し、失敗領域数を`skipped`へ返します。原出力と画像のhash、workspace・manifest・領域座標が一致することを確認します。同じrunの再importは既存候補と校合履歴を保持します。移動した領域、別workspace、変更済み原出力へ誤対応させません。
+
+`with-ocr.json`で比較画面を再起動するか、「作業を読み込む」で読み込みます。「くずし字OCRと画像校合」の「原画像の領域へ」「この行の画像へ」で原画像を確認し、記録者・結果・確認内容・任意の修訂候補を追加して保存します。原OCR本文は`ocr_candidate / unverified`を保ち、校合履歴は別に蓄積します。領域の「関連OCR候補」でも戻れます。行のconfidenceは領域検出の信頼度で、文字認識の精度指標とは区別します。engine生成のTEIはraw成果物として保持し、原TEIへ自動統合しません。
+
+動作確認は伊勢物語の公開画像1領域・9行で行いました。複数頁の精度評価、万葉集等の資料範囲、VLMとの比較は次の評価で扱います。画像の縮小で細字が読みにくい場合は、必要な領域を選び直して取得します。
+
 ## OCR・モデル接続・画像解析への進め方
 
 次のIIIFバージョンアップは、TEI本文との往復、くずし字OCR、モデル接続、類似図版検索・整列差分の主要フローを揃えてから行います。実装と検証は段階ごとに進め、開発中のpackage versionは0.17.0を維持します。
@@ -156,7 +231,7 @@ surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを�
 
 機能ごとの完了証拠を計画と引き継ぎへ残します。全主要フローの実装・評価・統合レビューを終えてから、次版の番号とリリース内容を確定します。
 
-第3段階は、選択領域のくずし字OCR、直接VLM読解、画像を併用したOCR修正を同じ資料12〜20ページで比較します。原出力・領域ID・費用・時間・誤字・欠落・表記変更を記録し、資料別の評価からproviderを選びます。送信先と対象の許可を具体化した上で任意実行する構成にします。
+第3段階は、ローカルくずし字OCRの実行・校合から進め、直接VLM読解と画像を併用したOCR修正を同じ資料12〜20ページで比較します。原出力・領域ID・費用・時間・誤字・欠落・表記変更を記録し、資料別の評価からproviderを選びます。外部モデルやOCRサービスとの接続は、利用条件と送信先・対象の許可を具体化し、利用者が明示設定した場合に限る後続機能です。
 
 第4段階は、手動で対応を定めた図版集合を使い、類似図版の検索順位と整列差分の誤検出を評価します。撮影条件に由来する差と史料上の差を区別し、TEI対応・領域ID・校合記録へ戻れる候補を保存します。
 

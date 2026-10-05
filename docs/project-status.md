@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-05: 次期開発版のローカルくずし字OCR
+
+- 任意導入のNDL古典籍OCR-LiteをCPUで呼び出す`inspect_ocr_provider`・`run_ocr`・`import_ocr`を追加。保存済み画像とengineのhashを検証し、原出力・行座標・時間・失敗記録を保持する。
+- 比較画面でOCR原文と行領域を往復し、記録者付きの校合・修訂候補を別履歴へ保存する。原OCR本文はunverifiedを維持し、既存TEIを保持する。
+- 公開伊勢物語1領域・9行で実engineの実行とimportを確認。資料別の品質評価とVLM比較は継続する。個人の日常利用の頻度より、前近代資料を読む一般利用者を設計の基準とする。
+- 開発checkoutで利用できる。package version0.17.0、公開MCP30 tools／21 sources、新規npm依存0を維持。通常利用はNode-only、OCR実行は任意Python環境、画像の外部OCR送信0。導入と操作は[利用ガイド](iiif-workbench.md#ローカルくずし字ocrを使う開発版)を参照。
+
 ## 2026-10-05: 次期開発版のTEI・IIIF往復
 
 - 任意CLI `link_tei`で固定したローカルXMLの明示facsをworkspaceへ対応付ける。surfaceのsameAs宣言・全域の明示指定・zone矩形の座標変換を扱い、候補と未解決を残す。
