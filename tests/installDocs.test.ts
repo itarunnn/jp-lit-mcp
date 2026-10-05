@@ -104,7 +104,7 @@ describe("install docs", () => {
     expect.soft(githubSkills).toContain("最新タグ付き release");
     expect.soft(githubSkills).toContain("jp-lit-research@main");
     expect.soft(githubSkills).toContain("gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif --dry-run");
-    expect.soft(githubSkills).toContain("--agent codex");
+    expect.soft(githubSkills).toContain('gh skill install itarunnn/jp-lit-mcp --all --dir "$HOME/.agents/skills"');
     expect.soft(githubSkills).toContain("--agent cursor");
     expect.soft(githubSkills).toContain("--agent claude-code");
     expect.soft(githubSkills).toContain("--scope user");

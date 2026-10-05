@@ -43,7 +43,9 @@ MCPの登録は、Skillsの導入方法に共通する手順です。`gh skill i
 
 各アプリのSkills導入段階で、GitHub CLI経由のコマンドを選びます。MCP本体とTEI/IIIF CLIの起動には、引き続き `Node.js 22` 以上とnpmを使います。TEI readerのuv/Python環境は[TEIガイド](../tei-reader.md)、IIIF CLIの起動は[IIIFガイド](../iiif-workbench.md)を参照してください。
 
-`gh skill install` はtarget agentとinstall scopeを指定できます。使うアプリに合わせて `--agent codex` / `--agent claude-code` / `--agent cursor` を明示し、個人用には `--scope user` を付けてください。作業repository内だけで使う場合は `--scope project` を選びます。
+`gh skill install` はtarget agentとinstall scopeを指定できます。CursorとClaude Codeでは、それぞれ `--agent cursor` / `--agent claude-code` を明示し、個人用には `--scope user` を付けてください。Codexの個人用は次の配置先指定を使います。作業repository内だけで使う場合は、対応するagentと `--scope project` を選びます。
+
+Codexの個人用Skillsは、[現行OpenAI公式手順](https://learn.chatgpt.com/docs/build-skills)に合わせて `~/.agents/skills/` を使います。[gh 2.94.0の配置規則](https://github.com/cli/cli/blob/v2.94.0/internal/skills/registry/registry.go#L62-L66)では `--agent codex --scope user` の既定先が `~/.codex/skills/` になるため、このページのCodex用コマンドは `--dir "$HOME/.agents/skills"` で配置先を明示します。`--dir`はagent/scopeの既定先を置き換えます。`$HOME`の表記はPowerShellとbashで使えます。
 
 `gh skill install` で version を指定しない場合、GitHub CLI は次の順で install 元を解決します。
 
@@ -59,7 +61,7 @@ MCPの登録は、Skillsの導入方法に共通する手順です。`gh skill i
 ### agent / scope を指定してまとめて入れる
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp --all --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp --all --dir "$HOME/.agents/skills"
 gh skill install itarunnn/jp-lit-mcp --all --agent cursor --scope user
 gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
 ```
@@ -69,7 +71,7 @@ gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
 ### 対話的に選ぶ
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp --dir "$HOME/.agents/skills"
 ```
 
 この形だと、repo 内の Skills を対話的に選べます。
@@ -77,13 +79,13 @@ gh skill install itarunnn/jp-lit-mcp --agent codex --scope user
 ### 個別の Skill を入れる
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp jp-lit-research --agent codex --scope user
-gh skill install itarunnn/jp-lit-mcp jp-lit-verification --agent codex --scope user
-gh skill install itarunnn/jp-lit-mcp jp-lit-tei --agent codex --scope user
-gh skill install itarunnn/jp-lit-mcp jp-lit-iiif --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-research --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-verification --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-tei --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-iiif --dir "$HOME/.agents/skills"
 ```
 
-ここでは Codex の user scope に入れる例を示しています。Cursor や Claude Code に入れる場合は `--agent` を読み替えてください。
+ここではCodexの個人用配置先を指定しています。CursorやClaude Codeでは `--dir` の代わりに、対応する `--agent` と `--scope user` を使ってください。
 
 IIIFの比較画面と画像読解は[IIIFガイド](../iiif-workbench.md)を参照してください。Skillは手順を提供し、CLIは同ガイドのnpmコマンドで起動します。
 
@@ -92,14 +94,14 @@ IIIFの比較画面と画像読解は[IIIFガイド](../iiif-workbench.md)を参
 特定のversionを入れる場合は、Skill名に `@VERSION` を付けます。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.17.0 --agent codex --scope user
-gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.17.0 --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.17.0 --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.17.0 --dir "$HOME/.agents/skills"
 ```
 
 4 Skillsをまとめて同じreleaseへ固定する例です。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp --all --pin v0.17.0 --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp --all --pin v0.17.0 --dir "$HOME/.agents/skills"
 ```
 
 開発中の default branch を一時的に確認したい場合は `@main` も使えます。ただし、通常利用では release tag をおすすめします。
@@ -124,23 +126,32 @@ gh skill preview itarunnn/jp-lit-mcp jp-lit-research@v0.17.0
 
 ### 更新を確認して適用する
 
-このrepoの4 Skillsだけを対象に、ファイルを変更せず更新の有無を確認します。
+このrepoの4 Skillsだけを対象に、ファイルを変更せず更新の有無を確認します。CursorとClaude Codeは次のコマンドを使います。
 
 ```bash
 gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif --dry-run
 ```
 
+Codexは導入時と同じ配置先を指定します。
+
+```bash
+gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif --dry-run --dir "$HOME/.agents/skills"
+```
+
 更新を適用する場合は、同じ対象から `--dry-run` を外します。対話モードでは適用前に確認が表示されます。
 
 ```bash
+# Cursor / Claude Code
 gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif
+# Codex
+gh skill update jp-lit-research jp-lit-verification jp-lit-tei jp-lit-iiif --dir "$HOME/.agents/skills"
 ```
 
-特定のSkillだけを確認・更新する場合は、その名前だけを指定してください。
+特定のSkillだけを確認・更新する場合は、その名前だけを指定してください。Codexの例です。
 
 ```bash
-gh skill update jp-lit-research --dry-run
-gh skill update jp-lit-research
+gh skill update jp-lit-research --dry-run --dir "$HOME/.agents/skills"
+gh skill update jp-lit-research --dir "$HOME/.agents/skills"
 ```
 
 版を固定したSkillsは通常の更新対象から除外されます。固定を続ける場合は、希望する新しいtagを指定して導入し直します。固定を解除して更新対象に戻す場合は、対象名と `--unpin` を指定してください。[updateの仕様](https://cli.github.com/manual/gh_skill_update)
@@ -149,4 +160,6 @@ gh skill update jp-lit-research
 
 GitHub経由で入れたSkillsは `gh skill update`、npm経由で入れたSkillsはnpmの導入コマンドで管理します。npm installerをGitHub取得版へ重ねると、GitHubの追跡metadataが置き換わるため、同じSkillsの導入・更新経路を揃えてください。
 
-管理経路を切り替える場合は、編集内容を退避してから移行先の導入コマンドを実行します。npmからGitHubへ移す場合は、使うagentとscopeを指定して `gh skill install` を実行し、取得元の記録を付け直します。GitHubからnpmへ移す場合は、各アプリのnpm導入コマンドを使い、以後の更新もnpm経由に揃えます。
+管理経路を切り替える場合は、編集内容を退避してから移行先の導入コマンドを実行します。npmからGitHubへ移す場合は、このページのアプリ別コマンドで `gh skill install` を実行し、取得元の記録を付け直します。GitHubからnpmへ移す場合は、各アプリのnpm導入コマンドを使い、以後の更新もnpm経由に揃えます。このページのコマンドでは、同じアプリの両経路の配置先を揃えています。
+
+既にghのCodex用既定コマンドで導入した場合は、`~/.codex/skills/` にも同名Skillsが残りえます。移行前に `~/.codex/skills/` と `~/.agents/skills/` の両方を確認し、編集内容を退避してください。新しい配置先で導入と利用を確認した後、旧配置先のこのrepo由来の4 Skillsは読み込み対象外の場所へ退避し、更新対象が一組になるように整理します。

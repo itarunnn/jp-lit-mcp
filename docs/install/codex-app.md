@@ -50,10 +50,10 @@ Codex の MCP 設定は通常 `~/.codex/config.toml` に保存され、Codex CLI
 
 この手順で、文献探索用の `jp-lit-research`、文献実在性確認用の `jp-lit-verification`、TEI構造読解用の `jp-lit-tei`、IIIF資料比較・画像読解用の `jp-lit-iiif`が `~/.agents/skills/` に入ります。個別に編集した同名Skillsは、導入・更新の前に編集内容を退避してください。IIIFの起動と読解は[IIIFガイド](../iiif-workbench.md)を参照してください。
 
-Skillsの導入・更新には、次のどちらか一方を選びます。GitHub CLIを既に使っている人や、取得元・版・更新を管理したい人にはGitHub経由をおすすめします。利用には `gh 2.90.0` 以上が必要で、`gh skill`はpublic previewです。版固定と更新手順は[GitHub Skillsガイド](github-skills.md)を参照してください。Codex AppとCLIには共通の `--agent codex` を使います。
+Skillsの導入・更新には、次のどちらか一方を選びます。GitHub CLIを既に使っている人や、取得元・版・更新を管理したい人にはGitHub経由をおすすめします。利用には `gh 2.90.0` 以上が必要で、`gh skill`はpublic previewです。Codex AppとCLIには共通の `~/.agents/skills/` を明示します。ghの版による既定配置先の違い、版固定と更新手順は[GitHub Skillsガイド](github-skills.md)を参照してください。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp --all --agent codex --scope user
+gh skill install itarunnn/jp-lit-mcp --all --dir "$HOME/.agents/skills"
 ```
 
 追加ツールを減らしたい人や、npm同梱版を使いたい人には次のコマンドをおすすめします。npm経由の更新もこのコマンドで行います。既存の同名Skillsは置き換わるため、GitHub経由で管理するSkillsへの重ねての実行は避けてください。
