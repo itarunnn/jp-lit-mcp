@@ -94,6 +94,18 @@ helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-Lite�
 
 各JSONを`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。with-ocr.jsonで比較画面を起動・読み込み、「原画像の領域へ」「この行の画像へ」で実見する。「関連OCR候補」は領域からの復路。OCRのtext・行boundingBox・Canvas変換・source hash・engine hash・時刻・原出力pathを保持する。confidenceは領域検出の信頼度。校合は実施後に記録者・結果・注記・任意の修訂候補を別履歴へ追加する。UI操作だけの確認はuncertainで未校合の範囲を明記する。原OCR本文はocr_candidate/unverifiedを維持し、原TEIと上流生成のraw TEIを別に保存する。
 
+## OCRの参照一致度を評価する（開発版）
+
+helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価JSONを指定する。原run/artifact/画像を再検証し、原本文を変更せずreportをResearchLibraryへ保存する。操作はNode-onlyで、OCR・外部モデル実行や画像送信を伴わない。
+
+```json
+{"api_version":"0.1","operation":"evaluate_ocr","workspace_path":"J:/research/with-ocr.json","evaluation_path":"J:/research/work/ocr/evaluation.json","output_path":"J:/research/work/ocr/report.json","overwrite":false}
+```
+
+評価JSONはschema_version/evaluation_id/workspace_id/casesを持ち、caseごとにcase_id/text_id/reference/variants/observationsを記録する。形式の正本は[利用ガイド](../../../docs/iiif-workbench.md#同じ画像の候補を比較評価する)。参照の頁・領域対応が不明ならreference:nullとし、pending_referenceを維持する。AI候補はvariantsへ置き、参照正解や原TEIへ昇格しない。領域全体の読解候補だけ同じ画像hashで比較し、部分読解は別の小さい領域へ切り分ける。
+
+公開翻刻との数値はreference_agreement。source_collatedは原画像と確認した記録者付きの宣言がある場合だけ設定する。学習重複known_overlap/declared_held_out/unknownを区別し、精度や学習からの独立性を推定しない。CERのstrictとNFC/空白除去、文字順を問わないF1、原文字列と修訂候補を分ける。Canvas数と領域数を区別し、未比較のimage_reading/image_assisted_correctionと金銭費用未計測を報告する。
+
 ## 既存テキストを読む
 
 画面の「表示ページの既存テキストを読む」はv3の単純なTextualBodyと明示された外部AnnotationPage最大1件を対象にする。取得後に「テキストを関連付ける」で同じCanvasの原テキストを領域へ結び付ける。

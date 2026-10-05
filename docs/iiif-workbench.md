@@ -213,7 +213,51 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 
 `with-ocr.json`で比較画面を再起動するか、「作業を読み込む」で読み込みます。「くずし字OCRと画像校合」の「原画像の領域へ」「この行の画像へ」で原画像を確認し、記録者・結果・確認内容・任意の修訂候補を追加して保存します。原OCR本文は`ocr_candidate / unverified`を保ち、校合履歴は別に蓄積します。領域の「関連OCR候補」でも戻れます。行のconfidenceは領域検出の信頼度で、文字認識の精度指標とは区別します。engine生成のTEIはraw成果物として保持し、原TEIへ自動統合しません。
 
-動作確認は伊勢物語の公開画像1領域・9行で行いました。複数頁の精度評価、万葉集等の資料範囲、VLMとの比較は次の評価で扱います。画像の縮小で細字が読みにくい場合は、必要な領域を選び直して取得します。
+導入経路の確認は伊勢物語の公開画像1領域・9行で行いました。続く試験では伊勢物語、版本の当世料理、写本の膳部料理抄の計12 CanvasでOCRと取り込みを確認しています。公開翻刻との一致度を計算した範囲は6画像、参照未登録は6画像、文字単位の原画像校合は0画像です。万葉集等への適合、未知資料への精度、VLMとの実比較は継続します。画像の縮小で細字が読みにくい場合は、必要な領域を選び直して取得します。
+
+### 同じ画像の候補を比較評価する
+
+開発版の`evaluate_ocr`は、保存済みworkspaceと評価JSONから出典付きreportを作ります。原run・出力・画像のhashを再検証し、原OCRと任意の画像直接読解／画像併用修訂を比較します。評価操作はNodeだけで動き、OCRや外部モデルを起動しません。
+
+評価JSONの`workspace_id`と`text_id`は対象workspaceからコピーします。次の本文「甲乙」は合成例です。実資料では選択領域全体に対応する参照翻刻と、そのUTF-8本文のSHA-256へ置き換えます。頁や領域の対応が不明なcaseは`reference:null`にします。
+
+```json
+{
+  "schema_version": "0.1", "evaluation_id": "premodern-pilot",
+  "workspace_id": "対象workspaceのID",
+  "cases": [{
+    "case_id": "case-1", "text_id": "対象OCR候補のtext_id",
+    "reference": {
+      "scope": "full_region", "text": "甲乙",
+      "text_sha256": "f73ab1f5c2b9542c9cea79597b69a5c4dc106721d7de6fa9e4303c0fe45cfe3d",
+      "origin": "published_transcription", "source_ref": "公開翻刻のURLと頁",
+      "verification": "unreviewed", "review": null,
+      "training_overlap": "unknown", "note": "原画像との校合は未実施"
+    },
+    "variants": [], "observations": null
+  }]
+}
+```
+
+`origin`は公開翻刻の`published_transcription`または人の翻刻の`human_transcription`です。原画像との校合を行った場合だけ`verification="source_collated"`とし、`review`へ`author`・`recorded_at`（ISO日時）・`note`を記録します。学習データとの重複は`known_overlap`、除外の根拠がある`declared_held_out`、未確認の`unknown`を区別します。公開されている翻刻だけで学習からの独立性を判断しません。
+
+`variants`へ追加できる候補は、領域全体の`image_reading`と`image_assisted_correction`が各1件です。各候補には`variant_id`・`kind`・`scope="full_region"`・`text`・`text_sha256`・原OCRと同じ`image_sha256`・`generator`・`created_at`・`duration_ms`（未計測はnull）が必要です。AIの出力は候補として保持し、参照翻刻へ自動適用しません。部分読解は全文の評価へ混ぜず、対応する小さい領域で別のcaseを作ります。
+
+```json
+{
+  "api_version": "0.1", "operation": "evaluate_ocr",
+  "workspace_path": "J:/ResearchLibrary/Projects/Example/workspace/with-ocr.json",
+  "evaluation_path": "J:/ResearchLibrary/Projects/Example/work/ocr/evaluation.json",
+  "output_path": "J:/ResearchLibrary/Projects/Example/work/ocr/evaluation-report.json",
+  "overwrite": false
+}
+```
+
+要求を`node scripts/iiif-workbench.mjs --request <要求JSON>`で実行します。caseは最大80件、参照・読解候補は各20,000文字、1比較4,000,000セルまでです。reportは原run・画像・evidence・engineの外へ保存します。入力と同じ保存先は`overwrite=true`でも拒否します。
+
+reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_layout_whitespace`を併記します。CERは文字順を含む編集距離／参照文字数で、1を超える場合があります。異体字統一やNFKC変換は行いません。[NDLの評価事例](https://lab.ndl.go.jp/data_set/r4_kotenocr_en/)に基づく文字多重集合のF1も残し、文字順を評価するCERと分けます。参照が空ならCERとF1はnull、参照がありOCRが空ならCERは1、F1は0です。
+
+公開翻刻が未校合の数値は`reference_agreement`です。`pending_reference`、校合宣言、学習重複、実行していない読解方法を別々に記録します。Canvas数と領域数を区別し、候補種別・生成者・OCR engine hash・校合状態・学習重複ごとにmicro CERを集計します。金銭費用は未計測としてnullを保持します。図中ラベル・編集記号・行の欠落・読み順・表記変更は数値だけで原因を決めず、`observations`に記録者・日時・注記と各項目の`unknown/observed/not_observed`を残します。
 
 ## OCR・モデル接続・画像解析への進め方
 

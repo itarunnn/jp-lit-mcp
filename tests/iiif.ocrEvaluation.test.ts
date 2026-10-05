@@ -72,6 +72,14 @@ describe("source-bound OCR evaluation", () => {
     await writeFile(f.evaluationPath,JSON.stringify(f.evaluation));await f.evaluate();const report=JSON.parse(await readFile(f.outputPath,"utf8"));
     expect(report.cases[0].candidates[1].metrics.strict.distance).toBe(0);expect(report.summary.source_collated).toBe(0);expect(report.groups).toHaveLength(2);
   });
+  it("keeps different image-reading generators in separate aggregate groups",async()=>{
+    const f=await fixture(true);
+    f.evaluation.cases[1].reference=structuredClone(f.evaluation.cases[0].reference);
+    for(const [i,c] of f.evaluation.cases.entries())c.variants.push({variant_id:`ai-${i}`,kind:"image_reading",scope:"full_region",text:c.reference.text,text_sha256:c.reference.text_sha256,image_sha256:f.imported.texts[i].ocr_provenance!.source.image_sha256,generator:i?"model-B":"model-A",created_at:"2026-10-05T00:00:00Z",duration_ms:null});
+    await writeFile(f.evaluationPath,JSON.stringify(f.evaluation));await f.evaluate();const report=JSON.parse(await readFile(f.outputPath,"utf8"));
+    expect(report.groups.filter((g:any)=>g.kind==="image_reading")).toHaveLength(2);
+    expect(report.groups[0]).toMatchObject({generator:"ndlkotenocr-lite",engine_sha256:"e".repeat(64)});
+  });
   it.each(["engine","duration","line_confidence"])("rejects workspace provenance that disagrees with the raw run: %s",async kind=>{
     const f=await fixture(),p=f.imported.texts[0].ocr_provenance!;
     if(kind==="engine")p.engine.engine_sha256="0".repeat(64);

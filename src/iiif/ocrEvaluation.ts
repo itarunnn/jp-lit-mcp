@@ -65,7 +65,7 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
   unique(evaluation.cases.map(c => c.case_id)); unique(evaluation.cases.map(c => c.text_id));
   const verifiedRuns = new Set<string>();
   const pages = new Set<string>(), regions = new Set<string>();
-  const groups = new Map<string, { kind: string; verification: string; training_overlap: string; metrics: Metrics[] }>();
+  const groups = new Map<string, { kind: string; generator: string; engine_sha256: string | null; verification: string; training_overlap: string; metrics: Metrics[] }>();
   const cases = [];
   for (const c of evaluation.cases) {
     const t = workspace.texts.find(t => t.text_id === c.text_id), p = t?.ocr_provenance;
@@ -95,8 +95,10 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
         generator: v.generator, created_at: v.created_at, duration_ms: v.duration_ms }))].map(candidate => {
       const metrics = c.reference ? compareOcrText(c.reference.text, candidate.text) : null;
       if (metrics && c.reference) {
-        const key = JSON.stringify([candidate.kind, c.reference.verification, c.reference.training_overlap]);
-        const group = groups.get(key) ?? { kind: candidate.kind, verification: c.reference.verification, training_overlap: c.reference.training_overlap, metrics: [] };
+        const engine_sha256 = candidate.kind === "ocr" ? p.engine.engine_sha256 : null;
+        const key = JSON.stringify([candidate.kind, candidate.generator, engine_sha256, c.reference.verification, c.reference.training_overlap]);
+        const group = groups.get(key) ?? { kind: candidate.kind, generator: candidate.generator, engine_sha256,
+          verification: c.reference.verification, training_overlap: c.reference.training_overlap, metrics: [] };
         group.metrics.push(metrics); groups.set(key, group);
       }
       return { ...candidate, metrics, monetary_cost: null };
