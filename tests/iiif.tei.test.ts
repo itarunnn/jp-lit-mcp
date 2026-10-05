@@ -96,4 +96,17 @@ describe("TEI to IIIF linking", () => {
     expect(result.stdout).toContain("hash_mismatch");
     expect(result.w).toBeNull();
   }, 60000);
+  it.each(["source","workspace"])("protects TEI input and permits explicit workspace update: %s",async targetKind=>{
+    const dir=await mkdtemp(path.join(tmpdir(),"tei-output-"));
+    try {
+      const w=sampleWorkspace(),source=path.join(dir,"source.xml"),workspace=path.join(dir,"workspace.json"),request=path.join(dir,"request.json");
+      const xml=`<TEI xmlns="http://www.tei-c.org/ns/1.0"><p facs="${w.windows[0].canvas_id}">原本文</p></TEI>`;
+      await writeFile(source,xml);await writeFile(workspace,JSON.stringify(w));
+      await writeFile(request,JSON.stringify({api_version:"0.1",operation:"link_tei",workspace_path:workspace,output_path:targetKind==="source"?source:workspace,
+        file_path:source,expected_sha256:createHash("sha256").update(xml).digest("hex"),document_id:w.documents[0].document_id,overwrite:true}));
+      const logs:string[]=[];expect(await runIiifCli(["--request",request],{cwd:dir,stdout:s=>logs.push(s),stderr:()=>{}})).toBe(targetKind==="source"?4:0);
+      expect(await readFile(source,"utf8")).toBe(xml);
+      if(targetKind==="workspace")expect(validateWorkspace(JSON.parse(await readFile(workspace,"utf8"))).tei_links).toHaveLength(1);
+    } finally {await rm(dir,{recursive:true,force:true});}
+  },60000);
 });

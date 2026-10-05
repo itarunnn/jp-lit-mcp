@@ -6,6 +6,7 @@ import { sampleWorkspace } from "./fixtures/iiif/sample.js";
 import { digest, ocrCandidate } from "./fixtures/iiif/ocr.js";
 import { importOcr } from "../src/iiif/ocrImport.js";
 import { runIiifCli } from "../src/iiif/cli.js";
+import { linkTei } from "../src/iiif/tei.js";
 const dirs: string[] = [];
 afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
 async function fixture(two = false) {
@@ -65,6 +66,37 @@ describe("source-bound OCR evaluation", () => {
   it("verifies raw OCR files again before calculating metrics", async () => {
     const f = await fixture(); await writeFile(path.join(f.raw,"input.txt"),"変更された原出力");
     await expect(f.evaluate()).rejects.toThrow(/hash/);
+  });
+  it.each(["replace", "duplicate"])("rejects rewritten OCR under a changed candidate ID: %s", async kind => {
+    const f = await fixture(), original = f.imported.texts[0], changed = structuredClone(original);
+    changed.text_id = "copied-ocr-candidate"; changed.text = f.evaluation.cases[0].reference.text;
+    changed.source_sha256 = digest(changed.text);
+    if (kind === "replace") { f.imported.texts = [changed]; f.imported.regions[0].text_evidence_ids = [changed.text_id]; }
+    else { f.imported.texts.push(changed); f.imported.regions[0].text_evidence_ids.push(changed.text_id); }
+    f.evaluation.cases[0].text_id = changed.text_id;
+    await writeFile(f.workspacePath, JSON.stringify(f.imported)); await writeFile(f.evaluationPath, JSON.stringify(f.evaluation));
+    await expect(f.evaluate()).rejects.toThrow(/原OCR|原出力|候補/);
+    await expect(readFile(f.outputPath)).rejects.toThrow();
+  });
+  it.each(["tei", "other_run", "other_artifact", "other_original_image", "other_original_evidence"])("protects workspace sources outside the evaluated case: %s", async kind => {
+    const f = await fixture(); let target: string;
+    if (kind === "tei") {
+      target = path.join(f.dir,"source.xml"); const xml = '<TEI xmlns="http://www.tei-c.org/ns/1.0"><p facs="#unknown">原本文</p></TEI>';
+      await writeFile(target,xml); const hash = digest(xml);
+      f.imported = linkTei(f.imported,{ api_version:"0.1",operation:"facsimile_links",ok:true,document:{sha256:hash},result:{total_occurrences:1,next_offset:null,items:[{
+        source_locator:{document_sha256:hash,xpath:"/t:TEI[1]/t:p[1]",xml_id:null},source_content:null,omission:null,attribute_value:"#unknown",token_index:0,raw_token:"#unknown",
+        reference_status:"unresolved_local",candidate_count:0,xml_base_chain:[],target:null,surface:null,graphics:[],diagnostics:[],
+      }]}},{file_path:target,expected_sha256:hash,document_id:"d1",surface_bindings:[]});
+    } else {
+      const other = await fixture(), run = JSON.parse(await readFile(other.runPath,"utf8")); run.run_id = "other-run";
+      await writeFile(other.runPath,JSON.stringify(run)); const imported = (await importOcr(sampleWorkspace(),other.runPath)).workspace;
+      f.imported.texts.push(imported.texts[0]); f.imported.regions[0].text_evidence_ids.push(imported.texts[0].text_id);
+      target = kind === "other_run" ? other.runPath : kind === "other_artifact" ? path.join(other.raw,"input.txt") : kind === "other_original_image" ? path.join(other.dir,"input.png") : path.join(other.dir,"original-evidence.json");
+    }
+    await writeFile(f.workspacePath,JSON.stringify(f.imported)); const before = await readFile(target);
+    const { evaluateOcr } = await import("../src/iiif/ocrEvaluation.js");
+    await expect(evaluateOcr(f.workspacePath,f.evaluationPath,target,true)).rejects.toThrow(/保存先/);
+    expect(await readFile(target)).toEqual(before);
   });
   it("compares an image-assisted candidate without promoting it to a reference",async()=>{
     const f=await fixture(),c=f.evaluation.cases[0];

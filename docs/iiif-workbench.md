@@ -255,6 +255,8 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 
 要求を`node scripts/iiif-workbench.mjs --request <要求JSON>`で実行します。caseは最大80件、参照・読解候補は各20,000文字、1比較4,000,000セルまでです。reportは原run・画像・evidence・engineの外へ保存します。入力と同じ保存先は`overwrite=true`でも拒否します。
 
+原資料の保存先保護はworkspace内の全TEIリンクと全OCR候補に適用し、評価caseに含めていない原run・artifact・元evidence・画像も対象にします。`import_ocr`と`link_tei`も同じ保護を使い、`overwrite=true`でworkspace自体を更新する指定を受け付けます。保護対象は保存形式に記録されたpathから収集します。原runを読めず保護対象を収集できない場合は保存を止めるため、必要な原出力を復元してから再実行します。
+
 reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_layout_whitespace`を併記します。CERは文字順を含む編集距離／参照文字数で、1を超える場合があります。異体字統一やNFKC変換は行いません。[NDLの評価事例](https://lab.ndl.go.jp/data_set/r4_kotenocr_en/)に基づく文字多重集合のF1も残し、文字順を評価するCERと分けます。参照が空ならCERとF1はnull、参照がありOCRが空ならCERは1、F1は0です。
 
 公開翻刻が未校合の数値は`reference_agreement`です。`pending_reference`、校合宣言、学習重複、実行していない読解方法を別々に記録します。Canvas数と領域数を区別し、候補種別・生成者・OCR engine hash・校合状態・学習重複ごとにmicro CERを集計します。金銭費用は未計測としてnullを保持します。図中ラベル・編集記号・行の欠落・読み順・表記変更は数値だけで原因を決めず、`observations`に記録者・日時・注記と各項目の`unknown/observed/not_observed`を残します。

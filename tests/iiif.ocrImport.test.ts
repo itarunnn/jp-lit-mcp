@@ -88,4 +88,19 @@ describe("OCR import and separate collation",()=>{
     expect(JSON.parse(logs[0]).result.imported).toBe(1);expect((await readWorkspace(source)).texts).toHaveLength(0);
     expect((await readWorkspace(output)).texts[0].origin).toBe("ocr_candidate");
   });
+  it.each(["run.json","input.png","evidence.json","raw/input.txt","original.json","region.png"])("rejects CLI output over an OCR source: %s",async file=>{
+    const f=await fixture(),source=path.join(f.dir,"w.json"),target=path.join(f.dir,file),request=path.join(f.dir,"request.json"),logs:string[]=[];
+    await writeFile(path.join(f.dir,"original.json"),await readFile(path.join(f.dir,"evidence.json")));
+    await writeFile(path.join(f.dir,"region.png"),await readFile(path.join(f.dir,"input.png")));
+    await saveWorkspace(source,sampleWorkspace());const before=await readFile(target);
+    await writeFile(request,JSON.stringify({api_version:"0.1",operation:"import_ocr",workspace_path:source,run_path:f.runPath,output_path:target,overwrite:true}));
+    expect(await runIiifCli(["--request",request],{cwd:f.dir,stdout:s=>logs.push(s),stderr:()=>{}})).toBe(4);
+    expect(JSON.parse(logs[0])).toMatchObject({ok:false});expect(await readFile(target)).toEqual(before);
+  });
+  it("permits explicit in-place workspace update while preserving OCR sources",async()=>{
+    const f=await fixture(),source=path.join(f.dir,"w.json"),request=path.join(f.dir,"request.json"),before=await readFile(f.runPath);
+    await saveWorkspace(source,sampleWorkspace());await writeFile(request,JSON.stringify({api_version:"0.1",operation:"import_ocr",workspace_path:source,run_path:f.runPath,output_path:source,overwrite:true}));
+    expect(await runIiifCli(["--request",request],{cwd:f.dir,stdout:()=>{},stderr:()=>{}})).toBe(0);
+    expect((await readWorkspace(source)).texts).toHaveLength(1);expect(await readFile(f.runPath)).toEqual(before);
+  });
 });

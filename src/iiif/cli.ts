@@ -13,6 +13,7 @@ import { startLocalServer } from "./localServer.js";
 import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
 import { importOcr } from "./ocrImport.js";
 import { evaluateOcr } from "./ocrEvaluation.js";
+import { protectWorkspaceSources } from "./outputProtection.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
   'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / evaluate_ocr\n';
@@ -61,6 +62,7 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
       result = await evaluateOcr(request.workspace_path, request.evaluation_path, request.output_path, request.overwrite);
     } else if (request.operation === "import_ocr") {
       const imported=await importOcr(await readWorkspace(request.workspace_path),request.run_path);
+      await protectWorkspaceSources(request.output_path, imported.workspace);
       await saveWorkspace(request.output_path,imported.workspace,request.overwrite);
       result={workspace_path:request.output_path,imported:imported.imported,skipped:imported.skipped};
     } else if (request.operation === "inspect_ocr_provider") {
@@ -74,6 +76,7 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
       result = run;
     } else if (request.operation === "link_tei") {
       const w = await readWorkspace(request.workspace_path);
+      await protectWorkspaceSources(request.output_path, w, [request.file_path]);
       const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset);
       const next = linkTei(w, response, request);
       await saveWorkspace(request.output_path, next, request.overwrite);
