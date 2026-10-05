@@ -1,6 +1,7 @@
 import { z } from "zod";
 import path from "node:path";
 import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
+import { ocrProvenanceSchema } from "./ocrSchemas.js";
 
 const id = z.string().min(1).max(4096);
 const num = z.number().finite();
@@ -105,6 +106,7 @@ export const textSchema = z.object({
     "ocr_candidate",
   ]),
   verification_state: z.enum(["provider_text", "unverified", "human_verified"]),
+  ocr_provenance: ocrProvenanceSchema.optional(),
 });
 export const viewerSchema = z.object({
   adapter_version: id,
@@ -189,6 +191,8 @@ export function validateWorkspace(input: unknown) {
       throw new Error("window参照が未解決です");
   const canvases = w.documents.flatMap((d) => d.canvases);
   for (const t of w.texts) {
+    if (t.ocr_provenance && (t.origin !== "ocr_candidate" || t.verification_state !== "unverified"))
+      throw new Error("OCR候補と校合記録を分離してください");
     const c = canvases.find((c) => c.canvas_id === t.canvas_id);
     if (!c) throw new Error("text参照が未解決です");
     if (
