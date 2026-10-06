@@ -51,8 +51,8 @@ export function createManualOcrPanel({ element, workspace, importCandidate, open
       if(JSON.stringify(source)!==sourceKey)throw Error('対象が変更されています。対応を確認してください');
       const {canvas_width,canvas_height,...inputSource}=source;
       busy=true;save.disabled=true;
-      await importCandidate({provider:'kuronet',source:inputSource,text:body.value,author:author.value,result_url:resultUrl.value.trim()||null,scope_confirmed:true});
-      status('手動OCR候補を保存しました。原画像で文字を校合してください。');
+      const result=await importCandidate({provider:'kuronet',source:inputSource,text:body.value,author:author.value,result_url:resultUrl.value.trim()||null,scope_confirmed:true});
+      status(result.archived?'手動OCR候補を履歴へ保存しました。対象領域が変更されています。':'手動OCR候補を保存しました。原画像で文字を校合してください。');
     }catch(e){status(e.message);}finally{busy=false;render();}
   };
   return {render,showRegion(region){regionId=region.selection.region_id;help.open=true;render();element.scrollIntoView({block:'start',behavior:'smooth'});}};

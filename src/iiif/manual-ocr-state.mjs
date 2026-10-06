@@ -21,3 +21,28 @@ export function assertManualOcrTarget(workspace, text) {
       JSON.stringify(text.target_xywh) !== JSON.stringify(p.source.selection.xywh)) throw new Error("手動OCRの出典と現在の資料・領域が一致しません");
   return target;
 }
+
+export function manualOcrMatchesRegion(workspace, text, regionId) {
+  try {
+    const target = assertManualOcrTarget(workspace,text);
+    return target.region.selection.region_id === regionId;
+  } catch { return false; }
+}
+
+export function mergeManualOcrCandidate(workspace, text) {
+  const p=text.manual_ocr_provenance, s=p?.source;
+  const doc=workspace.documents.find(d=>d.document_id===s?.document_id);
+  const canvas=doc?.canvases.find(c=>c.canvas_id===s?.selection.canvas_id);
+  if(!p || s.workspace_id!==workspace.workspace_id || doc?.receipt.sha256!==s.manifest_sha256 ||
+    !canvas || canvas.width!==s.canvas_width || canvas.height!==s.canvas_height)
+    throw Error('保存済み候補の資料が現在の作業と一致しません。元の作業を読み込んでください');
+  const previous=workspace.texts.find(t=>t.text_id===text.text_id);
+  if(previous && JSON.stringify(previous)!==JSON.stringify(text))throw Error('同じ候補IDに異なる記録があります');
+  if(!previous)workspace.texts.push(text);
+  // 履歴を先に保持し、削除・移動済み領域への操作とは分ける。
+  try {
+    const {region}=assertManualOcrTarget(workspace,text);
+    if(!region.text_evidence_ids.includes(text.text_id))region.text_evidence_ids.push(text.text_id);
+    return {archived:false};
+  } catch { return {archived:true}; }
+}

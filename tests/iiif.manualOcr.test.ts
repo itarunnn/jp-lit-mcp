@@ -65,6 +65,24 @@ describe("manual KuroNet OCR import", () => {
       expect(await readFile(output.text_paths[0],'utf8')).toContain(result.text.text);
     }finally{if(!path.resolve(dir).startsWith(path.resolve(tmpdir())+path.sep))throw Error('Unexpected directory');await rm(dir,{recursive:true,force:true});}
   });
+  it.each(['moved','other-document'])('keeps %s history out of the current region reading export',async(kind)=>{
+    const dir=await mkdtemp(path.join(tmpdir(),'manual-mismatch-'));
+    try{
+      const w=sampleWorkspace(), result=importManualOcr(validateWorkspace(w),request(w)), changed=structuredClone(result.workspace),file=path.join(dir,'workspace.json');
+      if(kind==='moved')changed.regions[0].selection.xywh[0]++;
+      else{
+        const d=structuredClone(changed.documents[0]);d.document_id='d2';d.receipt.sha256='b'.repeat(64);changed.documents.push(d);
+        changed.windows.push({...changed.windows[0],window_id:'window2',document_id:'d2'});
+        changed.regions[0].selection.window_id='window2';
+      }
+      await saveWorkspace(file,changed,false);
+      const output=await exportEvidence({api_version:'0.1',operation:'export_evidence',workspace_path:file,region_ids:['r1'],output_dir:path.join(dir,'reading'),overwrite:false,image_permission_confirmed:false});
+      const e=JSON.parse(await readFile(output.evidence_json_path,'utf8'));
+      expect(e.items[0].text_evidence).toEqual([]);expect(await readFile(output.text_paths[0],'utf8')).toBe('');
+      expect(output.diagnostics.join(' ')).toMatch(/手動OCR/);
+      expect(JSON.parse(await readFile(file,'utf8')).texts[0]).toEqual(result.text);
+    }finally{if(!path.resolve(dir).startsWith(path.resolve(tmpdir())+path.sep))throw Error('Unexpected directory');await rm(dir,{recursive:true,force:true});}
+  });
   it("persists raw pasted text with separate provenance and preserves the original OCR on reimport", async () => {
     await withServer(async ({ w, post, saved }) => {
       const original = (await saved()).texts[0], input = request(w);

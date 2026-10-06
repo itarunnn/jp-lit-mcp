@@ -11,10 +11,10 @@ import { detachTeiRegion } from "./tei-state.mjs";
 import { createOcrPanel } from "./ocr-panel.mjs";
 import { assertOcrTarget } from "./ocr-state.mjs";
 import { createManualOcrPanel } from "./manual-ocr-panel.mjs";
-import { assertManualOcrTarget } from "./manual-ocr-state.mjs";
+import { assertManualOcrTarget, manualOcrMatchesRegion, mergeManualOcrCandidate } from "./manual-ocr-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel;
+let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel, manualImportBusy = false;
 const status = (text) => {
   $("status").textContent = text;
 };
@@ -32,7 +32,7 @@ async function api(route, body) {
 function action(id, fn) {
   $(id).addEventListener("click", () =>
     Promise.resolve()
-      .then(fn)
+      .then(() => { if(manualImportBusy)throw Error("手動OCR候補を保存中です。完了後に操作してください"); return fn(); })
       .catch((e) => status(e.message)),
   );
 }
@@ -251,7 +251,7 @@ function renderRegions() {
     const link = node("button", "テキストを関連付ける");
     link.onclick = () => {
       r.text_evidence_ids = workspace.texts
-        .filter((t) => t.canvas_id === r.selection.canvas_id)
+        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)))
         .map((t) => t.text_id);
       status(`${r.text_evidence_ids.length}件の原テキストを関連付けました。`);
     };
@@ -390,11 +390,14 @@ action("export", async () => {
 function fileAction(id, fn) {
   $(id).onchange = async () => {
     try {
+      if(manualImportBusy)throw Error("手動OCR候補を保存中です。完了後に作業を読み込んでください");
       const file = $(id).files[0];
       if (!file) return;
       if (file.size > 45 * 1024 * 1024)
         throw new Error("入力容量が上限を超えます");
-      await fn(JSON.parse(await file.text()));
+      const value=JSON.parse(await file.text());
+      if(manualImportBusy)throw Error("手動OCR候補を保存中です。完了後に作業を読み込んでください");
+      await fn(value);
     } catch (e) {
       status(e.message);
     } finally {
@@ -442,14 +445,14 @@ try {
   manualOcrPanel = createManualOcrPanel({element:$("manual-ocr-panel"),workspace:()=>workspace,status,
     async importCandidate(input) {
       const saved = snapshot();
-      await api("/api/workspace", saved);
-      if(workspace !== saved)throw Error("作業が変更されました。対象を確認して再実行してください");
-      const result=await api("/api/ocr/manual",input);
-      if(workspace !== saved)throw Error("作業が変更されました。保存済みの候補は元の作業を読み込んで確認してください");
-      const {region}=assertManualOcrTarget(workspace,result.text);
-      if(!workspace.texts.some(t=>t.text_id===result.text.text_id))workspace.texts.push(result.text);
-      if(!region.text_evidence_ids.includes(result.text.text_id))region.text_evidence_ids.push(result.text.text_id);
-      renderTexts();return result;
+      manualImportBusy=true;
+      try {
+        await api("/api/workspace", saved);
+        if(workspace !== saved)throw Error("作業が変更されました。対象を確認して再実行してください");
+        const result=await api("/api/ocr/manual",input);
+        const {archived}=mergeManualOcrCandidate(workspace,result.text);
+        renderTexts();return {...result,archived};
+      } finally {manualImportBusy=false;}
     },
     openImage(text){const {region}=assertManualOcrTarget(workspace,text);showRegion(viewer,region.selection);$("active-window").value=region.selection.window_id;},
   });
