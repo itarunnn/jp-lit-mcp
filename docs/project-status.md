@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-06: 次期開発版のGPU OCR接続と手動結果評価
+
+- 標準NDL古典籍OCR-Liteを保ち、導入済みDocker imageの古典籍OCR ver.3を任意providerとして接続。immutable image ID・engine hashを固定し、通信なしのcontainerで選択画像を処理する。行脱落・TXT/JSON不一致・タイムアウトを検出して原出力を保持する。
+- KuroNetの手動候補を共通`evaluate_ocr`へ追加。貼付本文・候補ID・出典・領域を確認し、サービス処理画像hashとモデル版はnullを保持する。同一画像条件を確認できない手動候補のVLM variantは受け付けない。
+- 伊勢物語1領域で実画面の貼付・保存・再読込・exportと、Lite/GPUの同じ画像による実行・取込・共通評価・3候補exportを確認。校合済み参照が未登録のため品質順位と金銭費用は未判定。
+- version0.17.0、MCP30 tools／21 sources、新規npm依存0を維持。主要IIIF機能が揃うまでmerge・push・releaseを保留する。導入と評価条件は[利用ガイド](iiif-workbench.md#任意のgpu版を固定する)を参照。
+
 ## 2026-10-05: 次期開発版のOCR比較評価
 
 - Node-onlyの`evaluate_ocr`を追加。原runと画像・出典を再検証し、原OCRと同じ領域の読解・修訂候補を参照翻刻と比較する。CERと文字多重集合F1、校合宣言、学習重複、Canvas数／領域数を分けて保存する。

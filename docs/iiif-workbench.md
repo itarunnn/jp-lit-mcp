@@ -148,7 +148,7 @@ OCR操作はCLIの`--help`に`run_ocr`がある開発checkoutで使います。O
 
 ### ローカルOCRと手動補助を選ぶ
 
-標準の任意OCRは古典籍用のNDL古典籍OCR-Liteです。GPU環境を持つ利用者は[NDL古典籍OCR ver.3](https://github.com/ndl-lab/ndlkotenocr_cli)も選べます。GPU版の製品provider接続は後続の実装です。近代活字用のNDLOCR-Liteは別の処理系として扱います。
+標準の任意OCRは古典籍用のNDL古典籍OCR-Liteです。GPU環境を持つ利用者は、導入済みDocker imageの[NDL古典籍OCR ver.3](https://github.com/ndl-lab/ndlkotenocr_cli)も任意providerとして選べます。近代活字用のNDLOCR-Liteは別の処理系として扱います。
 
 PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)を使います。[公式利用案内](https://mp.ex.nii.ac.jp/kuronet/)に従い、利用者がログイン・OCR・本文の取り出しを行います。サービス上のOCR結果は公開されるため、公開IIIF資料と利用条件を確認した範囲を対象にします。
 
@@ -164,7 +164,7 @@ PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア]
 
 保存する本文は`ocr_candidate / unverified`です。改行と空白を含む貼付原文のhash、対象workspace・document・manifest hash・Canvas・領域座標、取込日時・記録者・結果URLを`manual_ocr_provenance`へ残します。利用者の範囲確認は`user_declared`で、文字単位の原画像校合と区別します。未取得のモデル版とサービス処理画像hashはnullです。原領域を削除しても出典snapshotを保持し、現在領域へ戻る操作を停止します。
 
-候補は作業JSONと領域の読解資料へ含めて保存できます。修訂は別IDの本文候補として保持し、原TEIへ自動統合しません。現行`evaluate_ocr`は原run・artifact・画像hashを再確認するローカルOCR候補用で、この手動本文を直接渡せません。外部結果の行座標・モデル版・画像同一性を確認する共通評価形式は後続です。
+候補は作業JSONと領域の読解資料へ含めて保存できます。修訂は別IDの本文候補として保持し、原TEIへ自動統合しません。`evaluate_ocr`にもこの手動候補の`text_id`を指定できます。貼付本文hash・候補ID・出典snapshot・現在領域の整合性を確認し、参照翻刻との一致度を計算します。サービス側の原出力・画像同一性の独立検証は、この手動記録からは行えません。
 
 手動OCR候補を含む作業JSONは、この機能がある開発版で保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
 
@@ -201,6 +201,27 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 ```
 
 設定には`provider="ndlkotenocr-lite"`、絶対pathの`engine_dir`・`python_path`、コード・設定・重みをまとめた`expected_engine_sha256`、`timeout_ms`が入ります。既定の上限は1領域180秒、指定範囲は1〜600秒です。engineの変更時は内容を確認して再固定します。
+
+### 任意のGPU版を固定する
+
+GPU版はDockerからNVIDIA GPUを使える環境と、公式source・モデルを含むローカルimageを用意します。上流の導入手順で準備し、`/root/kotenocr_cli/main.py`・`config.yml`・レイアウトver.3・文字認識モデルを含む構成を使います。検証したsource commitは`939cbfaf617eb8fd7e54cf1daeb66fb5a92749ec`、Dockerfileは`docker/Dockerfile`です。導入時のdownloadとbuildは利用者が行い、アプリはimageを取得・更新しません。
+
+`docker image inspect <導入済みimage名> --format '{{.Id}}'`で取得したimmutable IDを使い、次の要求を保存します。例のIDは合成値なので実測値へ置き換えます。
+
+```json
+{
+  "api_version": "0.1", "operation": "inspect_ocr_provider",
+  "provider": "ndlkotenocr-ver3",
+  "docker_path": "C:/Program Files/Docker/Docker/resources/bin/docker.exe",
+  "image_id": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+}
+```
+
+Liteと同じ方法で返る`result.config`を別のprovider JSONへ保存します。設定は`provider`・`docker_path`・`image_id`・`expected_engine_sha256`・`timeout_ms`です。検査と各runの開始時にimage ID、code・設定・重みのhash、Python・PyTorch・CUDA・GPUを確認します。GPU検査には最大60秒、各領域には設定の実行上限を使います。
+
+接続先はローカルDocker engineに固定します。Windowsは`npipe:////./pipe/docker_engine`、Linuxは`unix:///var/run/docker.sock`を使い、remote contextや独自socketには対応しません。実containerは`--pull never --network none`で動かし、選択画像1件をread-only mountし、出力を新しいrun directoryへ保存します。[Dockerの実行オプション](https://docs.docker.com/reference/cli/docker/container/run/)
+
+GPU版にも次の`run_ocr`・`import_ocr`を使います。原TXT/JSON、行座標、固定image ID、engineのhashを保持し、認識行数の欠落とTXT/JSONの不一致を検出します。失敗時は候補化を止めて部分出力とログを残し、タイムアウト時はこの処理が起動したcontainerだけを停止します。行のconfidenceは未取得としてnullです。旧Lite runとworkspaceは引き続き読み込めます。
 
 ### 選択画像をOCRし、候補を読み込む
 
@@ -239,7 +260,7 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 
 ### 同じ画像の候補を比較評価する
 
-開発版の`evaluate_ocr`は、保存済みworkspaceと評価JSONから出典付きreportを作ります。原run・出力・画像のhashを再検証し、原OCRと任意の画像直接読解／画像併用修訂を比較します。評価操作はNodeだけで動き、OCRや外部モデルを起動しません。
+開発版の`evaluate_ocr`は、保存済みworkspaceと評価JSONから出典付きreportを作ります。Lite/GPUの原run・出力・画像のhashを再検証し、原OCRと任意の画像直接読解／画像併用修訂を比較します。KuroNetの手動候補は貼付記録の整合性を検査して同じ形式で参照翻刻との一致度を保存します。評価操作はNodeだけで動き、OCRや外部モデルを起動しません。
 
 評価JSONの`workspace_id`と`text_id`は対象workspaceからコピーします。次の本文「甲乙」は合成例です。実資料では選択領域全体に対応する参照翻刻と、そのUTF-8本文のSHA-256へ置き換えます。頁や領域の対応が不明なcaseは`reference:null`にします。
 
@@ -265,6 +286,8 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 
 `variants`へ追加できる候補は、領域全体の`image_reading`と`image_assisted_correction`が各1件です。各候補には`variant_id`・`kind`・`scope="full_region"`・`text`・`text_sha256`・原OCRと同じ`image_sha256`・`generator`・`created_at`・`duration_ms`（未計測はnull）が必要です。AIの出力は候補として保持し、参照翻刻へ自動適用しません。部分読解は全文の評価へ混ぜず、対応する小さい領域で別のcaseを作ります。
 
+KuroNet手動候補は`variants:[]`で評価します。reportの`image_identity="service_bytes_unknown"`・`provenance_validation="manual_copy_consistency"`と、nullのモデル版・処理画像hashを保持します。同一画像hashを確認できるLite/GPUは`verified_local_bytes / raw_run_verified`です。サービス入力画像hashが不明な手動候補へ同一画像条件のVLM variantを追加すると停止します。AI候補との画像比較にはローカルOCRのcaseを使います。
+
 ```json
 {
   "api_version": "0.1", "operation": "evaluate_ocr",
@@ -281,7 +304,7 @@ $inspection.result.config | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf
 
 reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_layout_whitespace`を併記します。CERは文字順を含む編集距離／参照文字数で、1を超える場合があります。異体字統一やNFKC変換は行いません。[NDLの評価事例](https://lab.ndl.go.jp/data_set/r4_kotenocr_en/)に基づく文字多重集合のF1も残し、文字順を評価するCERと分けます。参照が空ならCERとF1はnull、参照がありOCRが空ならCERは1、F1は0です。
 
-公開翻刻が未校合の数値は`reference_agreement`です。`pending_reference`、校合宣言、学習重複、実行していない読解方法を別々に記録します。Canvas数と領域数を区別し、候補種別・生成者・OCR engine hash・校合状態・学習重複ごとにmicro CERを集計します。金銭費用は未計測としてnullを保持します。図中ラベル・編集記号・行の欠落・読み順・表記変更は数値だけで原因を決めず、`observations`に記録者・日時・注記と各項目の`unknown/observed/not_observed`を残します。
+公開翻刻が未校合の数値は`reference_agreement`です。`pending_reference`、校合宣言、学習重複、実行していない読解方法を別々に記録します。Canvas数と領域数を区別し、候補種別・生成者・OCR engine hash・画像同一性の確認状態・校合状態・学習重複ごとにmicro CERを集計します。手動サービス結果の実行時間と金銭費用は未計測としてnullを保持します。図中ラベル・編集記号・行の欠落・読み順・表記変更は数値だけで原因を決めず、`observations`に記録者・日時・注記と各項目の`unknown/observed/not_observed`を残します。
 
 ## OCR・モデル接続・画像解析への進め方
 

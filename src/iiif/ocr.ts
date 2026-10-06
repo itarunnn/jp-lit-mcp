@@ -46,3 +46,21 @@ export function normalizeKotenOutput(input: unknown, source: OcrSource): OcrLine
       detection_confidence: line.confidence ?? null });
   });
 }
+
+export function normalizeGpuOutput(input: unknown, source: OcrSource): OcrLine[] {
+  const raw = z.object({
+    imginfo: z.object({ img_width: z.number().int().positive(), img_height: z.number().int().positive() }),
+    contents: z.array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite(), z.number().finite(), z.string().max(2*1024*1024)])).max(10000),
+  }).parse(input);
+  return normalizeKotenOutput({ imginfo: raw.imginfo, contents: [raw.contents.map(([x,y,right,bottom,text],index) => ({
+    id: String(index), text, boundingBox: [[x,y],[x,bottom],[right,y],[right,bottom]],
+  }))] }, source);
+}
+
+export function normalizeProviderOutput(provider: "ndlkotenocr-lite" | "ndlkotenocr-ver3", input: unknown, text: string, source: OcrSource) {
+  const lines = provider === "ndlkotenocr-ver3" ? normalizeGpuOutput(input, source) : normalizeKotenOutput(input, source);
+  if (provider === "ndlkotenocr-ver3" && text !== lines.map(line=>line.text).join("")+"\n")
+    throw new Error("GPU OCRの原JSONとTXT本文が一致しません");
+  if (!lines.length && text.trim()) throw new Error("OCR行座標と本文が一致しません");
+  return lines;
+}

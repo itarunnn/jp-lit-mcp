@@ -74,6 +74,14 @@ exportのtei_evidence/tei_pathsはXML構造とlocatorを持つ併読用のoverla
 
 helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-LiteとPythonを利用者が指定する。導入例は[IIIFガイド](../../../docs/iiif-workbench.md#ローカルくずし字ocrを使う開発版)。通常の比較・MCPはNode-only。engine・依存の準備はdownloadを伴うが、OCR実行は保存済み画像だけを読み、外部OCRサービスへ送信しない。
 
+GPU版を追加する場合は、導入済み公式構成のDocker imageとローカルNVIDIA GPUを使う。`docker image inspect <image名> --format '{{.Id}}'`でimmutable IDを取得し、`inspect_ocr_provider`へ`provider="ndlkotenocr-ver3"`・絶対pathの`docker_path`・実測`image_id`を渡す。返る`result.config`をLiteとは別のprovider JSONへ保存する。検証にはGPUも必要。公式構成と接続先の条件は[GPU導入ガイド](../../../docs/iiif-workbench.md#任意のgpu版を固定する)を読む。
+
+```json
+{"api_version":"0.1","operation":"inspect_ocr_provider","provider":"ndlkotenocr-ver3","docker_path":"C:/Program Files/Docker/Docker/resources/bin/docker.exe","image_id":"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+```
+
+例のimage IDは合成値で、実測値へ置き換える。GPU設定にはprovider/docker_path/image_id/expected_engine_sha256/timeout_msが入る。`run_ocr`と`import_ocr`は下記と同じ形式で、provider_config_pathだけをGPU設定へ替える。image取得・build・更新は自動実行しない。実行はローカルengineへ固定し、`--pull never --network none`、画像1件read-only mountを使う。行脱落・TXT/JSON不一致はfailedとし、timeoutは所有containerだけを停止して部分出力を残す。標準Liteの設定は維持する。
+
 1. 利用条件を確認した領域をexport_evidenceで保存し、display_imageとevidence_idを確認する。raw成果物はResearchLibrary等の研究directoryのwork/ocr配下へ置く。
 2. inspect_ocr_providerで絶対pathのengine_dir、python_pathを指定し、返るresult.configをprovider.jsonへ保存する。期待hashの手作業による捏造・省略を避ける。
 3. run_ocrにevidence_path、重複しないevidence_ids（1〜4件）、provider_config_path、新規output_dirを指定する。既存翻刻・TEI併読情報（本文の省略診断、空の改頁参照も含む）がある場合は既定で停止。比較を明示依頼された場合だけallow_existing_text=trueを指定する。
@@ -96,7 +104,7 @@ helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-Lite�
 
 ## OCRの参照一致度を評価する（開発版）
 
-helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価JSONを指定する。原run/artifact/画像を再検証し、原本文を変更せずreportをResearchLibraryへ保存する。操作はNode-onlyで、OCR・外部モデル実行や画像送信を伴わない。
+helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価JSONを指定する。Lite/GPUは原run/artifact/画像を再検証し、KuroNet手動候補は貼付本文hash・候補ID・出典snapshot・現在領域の整合性を検査する。原本文を変更せずreportをResearchLibraryへ保存する。操作はNode-onlyで、OCR・外部モデル実行や画像送信を伴わない。
 
 ```json
 {"api_version":"0.1","operation":"evaluate_ocr","workspace_path":"J:/research/with-ocr.json","evaluation_path":"J:/research/work/ocr/evaluation.json","output_path":"J:/research/work/ocr/report.json","overwrite":false}
@@ -110,7 +118,7 @@ helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価J
 
 ## KuroNetによる補助OCR（開発版）
 
-標準の任意ローカルOCRはNDL古典籍OCR-Lite。GPU版の古典籍OCR ver.3は任意の追加方式で、製品provider接続は後続。近代活字用NDLOCR-Liteとは区別する。PCで公開IIIF資料の別候補を得る補助経路には[KuroNet公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)と[利用案内](https://mp.ex.nii.ac.jp/kuronet/)を使う。
+標準の任意ローカルOCRはNDL古典籍OCR-Lite。GPU版の古典籍OCR ver.3は導入済みDockerを使う任意の追加provider。近代活字用NDLOCR-Liteとは区別する。PCで公開IIIF資料の別候補を得る補助経路には[KuroNet公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)と[利用案内](https://mp.ex.nii.ac.jp/kuronet/)を使う。
 
 1. 比較画面でページ・矩形を保存し、その領域の「KuroNetで補助OCR」を開く。パネルのマニフェストURLとCanvas・ページ番号・矩形・回転を確認する。
 2. 利用者が公式画面を開き、URLを手動入力してログイン・領域指定・OCR・読み順設定・テキスト変換を行う。KuroNetのOCR結果は公開されるため、公開IIIF資料と利用条件を確認した範囲で使う。アプリは自動API接続・ログイン・画像送信を持たない。
@@ -118,7 +126,13 @@ helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価J
 4. `manual_ocr_provenance`へprovider、manual_copy、取込日時、記録者、結果URL、対象workspace・document・manifest hash・Canvas・領域座標を保存し、`source_sha256`へ原文hashを残す。未取得のモデル版・サービス処理画像hashはnull。候補は`ocr_candidate / unverified`で、範囲宣言`user_declared`は文字の原画像校合と別に扱う。通常のmanual_transcriptionやLiteの原runへ偽装しない。
 5. 「原画像の領域へ」で画像を実際に開き、校合した文字・未校合範囲・修訂候補を別に記録する。原文とTEIを保持し、自動昇格しない。作業JSONと領域の読解資料にもこの出典を含める。原領域削除後はsnapshotを保持し、現在領域への操作を停止する。
 
-現行`evaluate_ocr`は原run・artifact・画像hashがあるローカルOCR候補用。この手動本文を直接渡せない。外部結果の画像同一性・行座標等を確認する共通評価形式は後続に残す。利用者から個別に依頼された実サービス試験は、その資料・範囲・送信先・日時・成果物を研究logへ残し、通常のアプリ動作と分ける。
+`evaluate_ocr`には手動候補のtext_idも指定できる。評価JSONは同じschema_version/evaluation_id/workspace_id/casesを使い、caseにcase_id/text_id/reference/variants:[]/observationsを記録する。参照が未登録ならreference:nullでpending_referenceを保持する。reportではmanual_ocr_provenanceを保持し、run_path/engine/モデル版/処理画像hash/実行時間/金銭費用は未取得のnull。image_identity=service_bytes_unknown、provenance_validation=manual_copy_consistencyを記録する。サービス原出力の独立検証と同一画像条件の精度比較は未完了で、手動候補へのVLM variants追加は拒否する。画像比較にはhashを再検証できるローカルOCRのcaseを使う。利用者から個別に依頼された実サービス試験は、その資料・範囲・送信先・日時・成果物を研究logへ残し、通常のアプリ動作と分ける。
+
+参照と観察が未登録の最小例を示す。workspace_idとtext_idは実際の作業からコピーする。観察済みの場合の構造と参照翻刻の例は[評価ガイド](../../../docs/iiif-workbench.md#同じ画像の候補を比較評価する)を使う。
+
+```json
+{"schema_version":"0.1","evaluation_id":"manual-pilot","workspace_id":"対象workspaceのID","cases":[{"case_id":"manual-1","text_id":"対象手動候補のtext_id","reference":null,"variants":[],"observations":null}]}
+```
 
 ## 既存テキストを読む
 

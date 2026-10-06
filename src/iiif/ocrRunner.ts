@@ -7,8 +7,9 @@ import { promisify } from "node:util";
 import { z } from "zod";
 import { atomicWrite } from "./workspace.js";
 import { imageDimensions } from "./imageMetadata.js";
-import { normalizeKotenOutput, validateOcrSource } from "./ocr.js";
-import { ocrAbsoluteSchema, ocrConfigSchema, ocrEngineSchema, ocrHashSchema, ocrRunSchema, type OcrRun } from "./ocrSchemas.js";
+import { normalizeProviderOutput, validateOcrSource } from "./ocr.js";
+import { inspectGpuProvider, runGpuImage, validateGpuCounts } from "./ocrGpu.js";
+import { ocrAbsoluteSchema, ocrConfigSchema, ocrLiteEngineSchema, ocrHashSchema, ocrRunSchema, type OcrRun } from "./ocrSchemas.js";
 const exec = promisify(execFile);
 export const ocrDigest = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
 const same = (a: unknown,b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -35,7 +36,9 @@ async function hashFile(file: string) {
   for await(const chunk of createReadStream(file))hash.update(chunk);
   return hash.digest("hex");
 }
-export async function inspectOcrProvider(input: { engine_dir:string; python_path:string }) {
+export async function inspectOcrProvider(input: { provider?:string; engine_dir?:string; python_path?:string; docker_path?:string; image_id?:string }) {
+  if(input.provider === "ndlkotenocr-ver3")return inspectGpuProvider({provider:input.provider,docker_path:input.docker_path!,image_id:input.image_id!});
+  if(input.provider && input.provider !== "ndlkotenocr-lite")throw new Error("対応するOCR providerを指定してください");
   const parsed=z.object({engine_dir:ocrAbsoluteSchema,python_path:ocrAbsoluteSchema}).parse(input);
   const engine_dir=await realpath(parsed.engine_dir), python_path=await realpath(parsed.python_path);
   if(!(await lstat(python_path)).isFile())throw new Error("Python実行fileを指定してください");
@@ -58,7 +61,7 @@ export async function inspectOcrProvider(input: { engine_dir:string; python_path
   files.sort((a,b)=>a.path.localeCompare(b.path,"en"));
   const engine_sha256=ocrDigest(JSON.stringify(files));
   const version=await exec(python_path,["--version"],{shell:false,windowsHide:true,env:localEnv(),timeout:15000,maxBuffer:65536,encoding:"utf8"});
-  const engine=ocrEngineSchema.parse({provider:"ndlkotenocr-lite",engine_dir,python_path,python_version:version.stdout.trim() || version.stderr.trim(),engine_sha256,files});
+  const engine=ocrLiteEngineSchema.parse({provider:"ndlkotenocr-lite",engine_dir,python_path,python_version:version.stdout.trim() || version.stderr.trim(),engine_sha256,files});
   return {engine,config:ocrConfigSchema.parse({provider:engine.provider,engine_dir,python_path,expected_engine_sha256:engine_sha256})};
 }
 const itemSchema=z.object({
@@ -86,7 +89,7 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
   const config=ocrConfigSchema.parse(JSON.parse((await readOcrFile(request.provider_config_path,1024*1024)).toString("utf8").replace(/^\uFEFF/,"")));
   const {engine}=await inspectOcrProvider(config);
   if(engine.engine_sha256 !== config.expected_engine_sha256)throw new Error("OCR engineのhashが一致しません。変更内容を確認して再固定してください");
-  if(inside(engine.engine_dir,path.resolve(request.output_dir)))throw new Error("OCR出力をengineの外へ保存してください");
+  if(engine.provider === "ndlkotenocr-lite" && inside(engine.engine_dir,path.resolve(request.output_dir)))throw new Error("OCR出力をengineの外へ保存してください");
   const evidenceBytes=await readOcrFile(request.evidence_path), evidence=ocrEvidenceSchema.parse(JSON.parse(evidenceBytes.toString("utf8").replace(/^\uFEFF/,"")));
   const ids=evidence.items.map((item)=>z.object({evidence_id:z.string()}).parse(item).evidence_id);
   if(new Set(ids).size !== ids.length)throw new Error("evidence領域IDの重複があります");
@@ -106,7 +109,7 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
   try { await mkdir(request.output_dir); } catch(error) { if((error as NodeJS.ErrnoException).code==="EEXIST")throw new Error("OCRには新しい保存先を指定してください"); throw error; }
   const outputRoot=await realpath(request.output_dir), runPath=path.join(outputRoot,"run.json");
   await writeFile(path.join(outputRoot,"evidence.json"),evidenceBytes,{flag:"wx"});
-  const run:OcrRun={schema_version:"0.1",run_id:randomUUID(),status:"running",image_transmission:"none",device:"cpu",engine,
+  const run:OcrRun={schema_version:"0.1",run_id:randomUUID(),status:"running",image_transmission:"none",device:engine.provider==="ndlkotenocr-ver3"?"cuda":"cpu",engine,
     evidence_path:await realpath(request.evidence_path),evidence_sha256:ocrDigest(evidenceBytes),items:[],requested_evidence_ids:[...request.evidence_ids],active_evidence_id:request.evidence_ids[0]};
   await atomicWrite(runPath,JSON.stringify(ocrRunSchema.parse(run),null,2)+"\n",false);
   for(const [index,input] of inputs.entries()) {
@@ -114,21 +117,26 @@ export async function runOcr(request: { evidence_path:string; evidence_ids:strin
     await writeFile(imagePath,input.bytes,{flag:"wx"}); await mkdir(rawDir);
     const started=Date.now(), started_at=new Date(started).toISOString();
     let text:string|null=null,lines:OcrRun["items"][number]["lines"]=[],error:string|null=null,stdout="",stderr="";
+    const gpu=engine.provider==="ndlkotenocr-ver3";
+    const jsonRelative=gpu?`results/${name}/json/${name}.json`:`${name}.json`;
+    const textRelative=gpu?`results/${name}/txt/${name}_main.txt`:`${name}.txt`;
     try {
-      const result=await exec(engine.python_path,[path.join(engine.engine_dir,"src","ocr.py"),"--sourceimg",imagePath,"--output",rawDir,"--device","cpu"],
-        {cwd:path.join(engine.engine_dir,"src"),env:localEnv(),shell:false,windowsHide:true,timeout:config.timeout_ms,killSignal:"SIGKILL",maxBuffer:1024*1024,encoding:"utf8"});
+      const result=engine.provider==="ndlkotenocr-ver3" ? await runGpuImage(engine,imagePath,rawDir,config.timeout_ms) :
+        await exec(engine.python_path,[path.join(engine.engine_dir,"src","ocr.py"),"--sourceimg",imagePath,"--output",rawDir,"--device","cpu"],
+          {cwd:path.join(engine.engine_dir,"src"),env:localEnv(),shell:false,windowsHide:true,timeout:config.timeout_ms,killSignal:"SIGKILL",maxBuffer:1024*1024,encoding:"utf8"});
       stdout=result.stdout; stderr=result.stderr;
-      const json=JSON.parse((await readOcrFile(await resolveOcrArtifact(rawDir,`${name}.json`))).toString("utf8"));
-      lines=normalizeKotenOutput(json,input.source);
-      text=(await readOcrFile(await resolveOcrArtifact(rawDir,`${name}.txt`),2*1024*1024)).toString("utf8");
-      if(!lines.length && text.trim())throw new Error("OCR行座標と本文が一致しません");
+      const json=JSON.parse((await readOcrFile(await resolveOcrArtifact(rawDir,jsonRelative))).toString("utf8"));
+      text=(await readOcrFile(await resolveOcrArtifact(rawDir,textRelative),2*1024*1024)).toString("utf8");
+      if(gpu && json.imginfo?.img_name!==path.basename(imagePath))throw new Error("GPU OCRの出力画像名が一致しません");
+      lines=normalizeProviderOutput(engine.provider,json,text,input.source);
+      if(gpu)await validateGpuCounts(rawDir,lines.length);
     } catch(e) {
       const failure=e as Error & {stdout?:string;stderr?:string};
       error=failure.message; stdout=failure.stdout??stdout; stderr=failure.stderr??stderr; text=null; lines=[];
     }
     await writeFile(path.join(rawDir,"stdout.log"),stdout,{flag:"wx"}); await writeFile(path.join(rawDir,"stderr.log"),stderr,{flag:"wx"});
     const artifacts=[{path:path.basename(imagePath),sha256:input.source.image_sha256}];
-    for(const file of [`${name}.json`,`${name}.txt`,`${name}.xml`,`${name}_tei.xml`,"stdout.log","stderr.log"]) {
+    for(const file of [jsonRelative,textRelative,...(gpu?["gpu-wrapper.py","gpu-validation.json","results/opt.json"]:[`${name}.xml`,`${name}_tei.xml`]),"stdout.log","stderr.log"]) {
       try {
         const resolved=await resolveOcrArtifact(rawDir,file);
         artifacts.push({path:`item-${index+1}/${file}`,sha256:ocrDigest(await readOcrFile(resolved))});

@@ -30,7 +30,8 @@ export async function protectWorkspaceSources(outputPath: string, workspace: Iii
   for (const text of workspace.texts) {
     const p = text.ocr_provenance; if (!p) continue;
     runs.add(p.run_path);
-    for (const file of [p.run_path, p.evidence_path, p.engine.engine_dir, p.engine.python_path]) protectedPaths.add(file);
+    const enginePaths=p.engine.provider==="ndlkotenocr-lite"?[p.engine.engine_dir,p.engine.python_path]:[p.engine.docker_path];
+    for (const file of [p.run_path, p.evidence_path, ...enginePaths]) protectedPaths.add(file);
     for (const artifact of p.artifacts) protectedPaths.add(path.resolve(path.dirname(p.run_path), artifact.path));
   }
   await assertDistinctOutput(outputPath, protectedPaths);

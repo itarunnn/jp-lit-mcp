@@ -1,15 +1,12 @@
-import path from "node:path";
 import { z } from "zod";
 import { compareOcrText } from "./ocrMetrics.js";
-import { importOcr } from "./ocrImport.js";
-import { ocrAbsoluteSchema, ocrHashSchema, ocrRunSchema } from "./ocrSchemas.js";
+import { ocrAbsoluteSchema, ocrHashSchema } from "./ocrSchemas.js";
+import { resolveOcrEvaluationSource } from "./ocrEvaluationSource.js";
 import { ocrDigest, readOcrFile } from "./ocrRunner.js";
 import { atomicWrite } from "./workspace.js";
 import { validateWorkspace } from "./schemas.js";
 import { assertDistinctOutput, protectWorkspaceSources } from "./outputProtection.js";
 import type { IiifWorkspace } from "./types.js";
-// @ts-expect-error Nodeとブラウザで共有する対応検査
-import { assertOcrTarget } from "./ocr-state.mjs";
 
 const id = z.string().trim().min(1).max(4096), text = z.string().max(20000);
 const review = z.object({ author: id, recorded_at: z.string().datetime(), note: id }).strict();
@@ -53,38 +50,27 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
   unique(evaluation.cases.map(c => c.case_id)); unique(evaluation.cases.map(c => c.text_id));
   const verifiedRuns = new Map<string, IiifWorkspace>();
   const pages = new Set<string>(), regions = new Set<string>();
-  const groups = new Map<string, { kind: string; generator: string; engine_sha256: string | null; verification: string; training_overlap: string; metrics: Metrics[] }>();
+  const groups = new Map<string, { kind: string; generator: string; engine_sha256: string | null; image_identity: string; verification: string; training_overlap: string; metrics: Metrics[] }>();
   const cases = [];
   for (const c of evaluation.cases) {
-    const t = workspace.texts.find(t => t.text_id === c.text_id), p = t?.ocr_provenance;
-    if (!t || !p) throw new Error("評価対象の原OCR候補がありません");
-    assertOcrTarget(workspace, t);
-    await assertDistinctOutput(outputPath, [path.dirname(p.run_path)]);
-    const runBytes = await readOcrFile(p.run_path, 32 * 1024 * 1024);
-    if (ocrDigest(runBytes) !== p.run_sha256) throw new Error("評価対象の原run hashが一致しません");
-    const run = ocrRunSchema.parse(JSON.parse(runBytes.toString("utf8").replace(/^\uFEFF/, "")));
-    const item = run.items.find(item => item.source.evidence_id === p.source.evidence_id);
-    if (!item || JSON.stringify([run.run_id, run.engine, run.evidence_sha256, item.source, item.lines, item.started_at, item.finished_at, item.duration_ms]) !==
-      JSON.stringify([p.run_id, p.engine, p.evidence_sha256, p.source, p.lines, p.started_at, p.finished_at, p.duration_ms]))
-      throw new Error("OCR provenanceと原runが一致しません");
-    if (!verifiedRuns.has(p.run_path)) verifiedRuns.set(p.run_path, (await importOcr(workspace, p.run_path)).workspace);
-    const originalId = `ocr-${ocrDigest(`${run.run_id}:${item.source.evidence_id}`).slice(0, 24)}`;
-    const original = verifiedRuns.get(p.run_path)!.texts.find(t => t.text_id === originalId);
-    if (!original || t.text_id !== originalId || t.text !== original.text || t.source_sha256 !== original.source_sha256)
-      throw new Error("評価対象の候補ID・本文・本文hashが原OCRと一致しません");
+    const t = workspace.texts.find(t => t.text_id === c.text_id);
+    if (!t) throw new Error("評価対象の原OCR候補がありません");
+    const p = await resolveOcrEvaluationSource(workspace, t, outputPath, verifiedRuns);
     if (c.reference && ocrDigest(c.reference.text) !== c.reference.text_sha256) throw new Error("参照翻刻の本文hashが一致しません");
     unique(c.variants.map(v => v.variant_id)); unique(c.variants.map(v => v.kind));
+    if (c.variants.length && p.source.image_sha256 === null) throw new Error("手動OCRのサービス入力画像hashが不明です。同一画像条件の読解比較にはローカルOCRを指定してください");
     for (const v of c.variants) if (v.image_sha256 !== p.source.image_sha256 || ocrDigest(v.text) !== v.text_sha256)
       throw new Error("読解候補の画像・本文hashが一致しません");
     const candidates = [{ candidate_id: t.text_id, kind: "ocr", text: t.text, text_sha256: t.source_sha256,
-      generator: p.engine.provider, created_at: p.finished_at, duration_ms: p.duration_ms },
+      generator: p.provider, created_at: p.created_at, duration_ms: p.duration_ms },
       ...c.variants.map(v => ({ candidate_id: v.variant_id, kind: v.kind, text: v.text, text_sha256: v.text_sha256,
         generator: v.generator, created_at: v.created_at, duration_ms: v.duration_ms }))].map(candidate => {
       const metrics = c.reference ? compareOcrText(c.reference.text, candidate.text) : null;
       if (metrics && c.reference) {
-        const engine_sha256 = candidate.kind === "ocr" ? p.engine.engine_sha256 : null;
-        const key = JSON.stringify([candidate.kind, candidate.generator, engine_sha256, c.reference.verification, c.reference.training_overlap]);
+        const engine_sha256 = candidate.kind === "ocr" ? p.engine_sha256 : null;
+        const key = JSON.stringify([candidate.kind, candidate.generator, engine_sha256, p.image_identity, c.reference.verification, c.reference.training_overlap]);
         const group = groups.get(key) ?? { kind: candidate.kind, generator: candidate.generator, engine_sha256,
+          image_identity: p.image_identity,
           verification: c.reference.verification, training_overlap: c.reference.training_overlap, metrics: [] };
         group.metrics.push(metrics); groups.set(key, group);
       }
@@ -94,6 +80,7 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
     regions.add(JSON.stringify([p.source.document_id, p.source.evidence_id]));
     cases.push({ case_id: c.case_id, state: c.reference ? "reference_agreement" : "pending_reference", source: p.source,
       run_path: p.run_path, run_sha256: p.run_sha256, engine: p.engine, reference: c.reference, observations: c.observations, candidates,
+      image_identity: p.image_identity, provenance_validation: p.provenance_validation, manual_ocr_provenance: p.manual_ocr_provenance,
       unperformed_methods: ["image_reading", "image_assisted_correction"].filter(kind => !c.variants.some(v => v.kind === kind)) });
   }
   const summary = { cases: cases.length, canvases: pages.size, regions: regions.size,

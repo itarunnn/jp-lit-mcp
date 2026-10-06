@@ -1,6 +1,7 @@
 import path from "node:path";
 import { ocrRunSchema, ocrAbsoluteSchema } from "./ocrSchemas.js";
-import { normalizeKotenOutput, validateOcrSource } from "./ocr.js";
+import { normalizeProviderOutput, validateOcrSource } from "./ocr.js";
+import { validateGpuCounts } from "./ocrGpu.js";
 import { ocrDigest, readOcrFile, resolveOcrArtifact, ocrEvidenceSchema, ocrSourceFromEvidenceItem } from "./ocrRunner.js";
 import { imageDimensions } from "./imageMetadata.js";
 import { validateWorkspace } from "./schemas.js";
@@ -38,7 +39,7 @@ export async function importOcr(workspace: IiifWorkspace, runPath: string) {
       artifacts.push({...artifact,path:file,bytes:raw});
     }
     const one = (extension:string) => {
-      const matches=artifacts.filter((a)=>a.path.endsWith(extension));
+      const matches=artifacts.filter((a)=>a.path.endsWith(extension) && !["gpu-validation.json","opt.json"].includes(path.basename(a.path)));
       if (matches.length !== 1) throw new Error(`OCR原出力を確認してください: ${extension}`);
       return matches[0];
     };
@@ -46,7 +47,14 @@ export async function importOcr(workspace: IiifWorkspace, runPath: string) {
     if(image.length!==1 || image[0].sha256!==source.image_sha256)throw new Error("OCR入力画像が一致しません");
     const dim=imageDimensions(image[0].bytes);
     if(dim.width!==source.image_width || dim.height!==source.image_height)throw new Error("OCR入力画像寸法が一致しません");
-    const lines=normalizeKotenOutput(JSON.parse(json.bytes.toString("utf8")),source), text=txt.bytes.toString("utf8");
+    const raw=JSON.parse(json.bytes.toString("utf8")), text=txt.bytes.toString("utf8");
+    const lines=normalizeProviderOutput(run.engine.provider,raw,text,source);
+    if(run.engine.provider==="ndlkotenocr-ver3") {
+      if(raw.imginfo?.img_name!==path.basename(image[0].path))throw new Error("GPU OCRの出力画像名が一致しません");
+      const validation=artifacts.filter(a=>path.basename(a.path)==="gpu-validation.json");
+      if(validation.length!==1)throw new Error("GPU原検証fileを確認してください");
+      await validateGpuCounts(path.dirname(validation[0].path),lines.length);
+    }
     if(text!==item.text || JSON.stringify(lines)!==JSON.stringify(item.lines))throw new Error("OCR候補と原出力の本文・行座標が一致しません");
     const textId=`ocr-${ocrDigest(`${run.run_id}:${source.evidence_id}`).slice(0,24)}`;
     const t:TextEvidence={text_id:textId,canvas_id:source.selection.canvas_id,target_xywh:source.selection.xywh,
