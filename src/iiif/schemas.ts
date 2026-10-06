@@ -1,7 +1,9 @@
 import { z } from "zod";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
+import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
 import { validateOcrSource, normalizeKotenOutput } from "./ocr.js";
 
 const id = z.string().min(1).max(4096);
@@ -108,6 +110,7 @@ export const textSchema = z.object({
   ]),
   verification_state: z.enum(["provider_text", "unverified", "human_verified"]),
   ocr_provenance: ocrProvenanceSchema.optional(),
+  manual_ocr_provenance: manualOcrProvenanceSchema.optional(),
 });
 export const viewerSchema = z.object({
   adapter_version: id,
@@ -209,9 +212,22 @@ export function validateWorkspace(input: unknown) {
       throw new Error("window参照が未解決です");
   const canvases = w.documents.flatMap((d) => d.canvases);
   for (const t of w.texts) {
+    if (t.manual_ocr_provenance) {
+      const p = t.manual_ocr_provenance, s = p.source, d = w.documents.find((d) => d.document_id === s.document_id);
+      const c = d?.canvases.find((c) => c.canvas_id === s.selection.canvas_id);
+      if (t.ocr_provenance || t.origin !== "ocr_candidate" || t.verification_state !== "unverified" ||
+          s.workspace_id !== w.workspace_id || d?.receipt.sha256 !== s.manifest_sha256 || !c ||
+          c.canvas_id !== t.canvas_id || c.width !== s.canvas_width || c.height !== s.canvas_height ||
+          JSON.stringify(t.target_xywh) !== JSON.stringify(s.selection.xywh) ||
+          createHash("sha256").update(t.text).digest("hex") !== t.source_sha256 ||
+          t.source_ref !== (p.result_url ?? "https://mp.ex.nii.ac.jp/kuronet/"))
+        throw new Error("手動OCR候補の本文・出典・対象が一致しません");
+    }
     if (t.ocr_provenance && (t.origin !== "ocr_candidate" || t.verification_state !== "unverified"))
       throw new Error("OCR候補と校合記録を分離してください");
-    const c = canvases.find((c) => c.canvas_id === t.canvas_id);
+    const c = t.manual_ocr_provenance
+      ? w.documents.find((d) => d.document_id === t.manual_ocr_provenance!.source.document_id)?.canvases.find((c) => c.canvas_id === t.canvas_id)
+      : canvases.find((c) => c.canvas_id === t.canvas_id);
     if (!c) throw new Error("text参照が未解決です");
     if (t.ocr_provenance) {
       const p=t.ocr_provenance,s=validateOcrSource(p.source),doc=w.documents.find((d)=>d.document_id===s.document_id);

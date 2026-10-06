@@ -19,6 +19,8 @@ await cp(new URL("src/iiif/tei-state.mjs", root), new URL("dist/src/iiif/tei-sta
 await cp(new URL("src/iiif/tei-state.mjs", root), new URL("tei-state.mjs", out));
 await cp(new URL("src/iiif/ocr-state.mjs", root), new URL("dist/src/iiif/ocr-state.mjs", root));
 await cp(new URL("src/iiif/ocr-state.mjs", root), new URL("ocr-state.mjs", out));
+await cp(new URL("src/iiif/manual-ocr-state.mjs", root), new URL("dist/src/iiif/manual-ocr-state.mjs", root));
+await cp(new URL("src/iiif/manual-ocr-state.mjs", root), new URL("manual-ocr-state.mjs", out));
 await cp(
   new URL("node_modules/mirador/dist/mirador.min.js", root),
   new URL("vendor/mirador.min.js", out),

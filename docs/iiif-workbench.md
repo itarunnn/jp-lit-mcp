@@ -146,6 +146,22 @@ surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを�
 
 OCR操作はCLIの`--help`に`run_ocr`がある開発checkoutで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。公開OCRサービスへの接続、画像の外部送信、自動インストールは行いません。
 
+### ローカルOCRと手動補助を選ぶ
+
+標準の任意OCRは古典籍用のNDL古典籍OCR-Liteです。GPU環境を持つ利用者は[NDL古典籍OCR ver.3](https://github.com/ndl-lab/ndlkotenocr_cli)も選べます。GPU版の製品provider接続は後続の実装です。近代活字用のNDLOCR-Liteは別の処理系として扱います。
+
+PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)を使います。[公式利用案内](https://mp.ex.nii.ac.jp/kuronet/)に従い、利用者がログイン・OCR・本文の取り出しを行います。サービス上のOCR結果は公開されるため、公開IIIF資料と利用条件を確認した範囲を対象にします。
+
+### KuroNetの本文を領域へ保存する
+
+開発版の比較画面で対象のページ・矩形を領域コレクションへ保存し、その領域の「KuroNetで補助OCR」を押します。補助パネルのマニフェストURLをコピーし、「KuroNetを開く」から公式画面へ手動入力します。ページと矩形、回転を見比べて同じ範囲を指定してください。ページ全体の本文を扱う場合は比較室にもページ全体の領域を作ります。
+
+公式画面でOCRを実行し、読み順の設定とテキスト変換を行って本文を取り出します。その原文を補助パネルへ貼り付け、記録者・任意の結果URLを入力し、ページ・領域の対応を確認して「OCR候補を保存」を押します。外部リンクは固定の公式URLを使い、作業JSON・起動token・画像を自動で送信しません。
+
+保存する本文は`ocr_candidate / unverified`です。改行と空白を含む貼付原文のhash、対象workspace・document・manifest hash・Canvas・領域座標、取込日時・記録者・結果URLを`manual_ocr_provenance`へ残します。利用者の範囲確認は`user_declared`で、文字単位の原画像校合と区別します。未取得のモデル版とサービス処理画像hashはnullです。原領域を削除しても出典snapshotを保持し、現在領域へ戻る操作を停止します。
+
+候補は作業JSONと領域の読解資料へ含めて保存できます。修訂は別IDの本文候補として保持し、原TEIへ自動統合しません。現行`evaluate_ocr`は原run・artifact・画像hashを再確認するローカルOCR候補用で、この手動本文を直接渡せません。外部結果の行座標・モデル版・画像同一性を確認する共通評価形式は後続です。
+
 ### 任意のengineを導入する
 
 Windowsで検証した例はuvとPython3.12.12を使います。保存先を自分のtoolchain directoryへ変更してください。engineのcodeと重みは上流のCC BY 4.0に従い、研究画像の利用条件は資料ごとに確認します。

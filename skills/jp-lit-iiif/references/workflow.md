@@ -108,6 +108,18 @@ helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価J
 
 原資料の保存先保護はworkspace全体のTEI・OCR出典へ適用する。import_ocr/link_teiのworkspace更新は明示的なoverwrite指定で行い、原XML/run/evidence/artifact/画像への保存は拒否する。原runを読めず保護集合を収集できない場合は、原出力を復元してから再実行する。
 
+## KuroNetによる補助OCR（開発版）
+
+標準の任意ローカルOCRはNDL古典籍OCR-Lite。GPU版の古典籍OCR ver.3は任意の追加方式で、製品provider接続は後続。近代活字用NDLOCR-Liteとは区別する。PCで公開IIIF資料の別候補を得る補助経路には[KuroNet公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)と[利用案内](https://mp.ex.nii.ac.jp/kuronet/)を使う。
+
+1. 比較画面でページ・矩形を保存し、その領域の「KuroNetで補助OCR」を開く。パネルのマニフェストURLとCanvas・ページ番号・矩形・回転を確認する。
+2. 利用者が公式画面を開き、URLを手動入力してログイン・領域指定・OCR・読み順設定・テキスト変換を行う。KuroNetのOCR結果は公開されるため、公開IIIF資料と利用条件を確認した範囲で使う。アプリは自動API接続・ログイン・画像送信を持たない。
+3. 対象領域だけの原文を貼り付け、記録者と任意の結果URLを入力し、領域への対応を宣言して「OCR候補を保存」を押す。ページ全体の本文は比較画面にもページ全体の領域を作って保存する。出力の改行・空白を保持する。
+4. `manual_ocr_provenance`へprovider、manual_copy、取込日時、記録者、結果URL、対象workspace・document・manifest hash・Canvas・領域座標を保存し、`source_sha256`へ原文hashを残す。未取得のモデル版・サービス処理画像hashはnull。候補は`ocr_candidate / unverified`で、範囲宣言`user_declared`は文字の原画像校合と別に扱う。通常のmanual_transcriptionやLiteの原runへ偽装しない。
+5. 「原画像の領域へ」で画像を実際に開き、校合した文字・未校合範囲・修訂候補を別に記録する。原文とTEIを保持し、自動昇格しない。作業JSONと領域の読解資料にもこの出典を含める。原領域削除後はsnapshotを保持し、現在領域への操作を停止する。
+
+現行`evaluate_ocr`は原run・artifact・画像hashがあるローカルOCR候補用。この手動本文を直接渡せない。外部結果の画像同一性・行座標等を確認する共通評価形式は後続に残す。利用者から個別に依頼された実サービス試験は、その資料・範囲・送信先・日時・成果物を研究logへ残し、通常のアプリ動作と分ける。
+
 ## 既存テキストを読む
 
 画面の「表示ページの既存テキストを読む」はv3の単純なTextualBodyと明示された外部AnnotationPage最大1件を対象にする。取得後に「テキストを関連付ける」で同じCanvasの原テキストを領域へ結び付ける。

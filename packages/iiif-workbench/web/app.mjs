@@ -10,9 +10,11 @@ import { createTeiPanel } from "./tei-panel.mjs";
 import { detachTeiRegion } from "./tei-state.mjs";
 import { createOcrPanel } from "./ocr-panel.mjs";
 import { assertOcrTarget } from "./ocr-state.mjs";
+import { createManualOcrPanel } from "./manual-ocr-panel.mjs";
+import { assertManualOcrTarget } from "./manual-ocr-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion, teiPanel, ocrPanel;
+let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel;
 const status = (text) => {
   $("status").textContent = text;
 };
@@ -257,25 +259,29 @@ function renderRegions() {
     tei.onclick = () => teiPanel.showRegion(r);
     const ocr = node("button", "関連OCR候補");
     ocr.onclick = () => ocrPanel.showRegion(r);
+    const manualOcr = node("button", "KuroNetで補助OCR");
+    manualOcr.onclick = () => manualOcrPanel.showRegion(r);
     const remove = node("button", "削除");
     remove.onclick = () => {
       detachTeiRegion(workspace, r.selection.region_id);
       workspace.regions = workspace.regions.filter((v) => v !== r);
       renderRegions();
     };
-    buttons.append(back, link, tei, ocr, remove);
+    buttons.append(back, link, tei, ocr, manualOcr, remove);
     article.append(buttons);
     $("regions").append(article);
   }
   ocrPanel?.render();
+  manualOcrPanel?.render();
 }
 function renderTexts() {
   teiPanel?.render();
   ocrPanel?.render();
+  manualOcrPanel?.render();
   if (!workspace) return;
   const { c } = current();
   $("texts").replaceChildren();
-  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id && !t.ocr_provenance))
+  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id && !t.ocr_provenance && !t.manual_ocr_provenance))
     $("texts").append(
       node("p", `${t.origin} / ${t.verification_state}`),
       node("pre", t.text),
@@ -433,6 +439,20 @@ $("active-window").onchange = () => {
 try {
   if (!token) throw new Error("CLIが表示した起動URLを開いてください");
   workspace = await api("/api/workspace");
+  manualOcrPanel = createManualOcrPanel({element:$("manual-ocr-panel"),workspace:()=>workspace,status,
+    async importCandidate(input) {
+      const saved = snapshot();
+      await api("/api/workspace", saved);
+      if(workspace !== saved)throw Error("作業が変更されました。対象を確認して再実行してください");
+      const result=await api("/api/ocr/manual",input);
+      if(workspace !== saved)throw Error("作業が変更されました。保存済みの候補は元の作業を読み込んで確認してください");
+      const {region}=assertManualOcrTarget(workspace,result.text);
+      if(!workspace.texts.some(t=>t.text_id===result.text.text_id))workspace.texts.push(result.text);
+      if(!region.text_evidence_ids.includes(result.text.text_id))region.text_evidence_ids.push(result.text.text_id);
+      renderTexts();return result;
+    },
+    openImage(text){const {region}=assertManualOcrTarget(workspace,text);showRegion(viewer,region.selection);$("active-window").value=region.selection.window_id;},
+  });
   ocrPanel = createOcrPanel({ element: $("ocr-panel"), workspace: () => workspace, current, status,
     openImage(text, line) {
       const { doc, source } = assertOcrTarget(workspace,text);

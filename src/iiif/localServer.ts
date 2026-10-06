@@ -8,6 +8,7 @@ import { exportEvidence } from "./evidence.js";
 import { toWebAnnotations, fromWebAnnotations } from "./annotations.js";
 import { viewerManifest } from "./viewerManifest.js";
 import { loadSelectedText } from "./text.js";
+import { importManualOcr } from "./manualOcr.js";
 import type { LocalServerOptions } from "./types.js";
 
 export async function startLocalServer(
@@ -32,6 +33,8 @@ export async function startLocalServer(
     "/tei-panel.mjs": ["tei-panel.mjs", "text/javascript"],
     "/ocr-state.mjs": ["ocr-state.mjs", "text/javascript"],
     "/ocr-panel.mjs": ["ocr-panel.mjs", "text/javascript"],
+    "/manual-ocr-state.mjs": ["manual-ocr-state.mjs", "text/javascript"],
+    "/manual-ocr-panel.mjs": ["manual-ocr-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
     "/vendor/mirador.min.js": ["vendor/mirador.min.js", "text/javascript"],
   };
@@ -108,6 +111,7 @@ export async function startLocalServer(
           "/api/workspace",
           "/api/text",
           "/api/text/import",
+          "/api/ocr/manual",
           "/api/export",
           "/api/annotations/import",
         ].includes(pathname)
@@ -141,6 +145,13 @@ export async function startLocalServer(
         chunks.push(chunk);
       }
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if (pathname === "/api/ocr/manual") {
+        const imported = importManualOcr(workspace, body);
+        await saveWorkspace(options.workspace_path, imported.workspace, true);
+        workspace = imported.workspace;
+        json(200, imported);
+        return;
+      }
       if (pathname === "/api/workspace") {
         const next = validateWorkspace(body);
         await saveWorkspace(options.workspace_path, next, true);
@@ -195,6 +206,11 @@ export async function startLocalServer(
           : [textSchema.parse(body.text)];
       if (texts.some((t) => t.canvas_id !== body.canvas_id))
         throw new Error("textのCanvasが一致しません");
+      for (const incoming of texts) {
+        const previous = workspace.texts.find((t) => t.text_id === incoming.text_id);
+        if (previous?.manual_ocr_provenance && JSON.stringify(previous) !== JSON.stringify(incoming))
+          throw new Error("手動OCRの原出力を保持します。修訂候補は別のIDで読み込んでください");
+      }
       doc.diagnostics.push(...diagnostics);
       workspace = validateWorkspace({
         ...workspace,
