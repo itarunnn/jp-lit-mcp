@@ -470,7 +470,7 @@ try {
       status("OCR候補に対応する画像へ移動しました。原画像で文字を確認できます。");
     },
   });
-  readingPanel=createReadingPanel({element:$("reading-panel"),workspace:()=>workspace,setWorkspace:next=>{if(manualImportBusy)throw Error("手動OCR候補を保存中です");workspace=next;},status,
+  readingPanel=createReadingPanel({element:$("reading-panel"),workspace:()=>workspace,assertEditable:()=>{if(manualImportBusy)throw Error("手動OCR候補を保存中です");},setWorkspace:next=>{workspace=next;},status,
     openImage(text){const {doc,source}=assertReadingTarget(workspace,text);const active=current(),win=active.d?.document_id===doc.document_id?active.w:workspace.windows.find(w=>w.document_id===doc.document_id);
       if(!win)throw Error("対象資料の窓がありません");showRegion(viewer,{window_id:win.window_id,canvas_id:source.selection.canvas_id,xywh:source.selection.xywh});$("active-window").value=win.window_id;status("AI候補の原画像領域を表示しました。");}});
   teiPanel = createTeiPanel({ element: $("tei-panel"), workspace: () => workspace, current, selectedRegions, status,

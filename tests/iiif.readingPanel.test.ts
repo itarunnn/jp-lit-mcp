@@ -27,8 +27,8 @@ it("shows doubts safely and records an AI confirmation separately from the text"
     const responsePath=path.join(f.dir,"response.json");await writeFile(responsePath,JSON.stringify(raw));
     let w=(await importReading(f.imported,task.task_path,responsePath,path.join(f.dir,"next.json"))).workspace;
     vi.stubGlobal("document",{createElement:(tag:string)=>new Element(tag)});
-    const element=new Element("section"),images:string[]=[];
-    const panel=createReadingPanel({element,workspace:()=>w,setWorkspace:(next:any)=>{w=next;},status:()=>{},openImage:(t:any)=>images.push(t.text_id)});
+    const element=new Element("section"),images:string[]=[],messages:string[]=[];let busy=false;
+    const panel=createReadingPanel({element,workspace:()=>w,setWorkspace:(next:any)=>{w=next;},assertEditable:()=>{if(busy)throw Error("保存中");},status:(s:string)=>messages.push(s),openImage:(t:any)=>images.push(t.text_id)});
     panel.render();expect(find(element,e=>e.tag==="pre"&&e.textContent==="候補<script>")).toBeDefined();
     find(element,e=>e.tag==="button"&&e.textContent==="原画像の領域へ")!.onclick!();expect(images).toEqual([w.texts[1].text_id]);
     const author=find(element,e=>e.tag==="input"&&e.placeholder==="確認の記録者")!;author.value="test-reader";author.oninput!();
@@ -37,6 +37,10 @@ it("shows doubts safely and records an AI confirmation separately from the text"
     panel.render();expect(find(element,e=>e.tag==="textarea"&&e.value==="AIによる実見、未校合")).toBeDefined();
     find(element,e=>e.tag==="button"&&e.textContent==="原画像との確認を記録")!.onclick!();
     expect(w.texts[1].text).toBe(raw.text);expect(validateWorkspace(w).texts[1].reading_provenance!.reviews[0]).toMatchObject({reviewer_type:"ai",result:"uncertain",author:"test-reader"});
+    const secondAuthor=find(element,e=>e.tag==="input"&&e.placeholder==="確認の記録者")!;secondAuthor.value="blocked-reader";secondAuthor.oninput!();
+    const secondNote=find(element,e=>e.tag==="textarea"&&e.placeholder==="画像で確認した内容")!;secondNote.value="保存中に追加を試す";secondNote.oninput!();
+    busy=true;find(element,e=>e.tag==="button"&&e.textContent==="原画像との確認を記録")!.onclick!();
+    expect(w.texts[1].reading_provenance!.reviews).toHaveLength(1);expect(messages.at(-1)).toBe("保存中");busy=false;
     w.regions[0].selection.xywh[0]++;panel.render();expect(find(element,e=>e.tag==="button"&&e.textContent==="原画像の領域へ")!.disabled).toBe(true);
   }finally{vi.unstubAllGlobals();await rm(dir,{recursive:true,force:true});}
 });

@@ -9,7 +9,7 @@ export function readingMatchesRegion(workspace,text,regionId) {
   try{return assertReadingTarget(workspace,text).region.selection.region_id===regionId;}catch{return false;}
 }
 export function recordReadingReview(workspace,textId,input) {
-  const w=structuredClone(workspace),text=w.texts.find(t=>t.text_id===textId);
+  const w=workspace,text=w.texts.find(t=>t.text_id===textId);
   assertReadingTarget(w,text);
   const p=text.reading_provenance;
   if(!["human","ai"].includes(input.reviewer_type)||!["match","mismatch","uncertain"].includes(input.result)||

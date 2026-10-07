@@ -36,4 +36,3 @@ export async function readingFixture(two = false) {
   const evaluate = async () => evaluateOcr(workspacePath,evaluationPath,outputPath,false);
   return { dir, raw, runPath, imported, workspacePath, evaluationPath, outputPath, evaluation, evaluate };
 }
-

@@ -210,8 +210,10 @@ export async function startLocalServer(
         throw new Error("textのCanvasが一致しません");
       for (const incoming of texts) {
         const previous = workspace.texts.find((t) => t.text_id === incoming.text_id);
-        if (previous?.manual_ocr_provenance && JSON.stringify(previous) !== JSON.stringify(incoming))
-          throw new Error("手動OCRの原出力を保持します。修訂候補は別のIDで読み込んでください");
+        if ((previous?.manual_ocr_provenance || previous?.ocr_provenance || previous?.reading_provenance) && JSON.stringify(previous) !== JSON.stringify(incoming))
+          throw new Error("OCR・AI候補の原出力と確認履歴を保持します。修訂候補は別のIDで読み込んでください");
+        if(incoming.reading_provenance&&!previous)
+          throw new Error("新しいAI候補はimport_readingで原応答を検証して取り込んでください");
       }
       doc.diagnostics.push(...diagnostics);
       workspace = validateWorkspace({

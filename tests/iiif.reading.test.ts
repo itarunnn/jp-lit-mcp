@@ -5,9 +5,12 @@ import { readingFixture } from "./fixtures/iiif/reading.js";
 import { runIiifCli } from "../src/iiif/cli.js";
 import { digest } from "./fixtures/iiif/ocr.js";
 import { recordReadingReview } from "../src/iiif/reading-state.mjs";
+// @ts-expect-error ブラウザと共有するOCR校合
+import { recordOcrReview } from "../src/iiif/ocr-state.mjs";
 import { exportEvidence } from "../src/iiif/evidence.js";
 import { evaluateOcr } from "../src/iiif/ocrEvaluation.js";
 import { validateWorkspace } from "../src/iiif/schemas.js";
+import { startLocalServer } from "../src/iiif/localServer.js";
 
 async function cli(f: Awaited<ReturnType<typeof readingFixture>>, request: unknown) {
   const file = path.join(f.dir, "request.json"), output: string[] = [];
@@ -87,6 +90,15 @@ it("retains a separate AI review across idempotent reimport",async()=>{
   expect(w.texts[1].text).toBe(f.ai.text);expect(w.texts[1].reading_provenance.reviews).toHaveLength(1);
   expect(w.texts[1].verification_state).toBe("unverified");
 });
+it("keeps existing OCR and region actions attached to the saved workspace after an AI review",async()=>{
+  const f=await importedReading(),capturedWorkspace=f.w,capturedRegion=f.w.regions[0];
+  let current=f.w;
+  const ocrReview=()=>recordOcrReview(capturedWorkspace,f.w.texts[0].text_id,"reader","uncertain","合成fixtureの原画像確認");
+  const removeRegion=()=>{current.regions=current.regions.filter((r:any)=>r!==capturedRegion);};
+  current=recordReadingReview(current,f.ai.text_id,{reviewer_type:"ai",author:"reader",result:"uncertain",note:"合成fixture",corrected_text:null});
+  ocrReview();expect(current.texts[0].ocr_provenance.reviews).toHaveLength(1);
+  removeRegion();expect(current.regions).toHaveLength(0);
+});
 it("evaluates an explicitly selected imported full-region reading",async()=>{
   const f=await importedReading();f.evaluation.cases[0].reading_text_ids=[f.ai.text_id];
   await writeFile(f.evaluationPath,JSON.stringify(f.evaluation));
@@ -116,4 +128,22 @@ it.each(["body","id","source_hash"])("rejects AI candidate tampering during eval
   if(kind==="source_hash")f.ai.reading_provenance.response_sha256="0".repeat(64);
   f.evaluation.cases[0].reading_text_ids=[f.ai.text_id];await writeFile(f.outputPath,JSON.stringify(f.w));await writeFile(f.evaluationPath,JSON.stringify(f.evaluation));
   await expect(evaluateOcr(f.outputPath,f.evaluationPath,f.outputPath+".report.json",false)).rejects.toThrow(/候補|応答|ID/);
+});
+it.each(["ai_body","ai_reviews","ai_new_id","ocr_body"])("preserves derived candidates in generic text import: %s",async kind=>{
+  const f=await importedReading();f.w=recordReadingReview(f.w,f.ai.text_id,{reviewer_type:"ai",author:"test",result:"uncertain",note:"既存確認",corrected_text:null});
+  await writeFile(f.outputPath,JSON.stringify(f.w));const before=await readFile(f.outputPath);
+  const server=await startLocalServer({workspace_path:f.outputPath,asset_root:f.dir});
+  try {
+    const url=new URL(server.url),incoming=structuredClone(kind==="ocr_body"?f.w.texts[0]:f.w.texts[1]);
+    if(kind==="ai_body"){incoming.text="すり替え";incoming.source_sha256=digest(incoming.text);incoming.reading_provenance.response.text=incoming.text;incoming.reading_provenance.response.doubts=[];}
+    if(kind==="ai_reviews")incoming.reading_provenance.reviews=[];
+    if(kind==="ai_new_id")incoming.text_id="invented-ai";
+    if(kind==="ocr_body"){incoming.text="すり替え";incoming.source_sha256=digest(incoming.text);}
+    const result=await fetch(url.origin+"/api/text/import",{method:"POST",headers:{"content-type":"application/json","x-iiif-token":url.hash.slice(1),Origin:url.origin},
+      body:JSON.stringify({document_id:"d1",canvas_id:incoming.canvas_id,text:incoming})});
+    expect(result.status).toBe(400);expect(await readFile(f.outputPath)).toEqual(before);
+    const same=await fetch(url.origin+"/api/text/import",{method:"POST",headers:{"content-type":"application/json","x-iiif-token":url.hash.slice(1),Origin:url.origin},
+      body:JSON.stringify({document_id:"d1",canvas_id:f.w.texts[1].canvas_id,text:f.w.texts[1]})});
+    expect(same.status).toBe(200);expect(JSON.parse(await readFile(f.outputPath,"utf8")).texts[1].reading_provenance.reviews).toHaveLength(1);
+  }finally{await server.close();}
 });

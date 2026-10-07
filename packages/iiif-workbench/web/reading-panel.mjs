@@ -1,7 +1,7 @@
 import { assertReadingTarget,recordReadingReview } from "./reading-state.mjs";
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const kinds={image_reading:"画像のみの読解",image_assisted_correction:"画像とOCRを併用した修訂"};
-export function createReadingPanel({element,workspace,setWorkspace,status,openImage}) {
+export function createReadingPanel({element,workspace,setWorkspace,status,openImage,assertEditable=()=>{}}) {
   const drafts=new Map();let page=0,regionId=null;
   const attempt=fn=>{try{fn();}catch(e){status(e.message);}};
   function render() {
@@ -33,6 +33,7 @@ export function createReadingPanel({element,workspace,setWorkspace,status,openIm
       const note=field("確認内容","textarea","note","画像で確認した内容");note.rows=2;note.maxLength=20000;
       const corrected=field("修訂候補（任意）","textarea","corrected_text");corrected.rows=3;corrected.maxLength=2*1024*1024;
       const record=node("button","原画像との確認を記録");record.disabled=!!error;record.onclick=()=>attempt(()=>{
+        assertEditable();
         setWorkspace(recordReadingReview(workspace(),t.text_id,{author:draft.author,reviewer_type:draft.reviewer_type,result:draft.result,note:draft.note,corrected_text:draft.corrected_text||null}));
         drafts.delete(key);render();status("原画像の確認を追加しました。作業を保存してください。");
       });
