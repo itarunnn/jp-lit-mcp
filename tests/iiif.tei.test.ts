@@ -44,6 +44,26 @@ describe("TEI to IIIF linking", () => {
     expect(JSON.stringify(link.reference.source_content)).toContain("旧");
     expect(link.collations).toEqual([]);
   }, 60000);
+  it("keeps the pb marker and a separately bounded page after CLI import", async () => {
+    const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><p>前<pb xml:id="a" facs="${canvas}"/>甲<choice><orig>舊</orig><reg>旧</reg></choice><pb xml:id="b" facs="${canvas}"/>乙</p></body></text></TEI>`);
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    const reference = result.w!.tei_links![0].reference;
+    expect(reference.source_content!.name).toBe("{http://www.tei-c.org/ns/1.0}pb");
+    expect(reference.page_range!.start_locator.xml_id).toBe("a");
+    expect(reference.page_range!.end_locator!.xml_id).toBe("b");
+    expect(JSON.stringify(reference.page_range!.content)).toContain("舊");
+    expect(JSON.stringify(reference.page_range!.content)).not.toContain('"value":"乙"');
+    expect(result.w!.tei_links![0].collations).toEqual([]);
+  }, 60000);
+  it("imports opt-in ancestor references with the declaring locator", async () => {
+    const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div xml:id="d" facs="${canvas}"><p xml:id="p">甲</p><p facs=""><hi>乙</hi></p></div></body></text></TEI>`, { include_inherited: true });
+    expect(result.code, result.stderr + result.stdout).toBe(0);
+    const link = result.w!.tei_links!.find(l => l.reference.source_locator.xml_id === "p")!;
+    expect(link.state).toBe("resolved");
+    expect(link.reference.facs_origin!.kind).toBe("ancestor");
+    expect(link.reference.facs_origin!.locator.xml_id).toBe("d");
+    expect(result.w!.tei_links).toHaveLength(2);
+  }, 60000);
   it("converts a declared surface space with a nonzero origin to Canvas space", async () => {
     const result = await run(`<TEI xmlns="http://www.tei-c.org/ns/1.0"><facsimile><surface xml:id="s" ulx="10" uly="20" lrx="110" lry="220"><graphic url="page.jpg"/><zone xml:id="z" ulx="20" uly="40" lrx="50" lry="100"/></surface></facsimile><text><body><p facs="#z">本文</p></body></text></TEI>`, {
       surface_bindings: [{ surface_xpath: "/t:TEI[1]/t:facsimile[1]/t:surface[1]", canvas_id: canvas }],

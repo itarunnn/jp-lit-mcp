@@ -7,7 +7,7 @@ import { validateWorkspace } from "./schemas.js";
 import type { IiifWorkspace, CanvasInfo } from "./types.js";
 
 // Python環境を使うのは利用者がlink_teiを要求した場合だけ。
-export async function readTeiLinks(file: string, hash: string, limit: number, offset: number): Promise<unknown> {
+export async function readTeiLinks(file: string, hash: string, limit: number, offset: number, includeInherited = false): Promise<unknown> {
   const parent = fileURLToPath(new URL("../../", import.meta.url));
   const root = path.basename(path.normalize(parent)) === "dist" ? path.dirname(path.normalize(parent)) : parent;
   const launcher = path.join(root, "scripts/tei-reader.mjs");
@@ -41,7 +41,7 @@ export async function readTeiLinks(file: string, hash: string, limit: number, of
         resolve(result);
       } catch (error) { reject(error instanceof Error ? error : new Error("TEI readerの応答が不正です")); }
     });
-    child.stdin.end(JSON.stringify({ operation: "facsimile_links", file_path: file, expected_sha256: hash, limit, offset }));
+    child.stdin.end(JSON.stringify({ operation: "facsimile_links", file_path: file, expected_sha256: hash, limit, offset, include_inherited: includeInherited }));
   });
 }
 

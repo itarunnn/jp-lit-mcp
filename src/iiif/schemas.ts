@@ -1,7 +1,7 @@
 import { z } from "zod";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
+import { teiLinkSchema, teiHashSchema, surfaceBindingSchema, validateTeiReference } from "./teiSchemas.js";
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
 import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
 import { readingProvenanceSchema, readingKindSchema } from "./readingSchemas.js";
@@ -163,6 +163,7 @@ export const requestSchema = z.discriminatedUnion("operation", [
     workspace_path: absolute, output_path: absolute, file_path: absolute,
     expected_sha256: teiHashSchema, document_id: id,
     surface_bindings: z.array(surfaceBindingSchema).max(2000).default([]),
+    include_inherited: z.boolean().default(false),
     limit: z.number().int().min(1).max(100).default(20), offset: z.number().int().nonnegative().default(0),
     overwrite: z.boolean().default(false),
   }),
@@ -291,6 +292,7 @@ export function validateWorkspace(input: unknown) {
     )
       throw new Error("viewer参照が未解決です");
   for (const link of w.tei_links ?? []) {
+    validateTeiReference(link.reference);
     const doc = w.documents.find((d) => d.document_id === link.document_id);
     if (!doc) throw new Error("TEI document参照が未解決です");
     if ((link.state === "resolved") !== (link.target !== null)) throw new Error("TEI対応状態が一致しません");

@@ -43,7 +43,9 @@ export function formatTei(root) {
     const { node: n, close, depth } = stack.pop();
     if (close) { out.push(`</${close}>`); continue; }
     if (++count > 4000 || depth > 256) { out.push("[表示上限]"); break; }
-    if (n?.kind === "element" && typeof n.name === "string" && Array.isArray(n.content)) {
+    if (n?.kind === "fragment" && Array.isArray(n.content)) {
+      for (let i = n.content.length - 1; i >= 0; i--) stack.push({ node: n.content[i], depth });
+    } else if (n?.kind === "element" && typeof n.name === "string" && Array.isArray(n.content)) {
       const tag = name(n.name);
       const attrs = Object.entries(n.attributes ?? {}).map(([k, v]) => ` ${name(k)}="${escape(v)}"`).join("");
       out.push(`<${tag}${attrs}>`);

@@ -41,7 +41,11 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       const title = node("h3", link.reference.source_locator.xml_id || link.reference.source_locator.xpath);
       const states = { resolved: "対応あり", candidate: "候補", unresolved: "未解決" };
       article.append(title, node("p", `${states[link.state]} · ${link.reference.raw_token}`));
-      const content = node("pre", link.reference.source_content ? formatTei(link.reference.source_content) : "本文単位が上限を超えています。TEI readerで小さい単位を指定してください。");
+      const range = link.reference.page_range, origin = link.reference.facs_origin;
+      if (range) article.append(node("p", `改頁後の本文 · ${range.boundary === "next_pb" ? "次の改頁の直前まで" : "本文containerの末尾まで"}。途中で切れたタグは原構造の一部です。`));
+      if (origin?.kind === "ancestor") article.append(node("p", `親のfacs参照を使用 · ${origin.locator.xml_id || origin.locator.xpath}。画像対応の宣言として確認してください。`));
+      const shown = range ? range.content : link.reference.source_content;
+      const content = node("pre", shown ? formatTei(shown) : "本文単位が上限を超えています。TEI readerで小さい単位を指定してください。");
       content.className = "tei-content"; article.append(content);
       const go = node("button", "対応する画像へ"); go.disabled = !link.target;
       go.onclick = () => { try { openImage(link); } catch (e) { status(e.message); } }; article.append(go);
@@ -58,7 +62,8 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       collate.onclick = () => attempt(() => {recordTeiCollation(w, link.link_id, author.value, outcome.value, note.value);drafts.delete(key);}); details.append(collate);
       details.append(node("p", `対応記録${link.assignments.length}件 / 校合記録${link.collations.length}件`));
       details.append(node("pre", JSON.stringify({ file_path: link.file_path, source_locator: link.reference.source_locator, target: link.target, candidates: link.candidates,
-        diagnostics: link.diagnostics, assignments: link.assignments, collations: link.collations, reference: { target: link.reference.target, surface: link.reference.surface, graphics: link.reference.graphics, xml_base_chain: link.reference.xml_base_chain } }, null, 2)));
+        diagnostics: link.diagnostics, assignments: link.assignments, collations: link.collations, reference: { target: link.reference.target, surface: link.reference.surface, graphics: link.reference.graphics, xml_base_chain: link.reference.xml_base_chain,
+          facs_origin: origin, page_range: range } }, null, 2)));
       article.append(details); list.append(article);
     }
   }

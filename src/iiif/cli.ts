@@ -84,7 +84,7 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     } else if (request.operation === "link_tei") {
       const w = await readWorkspace(request.workspace_path);
       await protectWorkspaceSources(request.output_path, w, [request.file_path]);
-      const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset);
+      const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset, request.include_inherited);
       const next = linkTei(w, response, request);
       await saveWorkspace(request.output_path, next, request.overwrite);
       const page = response as { result: { total_occurrences: number; next_offset: number | null } };
