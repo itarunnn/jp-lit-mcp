@@ -36,7 +36,7 @@ def validate_request(request):
     fields={'operation','file_path','expected_sha256'}
     additions={'inspect_document':{'provenance_manifest_path'},'list_units':{'scope_xpath','relation','element','attribute_equals','limit','offset'},
                'extract_unit':{'locator','view'},'check_references':{'attributes','limit','offset','scope_xpath'},
-               'facsimile_links':{'limit','offset'}}
+               'facsimile_links':{'limit','offset','include_inherited'}}
     if request.keys()-(fields|additions[op]) or not isinstance(request.get('file_path'),str) or not request['file_path']:
         _invalid()
     expected=request.get('expected_sha256')
@@ -81,6 +81,11 @@ def validate_request(request):
         if scope is not None and (not isinstance(scope,str) or not scope):
             _invalid()
         normalized['scope_xpath']=scope
+    if op == 'facsimile_links':
+        inherited = request.get('include_inherited', False)
+        if not isinstance(inherited, bool):
+            _invalid()
+        normalized['include_inherited'] = inherited
     if op in ('list_units','check_references','facsimile_links'):
         limit,offset=request.get('limit',20),request.get('offset',0)
         validate_page(limit,offset)
@@ -131,7 +136,7 @@ def execute_request(request: dict[str,JsonValue], limits: Limits) -> dict[str,Js
         elif operation=='extract_unit':
             result=extract_unit(index,request['locator'],limits)
         elif operation=='facsimile_links':
-            result=facsimile_links(index,request['limit'],request['offset'],limits)
+            result=facsimile_links(index,request['limit'],request['offset'],limits,request['include_inherited'])
         else:
             result=check_references(index,request['attributes'],request['limit'],request['offset'],request['scope_xpath'])
         return {'api_version':'0.1','operation':operation,'ok':True,

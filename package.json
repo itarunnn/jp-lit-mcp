@@ -46,6 +46,7 @@
     "packages/tei-reader/tei_reader/locator.py",
     "packages/tei-reader/tei_reader/model.py",
     "packages/tei-reader/tei_reader/operations.py",
+    "packages/tei-reader/tei_reader/page_ranges.py",
     "packages/tei-reader/tei_reader/protocol.py",
     "packages/tei-reader/tei_reader/references.py",
     "packages/tei-reader/tei_reader/tree.py",

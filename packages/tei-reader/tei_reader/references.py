@@ -20,6 +20,26 @@ def _base_chain(index, node):
     return chain
 
 
+def resolve_reference(index, owner, token):
+    """参照属性を宣言した要素のbaseとID集合でliteral tokenを点検する。"""
+    chain = _base_chain(index, owner)
+    targets = []
+    if token == '#':
+        status = 'empty_fragment_unverified'
+    elif token.startswith('#'):
+        if any(entry['value'] for entry in chain):
+            status = 'base_context_unverified'
+        else:
+            targets = index.ids.get(token[1:], [])
+            status = 'resolved_local' if len(targets) == 1 else ('ambiguous_local' if targets else 'unresolved_local')
+    elif re.match(r'^[A-Za-z][A-Za-z0-9+.-]*:', token):
+        status = 'external_unverified'
+    else:
+        status = 'relative_or_bare_unverified'
+    return {'status': status, 'target_locator': make_locator(index, targets[0]) if len(targets) == 1 else None,
+            'candidate_count': len(targets), 'xml_base_chain': chain}
+
+
 def check_references(index: Index, attributes: list[str], limit: int, offset: int,
                      scope_xpath: str | None = None) -> dict[str,JsonValue]:
     validate_page(limit,offset)
@@ -45,25 +65,13 @@ def check_references(index: Index, attributes: list[str], limit: int, offset: in
             if chain is None:
                 chain=_base_chain(index,node)
             for token_index,token in enumerate(tokens):
-                targets=[]
-                if token=='#':
-                    status='empty_fragment_unverified'
-                elif token.startswith('#'):
-                    if any(entry['value'] for entry in chain):
-                        status='base_context_unverified'
-                    else:
-                        targets=index.ids.get(token[1:],[])
-                        status='resolved_local' if len(targets)==1 else ('ambiguous_local' if targets else 'unresolved_local')
-                elif re.match(r'^[A-Za-z][A-Za-z0-9+.-]*:',token):
-                    status='external_unverified'
-                else:
-                    status='relative_or_bare_unverified'
+                resolved = resolve_reference(index, node, token)
+                status = resolved['status']
                 summary[attribute][status]+=1
                 if offset<=total<offset+limit:
                     items.append({'source_locator':make_locator(index,node),'attribute':attribute,'attribute_value':value,
                                   'token_index':token_index,'raw_token':token,'status':status,
-                                  'target_locator':make_locator(index,targets[0]) if len(targets)==1 else None,
-                                  'candidate_count':len(targets),'xml_base_chain':chain})
+                                  **resolved})
                 total+=1
     return {'checked_scope':'literal_scope_fragments' if scope is not None else 'literal_document_fragments',
             'scope_locator':make_locator(index,scope) if scope is not None else None,

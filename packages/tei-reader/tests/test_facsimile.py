@@ -47,7 +47,7 @@ class FacsimileTests(ReaderCase):
             <p facs="#nested">本文</p><p facs="https://example.org/canvas#xywh=1,2,3,4"/></body></text>''')
         items = self.call(path)['result']['items']
         self.assertEqual(items[0]['source_content']['name'], '{http://www.tei-c.org/ns/1.0}pb')
-        self.assertIn('milestone_content_not_expanded', items[0]['diagnostics'])
+        self.assertIsNotNone(items[0]['page_range'])
         self.assertEqual(items[0]['target']['attributes']['points'], '1,2 3,4 5,6')
         self.assertIn('nested_geometry', items[1]['diagnostics'])
         self.assertEqual(items[2]['raw_token'], 'https://example.org/canvas#xywh=1,2,3,4')
