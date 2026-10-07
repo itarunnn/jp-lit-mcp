@@ -95,7 +95,7 @@ v3の既存テキストがあるページは「表示ページの既存テキス
 - manifestは10MiB・選択sequence2000Canvas、Image Service info.jsonは2MiB、timeout15秒・redirect3回・取得同時1件。全冊画像取得、認証・館内限定・送信限定資料の取得は対象外。
 - 公開HTTPSを限定取得し、画像表示は提供元へ直接アクセスする。CORSや閲覧権限の失敗は提供元の状態として扱う。失敗した窓があっても他の資料は操作できる。
 
-開発版ではTEIのfacs/surface/zone対応と、任意のローカルくずし字OCRを利用できます。npm公開版0.17.0は初版の比較・書き出し機能を提供します。モデル接続、資料別の品質評価、類似図版検索・整列差分は第3・4段階で進めます。
+開発版ではTEIのfacs/surface/zone対応、任意のローカルくずし字OCR、AI読解候補の取込、保存済み画像の類似検索・整列差分を利用できます。npm公開版0.17.0は初版の比較・書き出し機能を提供します。資料別の品質評価と主要フローの統合受入を進めています。
 
 ## TEI本文と画像領域を往復する（開発版）
 
@@ -344,6 +344,58 @@ requestをUTF-8 JSONで保存し、`jp-lit-iiif --request <request.jsonのpath>`
 
 `evaluate_ocr`のcaseに`reading_text_ids`を指定すると、取り込んだ同じ原OCR・画像の全領域候補を再検証して比較に含めます。画像のみと画像併用が各1件で、inline `variants`と合わせて同じ条件を重複指定できません。部分読解は全文評価から除外し、疑義箇所を小領域として別のOCR/読解課題へ分けます。参照翻刻がない場合は引き続き`pending_reference`です。
 
+## 保存した図版を探して整列差分を確認する（開発版）
+
+図版比較は、保存済みの基準画像1件と候補画像1〜20件の形を比べ、位置合わせ候補・重ね合わせ・濃淡の差を保存します。[Oxford VISE](https://www.robots.ox.ac.uk/~vgg/software/vise/)と[15世紀印刷図版の研究](https://www.robots.ox.ac.uk/~vgg/projects/seebibyte/case_studies/15cillustration/index.html)の領域検索と人による対応確認を参考に、まず手元の小さい画像集合を扱います。実装は[OpenCVのORB](https://docs.opencv.org/4.13.0/d1/d89/tutorial_py_orb.html)と回転・縮尺・平行移動の推定を使います。題材の意味や画風を認識する検索、公開DB全体の探索は後続の範囲です。
+
+解析には任意のuv・Python3.13環境を使います。開発checkoutで次を実行し、固定したOpenCV-headlessとnumpyを準備します。初回の準備では依存packageを取得します。実行時は保存済みJPEG/PNGだけを読み、画像・OCR・モデルへの外部送信を行いません。
+
+```powershell
+node scripts/iiif-images.mjs --setup
+npm run test:images
+```
+
+Python環境は利用者のcacheに作ります。研究用の場所へ揃える場合は、setupと比較画面の起動前に`$env:JP_LIT_IMAGE_ENVIRONMENT='J:/Caches/jp-lit-images'`を設定します。packageの中に仮想環境を作りません。通常MCPと画像の比較表示・書き出しはNodeだけで使えます。
+
+「画像と出典を保存」で取得・利用条件を確認し、比較したい領域の画像を先に保存します。見開き全体には枠線・文字・撮影スケールの繰り返しがあるため、図版を矩形で選ぶと候補を確認しやすくなります。比較画面の「図版を探して比較する」で、保存した`evidence.json`の絶対pathを1行1件で入力し、基準領域と新しい保存先を指定して「似た図版を探す」を押します。JSONに含まれる他の領域を最大20件比較します。
+
+位置合わせは長辺1024px以下で行い、対応点が少ない、小部分に偏る、共通範囲が狭い画像は保留します。成立した場合も図版の一致は確認待ちです。枠線・文字・定規だけが似た別ページや別図版が候補に上がることがあります。原画像へ戻って確かめ、候補順位から資料間の関係を確定しません。
+
+「比較画像」は基準画像・整列画像・重ね合わせ・原濃淡の差・濃淡調整後の差を切り替えます。調整差の赤は閾値を超えた画素、灰は共通比較範囲の外です。紙色・照明・縮小・補間・位置合わせの誤差も差に含まれます。赤い部分だけで改版や加筆と認定せず、原差と調整差を原画像に戻って確認します。透視変形、ページの湾曲、非線形変形は扱いません。
+
+両側の「原領域へ」から出典の場所へ戻れます。「図版対応の確認」に記録者・対応／非対応／判断保留・確認内容を入力し、「作業を保存」で保存します。図版対応とTEI本文校合は別履歴です。同じreportの再取込は確認履歴を保持します。領域を移動・削除した場合も当時のsnapshotを残し、現在の領域への移動・確認追加・読解書き出しを制限します。
+
+CLIの比較要求も同じ処理を使います。次の例のpathと領域IDを保存済みの資料へ置き換え、UTF-8 JSONとして保存します。
+
+```json
+{
+  "api_version": "0.1", "operation": "compare_images",
+  "workspace_path": "J:/ResearchLibrary/My Project/workspace.json",
+  "query": {"evidence_path": "J:/ResearchLibrary/My Project/evidence-a/evidence.json", "evidence_id": "region-a"},
+  "candidates": [{"evidence_path": "J:/ResearchLibrary/My Project/evidence-b/evidence.json", "evidence_id": "region-b"}],
+  "output_dir": "J:/ResearchLibrary/My Project/image-comparison-1"
+}
+```
+
+```powershell
+node scripts/iiif-workbench.mjs --request 'J:/ResearchLibrary/My Project/compare.json'
+```
+
+比較要求は新しいdirectoryへ`report.json`・入力画像のコピー・解析PNGを保存します。workspaceへの登録は次の要求、または画面の「保存済みの比較結果を取り込む」で行います。
+
+```json
+{
+  "api_version": "0.1", "operation": "import_comparison",
+  "workspace_path": "J:/ResearchLibrary/My Project/workspace.json",
+  "report_path": "J:/ResearchLibrary/My Project/image-comparison-1/report.json",
+  "output_path": "J:/ResearchLibrary/My Project/workspace-with-comparison.json"
+}
+```
+
+reportは両側の出典JSONと画像hash・manifest取得版・Canvas・領域・画像座標変換、candidate→queryの行列、Python/OpenCV/numpy版とengine hash、固定設定・処理時間を保持します。取込と読解書き出しは原report・出典JSON・原画像・解析PNGを再検証します。関係する履歴は`evidence.json`の`image_comparison_evidence`へ`figure_candidate`として保存されます。比較結果と原資料の保存先を一緒に保持してください。
+
+受入試験では古典籍3資料の保存済み12画像、同一画像の対照、既知の回転・濃淡変更・追加印を使います。同一画像の対照と加工試験は機能・幾何・差分の確認であり、別本間の図版対応精度は継続評価です。図版を手動で対応付けた評価集合と統合レビューを揃えてから、次版の公開を判断します。
+
 ## OCR・モデル接続・画像解析への進め方
 
 次のIIIFバージョンアップは、TEI本文との往復、くずし字OCR、モデル接続、類似図版検索・整列差分の主要フローを揃えてから行います。実装と検証は段階ごとに進め、開発中のpackage versionは0.17.0を維持します。
@@ -362,7 +414,7 @@ requestをUTF-8 JSONで保存し、`jp-lit-iiif --request <request.jsonのpath>`
 
 第3段階は、ローカルくずし字OCRの実行・校合から進め、直接VLM読解と画像を併用したOCR修正を同じ資料12〜20ページで比較します。原出力・領域ID・費用・時間・誤字・欠落・表記変更を記録し、資料別の評価からproviderを選びます。外部モデルやOCRサービスとの接続は、利用条件と送信先・対象の許可を具体化し、利用者が明示設定した場合に限る後続機能です。
 
-第4段階は、手動で対応を定めた図版集合を使い、類似図版の検索順位と整列差分の誤検出を評価します。撮影条件に由来する差と史料上の差を区別し、TEI対応・領域ID・校合記録へ戻れる候補を保存します。
+第4段階の類似図版・整列差分は、保存済み画像を使う任意のローカル機能として実装しています。手動で対応を定めた別本の図版集合で検索順位と誤検出を評価し、撮影条件に由来する差と史料上の差を区別する検証を続けます。
 
 ## 取得と利用条件
 

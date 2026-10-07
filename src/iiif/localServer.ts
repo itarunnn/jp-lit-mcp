@@ -9,6 +9,9 @@ import { toWebAnnotations, fromWebAnnotations } from "./annotations.js";
 import { viewerManifest } from "./viewerManifest.js";
 import { loadSelectedText } from "./text.js";
 import { importManualOcr } from "./manualOcr.js";
+import { z } from "zod";
+import { compareFromEvidencePaths,importComparison,verifyComparisonArtifact } from "./imageComparison.js";
+import { ocrAbsoluteSchema } from "./ocrSchemas.js";
 import type { LocalServerOptions } from "./types.js";
 
 export async function startLocalServer(
@@ -35,6 +38,8 @@ export async function startLocalServer(
     "/ocr-panel.mjs": ["ocr-panel.mjs", "text/javascript"],
     "/reading-state.mjs": ["reading-state.mjs", "text/javascript"],
     "/reading-panel.mjs": ["reading-panel.mjs", "text/javascript"],
+    "/image-comparison-state.mjs": ["image-comparison-state.mjs", "text/javascript"],
+    "/image-comparison-panel.mjs": ["image-comparison-panel.mjs", "text/javascript"],
     "/manual-ocr-state.mjs": ["manual-ocr-state.mjs", "text/javascript"],
     "/manual-ocr-panel.mjs": ["manual-ocr-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
@@ -92,6 +97,12 @@ export async function startLocalServer(
         json(200, toWebAnnotations(workspace.regions));
         return;
       }
+      if(req.method==="GET"&&pathname==="/api/images/preview"){
+        const params=new URL(req.url!,origin).searchParams;
+        const id=z.string().min(1).parse(params.get("report_id")),candidate=z.string().parse(params.get("candidate_id")),kind=z.enum(["query","aligned","overlay","raw_difference","difference"]).parse(params.get("kind"));
+        const record=workspace.image_comparisons?.find(r=>r.report.report_id===id);if(!record)throw Error("保存した図版比較がありません");
+        const bytes=await verifyComparisonArtifact(record,candidate,kind);json(200,{data_url:`data:image/png;base64,${bytes.toString("base64")}`});return;
+      }
       if (req.method === "GET" && pathname.startsWith("/api/manifest/")) {
         const doc = workspace.documents.find(
           (d) =>
@@ -116,6 +127,8 @@ export async function startLocalServer(
           "/api/ocr/manual",
           "/api/export",
           "/api/annotations/import",
+          "/api/images/compare",
+          "/api/images/import",
         ].includes(pathname)
       ) {
         json(404, { error: "routeが見つかりません" });
@@ -147,6 +160,14 @@ export async function startLocalServer(
         chunks.push(chunk);
       }
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if(pathname==="/api/images/compare"){
+        const input=z.object({evidence_paths:z.array(ocrAbsoluteSchema).min(1).max(21),query_region_id:z.string().min(1),output_dir:ocrAbsoluteSchema}).strict().parse(body);
+        json(200,await compareFromEvidencePaths(workspace,input.evidence_paths,input.query_region_id,input.output_dir));return;
+      }
+      if(pathname==="/api/images/import"){
+        const input=z.object({report_path:ocrAbsoluteSchema}).strict().parse(body),next=await importComparison(workspace,input.report_path);
+        json(200,next.image_comparisons!.find(record=>record.report_path===input.report_path));return;
+      }
       if (pathname === "/api/ocr/manual") {
         const imported = importManualOcr(workspace, body);
         await saveWorkspace(options.workspace_path, imported.workspace, true);

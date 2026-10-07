@@ -30,5 +30,5 @@ it('retains a saved candidate when its region is deleted during the response and
   const client=ui.getWorkspace();expect(client.workspace_id).toBe('w1');expect(client.texts).toHaveLength(1);
   expect(client.texts[0].text).toBe('原出力');expect(server.texts[0]).toEqual(client.texts[0]);
   server=validateWorkspace(structuredClone(client));expect(server.texts).toHaveLength(1);
-  expect(messages.some(s=>/保存中/.test(s))).toBe(true);
+  expect(messages.some(s=>/処理中/.test(s))).toBe(true);
 });

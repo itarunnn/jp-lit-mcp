@@ -57,6 +57,7 @@ it("exports the exact figure candidate and review while leaving the original rep
  const out=await exportEvidence({api_version:"0.1",operation:"export_evidence",workspace_path:f.workspacePath,region_ids:["r1"],output_dir:path.join(root,"export"),overwrite:false,image_permission_confirmed:false});
  const evidence=JSON.parse(await readFile(out.evidence_json_path,"utf8"));expect(evidence.items[0].image_comparison_evidence[0].matches[0].id).toBe("r2");
  expect(evidence.items[0].image_comparison_evidence[0].reviews[0].result).toBe("uncertain");expect(await readFile(r.report_path)).toEqual(raw);
+ await expect(exportEvidence({api_version:"0.1",operation:"export_evidence",workspace_path:f.workspacePath,region_ids:["r1"],output_dir:path.join(root,"result","nested-export"),overwrite:false,image_permission_confirmed:false})).rejects.toThrow(/原入力|原資料/);
 },15000);
 it("runs both public CLI operations from saved evidence",async()=>{
  const f=await comparisonFixture(root);let stdout="";const io={cwd:root,stdout:(s:string)=>{stdout+=s;},stderr:()=>{}};

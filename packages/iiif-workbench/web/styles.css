@@ -287,3 +287,10 @@ details summary {
 [hidden] {
   display: none !important;
 }
+.image-comparison-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 1em;
+  border: 1px solid var(--line);
+}

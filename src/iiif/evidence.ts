@@ -24,6 +24,7 @@ import { manualOcrMatchesRegion } from "./manual-ocr-state.mjs";
 import { readingMatchesRegion } from "./reading-state.mjs";
 import { comparisonsForRegion } from "./image-comparison-state.mjs";
 import { verifyComparisonRecord } from "./imageComparison.js";
+import { protectWorkspaceSources } from "./outputProtection.js";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
@@ -140,6 +141,7 @@ export async function exportEvidence(
     if (!r) throw new Error(`領域が見つかりません: ${id}`);
     return r;
   });
+  await protectWorkspaceSources(request.output_dir,w,[request.workspace_path]);
   const existing = await readdir(request.output_dir).catch(
     (e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") return null;
