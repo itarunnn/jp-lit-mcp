@@ -266,8 +266,11 @@ export async function exportEvidence(
         const original=w.image_comparisons!.find(c=>c.report.report_id===comparison.report_id)!;
         await verifyComparisonRecord(original);
       }
-      if((w.image_comparisons??[]).some(record=>[record.report.query.input,...record.report.candidates.map(c=>c.input)].some(input=>input.source.selection.region_id===r.selection.region_id))&&!comparisons.length)
-        diagnostics.push(`領域 ${r.selection.region_id}: 現在の両側出典に一致する図版候補を保持するまで比較exportを保留しました`);
+      for(const record of w.image_comparisons??[]){
+        const related=record.report.candidates.filter(c=>record.report.query.input.source.selection.region_id===r.selection.region_id||c.id===r.selection.region_id);
+        const included=comparisons.find(c=>c.report_id===record.report.report_id)?.matches??[];
+        for(const c of related)if(!included.some(match=>match.id===c.id))diagnostics.push(`領域 ${r.selection.region_id}: 図版候補 ${c.id} を除外しました。現在の両側出典に一致するまで比較exportを保留します`);
+      }
       const teiPath = tei.length ? `${name}.tei.json` : null;
       if (teiPath) {
         await writeFile(path.join(stage, teiPath), JSON.stringify(tei, null, 2) + "\n");

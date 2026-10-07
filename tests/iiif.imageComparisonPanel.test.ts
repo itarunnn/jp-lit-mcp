@@ -25,6 +25,7 @@ it("shows candidate geometry, navigates both sources and preserves separate revi
   author.value="reader";author.oninput!();note.value="同じ印の配置を確認した合成fixture";note.oninput!();
   find(element,e=>e.tag==="button"&&e.textContent==="図版の対応確認を記録")!.onclick!();expect(w.image_comparisons![0].reviews[0].result).toBe("uncertain");
   panel.render();expect(w.image_comparisons![0].reviews).toHaveLength(1);w.regions.pop();panel.render();
+  expect(find(element,e=>e.tag==="p"&&e.textContent.includes("最新の図版確認: 判断保留")&&e.textContent.includes("reader"))).toBeDefined();
   expect(find(element,e=>e.tag==="button"&&e.textContent==="候補の原領域へ")!.disabled).toBe(true);expect(w.image_comparisons).toHaveLength(1);
  }finally{vi.unstubAllGlobals();await rm(root,{recursive:true,force:true});}
 },20000);

@@ -1,5 +1,4 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { mkdir,mkdtemp,lstat,readFile,writeFile,rename,rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -12,16 +11,14 @@ import { imageDimensions } from "./imageMetadata.js";
 import { protectWorkspaceSources,assertDistinctOutput } from "./outputProtection.js";
 import { validateWorkspace } from "./schemas.js";
 import { assertComparisonSource,mergeComparison } from "./image-comparison-state.mjs";
+import {imageAnalysisProject} from "./imageRuntime.js";
 import type { IiifWorkspace } from "./types.js";
 const exec=promisify(execFile),parse=(b:Buffer)=>JSON.parse(b.toString("utf8").replace(/^\uFEFF/,""));
 async function runtime(){
- for(const url of [new URL("../../scripts/iiif-images.mjs",import.meta.url),new URL("../../../scripts/iiif-images.mjs",import.meta.url)]){
-  const launcher=fileURLToPath(url);try{if((await lstat(launcher)).isFile()){
-   const project=path.resolve(path.dirname(launcher),"../packages/iiif-image-analysis"),parts=[];
-   for(const file of ["pyproject.toml","uv.lock","iiif_image/__init__.py","iiif_image/__main__.py","iiif_image/analysis.py"])parts.push({path:file,sha256:ocrDigest(await readFile(path.join(project,file)))});
-   return {launcher,project,engine_sha256:ocrDigest(JSON.stringify(parts))};
-  }}catch(e){if((e as NodeJS.ErrnoException).code!=="ENOENT")throw e;}
- }throw Error("同梱の画像解析moduleを確認してください");
+ const project=await imageAnalysisProject(),launcher=path.resolve(project,"../../scripts/iiif-images.mjs"),parts=[];
+ if(!(await lstat(launcher)).isFile())throw Error("同梱の画像解析launcherを確認してください");
+ for(const file of ["pyproject.toml","uv.lock","iiif_image/__init__.py","iiif_image/__main__.py","iiif_image/analysis.py"])parts.push({path:file,sha256:ocrDigest(await readFile(path.join(project,file)))});
+ return {launcher,project,engine_sha256:ocrDigest(JSON.stringify(parts))};
 }
 async function savedImage(workspace:IiifWorkspace,reference:ImageReference){
  const ref=imageReferenceSchema.parse(reference),evidenceBytes=await readOcrFile(ref.evidence_path,2*1024*1024),evidence=ocrEvidenceSchema.parse(parse(evidenceBytes));
@@ -52,7 +49,7 @@ export async function compareImages(workspace:IiifWorkspace,query:ImageReference
    workerInputs.push({id:item.input.source.selection.region_id,image_path:file,sha256:item.input.source.image_sha256,width:item.input.source.image_width,height:item.input.source.image_height});
   }
   const requestPath=path.join(stage,"request.json");await writeFile(requestPath,JSON.stringify({query:workerInputs[0],candidates:workerInputs.slice(1),output_dir:path.join(stage,"analysis")}));
-  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>/^(systemroot|windir|path|temp|tmp|pathext|systemdrive|UV_CACHE_DIR|JP_LIT_IMAGE_ENVIRONMENT)$/i.test(key)).concat([["PYTHONUTF8","1"],["PYTHONIOENCODING","utf-8"],["PYTHONNOUSERSITE","1"]]));
+  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>/^(systemroot|windir|path|temp|tmp|pathext|systemdrive|LOCALAPPDATA|XDG_CACHE_HOME|USERPROFILE|HOME|UV_CACHE_DIR|JP_LIT_IMAGE_ENVIRONMENT)$/i.test(key)).concat([["PYTHONUTF8","1"],["PYTHONIOENCODING","utf-8"],["PYTHONNOUSERSITE","1"]]));
   let stdout:string;try{({stdout}=await exec(process.execPath,[engine.launcher,"--request",requestPath],{env,shell:false,windowsHide:true,timeout:300000,maxBuffer:2*1024*1024,encoding:"utf8"}));}
   catch{throw Error("ローカル画像解析に失敗しました。uv/Python3.13の環境と保存済み画像を確認してください。初回はnode scripts/iiif-images.mjs --setupで準備します。");}
   const response=parse(Buffer.from(stdout));if(response.ok!==true)throw Error("画像解析の応答が成功していません");
@@ -116,7 +113,7 @@ export async function compareFromEvidencePaths(workspace:IiifWorkspace,evidenceP
  return compareImages(workspace,query,refs.filter(ref=>ref!==query),outputDir);
 }
 export async function protectComparisonOutput(output:string,workspace:IiifWorkspace,reportPath:string){
- await protectWorkspaceSources(output,workspace,[path.dirname(reportPath)]);
+ await protectWorkspaceSources(output,workspace,[path.dirname(reportPath),await imageAnalysisProject()]);
  const report=imageComparisonReportSchema.parse(parse(await readOcrFile(reportPath,2*1024*1024)));
  await assertDistinctOutput(output,[report.query.input,...report.candidates.map(c=>c.input)].flatMap(input=>[input.evidence_path,input.image_path]));
 }

@@ -3,12 +3,13 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { comparisonFixture } from "./fixtures/iiif/imageComparison.js";
-import { compareImages,importComparison,verifyComparisonArtifact,verifyComparisonRecord } from "../src/iiif/imageComparison.js";
+import { compareImages,importComparison,verifyComparisonArtifact,verifyComparisonRecord,protectComparisonOutput } from "../src/iiif/imageComparison.js";
 import { digest } from "./fixtures/iiif/ocr.js";
 import { recordComparisonReview,comparisonsForRegion } from "../src/iiif/image-comparison-state.mjs";
 import { runIiifCli } from "../src/iiif/cli.js";
 import { validateWorkspace } from "../src/iiif/schemas.js";
 import { exportEvidence } from "../src/iiif/evidence.js";
+import {protectWorkspaceSources} from "../src/iiif/outputProtection.js";
 let root:string;
 beforeEach(async()=>{root=await mkdtemp(path.join(tmpdir(),"iiif-images-"));vi.stubGlobal("fetch",()=>{throw Error("Network must not be used");});});
 afterEach(async()=>{vi.unstubAllGlobals();await rm(root,{recursive:true,force:true});});
@@ -74,3 +75,22 @@ it("binds report source coordinates to the actual saved evidence even when the r
  const bytes=Buffer.from(JSON.stringify(r.report));await writeFile(r.report_path,bytes);r.report_sha256=digest(bytes);
  await expect(verifyComparisonRecord(r)).rejects.toThrow(/原出典|原入力/);
 },15000);
+it("protects the bundled analysis code and locked dependencies from comparison import outputs",async()=>{
+ const f=await comparisonFixture(root),record=await compareImages(f.w,f.query,f.candidates,path.join(root,"result"));
+ for(const file of ["iiif_image/analysis.py","uv.lock"]){
+  const target=path.resolve("packages/iiif-image-analysis",file),before=await readFile(target);
+  await expect(protectComparisonOutput(target,f.w,record.report_path)).rejects.toThrow(/原入力|engine/);
+  await expect(protectWorkspaceSources(target,{...f.w,image_comparisons:[record]})).rejects.toThrow(/原入力|engine/);
+  expect(await readFile(target)).toEqual(before);
+ }
+},15000);
+it("reports each stale candidate omitted from a partially valid comparison export",async()=>{
+ const f=await comparisonFixture(root),third=structuredClone(f.items[1]);third.evidence_id="r3";third.selection.region_id="r3";third.selection.xywh[0]=650;third.display_image.original_image_xywh[0]=1300;third.crop.image_xywh[0]=1300;
+ f.w.regions.push({...structuredClone(f.w.regions[1]),selection:structuredClone(third.selection)});
+ await writeFile(f.evidencePath,JSON.stringify({schema_version:"0.1",workspace_id:f.w.workspace_id,items:[...f.items,third]}));
+ const r=await compareImages(f.w,f.query,[...f.candidates,{evidence_path:f.evidencePath,evidence_id:"r3"}],path.join(root,"result"));
+ const w=await importComparison(f.w,r.report_path);w.regions.pop();await writeFile(f.workspacePath,JSON.stringify(w));
+ const out=await exportEvidence({api_version:"0.1",operation:"export_evidence",workspace_path:f.workspacePath,region_ids:["r1"],output_dir:path.join(root,"export"),overwrite:false,image_permission_confirmed:false});
+ const evidence=JSON.parse(await readFile(out.evidence_json_path,"utf8"));expect(evidence.items[0].image_comparison_evidence[0].matches.map((c:any)=>c.id)).toEqual(["r2"]);
+ expect(out.diagnostics.some(d=>d.includes("r3")&&d.includes("除外"))).toBe(true);
+},20000);

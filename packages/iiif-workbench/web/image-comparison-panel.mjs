@@ -40,7 +40,9 @@ export function createImageComparisonPanel({element,workspace,setWorkspace,statu
   prev.onclick=()=>{page--;render();};next.onclick=()=>{page++;render();};element.append(all,prev,next);
   for(const candidate of candidates.slice(page*5,(page+1)*5)){
    const card=node("article");card.className="text-card image-comparison-card";
-   card.append(node("h3",`${candidate.rank}. ${candidate.input.attribution.label} · ${candidate.id}`),node("p",candidate.status==="aligned"?"位置合わせ候補 · 図版対応の確認待ち":"位置合わせ保留"));
+   const latest=record.reviews.filter(v=>v.candidate_id===candidate.id).at(-1);
+   card.append(node("h3",`${candidate.rank}. ${candidate.input.attribution.label} · ${candidate.id}`),node("p",candidate.status==="aligned"?"位置合わせ候補":"位置合わせ保留"));
+   card.append(node("p",latest?`最新の図版確認: ${{match:"対応を確認",mismatch:"対応しない",uncertain:"判断保留"}[latest.result]} · ${latest.author} · ${latest.recorded_at}`:"図版対応の確認待ち"));
    card.append(node("p",candidate.method==="encoded_identity"?"同一の保存画像から比較しています。":`対応点 ${candidate.inliers}/${candidate.matches} · 比較範囲 ${Math.round(candidate.overlap*100)}% · 形のhash差 ${candidate.dhash_distance}/64`));
    const queryError=sourceError(report.query.input.source),candidateError=sourceError(candidate.input.source),error=queryError||candidateError;
    const first=node("button","基準の原領域へ"),second=node("button","候補の原領域へ");first.disabled=!!queryError;second.disabled=!!candidateError;

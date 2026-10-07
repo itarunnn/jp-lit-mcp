@@ -457,7 +457,7 @@ try {
     try{
       await api("/api/workspace",saved);
       const record=await api(route,input);
-      workspace=mergeComparison(workspace,record);
+      workspace=mergeComparison(workspace,record,{allow_stale:true});
       await api("/api/workspace",workspace);
       return record;
     }finally{manualImportBusy=false;}

@@ -8,9 +8,12 @@ export function assertComparisonSource(workspace,source){
   !canvas||canvas.width!==source.canvas_width||canvas.height!==source.canvas_height||!same(region.selection,source.selection))throw Error("図版候補の出典と現在の領域が一致しません");
  return {region,doc,canvas};
 }
-export function mergeComparison(workspace,record){
- assertComparisonSource(workspace,record.report.query.input.source);
- for(const c of record.report.candidates)assertComparisonSource(workspace,c.input.source);
+export function mergeComparison(workspace,record,{allow_stale=false}={}){
+ const sources=[record.report.query.input.source,...record.report.candidates.map(c=>c.input.source)];
+ for(const source of sources){
+  if(source.workspace_id!==workspace.workspace_id)throw Error("図版比較のworkspace出典が一致しません");
+  if(!allow_stale)assertComparisonSource(workspace,source);
+ }
  const w=structuredClone(workspace),existing=w.image_comparisons?.find(r=>r.report.report_id===record.report.report_id);
  if(existing){if(!same({...existing,reviews:[]},{...record,reviews:[]}))throw Error("同じ比較IDに異なる原snapshotがあります");}
  else {w.image_comparisons??=[];if(w.image_comparisons.length>=20)throw Error("比較履歴の上限です");w.image_comparisons.push(structuredClone(record));}

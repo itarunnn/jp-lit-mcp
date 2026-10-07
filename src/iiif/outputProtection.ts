@@ -3,6 +3,7 @@ import { realpath } from "node:fs/promises";
 import { ocrRunSchema } from "./ocrSchemas.js";
 import { readOcrFile, ocrEvidenceSchema } from "./ocrRunner.js";
 import type { IiifWorkspace } from "./types.js";
+import {imageAnalysisProject} from "./imageRuntime.js";
 
 async function canonical(file: string): Promise<string> {
   try { return await realpath(file); } catch (error) {
@@ -26,6 +27,7 @@ export async function assertDistinctOutput(outputPath: string, protectedPaths: I
 export async function protectWorkspaceSources(outputPath: string, workspace: IiifWorkspace, additionalInputs: string[] = []) {
   const protectedPaths = new Set(additionalInputs);
   const runs = new Set<string>();
+  if(workspace.image_comparisons?.length)protectedPaths.add(await imageAnalysisProject());
   for(const record of workspace.image_comparisons??[]){
     protectedPaths.add(path.dirname(record.report_path));
     for(const input of [record.report.query.input,...record.report.candidates.map(c=>c.input)]){
