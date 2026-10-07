@@ -2,6 +2,7 @@ import { z } from "zod";
 import { compareOcrText } from "./ocrMetrics.js";
 import { ocrAbsoluteSchema, ocrHashSchema } from "./ocrSchemas.js";
 import { resolveOcrEvaluationSource } from "./ocrEvaluationSource.js";
+import { verifyReading } from "./reading.js";
 import { ocrDigest, readOcrFile } from "./ocrRunner.js";
 import { atomicWrite } from "./workspace.js";
 import { validateWorkspace } from "./schemas.js";
@@ -17,6 +18,7 @@ const reference = z.object({ scope: z.literal("full_region"), text, text_sha256:
 }).strict().refine(r => r.verification !== "source_collated" || r.review !== null, "原画像との校合宣言には記録者付き記録が必要です");
 export const ocrEvaluationSchema = z.object({ schema_version: z.literal("0.1"), evaluation_id: id, workspace_id: id,
   cases: z.array(z.object({ case_id: id, text_id: id, reference: reference.nullable(),
+    reading_text_ids:z.array(id).max(2).default([]),
     variants: z.array(z.object({ variant_id: id, kind: z.enum(["image_reading", "image_assisted_correction"]),
       scope: z.literal("full_region"), text, text_sha256: ocrHashSchema, image_sha256: ocrHashSchema,
       generator: id, created_at: z.string().datetime(), duration_ms: z.number().finite().nonnegative().nullable(),
@@ -57,14 +59,27 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
     if (!t) throw new Error("評価対象の原OCR候補がありません");
     const p = await resolveOcrEvaluationSource(workspace, t, outputPath, verifiedRuns);
     if (c.reference && ocrDigest(c.reference.text) !== c.reference.text_sha256) throw new Error("参照翻刻の本文hashが一致しません");
-    unique(c.variants.map(v => v.variant_id)); unique(c.variants.map(v => v.kind));
-    if (c.variants.length && p.source.image_sha256 === null) throw new Error("手動OCRのサービス入力画像hashが不明です。同一画像条件の読解比較にはローカルOCRを指定してください");
-    for (const v of c.variants) if (v.image_sha256 !== p.source.image_sha256 || ocrDigest(v.text) !== v.text_sha256)
+    unique(c.reading_text_ids);
+    const importedVariants=[];
+    for(const textId of c.reading_text_ids) {
+      const ai=workspace.texts.find(t=>t.text_id===textId);
+      if(!ai)throw new Error("評価対象のAI候補がありません");
+      const reading=await verifyReading(workspace,ai,outputPath),r=reading.response;
+      if(r.scope!=="full_region")throw new Error("部分読解はfull_region評価へ含められません。小領域を別課題にしてください");
+      if(reading.task.base_text_id!==t.text_id||JSON.stringify(reading.source)!==JSON.stringify(p.source))throw new Error("AI候補と評価対象の原OCR・画像が一致しません");
+      importedVariants.push({variant_id:ai.text_id,kind:reading.kind,text:ai.text,text_sha256:ai.source_sha256,image_sha256:r.image_sha256,
+        generator:r.model_version?`${r.generator} (${r.model_version})`:r.generator,created_at:r.executed_at,duration_ms:r.duration_ms,reading_provenance:reading});
+    }
+    const variants=[...c.variants,...importedVariants];
+    unique(variants.map(v => v.variant_id)); unique(variants.map(v => v.kind));
+    if (variants.length && p.source.image_sha256 === null) throw new Error("手動OCRのサービス入力画像hashが不明です。同一画像条件の読解比較にはローカルOCRを指定してください");
+    for (const v of variants) if (v.image_sha256 !== p.source.image_sha256 || ocrDigest(v.text) !== v.text_sha256)
       throw new Error("読解候補の画像・本文hashが一致しません");
     const candidates = [{ candidate_id: t.text_id, kind: "ocr", text: t.text, text_sha256: t.source_sha256,
       generator: p.provider, created_at: p.created_at, duration_ms: p.duration_ms },
-      ...c.variants.map(v => ({ candidate_id: v.variant_id, kind: v.kind, text: v.text, text_sha256: v.text_sha256,
-        generator: v.generator, created_at: v.created_at, duration_ms: v.duration_ms }))].map(candidate => {
+      ...variants.map(v => ({ candidate_id: v.variant_id, kind: v.kind, text: v.text, text_sha256: v.text_sha256,
+        generator: v.generator, created_at: v.created_at, duration_ms: v.duration_ms,
+        ...("reading_provenance" in v?{reading_provenance:v.reading_provenance}:{}) }))].map(candidate => {
       const metrics = c.reference ? compareOcrText(c.reference.text, candidate.text) : null;
       if (metrics && c.reference) {
         const engine_sha256 = candidate.kind === "ocr" ? p.engine_sha256 : null;
@@ -81,7 +96,7 @@ export async function evaluateOcr(workspacePath: string, evaluationPath: string,
     cases.push({ case_id: c.case_id, state: c.reference ? "reference_agreement" : "pending_reference", source: p.source,
       run_path: p.run_path, run_sha256: p.run_sha256, engine: p.engine, reference: c.reference, observations: c.observations, candidates,
       image_identity: p.image_identity, provenance_validation: p.provenance_validation, manual_ocr_provenance: p.manual_ocr_provenance,
-      unperformed_methods: ["image_reading", "image_assisted_correction"].filter(kind => !c.variants.some(v => v.kind === kind)) });
+      unperformed_methods: ["image_reading", "image_assisted_correction"].filter(kind => !variants.some(v => v.kind === kind)) });
   }
   const summary = { cases: cases.length, canvases: pages.size, regions: regions.size,
     pending_reference: cases.filter(c => !c.reference).length,

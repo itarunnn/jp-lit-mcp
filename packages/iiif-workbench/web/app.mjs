@@ -12,9 +12,11 @@ import { createOcrPanel } from "./ocr-panel.mjs";
 import { assertOcrTarget } from "./ocr-state.mjs";
 import { createManualOcrPanel } from "./manual-ocr-panel.mjs";
 import { assertManualOcrTarget, manualOcrMatchesRegion, mergeManualOcrCandidate } from "./manual-ocr-state.mjs";
+import { createReadingPanel } from "./reading-panel.mjs";
+import { assertReadingTarget,readingMatchesRegion } from "./reading-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel, manualImportBusy = false;
+let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel, readingPanel, manualImportBusy = false;
 const status = (text) => {
   $("status").textContent = text;
 };
@@ -251,7 +253,7 @@ function renderRegions() {
     const link = node("button", "テキストを関連付ける");
     link.onclick = () => {
       r.text_evidence_ids = workspace.texts
-        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)))
+        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)) && (!t.reading_provenance||readingMatchesRegion(workspace,t,r.selection.region_id)))
         .map((t) => t.text_id);
       status(`${r.text_evidence_ids.length}件の原テキストを関連付けました。`);
     };
@@ -273,8 +275,10 @@ function renderRegions() {
   }
   ocrPanel?.render();
   manualOcrPanel?.render();
+  readingPanel?.render();
 }
 function renderTexts() {
+  readingPanel?.render();
   teiPanel?.render();
   ocrPanel?.render();
   manualOcrPanel?.render();
@@ -466,6 +470,9 @@ try {
       status("OCR候補に対応する画像へ移動しました。原画像で文字を確認できます。");
     },
   });
+  readingPanel=createReadingPanel({element:$("reading-panel"),workspace:()=>workspace,setWorkspace:next=>{if(manualImportBusy)throw Error("手動OCR候補を保存中です");workspace=next;},status,
+    openImage(text){const {doc,source}=assertReadingTarget(workspace,text);const active=current(),win=active.d?.document_id===doc.document_id?active.w:workspace.windows.find(w=>w.document_id===doc.document_id);
+      if(!win)throw Error("対象資料の窓がありません");showRegion(viewer,{window_id:win.window_id,canvas_id:source.selection.canvas_id,xywh:source.selection.xywh});$("active-window").value=win.window_id;status("AI候補の原画像領域を表示しました。");}});
   teiPanel = createTeiPanel({ element: $("tei-panel"), workspace: () => workspace, current, selectedRegions, status,
     openImage(link) {
       const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === link.document_id) ?? workspace.windows.find((w) => w.document_id === link.document_id);

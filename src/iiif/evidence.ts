@@ -21,6 +21,7 @@ import { imageDimensions } from "./imageMetadata.js";
 // @ts-expect-error Nodeとブラウザが同じ対応判定を使う
 import { teiLinksForRegion } from "./tei-state.mjs";
 import { manualOcrMatchesRegion } from "./manual-ocr-state.mjs";
+import { readingMatchesRegion } from "./reading-state.mjs";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
@@ -233,6 +234,10 @@ export async function exportEvidence(
         );
       const linked = w.texts.filter((t) => {
         if(!r.text_evidence_ids.includes(t.text_id))return false;
+        if(t.reading_provenance && !readingMatchesRegion(w,t,r.selection.region_id)) {
+          diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なるAI候補 ${t.text_id} を読解本文から除外しました`);
+          return false;
+        }
         if(t.manual_ocr_provenance && !manualOcrMatchesRegion(w,t,r.selection.region_id)) {
           diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なる手動OCR候補 ${t.text_id} を読解本文から除外しました`);
           return false;

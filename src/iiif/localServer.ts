@@ -33,6 +33,8 @@ export async function startLocalServer(
     "/tei-panel.mjs": ["tei-panel.mjs", "text/javascript"],
     "/ocr-state.mjs": ["ocr-state.mjs", "text/javascript"],
     "/ocr-panel.mjs": ["ocr-panel.mjs", "text/javascript"],
+    "/reading-state.mjs": ["reading-state.mjs", "text/javascript"],
+    "/reading-panel.mjs": ["reading-panel.mjs", "text/javascript"],
     "/manual-ocr-state.mjs": ["manual-ocr-state.mjs", "text/javascript"],
     "/manual-ocr-panel.mjs": ["manual-ocr-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],

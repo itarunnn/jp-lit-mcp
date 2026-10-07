@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { teiLinkSchema, teiHashSchema, surfaceBindingSchema } from "./teiSchemas.js";
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
 import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
+import { readingProvenanceSchema, readingKindSchema } from "./readingSchemas.js";
 import { validateOcrSource, normalizeKotenOutput } from "./ocr.js";
 
 const id = z.string().min(1).max(4096);
@@ -107,10 +108,12 @@ export const textSchema = z.object({
     "provider_annotation",
     "manual_transcription",
     "ocr_candidate",
+    "ai_candidate",
   ]),
   verification_state: z.enum(["provider_text", "unverified", "human_verified"]),
   ocr_provenance: ocrProvenanceSchema.optional(),
   manual_ocr_provenance: manualOcrProvenanceSchema.optional(),
+  reading_provenance: readingProvenanceSchema.optional(),
 });
 export const viewerSchema = z.object({
   adapter_version: id,
@@ -132,6 +135,10 @@ const absolute = z
   .string()
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
+  z.object({api_version:z.literal("0.1"),operation:z.literal("prepare_reading"),workspace_path:absolute,
+    text_id:id,kind:readingKindSchema,output_dir:absolute}),
+  z.object({api_version:z.literal("0.1"),operation:z.literal("import_reading"),workspace_path:absolute,
+    task_path:absolute,response_path:absolute,output_path:absolute,overwrite:z.boolean().default(false)}),
   z.object({
     api_version: z.literal("0.1"), operation: z.literal("evaluate_ocr"),
     workspace_path: absolute, evaluation_path: absolute, output_path: absolute, overwrite: z.boolean().default(false),
@@ -214,6 +221,16 @@ export function validateWorkspace(input: unknown) {
       throw new Error("window参照が未解決です");
   const canvases = w.documents.flatMap((d) => d.canvases);
   for (const t of w.texts) {
+    if (t.reading_provenance) {
+      const p=t.reading_provenance,s=validateOcrSource(p.source),d=w.documents.find(d=>d.document_id===s.document_id),c=d?.canvases.find(c=>c.canvas_id===s.selection.canvas_id);
+      if(t.origin!=="ai_candidate"||t.verification_state!=="unverified"||t.ocr_provenance||t.manual_ocr_provenance||
+          s.workspace_id!==w.workspace_id||d?.receipt.sha256!==s.manifest_sha256||!c||c.canvas_id!==t.canvas_id||c.width!==s.canvas_width||c.height!==s.canvas_height||
+          JSON.stringify(t.target_xywh)!==JSON.stringify(s.selection.xywh)||JSON.stringify(s)!==JSON.stringify(p.task.source)||
+          p.kind!==p.task.kind||p.kind!==p.response.kind||p.task.task_id!==p.response.task_id||p.response.image_sha256!==s.image_sha256||
+          p.task.image.sha256!==s.image_sha256||t.text!==p.response.text||createHash("sha256").update(t.text).digest("hex")!==t.source_sha256||
+          t.source_ref!==`${p.response_path}#${p.task.task_id}`||p.reviews.some(r=>r.image_sha256!==s.image_sha256))
+        throw new Error("AI候補の本文・出典・対象・確認画像が一致しません");
+    } else if(t.origin==="ai_candidate")throw new Error("AI候補には読解出典が必要です");
     if (t.manual_ocr_provenance) {
       const p = t.manual_ocr_provenance, s = p.source, d = w.documents.find((d) => d.document_id === s.document_id);
       const c = d?.canvases.find((c) => c.canvas_id === s.selection.canvas_id);
@@ -227,8 +244,9 @@ export function validateWorkspace(input: unknown) {
     }
     if (t.ocr_provenance && (t.origin !== "ocr_candidate" || t.verification_state !== "unverified"))
       throw new Error("OCR候補と校合記録を分離してください");
-    const c = t.manual_ocr_provenance
-      ? w.documents.find((d) => d.document_id === t.manual_ocr_provenance!.source.document_id)?.canvases.find((c) => c.canvas_id === t.canvas_id)
+    const scoped = t.manual_ocr_provenance?.source ?? t.reading_provenance?.source;
+    const c = scoped
+      ? w.documents.find((d) => d.document_id === scoped.document_id)?.canvases.find((c) => c.canvas_id === t.canvas_id)
       : canvases.find((c) => c.canvas_id === t.canvas_id);
     if (!c) throw new Error("text参照が未解決です");
     if (t.ocr_provenance) {

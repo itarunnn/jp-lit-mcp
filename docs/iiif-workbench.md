@@ -306,6 +306,40 @@ reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_la
 
 公開翻刻が未校合の数値は`reference_agreement`です。`pending_reference`、校合宣言、学習重複、実行していない読解方法を別々に記録します。Canvas数と領域数を区別し、候補種別・生成者・OCR engine hash・画像同一性の確認状態・校合状態・学習重複ごとにmicro CERを集計します。手動サービス結果の実行時間と金銭費用は未計測としてnullを保持します。図中ラベル・編集記号・行の欠落・読み順・表記変更は数値だけで原因を決めず、`observations`に記録者・日時・注記と各項目の`unknown/observed/not_observed`を残します。
 
+## 利用中のAIアプリで領域を読み、疑義を取り込む
+
+`prepare_reading`はローカルOCRの原run・画像・本文と現在の領域を再検証し、読解用の画像、依頼文、応答template、出典taskを新しいdirectoryへ保存します。画像を同じbytesで複製するため、原OCRと同じ表示条件で比較できます。`image_reading`は画像のみ、`image_assisted_correction`は画像と原OCRの併用です。画像のみの依頼文にはOCRやTEIの本文を含めません。KuroNetの手動候補はサービスへ渡した画像hashが不明なため、この同画像課題の基準には使えません。
+
+```json
+{
+  "api_version": "0.1", "operation": "prepare_reading",
+  "workspace_path": "J:/ResearchLibrary/My Project/workspace.json",
+  "text_id": "対象のローカルOCR候補ID",
+  "kind": "image_assisted_correction",
+  "output_dir": "J:/ResearchLibrary/My Project/reading-task"
+}
+```
+
+requestをUTF-8 JSONで保存し、`jp-lit-iiif --request <request.jsonのpath>`で実行します。利用中のAIアプリで`image.jpg`または`image.png`を実際に開き、`prompt.md`と`response-template.json`を渡してください。画像のみを比較試験する場合、他条件のOCR、翻刻、TEI、過去の読解結果をその文脈へ渡さず、モデル・画像表示・共通指示を揃えます。画像の自動送信や新しいモデル/APIの起動は行いません。
+
+応答はtemplateと同じJSON形式で別fileへ保存します。`generator`へ実際のモデル名、`executed_at`へ読解日時、`image_opened=true`へ実見の自己申告を記録し、確認できないモデル版・時間はnullとします。`monetary_cost`は未計測のnullです。領域全体を覆えた場合は`scope="full_region"`、部分的な読解は`partial_region`と申告します。判読不能を〓として保持し、`doubts`へ候補本文からの`quote`、`alternatives`、`note`を記録します。templateの未読状態のままの応答は取り込めません。
+
+```json
+{
+  "api_version": "0.1", "operation": "import_reading",
+  "workspace_path": "J:/ResearchLibrary/My Project/workspace.json",
+  "task_path": "J:/ResearchLibrary/My Project/reading-task/task.json",
+  "response_path": "J:/ResearchLibrary/My Project/reading-response.json",
+  "output_path": "J:/ResearchLibrary/My Project/workspace-with-reading.json"
+}
+```
+
+取込はtask・指示・画像・原OCR・応答の整合を確認し、`ai_candidate/unverified`として領域へ保存します。画像実見や全領域の申告は記録者の宣言であり、機械的な文字校合の認定ではありません。原OCRとTEIを保持し、同じ応答の再取込でも確認履歴を保持します。応答を修正する場合は別fileへ保存し、別候補として取り込んでください。
+
+取込後のworkspaceを比較画面の「作業を読み込む」で開くと、「AI読解と原画像の確認」に候補と疑義が表示されます。「原画像の領域へ」で出典画像へ戻り、「人による確認」または「AIによる確認」、記録者、結果、確認内容、任意の修訂候補を別履歴へ保存できます。確認追加後は「作業を保存」を実行します。AIの確認を人の校合済み参照へ自動昇格しません。領域が移動・削除された候補は履歴として保持し、現在の領域への移動と読解書き出しを制限します。
+
+`evaluate_ocr`のcaseに`reading_text_ids`を指定すると、取り込んだ同じ原OCR・画像の全領域候補を再検証して比較に含めます。画像のみと画像併用が各1件で、inline `variants`と合わせて同じ条件を重複指定できません。部分読解は全文評価から除外し、疑義箇所を小領域として別のOCR/読解課題へ分けます。参照翻刻がない場合は引き続き`pending_reference`です。
+
 ## OCR・モデル接続・画像解析への進め方
 
 次のIIIFバージョンアップは、TEI本文との往復、くずし字OCR、モデル接続、類似図版検索・整列差分の主要フローを揃えてから行います。実装と検証は段階ごとに進め、開発中のpackage versionは0.17.0を維持します。

@@ -28,6 +28,11 @@ export async function protectWorkspaceSources(outputPath: string, workspace: Iii
   const runs = new Set<string>();
   for (const link of workspace.tei_links ?? []) protectedPaths.add(link.file_path);
   for (const text of workspace.texts) {
+    const reading=text.reading_provenance;
+    if(reading) {
+      runs.add(reading.task.base_run_path);
+      for(const file of [path.dirname(reading.task_path),reading.response_path,reading.image_path,reading.task.base_run_path])protectedPaths.add(file);
+    }
     const p = text.ocr_provenance; if (!p) continue;
     runs.add(p.run_path);
     const enginePaths=p.engine.provider==="ndlkotenocr-lite"?[p.engine.engine_dir,p.engine.python_path]:[p.engine.docker_path];
@@ -38,6 +43,7 @@ export async function protectWorkspaceSources(outputPath: string, workspace: Iii
   for (const runPath of runs) {
     const parse = (bytes: Buffer) => JSON.parse(bytes.toString("utf8").replace(/^\uFEFF/, ""));
     const run = ocrRunSchema.parse(parse(await readOcrFile(runPath, 32 * 1024 * 1024)));
+    for(const file of run.engine.provider==="ndlkotenocr-lite"?[run.engine.engine_dir,run.engine.python_path]:[run.engine.docker_path])protectedPaths.add(file);
     protectedPaths.add(run.evidence_path);
     const evidencePath = path.join(path.dirname(runPath), "evidence.json");
     protectedPaths.add(evidencePath);
