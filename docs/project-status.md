@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-08: 次期開発版のTEI改頁本文・AI読解
+
+- TEIのpb後から次pb直前までを、原タグ・XPathと部分切出しの印を持つpage_rangeとして保存・表示・exportする。任意include_inheritedは最も近い祖先のfacsを宣言元付きで展開し、明示overrideと空属性を保持する。曖昧な本文枝・版と巨大範囲には診断・省略を残す。
+- 保存済み廣瀬本万葉集の先頭20参照を点検し、18改頁snapshot（うち非空白本文12）とresolved18/unresolved2を保持する。範囲と画像の往復・保存再開を確認し、文字単位の校合は未実施として区別する。
+- 利用中AIアプリへの同画像file handoff、原OCRと画像だけの2条件、生成候補・疑義・human/ai別確認履歴を追加する。原run・画像・応答を再検証し、部分読解候補の全文評価を拒否する。伊勢物語2候補の品質順位は未判定。
+- version0.17.0、通常MCP30tools/21sources、新規npm依存0を維持する。類似図版・整列差分と統合評価が次段階。主要機能が揃うまでmerge/push/releaseを保留する。[TEI利用ガイド](iiif-workbench.md#tei本文と画像領域を往復する開発版)と[AI読解](iiif-workbench.md#利用中のaiアプリで領域を読み疑義を取り込む)を参照。
+
 ## 2026-10-06: 次期開発版のGPU OCR接続と手動結果評価
 
 - 標準NDL古典籍OCR-Liteを保ち、導入済みDocker imageの古典籍OCR ver.3を任意providerとして接続。immutable image ID・engine hashを固定し、通信なしのcontainerで選択画像を処理する。行脱落・TXT/JSON不一致・タイムアウトを検出して原出力を保持する。

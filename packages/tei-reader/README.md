@@ -18,7 +18,11 @@ readerは、固定したローカルTEI/XMLの情報・単位一覧・構造抽�
 }
 ```
 
-各itemは`source_locator/source_content/omission`、facsの`raw_token/token_index/attribute_value`、`reference_status/xml_base_chain`、`target/surface/graphics`の原属性とlocator、`diagnostics`を持ちます。対応材料は最大100件／ページ、応答1MiBまで。大きい本文単位は`unit_too_large`をitemへ残し、`next_offset`で続きを指定します。pb等のmilestoneは要素自体を返し、後続本文を展開しません。Canvasへの対応と本文校合は[IIIF連携](../../docs/iiif-workbench.md#tei本文と画像領域を往復する開発版)へ渡します。
+各itemは`source_locator/source_content/omission`、facsの`raw_token/token_index/attribute_value`、`reference_status/xml_base_chain`、`target/surface/graphics`の原属性とlocator、`diagnostics`を持ちます。対応材料は最大100件／ページ、応答1MiBまで。大きい本文単位は`unit_too_large`をitemへ残し、`next_offset`で続きを指定します。Canvasへの対応と本文校合は[IIIF連携](../../docs/iiif-workbench.md#tei本文と画像領域を往復する開発版)へ渡します。
+
+`pb`の`source_content`は原の改頁要素です。`page_range`は直後から同じ最寄り`text/sourceDoc`内の次の改頁の直前（最後はcontainer末尾）までを返します。`start_locator/end_locator/container_locator/boundary/edition`、`kind=fragment`の順序付き`content`、`omission`を保持します。途中で切れた要素の`partial=true`と原XPathは、元の要素全体と切り出しを区別します。範囲が巨大なら`content=null/omission=unit_too_large`、本文枝・版・streamが曖昧なら`page_range=null`と診断を返します。cb/lbは従来の要素表示です。
+
+任意boolean `include_inherited`（既定false）を要求に加えると、最も近い祖先のfacsをTEI子要素へ展開します。明示参照を優先し、空facsで展開を止めます。`facs_origin`の`kind=explicit/ancestor`、宣言元locator・原値と、宣言元のxml:baseを保持します。親参照の展開はアプリの補助です。モードを変えるとtoken列とoffsetが変わるため、同じモードでpaginationを続けます。
 
 repository内ではrootから次を実行します。
 

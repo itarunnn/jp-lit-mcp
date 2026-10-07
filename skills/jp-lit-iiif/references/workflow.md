@@ -68,7 +68,9 @@ link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像�
 
 `node scripts/iiif-workbench.mjs serve --workspace J:/research/linked.json`を起動する。「TEI本文と画像」の「対応する画像へ」で画像へ移動し、領域の「関連TEI本文」で戻る。一覧は100件ずつページを送り、未解決参照も全件を操作できる。手動対応は選択checkbox1件と記録者・理由を要求する。原画像との校合は実施後に結果・確認内容を別履歴へ追加する。未実施ならcollations=[]を保ち、resolvedを校合済みと解釈しない。
 
-exportのtei_evidence/tei_pathsはXML構造とlocatorを持つ併読用のoverlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。pb/cb/lbの後続本文範囲やfacsの継承は今回展開しない。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
+改頁pbのpage_rangeは直後から同じ本文内の次pb直前まで（最後は本文末尾）の構造付き範囲。原pbはsource_contentに保持し、部分切出しのタグ・XPathと境界locatorを別に保存する。親facsを子へ展開したいと明示された場合はlink_teiへinclude_inherited=trueを指定する（既定false）。最も近い祖先の宣言元をfacs_originへ残し、子の明示facsを優先、空facsで止める。同じモードのnext_offsetで続きを読む。先行pbの画像で次pbの参照を補完しない。
+
+exportのtei_evidence/tei_pathsはXML構造・ページ範囲・参照元とlocatorを持つ併読用overlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。本文枝内や異なるed/edRefなど曖昧な改頁は診断付きで保留し、巨大範囲はcontent=null/omissionで全体の省略を残す。cb/lbの後続範囲と外部XML解決は後続。旧同IDの実行者付き履歴は当時のsnapshotを保つ。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
 
 ## ローカルくずし字OCR（開発版）
 
