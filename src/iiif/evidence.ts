@@ -22,6 +22,8 @@ import { imageDimensions } from "./imageMetadata.js";
 import { teiLinksForRegion } from "./tei-state.mjs";
 import { manualOcrMatchesRegion } from "./manual-ocr-state.mjs";
 import { readingMatchesRegion } from "./reading-state.mjs";
+import { comparisonsForRegion } from "./image-comparison-state.mjs";
+import { verifyComparisonRecord } from "./imageComparison.js";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
@@ -257,6 +259,13 @@ export async function exportEvidence(
       );
       texts.push(file);
       const tei = teiLinksForRegion(w, r);
+      const comparisons=comparisonsForRegion(w,r);
+      for(const comparison of comparisons){
+        const original=w.image_comparisons!.find(c=>c.report.report_id===comparison.report_id)!;
+        await verifyComparisonRecord(original);
+      }
+      if((w.image_comparisons??[]).some(record=>[record.report.query.input,...record.report.candidates.map(c=>c.input)].some(input=>input.source.selection.region_id===r.selection.region_id))&&!comparisons.length)
+        diagnostics.push(`領域 ${r.selection.region_id}: 現在の両側出典に一致する図版候補を保持するまで比較exportを保留しました`);
       const teiPath = tei.length ? `${name}.tei.json` : null;
       if (teiPath) {
         await writeFile(path.join(stage, teiPath), JSON.stringify(tei, null, 2) + "\n");
@@ -304,6 +313,7 @@ export async function exportEvidence(
         tei_evidence: tei,
         tei_path: teiPath,
         tei_scope: "overlap_context",
+        image_comparison_evidence: comparisons,
         image_permission_confirmed: request.image_permission_confirmed,
       });
     }

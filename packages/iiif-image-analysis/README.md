@@ -5,8 +5,8 @@
 uvとPython3.13を使います。環境はpackage外に置き、準備時に固定lockの依存を導入します。
 
 ```powershell
-$env:UV_PROJECT_ENVIRONMENT = 'J:\Caches\jp-lit-iiif-images'
-uv sync --frozen --no-dev --project packages/iiif-image-analysis
+$env:JP_LIT_IMAGE_ENVIRONMENT = 'J:\Caches\jp-lit-iiif-images'
+node scripts/iiif-images.mjs --setup
 npm run test:images
 ```
 

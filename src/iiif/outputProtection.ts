@@ -26,6 +26,12 @@ export async function assertDistinctOutput(outputPath: string, protectedPaths: I
 export async function protectWorkspaceSources(outputPath: string, workspace: IiifWorkspace, additionalInputs: string[] = []) {
   const protectedPaths = new Set(additionalInputs);
   const runs = new Set<string>();
+  for(const record of workspace.image_comparisons??[]){
+    protectedPaths.add(path.dirname(record.report_path));
+    for(const input of [record.report.query.input,...record.report.candidates.map(c=>c.input)]){
+      protectedPaths.add(input.evidence_path);protectedPaths.add(input.image_path);
+    }
+  }
   for (const link of workspace.tei_links ?? []) protectedPaths.add(link.file_path);
   for (const text of workspace.texts) {
     const reading=text.reading_provenance;

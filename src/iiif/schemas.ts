@@ -5,6 +5,7 @@ import { teiLinkSchema, teiHashSchema, surfaceBindingSchema, validateTeiReferenc
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
 import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
 import { readingProvenanceSchema, readingKindSchema } from "./readingSchemas.js";
+import { imageComparisonRecordSchema,imageReferenceSchema } from "./imageComparisonSchemas.js";
 import { validateOcrSource, normalizeKotenOutput } from "./ocr.js";
 
 const id = z.string().min(1).max(4096);
@@ -130,11 +131,14 @@ export const workspaceSchema = z.object({
   texts: z.array(textSchema).max(2000),
   viewer_state: viewerSchema,
   tei_links: z.array(teiLinkSchema).max(2000).optional(),
+  image_comparisons: z.array(imageComparisonRecordSchema).max(20).optional(),
 });
 const absolute = z
   .string()
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
+  z.object({api_version:z.literal("0.1"),operation:z.literal("compare_images"),workspace_path:absolute,query:imageReferenceSchema,candidates:z.array(imageReferenceSchema).min(1).max(20),output_dir:absolute}).strict(),
+  z.object({api_version:z.literal("0.1"),operation:z.literal("import_comparison"),workspace_path:absolute,report_path:absolute,output_path:absolute,overwrite:z.boolean().default(false)}).strict(),
   z.object({api_version:z.literal("0.1"),operation:z.literal("prepare_reading"),workspace_path:absolute,
     text_id:id,kind:readingKindSchema,output_dir:absolute}),
   z.object({api_version:z.literal("0.1"),operation:z.literal("import_reading"),workspace_path:absolute,
@@ -208,6 +212,11 @@ export function validateWorkspace(input: unknown) {
   unique(w.regions.map((r) => r.selection.region_id));
   unique(w.texts.map((t) => t.text_id));
   unique((w.tei_links ?? []).map((l) => l.link_id));
+  unique((w.image_comparisons ?? []).map(r=>r.report.report_id));
+  for(const record of w.image_comparisons??[])for(const input of [record.report.query.input,...record.report.candidates.map(c=>c.input)]){
+    const source=validateOcrSource(input.source);
+    if(source.workspace_id!==w.workspace_id)throw Error("図版比較のworkspace出典が一致しません");
+  }
   for (const d of w.documents) {
     unique(d.canvases.map((c) => c.canvas_id));
     if (!d.sequences.some((s) => s.sequence_id === d.selected_sequence_id))
