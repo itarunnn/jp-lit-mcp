@@ -11,7 +11,7 @@
 
 日本文学・日本史のTEI/XMLを読む場合は、`jp-lit-tei` Skillと任意CLI `jp-lit-tei-reader`を使えます。章・歌・史料の項目、異読、訂正、注記を位置付きで取り出し、原構造と読解上の解釈を分けて扱います。[TEIの使い方](docs/tei-reader.md)に依頼例と操作手順をまとめています。
 
-IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文と画像を往復し、くずし字OCR・AIの候補を原画像と確かめられます。保存した図版から似た候補を探し、重ね合わせ・差分と両側の出典へ戻れます。任意CLI `jp-lit-iiif`とSkillを同梱し、0.18.0でTEI連携・OCR・AI候補取込・図版比較を追加します（公開前はcheckout、npm導入は公開後）。[比較・画像読解の使い方](docs/iiif-workbench.md)を参照してください。
+IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文と画像を往復し、くずし字OCR・AIの候補を原画像と確かめられます。保存した図版から似た候補を探し、重ね合わせ・差分と両側の出典へ戻れます。任意CLI `jp-lit-iiif`とSkillを同梱し、0.18.0でTEI連携・OCR・AI候補取込・図版比較を追加しました。[比較・画像読解の使い方](docs/iiif-workbench.md)を参照してください。
 
 通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
 
@@ -343,7 +343,7 @@ readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
 ```
 
 [TEIの使い方](docs/tei-reader.md)に、万葉集・延喜式の研究例と論文、廣瀬本での読解と文献調査の往復、漱石・源氏物語も含む公開資料の案内、jp-litでの検索例、導入とAIへの依頼・結果の確認をまとめています。手動実行や要求JSONは[CLI技術資料](packages/tei-reader/README.md)を参照してください。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。

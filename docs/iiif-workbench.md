@@ -4,7 +4,7 @@ IIIF比較画面は、図書館や研究機関が公開する資料を手元のP
 
 AIには「この2資料を並べて」「この翻刻に対応する画像へ戻って」「OCRの疑わしい箇所を画像で確かめて」と依頼できます。候補と原資料を結び付けて残すので、後から同じ箇所へ戻り、研究者が校合を進められます。
 
-このガイドは0.18.0の機能を説明します。公開前は開発checkoutで利用し、npmでの導入は公開後に行います。公開版0.17.0では、資料比較・領域の保存・出典付き書き出しを利用できます。
+このガイドは0.18.0の機能を説明します。npmからCLIを導入し、GitHub CLIまたはnpmから同じ版のSkillを導入して使います。
 
 ## このガイドでわかること
 
@@ -72,13 +72,13 @@ IIIFは、機関ごとに公開されている画像と資料の情報を、共�
 
 比較画面と出典保存にはNode.js 22以上とnpmを使います。AIから操作する場合は、ローカルコマンドと画像読解に対応したアプリを用意します。Skillの導入は[GitHub CLI経由](install/github-skills.md)、または[Codex](install/codex-app.md)・[Cursor](install/cursor.md)・[Claude Code](install/claude-code.md)の導入案内に従います。
 
-0.18.0公開後の起動確認は次のとおりです。
+0.18.0の起動確認は次のとおりです。
 
 ```powershell
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
 ```
 
-公開前のcheckoutでは、repoでbuildした後に`node scripts/iiif-workbench.mjs --help`を使います。0.17.0の公開版を使う場合は、比較と出典書き出しから始めてください。
+開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.18.0へ更新して使ってください。
 
 AIへの最初の依頼は、資料のURLと研究で確かめたいことを含めます。
 
@@ -150,14 +150,14 @@ PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」�
 
 保存図版から、基準に似た候補を最大20件比較できます。局所的な特徴点を使って回転・縮尺・位置を合わせ、成立した候補には重ね合わせと差分を作ります。対応点が少ない、小部分に偏る、共通範囲が狭い場合は整列を保留します。
 
-任意のローカル画像解析環境を初回に準備します。比較・出典保存の通常利用はNode.jsだけで動きます。uvを用意し、0.18.0公開後に次を実行します。
+任意のローカル画像解析環境を初回に準備します。比較・出典保存の通常利用はNode.jsだけで動きます。uvを用意し、次を実行します。
 
 ```powershell
 npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.18.0
 node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs' --setup
 ```
 
-保存先は自分のtoolchain directoryへ変更できます。公開前のcheckoutは`node scripts/iiif-images.mjs --setup`を使います。準備後の解析と画面起動は同じ導入先の`node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-workbench.mjs'`を使います。画像解析環境は導入先ごとに分かれるため、npx側で解析する場合は技術資料の`JP_LIT_IMAGE_ENVIRONMENT`指定で環境を共有します。
+保存先は自分のtoolchain directoryへ変更できます。開発checkoutは`node scripts/iiif-images.mjs --setup`を使います。準備後の解析と画面起動は同じ導入先の`node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-workbench.mjs'`を使います。画像解析環境は導入先ごとに分かれるため、npx側で解析する場合は技術資料の`JP_LIT_IMAGE_ENVIRONMENT`指定で環境を共有します。
 
 1. 図版を囲んで「領域コレクションに追加」を押し、その領域を選んで「画像と出典を保存」します。枠線・文字・定規が支配的な見開き全体より、目的の図版を選ぶと観察しやすくなります。
 2. 「図版を探して比較する」で、保存した`evidence.json`の絶対pathを1行1件で指定し、基準領域と新しい保存先を選びます。

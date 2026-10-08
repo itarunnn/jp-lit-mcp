@@ -1,14 +1,14 @@
 # 保存済み図版の類似候補・整列・差分を確かめる
 
-公開後の要求実行は
+0.18.0の要求実行は
 ```powershell
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --request 'J:/research/request.json'
 ```
-を使える。公開前は下記のcheckout向けコマンドで実行する。
+を使える。開発checkoutでは下記のコマンドで実行する。
 
 ## 対象版とローカル環境
 
-実行するCLIの`--help`に`compare_images`と`import_comparison`がある場合に使う。公開npm0.17.0の範囲は初版の比較・書き出し。新しい操作は0.18.0の機能。公開前は開発checkoutで`npm ci`・`npm run build`後、`node scripts/iiif-workbench.mjs --request <要求JSON>`を使う。
+実行するCLIの`--help`に`compare_images`と`import_comparison`がある場合に使う。新しい操作は0.18.0以降の機能。開発checkoutでは`npm ci`・`npm run build`後、`node scripts/iiif-workbench.mjs --request <要求JSON>`を使う。
 
 画像解析は任意のuv・Python3.13環境を必要とする。開発checkoutで`node scripts/iiif-images.mjs --setup`を実行し、固定したOpenCV-headless/numpyを利用者cacheへ準備する。初回setupは依存取得を伴う。環境を指定する場合はsetupとCLI／画面起動の前に`JP_LIT_IMAGE_ENVIRONMENT`へ専用directoryの絶対pathを設定する。実行は保存済みJPEG/PNGだけを読み、画像取得・外部OCR／モデル送信を行わない。通常MCPと画像表示・書き出しはNode-only。
 
@@ -55,7 +55,7 @@ npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --request 'J:/research/request
 
 ## npm導入先で画像環境を準備する
 
-公開後は任意のtoolchain先へpackageを導入し、同じ導入先からsetupとCLIを使う。
+任意のtoolchain先へpackageを導入し、同じ導入先からsetupとCLIを使う。
 
 ```powershell
 npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.18.0

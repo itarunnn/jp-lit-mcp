@@ -1,6 +1,6 @@
 # IIIF比較・読解の呼び出し
 
-0.18.0向けの手順。公開前はbuild済みcheckoutを使い、npmの固定版起動は公開後に実行する。公開0.17.0は比較・出典書き出しまでを提供する。
+0.18.0向けの手順。CLIとSkillを同じ版へ揃えて使う。開発checkoutはbuild後に使う。0.17.0は比較・出典書き出しまでを提供する。
 
 Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
 
@@ -43,7 +43,7 @@ Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から
 
 ## TEI本文と画像領域を結び付ける
 
-CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初版の比較・書き出し機能を提供する。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
+CLIの`--help`に`link_tei`がある0.18.0以降の版で使う。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
 
 link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像の取得、外部OCR／モデルへの送信を行わない。初回のuv環境準備ではPython runtimeを取得する場合がある。比較画面での画像表示は提供元へのアクセスとして別に扱う。
 

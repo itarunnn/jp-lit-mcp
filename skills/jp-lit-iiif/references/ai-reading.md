@@ -1,14 +1,14 @@
 # 利用中AIアプリの読解を領域へ取り込む
 
-公開後の要求実行は
+0.18.0の要求実行は
 ```powershell
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --request 'J:/research/request.json'
 ```
-を使える。公開前は下記のcheckout向けコマンドで実行する。
+を使える。開発checkoutでは下記のコマンドで実行する。
 
 ## 対象版と入力
 
-実行するCLIの`--help`に`prepare_reading`と`import_reading`がある場合に使う。公開npm0.17.0は初版の比較・書き出しを提供する。新しい操作は0.18.0の機能。公開前は開発checkoutで`npm ci`・`npm run build`を行い、`node scripts/iiif-workbench.mjs --request <要求JSON>`を実行する。新旧workspaceの互換性は使用する版で確認し、古い版で新しい候補を保存し直さない。
+実行するCLIの`--help`に`prepare_reading`と`import_reading`がある場合に使う。新しい操作は0.18.0以降の機能。開発checkoutでは`npm ci`・`npm run build`を行い、`node scripts/iiif-workbench.mjs --request <要求JSON>`を実行する。新旧workspaceの互換性は使用する版で確認し、古い版で新しい候補を保存し直さない。
 
 対象はworkspaceへimport済みのローカルOCR候補の`text_id`。領域IDから「関連OCR候補」を調べる。KuroNet手動候補はサービス処理画像hashが不明なので、同じ画像の読解課題の基準に使えない。資料別の利用条件を確認し、画像・原OCR・出典runを保存した状態で始める。
 

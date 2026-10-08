@@ -112,7 +112,7 @@ jp-litは、研究の問いから資料を探し、保存したTEIの必要な�
 
 readerは、文書検査、構造一覧、構造付き抽出、参照点検の4操作を提供します。全文を一度にAIへ渡す前に、読む章や歌を絞って、その範囲の注記や訂正も一緒に確認できます。語の出現集計や複数作品の比較分析は、抽出後の分析として別に行います。
 
-0.18.0では、明示的なfacsの対応材料を返す任意操作`facsimile_links`を追加しています。固定したXMLの要素・参照先・surface・zone・graphicと原座標を記録し、[IIIF比較画面のTEI連携](iiif-workbench.md#tei本文と画像領域を往復する開発版)へ渡せます。外部画像の取得や本文の校合は別の操作です。公開前は開発checkoutで利用します。npm公開版0.17.0のreaderは従来の4操作を提供します。
+0.18.0では、明示的なfacsの対応材料を返す任意操作`facsimile_links`を追加しています。固定したXMLの要素・参照先・surface・zone・graphicと原座標を記録し、[IIIF比較画面のTEI連携](iiif-workbench.md#tei本文と画像領域を往復する)へ渡せます。外部画像の取得や本文の校合は別の操作です。0.17.0のreaderは従来の4操作を提供します。
 
 0.18.0の改頁対応は、`pb`直後から次の改頁の直前までを構造付き`page_range`として保存します。原の`pb`とページ範囲を分け、段落途中の切り出しや本文の異読・訂正を保持します。任意の`include_inherited=true`は最も近い親のfacsを宣言元付きで展開します。範囲が曖昧な改頁は診断を残し、大きい範囲は省略を明示します。本文校合と画像対応の状態は別に読みます。
 
@@ -230,15 +230,15 @@ TEI読解には、`jp-lit-tei` Skillを読み込めてローカルコマンド�
 
 ```sh
 uv python install 3.13.15
-npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-tei-reader --help
-npx --yes jp-lit-mcp@0.17.0 install-skills codex
+npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
+npx --yes jp-lit-mcp@0.18.0 install-skills codex
 ```
 
 `codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。Skills installerはjp-lit-research、jp-lit-verification、jp-lit-tei、jp-lit-iiifの4種を導入し、既存の同名Skillsも指定版で置き換えます。個別に編集した内容は導入前に退避してください。導入後はアプリで新しい対話を開き、`jp-lit-tei`が利用できることを確認してください。
 
 通常導入の`npx --package=...`は、cloneしたjp-lit repositoryの外で実行してください。npmが同名のローカルpackageを参照すると、readerの実行名が見つからない場合があります。初回にはnpm packageやPythonがダウンロードされることがあります。
 
-ここで指定した`0.17.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。MCPの書誌検索とIIIF CLIはNode.jsだけで動き、uv/PythonはTEI読解に使います。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。0.18.0ではTEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用できます。公開前はcheckout、公開後はCLIの版を0.18.0へ揃えて使います。原TEIの編集と本文校合は別に進めます。
+ここで指定した`0.18.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。MCPの書誌検索とIIIF CLIはNode.jsだけで動き、uv/PythonはTEI読解に使います。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.18.0へ揃えて使います。原TEIの編集と本文校合は別に進めます。
 
 導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
 

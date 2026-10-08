@@ -2,7 +2,7 @@
 
 ## CLIを固定して使う
 
-この手順は0.18.0向けです。公開前は開発checkoutでbuildしたCLIを使います。公開0.17.0はOCR未対応です。公開後はNode.js22以上・npm・git・uvを用意し、要求JSONを次のように実行します。
+この手順は0.18.0向けです。Node.js22以上・npm・git・uvを用意し、要求JSONを次のように実行します。開発checkoutではbuildしたCLIを使います。
 
 ```powershell
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --request 'J:/research/request.json'
@@ -190,7 +190,7 @@ reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_la
 人の回答とAIの判断を分け、未確認の条件はunknownまたはnullで保ちます。画像を開いただけの確認を人手の文字校合へ変換しません。
 ## 前提ツールと本文hash
 
-Windowsの前提ツールは[Node.js公式](https://nodejs.org/en/download)、[Git公式](https://git-scm.com/downloads/win)、[uv公式](https://docs.astral.sh/uv/getting-started/installation/)の案内で導入する。Node/npmはprojectのmise管理を優先し、既存環境の版を確認してから準備する。公開前checkoutは`https://github.com/itarunnn/jp-lit-mcp`の作業版が必要で、公開タグ0.17.0には新しい操作がない。公開後は上の0.18.0固定CLIを使う。
+Windowsの前提ツールは[Node.js公式](https://nodejs.org/en/download)、[Git公式](https://git-scm.com/downloads/win)、[uv公式](https://docs.astral.sh/uv/getting-started/installation/)の案内で導入する。Node/npmはprojectのmise管理を優先し、既存環境の版を確認してから準備する。通常は上の0.18.0固定CLIを使う。開発checkoutは`https://github.com/itarunnn/jp-lit-mcp`から取得してbuildする。
 
 参照本文のhashはファイル全体のhashと区別する。JSONの`text`そのものをUTF-8へ変換し、改行・空白を保持したbytesから求める。次は評価JSONの第1caseの本文hashを設定する例で、原翻刻や原画像を変更しない。
 

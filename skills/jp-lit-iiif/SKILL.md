@@ -21,4 +21,4 @@ metadata:
 
 ローカルOCRと同じ画像を利用中AIアプリで読む場合は、helpに`prepare_reading`／`import_reading`がある版で[AI読解の取込](references/ai-reading.md)を使う。画像のみとOCR併用を区別し、疑義・実見申告・人／AIの確認を出典付き候補へ保持する。
 
-保存済み図版の位置合わせ・差分には、helpに`compare_images`／`import_comparison`がある版で[図版比較](references/image-comparison.md)を使う。図版の矩形を選び、任意のローカルengineで解析する。候補順位・整列成立・図版対応の確認・文字校合を分ける。新しい操作は0.18.0の機能。公開前はbuild済みcheckoutを使い、公開後は固定版CLIを使う。公開0.17.0は初版の比較・書き出しまで。
+保存済み図版の位置合わせ・差分には、helpに`compare_images`／`import_comparison`がある版で[図版比較](references/image-comparison.md)を使う。図版の矩形を選び、任意のローカルengineで解析する。候補順位・整列成立・図版対応の確認・文字校合を分ける。新しい操作は0.18.0以降の固定版CLIを使う。開発checkoutはbuild後に使う。0.17.0は初版の比較・書き出しまで。
