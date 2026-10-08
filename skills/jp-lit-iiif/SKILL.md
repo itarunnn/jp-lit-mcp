@@ -1,6 +1,6 @@
 ---
 name: jp-lit-iiif
-description: Use when the user wants IIIF image comparison, page or region curation, local kuzushiji OCR, or multimodal reading of selected IIIF material with provenance.
+description: Use when the user wants IIIF page or region curation, TEI image links, local kuzushiji OCR, multimodal reading, or similar-figure alignment and differences with provenance.
 metadata:
   short-description: "IIIF資料の比較と出典付き画像読解"
 ---
@@ -18,3 +18,7 @@ metadata:
 ローカルくずし字OCRはhelpに`run_ocr`がある版で、標準の任意engineにNDL古典籍OCR-Liteを使う。導入済みDockerの古典籍OCR ver.3も追加providerとして選べる。[workflowのOCR連携](references/workflow.md#ローカルくずし字ocr開発版)でproviderの固定、実行、import、失敗時の原出力保全を確認する。OCR原文・修訂候補・校合記録を分け、機械出力から校合済みへ自動昇格させない。engine未導入なら導入方法を示す。KuroNetは手動補助を使い、貼付候補の評価でもサービス入力画像hashとモデル版の不明状態を保持する。公開OCRサービスや外部モデルへの自動接続は、利用者による明示設定と資料別許可を具体化する後続段階である。
 
 読解結果の確認にはworkspaceを再開し、同じ領域IDの「元の場所へ戻る」を使う。機械読解の完了と原資料との照合を別の状態として報告する。
+
+ローカルOCRと同じ画像を利用中AIアプリで読む場合は、helpに`prepare_reading`／`import_reading`がある版で[AI読解の取込](references/ai-reading.md)を使う。画像のみとOCR併用を区別し、疑義・実見申告・人／AIの確認を出典付き候補へ保持する。
+
+保存済み図版の位置合わせ・差分には、helpに`compare_images`／`import_comparison`がある版で[図版比較](references/image-comparison.md)を使う。図版の矩形を選び、任意のローカルengineで解析する。候補順位・整列成立・図版対応の確認・文字校合を分ける。公開npm0.17.0は初版の比較・書き出しまでで、新しい操作には開発checkoutのCLIを使う。

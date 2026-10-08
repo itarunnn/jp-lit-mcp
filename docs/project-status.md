@@ -1,5 +1,12 @@
 # 実装状況
 
+## 2026-10-08: 次期開発版のIIIF統合受入とSkill案内
+
+- 伊勢物語のOCR3候補・AI2候補、廣瀬本万葉集のTEI20参照、国文研本／NDL本『人倫訓蒙図彙』の比較を同じ4窓で保存。原workspace ID・原候補を保持して新しい出典を書き出し、TEI・OCR行・AI・図版両側への移動と保存・再読込を確認した。別workspace reportの取込は拒否する。
+- 図版だけの矩形を解析前に選び、AI仮対応2組と別図版10組を評価。対応候補は各1位で整列、別図版は整列保留。基準2領域は同じ1 Canvas、候補6領域は5 Canvasの限定試験。彩色や線のずれを含む調整差約27〜29%を、改版・加筆の認定や汎化精度と区別する。人の図版校合・文字校合は未実施。
+- repo内jp-lit-iiif Skillへprepare_reading/import_reading、compare_images/import_comparisonのreferenceを追加。公開npm0.17.0と開発checkoutの操作を区別し、必要な手順をSkill内へ配布する。
+- version0.17.0、通常MCP30tools/21sources、新規npm依存0を維持する。品質評価の限界と独立レビューを公開判断へ引き継ぎ、merge/push/releaseを保留する。[利用ガイド](iiif-workbench.md#保存した図版を探して整列差分を確認する開発版)を参照。
+
 ## 2026-10-08: 次期開発版の類似図版検索・整列差分
 
 - 保存済み領域画像の局所特徴から候補を探す`compare_images`、出典を再検証する`import_comparison`、両側の原領域へ戻る比較画面を追加。任意のuv/Python3.13/OpenCV-headless環境で実行し、画像の外部送信を行わない。
