@@ -24,7 +24,7 @@
 
 ## 疑義付き応答を保存・登録する
 
-応答はtemplateの識別子・hash・形式を保持した別fileへ保存する。`generator`は実際のモデル名、`executed_at`は読解日時、`image_opened=true`は画像実見の申告。確認できないモデル版・時間はnull、`monetary_cost`は未計測のnull。全領域を読んだ場合は`scope="full_region"`、部分は`partial_region`。判読不能を〓で残し、`doubts`へ候補本文に存在する`quote`、`alternatives`、`note`を記録する。未読templateは取込を拒否する。
+応答はtemplateの識別子・hash・形式を保持した別fileへ保存する。`generator`は実際のモデル名、`executed_at`には必須の読解日時を記録し、`image_opened=true`は画像実見の申告とする。確認できない`model_version`・所要時間`duration_ms`はnull、`monetary_cost`は未計測のnull。全領域を読んだ場合は`scope="full_region"`、部分は`partial_region`。判読不能を〓で残し、`doubts`へ候補本文に存在する`quote`、`alternatives`、`note`を記録する。未読templateは取込を拒否する。
 
 ```json
 {
