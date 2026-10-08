@@ -1,8 +1,14 @@
 # 保存済み図版の類似候補・整列・差分を確かめる
 
+公開後の要求実行は
+```powershell
+npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --request 'J:/research/request.json'
+```
+を使える。公開前は下記のcheckout向けコマンドで実行する。
+
 ## 対象版とローカル環境
 
-実行するCLIの`--help`に`compare_images`と`import_comparison`がある場合に使う。公開npm0.17.0の範囲は初版の比較・書き出し。新しい操作は開発checkoutで`npm ci`・`npm run build`後、`node scripts/iiif-workbench.mjs --request <要求JSON>`を使う。
+実行するCLIの`--help`に`compare_images`と`import_comparison`がある場合に使う。公開npm0.17.0の範囲は初版の比較・書き出し。新しい操作は0.18.0の機能。公開前は開発checkoutで`npm ci`・`npm run build`後、`node scripts/iiif-workbench.mjs --request <要求JSON>`を使う。
 
 画像解析は任意のuv・Python3.13環境を必要とする。開発checkoutで`node scripts/iiif-images.mjs --setup`を実行し、固定したOpenCV-headless/numpyを利用者cacheへ準備する。初回setupは依存取得を伴う。環境を指定する場合はsetupとCLI／画面起動の前に`JP_LIT_IMAGE_ENVIRONMENT`へ専用directoryの絶対pathを設定する。実行は保存済みJPEG/PNGだけを読み、画像取得・外部OCR／モデル送信を行わない。通常MCPと画像表示・書き出しはNode-only。
 
@@ -46,3 +52,15 @@
 両側の「原領域へ」で実画像を開く。「図版対応の確認」に記録者、対応／非対応／判断保留、確認内容を記録し「作業を保存」。候補順位・整列成立・図版対応・同版木の認定・TEI文字校合はそれぞれ区別する。AIの視覚的な仮対応は記録者と注記へ明示する。図版確認はTEI校合へ変換されない。
 
 同report再取込は履歴を保持する。領域の移動・削除後も当時のsnapshotを保持し、現在領域への移動・確認追加・読解書き出しを制限する。exportの`image_comparison_evidence`は`figure_candidate`で、両側出典と関係する確認を持つ。原差・調整差を画像へ戻って検討し、少数の成功例から全資料の精度を推定しない。
+
+## npm導入先で画像環境を準備する
+
+公開後は任意のtoolchain先へpackageを導入し、同じ導入先からsetupとCLIを使う。
+
+```powershell
+npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.18.0
+node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs' --setup
+node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-workbench.mjs' --request 'J:/research/request.json'
+```
+
+setup先とnpxの導入先が異なる場合はJP_LIT_IMAGE_ENVIRONMENTへ同じ専用cacheの絶対pathを指定し、setup・解析・画面起動に共通適用する。原画像や作業directoryを環境保存先にしない。

@@ -212,6 +212,8 @@ describe("publish workflow", () => {
       "Build",
       "Test",
       "Test TEI reader",
+      "Set up image analysis",
+      "Test image analysis",
       "Publish to npm"
     ];
 
@@ -230,6 +232,8 @@ describe("publish workflow", () => {
       Build: "npm run build",
       Test: "npm test",
       "Test TEI reader": "npm run test:tei",
+      "Set up image analysis": "node scripts/iiif-images.mjs --setup",
+      "Test image analysis": "npm run test:images",
       "Publish to npm": "npm publish"
     };
     for (const [name, command] of Object.entries(packageCommands)) {

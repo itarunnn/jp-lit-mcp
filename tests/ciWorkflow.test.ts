@@ -68,6 +68,8 @@ describe("CI workflow", () => {
         { run: "npm run typecheck:scripts" },
         { run: "npm test" },
         { run: "npm run test:tei" },
+        { run: "node scripts/iiif-images.mjs --setup" },
+        { run: "npm run test:images" },
         { run: "npm run smoke:mcp:offline" }
       ]
     });

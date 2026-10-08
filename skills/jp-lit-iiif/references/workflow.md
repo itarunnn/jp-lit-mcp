@@ -1,6 +1,8 @@
 # IIIF比較・読解の呼び出し
 
-Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
+0.18.0向けの手順。公開前はbuild済みcheckoutを使い、npmの固定版起動は公開後に実行する。公開0.17.0は比較・出典書き出しまでを提供する。
+
+Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
 
 要求JSONはUTF-8、`api_version="0.1"`、JSON内の保存先pathは絶対pathにする。`--request`のpathだけはcaller cwdからの相対指定も使える。stdoutにJSON1件、終了値は0成功／2入力不正／3未対応／4取得・起動失敗。
 
@@ -39,7 +41,7 @@ Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から
 
 `analysis-template.json`をコピーし、生成者・実行時刻、evidence_idごとの観察、翻刻候補、解釈、疑義を記入する。原テキストのtxtをAI候補で上書きしない。`analysis.json`を検査するときはpackageの`dist/src/iiif/evidence.js`がexportする`validateAnalysis(value, evidenceIds)`を使える。
 
-## TEI本文と画像領域を結び付ける（開発版）
+## TEI本文と画像領域を結び付ける
 
 CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初版の比較・書き出し機能を提供する。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
 
@@ -74,11 +76,11 @@ link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像�
 
 exportのtei_evidence/tei_pathsはXML構造・ページ範囲・参照元とlocatorを持つ併読用overlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。本文枝内や異なるed/edRefなど曖昧な改頁は診断付きで保留し、巨大範囲はcontent=null/omissionで全体の省略を残す。cb/lbの後続範囲と外部XML解決は後続。旧同IDの実行者付き履歴は当時のsnapshotを保つ。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
 
-## ローカルくずし字OCR（開発版）
+## ローカルくずし字OCR
 
-helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-LiteとPythonを利用者が指定する。導入例は[IIIFガイド](../../../docs/iiif-workbench.md#ローカルくずし字ocrを使う開発版)。通常の比較・MCPはNode-only。engine・依存の準備はdownloadを伴うが、OCR実行は保存済み画像だけを読み、外部OCRサービスへ送信しない。
+helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-LiteとPythonを利用者が指定する。導入例は[IIIFガイド](ocr.md#任意のengineを導入する)。通常の比較・MCPはNode-only。engine・依存の準備はdownloadを伴うが、OCR実行は保存済み画像だけを読み、外部OCRサービスへ送信しない。
 
-GPU版を追加する場合は、導入済み公式構成のDocker imageとローカルNVIDIA GPUを使う。`docker image inspect <image名> --format '{{.Id}}'`でimmutable IDを取得し、`inspect_ocr_provider`へ`provider="ndlkotenocr-ver3"`・絶対pathの`docker_path`・実測`image_id`を渡す。返る`result.config`をLiteとは別のprovider JSONへ保存する。検証にはGPUも必要。公式構成と接続先の条件は[GPU導入ガイド](../../../docs/iiif-workbench.md#任意のgpu版を固定する)を読む。
+GPU版を追加する場合は、導入済み公式構成のDocker imageとローカルNVIDIA GPUを使う。`docker image inspect <image名> --format '{{.Id}}'`でimmutable IDを取得し、`inspect_ocr_provider`へ`provider="ndlkotenocr-ver3"`・絶対pathの`docker_path`・実測`image_id`を渡す。返る`result.config`をLiteとは別のprovider JSONへ保存する。検証にはGPUも必要。公式構成と接続先の条件は[GPU導入ガイド](ocr.md#任意のgpu版を固定する)を読む。
 
 ```json
 {"api_version":"0.1","operation":"inspect_ocr_provider","provider":"ndlkotenocr-ver3","docker_path":"C:/Program Files/Docker/Docker/resources/bin/docker.exe","image_id":"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
@@ -106,7 +108,7 @@ GPU版を追加する場合は、導入済み公式構成のDocker imageとロ�
 
 各JSONを`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。with-ocr.jsonで比較画面を起動・読み込み、「原画像の領域へ」「この行の画像へ」で実見する。「関連OCR候補」は領域からの復路。OCRのtext・行boundingBox・Canvas変換・source hash・engine hash・時刻・原出力pathを保持する。confidenceは領域検出の信頼度。校合は実施後に記録者・結果・注記・任意の修訂候補を別履歴へ追加する。UI操作だけの確認はuncertainで未校合の範囲を明記する。原OCR本文はocr_candidate/unverifiedを維持し、原TEIと上流生成のraw TEIを別に保存する。
 
-## OCRの参照一致度を評価する（開発版）
+## OCRの参照一致度を評価する
 
 helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価JSONを指定する。Lite/GPUは原run/artifact/画像を再検証し、KuroNet手動候補は貼付本文hash・候補ID・出典snapshot・現在領域の整合性を検査する。原本文を変更せずreportをResearchLibraryへ保存する。操作はNode-onlyで、OCR・外部モデル実行や画像送信を伴わない。
 
@@ -114,13 +116,13 @@ helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価J
 {"api_version":"0.1","operation":"evaluate_ocr","workspace_path":"J:/research/with-ocr.json","evaluation_path":"J:/research/work/ocr/evaluation.json","output_path":"J:/research/work/ocr/report.json","overwrite":false}
 ```
 
-評価JSONはschema_version/evaluation_id/workspace_id/casesを持ち、caseごとにcase_id/text_id/reference/variants/observationsを記録する。形式の正本は[利用ガイド](../../../docs/iiif-workbench.md#同じ画像の候補を比較評価する)。参照の頁・領域対応が不明ならreference:nullとし、pending_referenceを維持する。AI候補はvariantsへ置き、参照正解や原TEIへ昇格しない。領域全体の読解候補だけ同じ画像hashで比較し、部分読解は別の小さい領域へ切り分ける。
+評価JSONはschema_version/evaluation_id/workspace_id/casesを持ち、caseごとにcase_id/text_id/reference/variants/observationsを記録する。形式の正本は[利用ガイド](ocr.md#同じ画像の候補を比較評価する)。参照の頁・領域対応が不明ならreference:nullとし、pending_referenceを維持する。AI候補はvariantsへ置き、参照正解や原TEIへ昇格しない。領域全体の読解候補だけ同じ画像hashで比較し、部分読解は別の小さい領域へ切り分ける。
 
 公開翻刻との数値はreference_agreement。source_collatedは原画像と確認した記録者付きの宣言がある場合だけ設定する。学習重複known_overlap/declared_held_out/unknownを区別し、精度や学習からの独立性を推定しない。CERのstrictとNFC/空白除去、文字順を問わないF1、原文字列と修訂候補を分ける。Canvas数と領域数を区別し、未比較のimage_reading/image_assisted_correctionと金銭費用未計測を報告する。
 
 原資料の保存先保護はworkspace全体のTEI・OCR出典へ適用する。import_ocr/link_teiのworkspace更新は明示的なoverwrite指定で行い、原XML/run/evidence/artifact/画像への保存は拒否する。原runを読めず保護集合を収集できない場合は、原出力を復元してから再実行する。
 
-## KuroNetによる補助OCR（開発版）
+## KuroNetによる補助OCR
 
 標準の任意ローカルOCRはNDL古典籍OCR-Lite。GPU版の古典籍OCR ver.3は導入済みDockerを使う任意の追加provider。近代活字用NDLOCR-Liteとは区別する。PCで公開IIIF資料の別候補を得る補助経路には[KuroNet公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)と[利用案内](https://mp.ex.nii.ac.jp/kuronet/)を使う。
 
@@ -132,7 +134,7 @@ helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価J
 
 `evaluate_ocr`には手動候補のtext_idも指定できる。評価JSONは同じschema_version/evaluation_id/workspace_id/casesを使い、caseにcase_id/text_id/reference/variants:[]/observationsを記録する。参照が未登録ならreference:nullでpending_referenceを保持する。reportではmanual_ocr_provenanceを保持し、run_path/engine/モデル版/処理画像hash/実行時間/金銭費用は未取得のnull。image_identity=service_bytes_unknown、provenance_validation=manual_copy_consistencyを記録する。サービス原出力の独立検証と同一画像条件の精度比較は未完了で、手動候補へのVLM variants追加は拒否する。画像比較にはhashを再検証できるローカルOCRのcaseを使う。利用者から個別に依頼された実サービス試験は、その資料・範囲・送信先・日時・成果物を研究logへ残し、通常のアプリ動作と分ける。
 
-参照と観察が未登録の最小例を示す。workspace_idとtext_idは実際の作業からコピーする。観察済みの場合の構造と参照翻刻の例は[評価ガイド](../../../docs/iiif-workbench.md#同じ画像の候補を比較評価する)を使う。
+参照と観察が未登録の最小例を示す。workspace_idとtext_idは実際の作業からコピーする。観察済みの場合の構造と参照翻刻の例は[評価ガイド](ocr.md#同じ画像の候補を比較評価する)を使う。
 
 ```json
 {"schema_version":"0.1","evaluation_id":"manual-pilot","workspace_id":"対象workspaceのID","cases":[{"case_id":"manual-1","text_id":"対象手動候補のtext_id","reference":null,"variants":[],"observations":null}]}

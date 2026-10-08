@@ -140,6 +140,14 @@ jobs:
         working-directory: package
         run: npm run test:tei
 
+      - name: Set up image analysis
+        working-directory: package
+        run: node scripts/iiif-images.mjs --setup
+
+      - name: Test image analysis
+        working-directory: package
+        run: npm run test:images
+
       - name: Publish to npm
         working-directory: package
         run: npm publish
