@@ -66,6 +66,7 @@ export interface EvidenceExport {
   prompt_path: string;
   image_paths: string[];
   text_paths: string[];
+  tei_paths: string[];
   diagnostics: string[];
 }
 export interface LocalServerOptions {

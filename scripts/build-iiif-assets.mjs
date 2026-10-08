@@ -14,6 +14,17 @@ await mkdir(new URL("vendor/", out), { recursive: true });
 await cp(new URL("packages/iiif-workbench/web/", root), out, {
   recursive: true,
 });
+// 同一の領域対応判定をNode exportとブラウザへ配布する。
+await cp(new URL("src/iiif/tei-state.mjs", root), new URL("dist/src/iiif/tei-state.mjs", root));
+await cp(new URL("src/iiif/tei-state.mjs", root), new URL("tei-state.mjs", out));
+await cp(new URL("src/iiif/ocr-state.mjs", root), new URL("dist/src/iiif/ocr-state.mjs", root));
+await cp(new URL("src/iiif/ocr-state.mjs", root), new URL("ocr-state.mjs", out));
+await cp(new URL("src/iiif/manual-ocr-state.mjs", root), new URL("dist/src/iiif/manual-ocr-state.mjs", root));
+await cp(new URL("src/iiif/manual-ocr-state.mjs", root), new URL("manual-ocr-state.mjs", out));
+await cp(new URL("src/iiif/reading-state.mjs", root), new URL("dist/src/iiif/reading-state.mjs", root));
+await cp(new URL("src/iiif/reading-state.mjs", root), new URL("reading-state.mjs", out));
+await cp(new URL("src/iiif/image-comparison-state.mjs", root), new URL("dist/src/iiif/image-comparison-state.mjs", root));
+await cp(new URL("src/iiif/image-comparison-state.mjs", root), new URL("image-comparison-state.mjs", out));
 await cp(
   new URL("node_modules/mirador/dist/mirador.min.js", root),
   new URL("vendor/mirador.min.js", out),

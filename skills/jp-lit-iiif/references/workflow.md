@@ -1,8 +1,12 @@
 # IIIF比較・読解の呼び出し
 
-Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.17.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
+0.18.0向けの手順。公開前はbuild済みcheckoutを使い、npmの固定版起動は公開後に実行する。公開0.17.0は比較・出典書き出しまでを提供する。
+
+Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
 
 要求JSONはUTF-8、`api_version="0.1"`、JSON内の保存先pathは絶対pathにする。`--request`のpathだけはcaller cwdからの相対指定も使える。stdoutにJSON1件、終了値は0成功／2入力不正／3未対応／4取得・起動失敗。
+
+開発版の利用可否は、実行するCLIの`--help`で確認する。AI候補の登録は[AI読解](ai-reading.md)、保存済み図版の整列・差分と結果登録は[図版比較](image-comparison.md)を読む。各referenceはSkillと一緒に配布される。開発checkoutの詳細ガイドはrepo内の`docs/iiif-workbench.md`を参照する。
 
 ## ページを調べる
 
@@ -37,7 +41,106 @@ Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から
 
 `analysis-template.json`をコピーし、生成者・実行時刻、evidence_idごとの観察、翻刻候補、解釈、疑義を記入する。原テキストのtxtをAI候補で上書きしない。`analysis.json`を検査するときはpackageの`dist/src/iiif/evidence.js`がexportする`validateAnalysis(value, evidenceIds)`を使える。
 
-## 既存テキストと再開
+## TEI本文と画像領域を結び付ける
+
+CLIの`--help`に`link_tei`がある場合に使う。npm公開版0.17.0は初版の比較・書き出し機能を提供する。開発checkoutでは`npm ci`・`npm run build`の後、次の要求を`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。uv／Python3.13はTEI操作で必要。
+
+link_teiは指定したローカルXMLとworkspaceを読み、manifestや画像の取得、外部OCR／モデルへの送信を行わない。初回のuv環境準備ではPython runtimeを取得する場合がある。比較画面での画像表示は提供元へのアクセスとして別に扱う。
+
+```json
+{
+  "api_version": "0.1",
+  "operation": "link_tei",
+  "workspace_path": "J:/research/workspace.json",
+  "output_path": "J:/research/linked.json",
+  "file_path": "J:/research/source.xml",
+  "expected_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "document_id": "d1",
+  "surface_bindings": [{
+    "surface_xpath": "/t:TEI[1]/t:facsimile[1]/t:surface[1]",
+    "canvas_id": "https://example.org/c1"
+  }],
+  "limit": 20,
+  "offset": 0,
+  "overwrite": false
+}
+```
+
+例のpath・hash・IDを実測値とworkspaceのIDへ置き換える。surface_bindingsはsurface全域とCanvas全域の対応を確認した場合に指定する。直接Canvas URIを指すfacs、surfaceのsameAs宣言はworkspace内で一致するCanvasへ対応する。zone座標はsurface原点・範囲から変換する。graphic画像URL一致だけはcandidate、重複ID・base・座標不足・polygon・回転等は診断付きで保留する。
+
+応答のokと終了値、states、next_offsetを確認する。続きはworkspace_path/output_pathを出力済みworkspaceへ揃え、offset=next_offset、overwrite=trueで追加する。limitは1〜100。XML hashが違う場合は版を点検する。同じ版の再実行は実行者付きの対応・校合記録を上書きしない。未記録の対応には後からsurface_bindingsを適用できる。
+
+`node scripts/iiif-workbench.mjs serve --workspace J:/research/linked.json`を起動する。「TEI本文と画像」の「対応する画像へ」で画像へ移動し、領域の「関連TEI本文」で戻る。一覧は100件ずつページを送り、未解決参照も全件を操作できる。手動対応は選択checkbox1件と記録者・理由を要求する。原画像との校合は実施後に結果・確認内容を別履歴へ追加する。未実施ならcollations=[]を保ち、resolvedを校合済みと解釈しない。
+
+改頁pbのpage_rangeは直後から同じ本文内の次pb直前まで（最後は本文末尾）の構造付き範囲。原pbはsource_contentに保持し、部分切出しのタグ・XPathと境界locatorを別に保存する。親facsを子へ展開したいと明示された場合はlink_teiへinclude_inherited=trueを指定する（既定false）。最も近い祖先の宣言元をfacs_originへ残し、子の明示facsを優先、空facsで止める。同じモードのnext_offsetで続きを読む。先行pbの画像で次pbの参照を補完しない。
+
+exportのtei_evidence/tei_pathsはXML構造・ページ範囲・参照元とlocatorを持つ併読用overlap_context。全頁や部分重なりも含み、選択矩形の翻刻を示さない。本文枝内や異なるed/edRefなど曖昧な改頁は診断付きで保留し、巨大範囲はcontent=null/omissionで全体の省略を残す。cb/lbの後続範囲と外部XML解決は後続。旧同IDの実行者付き履歴は当時のsnapshotを保つ。画像を実際に開いてから観察し、AI候補を原TEIへ書き戻さない。
+
+## ローカルくずし字OCR
+
+helpに`run_ocr`がある版で使う。任意導入したNDL古典籍OCR-LiteとPythonを利用者が指定する。導入例は[IIIFガイド](ocr.md#任意のengineを導入する)。通常の比較・MCPはNode-only。engine・依存の準備はdownloadを伴うが、OCR実行は保存済み画像だけを読み、外部OCRサービスへ送信しない。
+
+GPU版を追加する場合は、導入済み公式構成のDocker imageとローカルNVIDIA GPUを使う。`docker image inspect <image名> --format '{{.Id}}'`でimmutable IDを取得し、`inspect_ocr_provider`へ`provider="ndlkotenocr-ver3"`・絶対pathの`docker_path`・実測`image_id`を渡す。返る`result.config`をLiteとは別のprovider JSONへ保存する。検証にはGPUも必要。公式構成と接続先の条件は[GPU導入ガイド](ocr.md#任意のgpu版を固定する)を読む。
+
+```json
+{"api_version":"0.1","operation":"inspect_ocr_provider","provider":"ndlkotenocr-ver3","docker_path":"C:/Program Files/Docker/Docker/resources/bin/docker.exe","image_id":"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+```
+
+例のimage IDは合成値で、実測値へ置き換える。GPU設定にはprovider/docker_path/image_id/expected_engine_sha256/timeout_msが入る。`run_ocr`と`import_ocr`は下記と同じ形式で、provider_config_pathだけをGPU設定へ替える。image取得・build・更新は自動実行しない。実行はローカルengineへ固定し、`--pull never --network none`、画像1件read-only mountを使う。行脱落・TXT/JSON不一致はfailedとし、timeoutは所有containerだけを停止して部分出力を残す。標準Liteの設定は維持する。
+
+1. 利用条件を確認した領域をexport_evidenceで保存し、display_imageとevidence_idを確認する。raw成果物はResearchLibrary等の研究directoryのwork/ocr配下へ置く。
+2. inspect_ocr_providerで絶対pathのengine_dir、python_pathを指定し、返るresult.configをprovider.jsonへ保存する。期待hashの手作業による捏造・省略を避ける。
+3. run_ocrにevidence_path、重複しないevidence_ids（1〜4件）、provider_config_path、新規output_dirを指定する。既存翻刻・TEI併読情報（本文の省略診断、空の改頁参照も含む）がある場合は既定で停止。比較を明示依頼された場合だけallow_existing_text=trueを指定する。
+4. 終了値とstatusを確認する。runningは処理途中で要求ID一覧と処理中IDを保存し、importを保留する。completedは全対象の成功。partial/failedは終了値4、ok=falseでresult.run_pathに原出力・ログ・失敗記録を残す。partialは正常な領域だけimportできる。再試行は新しいdirectoryを使う。
+5. import_ocrにworkspace_path、run_path、output_path、overwrite（既定false）を渡す。正常候補を追加し、失敗数をskippedで返す。同じrunの再importは候補・校合履歴を保持する。hash変更、別workspace、移動領域は診断後に停止する。
+
+```json
+{"api_version":"0.1","operation":"inspect_ocr_provider","engine_dir":"J:/ocr/engine","python_path":"J:/ocr/.venv/Scripts/python.exe"}
+```
+
+```json
+{"api_version":"0.1","operation":"run_ocr","evidence_path":"J:/research/evidence/evidence.json","evidence_ids":["r1"],"provider_config_path":"J:/research/provider.json","output_dir":"J:/research/work/ocr/run-01","allow_existing_text":false}
+```
+
+```json
+{"api_version":"0.1","operation":"import_ocr","workspace_path":"J:/research/workspace.json","run_path":"J:/research/work/ocr/run-01/run.json","output_path":"J:/research/with-ocr.json","overwrite":false}
+```
+
+各JSONを`node scripts/iiif-workbench.mjs --request <request.json>`で実行する。with-ocr.jsonで比較画面を起動・読み込み、「原画像の領域へ」「この行の画像へ」で実見する。「関連OCR候補」は領域からの復路。OCRのtext・行boundingBox・Canvas変換・source hash・engine hash・時刻・原出力pathを保持する。confidenceは領域検出の信頼度。校合は実施後に記録者・結果・注記・任意の修訂候補を別履歴へ追加する。UI操作だけの確認はuncertainで未校合の範囲を明記する。原OCR本文はocr_candidate/unverifiedを維持し、原TEIと上流生成のraw TEIを別に保存する。
+
+## OCRの参照一致度を評価する
+
+helpにevaluate_ocrがある版で、OCR候補をimportしたworkspaceと評価JSONを指定する。Lite/GPUは原run/artifact/画像を再検証し、KuroNet手動候補は貼付本文hash・候補ID・出典snapshot・現在領域の整合性を検査する。原本文を変更せずreportをResearchLibraryへ保存する。操作はNode-onlyで、OCR・外部モデル実行や画像送信を伴わない。
+
+```json
+{"api_version":"0.1","operation":"evaluate_ocr","workspace_path":"J:/research/with-ocr.json","evaluation_path":"J:/research/work/ocr/evaluation.json","output_path":"J:/research/work/ocr/report.json","overwrite":false}
+```
+
+評価JSONはschema_version/evaluation_id/workspace_id/casesを持ち、caseごとにcase_id/text_id/reference/variants/observationsを記録する。形式の正本は[利用ガイド](ocr.md#同じ画像の候補を比較評価する)。参照の頁・領域対応が不明ならreference:nullとし、pending_referenceを維持する。AI候補はvariantsへ置き、参照正解や原TEIへ昇格しない。領域全体の読解候補だけ同じ画像hashで比較し、部分読解は別の小さい領域へ切り分ける。
+
+公開翻刻との数値はreference_agreement。source_collatedは原画像と確認した記録者付きの宣言がある場合だけ設定する。学習重複known_overlap/declared_held_out/unknownを区別し、精度や学習からの独立性を推定しない。CERのstrictとNFC/空白除去、文字順を問わないF1、原文字列と修訂候補を分ける。Canvas数と領域数を区別し、未比較のimage_reading/image_assisted_correctionと金銭費用未計測を報告する。
+
+原資料の保存先保護はworkspace全体のTEI・OCR出典へ適用する。import_ocr/link_teiのworkspace更新は明示的なoverwrite指定で行い、原XML/run/evidence/artifact/画像への保存は拒否する。原runを読めず保護集合を収集できない場合は、原出力を復元してから再実行する。
+
+## KuroNetによる補助OCR
+
+標準の任意ローカルOCRはNDL古典籍OCR-Lite。GPU版の古典籍OCR ver.3は導入済みDockerを使う任意の追加provider。近代活字用NDLOCR-Liteとは区別する。PCで公開IIIF資料の別候補を得る補助経路には[KuroNet公式ビューア](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)と[利用案内](https://mp.ex.nii.ac.jp/kuronet/)を使う。
+
+1. 比較画面でページ・矩形を保存し、その領域の「KuroNetで補助OCR」を開く。パネルのマニフェストURLとCanvas・ページ番号・矩形・回転を確認する。
+2. 利用者が公式画面を開き、URLを手動入力してログイン・領域指定・OCR・読み順設定・テキスト変換を行う。KuroNetのOCR結果は公開されるため、公開IIIF資料と利用条件を確認した範囲で使う。アプリは自動API接続・ログイン・画像送信を持たない。
+3. 対象領域だけの原文を貼り付け、記録者と任意の結果URLを入力し、領域への対応を宣言して「OCR候補を保存」を押す。ページ全体の本文は比較画面にもページ全体の領域を作って保存する。出力の改行・空白を保持する。
+4. `manual_ocr_provenance`へprovider、manual_copy、取込日時、記録者、結果URL、対象workspace・document・manifest hash・Canvas・領域座標を保存し、`source_sha256`へ原文hashを残す。未取得のモデル版・サービス処理画像hashはnull。候補は`ocr_candidate / unverified`で、範囲宣言`user_declared`は文字の原画像校合と別に扱う。通常のmanual_transcriptionやLiteの原runへ偽装しない。
+5. 「原画像の領域へ」で画像を実際に開き、校合した文字・未校合範囲・修訂候補を別に記録する。原文とTEIを保持し、自動昇格しない。作業JSONと領域の読解資料にもこの出典を含める。原領域削除後はsnapshotを保持し、現在領域への操作を停止する。
+
+`evaluate_ocr`には手動候補のtext_idも指定できる。評価JSONは同じschema_version/evaluation_id/workspace_id/casesを使い、caseにcase_id/text_id/reference/variants:[]/observationsを記録する。参照が未登録ならreference:nullでpending_referenceを保持する。reportではmanual_ocr_provenanceを保持し、run_path/engine/モデル版/処理画像hash/実行時間/金銭費用は未取得のnull。image_identity=service_bytes_unknown、provenance_validation=manual_copy_consistencyを記録する。サービス原出力の独立検証と同一画像条件の精度比較は未完了で、手動候補へのVLM variants追加は拒否する。画像比較にはhashを再検証できるローカルOCRのcaseを使う。利用者から個別に依頼された実サービス試験は、その資料・範囲・送信先・日時・成果物を研究logへ残し、通常のアプリ動作と分ける。
+
+参照と観察が未登録の最小例を示す。workspace_idとtext_idは実際の作業からコピーする。観察済みの場合の構造と参照翻刻の例は[評価ガイド](ocr.md#同じ画像の候補を比較評価する)を使う。
+
+```json
+{"schema_version":"0.1","evaluation_id":"manual-pilot","workspace_id":"対象workspaceのID","cases":[{"case_id":"manual-1","text_id":"対象手動候補のtext_id","reference":null,"variants":[],"observations":null}]}
+```
+
+## 既存テキストを読む
 
 画面の「表示ページの既存テキストを読む」はv3の単純なTextualBodyと明示された外部AnnotationPage最大1件を対象にする。取得後に「テキストを関連付ける」で同じCanvasの原テキストを領域へ結び付ける。
 

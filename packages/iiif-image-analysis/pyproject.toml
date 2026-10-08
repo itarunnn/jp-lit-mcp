@@ -1,0 +1,9 @@
+[project]
+name = "jp-lit-iiif-image-analysis"
+version = "0.1.0"
+description = "保存済みIIIF領域画像の局所特徴・整列・差分を計算する任意CLI"
+requires-python = ">=3.13,<3.14"
+dependencies = ["opencv-python-headless>=4.13,<4.14", "numpy>=2.2,<3"]
+
+[tool.uv]
+package = false

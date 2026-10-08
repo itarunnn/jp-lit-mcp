@@ -1,5 +1,7 @@
 # GitHub CLI で Skills を入れる
 
+IIIFのTEI連携・ローカルOCR・AI候補取込・図版比較は0.18.0向けの機能です。公開前はbuild済みcheckoutを利用します。以下のv0.17.0指定は検証済み公開版の記録で、0.18.0公開後はCLIとSkillを同じreleaseへ揃えて更新してください。
+
 `gh skill install` は、このrepoのSkillsをGitHubから導入し、取得元・版・更新を管理する方法です。GitHub CLIを既に使っている人や、Skillsの継続的な更新を管理したい人におすすめします。このページは `gh 2.94.0` で、公開release v0.17.0から4 Skillsの取得を確認しています。
 
 ## 導入方法を選ぶ

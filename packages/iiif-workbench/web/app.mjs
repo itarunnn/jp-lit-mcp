@@ -6,12 +6,23 @@ import {
   showRegion,
 } from "./viewer-adapter.mjs";
 import { mergeTextResult, addComparisonWindow } from "./workspace-state.mjs";
+import { createTeiPanel } from "./tei-panel.mjs";
+import { detachTeiRegion } from "./tei-state.mjs";
+import { createOcrPanel } from "./ocr-panel.mjs";
+import { assertOcrTarget } from "./ocr-state.mjs";
+import { createManualOcrPanel } from "./manual-ocr-panel.mjs";
+import { assertManualOcrTarget, manualOcrMatchesRegion, mergeManualOcrCandidate } from "./manual-ocr-state.mjs";
+import { createReadingPanel } from "./reading-panel.mjs";
+import { assertReadingTarget,readingMatchesRegion } from "./reading-state.mjs";
+import { createImageComparisonPanel } from "./image-comparison-panel.mjs";
+import { assertComparisonSource,mergeComparison } from "./image-comparison-state.mjs";
 const $ = (id) => document.getElementById(id),
   token = location.hash.slice(1);
-let workspace, viewer, pendingRegion;
+let workspace, viewer, pendingRegion, teiPanel, ocrPanel, manualOcrPanel, readingPanel, imageComparisonPanel, manualImportBusy = false;
 const status = (text) => {
   $("status").textContent = text;
 };
+const selectedRegions = () => [...document.querySelectorAll("input[name=region]:checked")].map((e) => e.value);
 async function api(route, body) {
   const r = await fetch(route, {
     method: body === undefined ? "GET" : "POST",
@@ -25,7 +36,7 @@ async function api(route, body) {
 function action(id, fn) {
   $(id).addEventListener("click", () =>
     Promise.resolve()
-      .then(fn)
+      .then(() => { if(manualImportBusy)throw Error("取込・解析処理中です。完了後に操作してください"); return fn(); })
       .catch((e) => status(e.message)),
   );
 }
@@ -115,6 +126,7 @@ function build() {
       $("add-region").disabled = true;
       renderTexts();
       renderSources();
+      teiPanel?.render();
     };
     control.append(select);
     const add = node("button", "別窓で比較");
@@ -243,25 +255,42 @@ function renderRegions() {
     const link = node("button", "テキストを関連付ける");
     link.onclick = () => {
       r.text_evidence_ids = workspace.texts
-        .filter((t) => t.canvas_id === r.selection.canvas_id)
+        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)) && (!t.reading_provenance||readingMatchesRegion(workspace,t,r.selection.region_id)))
         .map((t) => t.text_id);
       status(`${r.text_evidence_ids.length}件の原テキストを関連付けました。`);
     };
+    const tei = node("button", "関連TEI本文");
+    tei.onclick = () => teiPanel.showRegion(r);
+    const ocr = node("button", "関連OCR候補");
+    ocr.onclick = () => ocrPanel.showRegion(r);
+    const manualOcr = node("button", "KuroNetで補助OCR");
+    manualOcr.onclick = () => manualOcrPanel.showRegion(r);
+    const comparisons=node("button","関連図版候補");comparisons.onclick=()=>imageComparisonPanel.showRegion(r);
     const remove = node("button", "削除");
     remove.onclick = () => {
+      detachTeiRegion(workspace, r.selection.region_id);
       workspace.regions = workspace.regions.filter((v) => v !== r);
       renderRegions();
     };
-    buttons.append(back, link, remove);
+    buttons.append(back, link, tei, ocr, manualOcr, comparisons, remove);
     article.append(buttons);
     $("regions").append(article);
   }
+  ocrPanel?.render();
+  manualOcrPanel?.render();
+  readingPanel?.render();
+  imageComparisonPanel?.render();
 }
 function renderTexts() {
+  imageComparisonPanel?.render();
+  readingPanel?.render();
+  teiPanel?.render();
+  ocrPanel?.render();
+  manualOcrPanel?.render();
   if (!workspace) return;
   const { c } = current();
   $("texts").replaceChildren();
-  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id))
+  for (const t of workspace.texts.filter((t) => t.canvas_id === c?.canvas_id && !t.ocr_provenance && !t.manual_ocr_provenance))
     $("texts").append(
       node("p", `${t.origin} / ${t.verification_state}`),
       node("pre", t.text),
@@ -370,11 +399,14 @@ action("export", async () => {
 function fileAction(id, fn) {
   $(id).onchange = async () => {
     try {
+      if(manualImportBusy)throw Error("取込・解析処理中です。完了後に作業を読み込んでください");
       const file = $(id).files[0];
       if (!file) return;
       if (file.size > 45 * 1024 * 1024)
         throw new Error("入力容量が上限を超えます");
-      await fn(JSON.parse(await file.text()));
+      const value=JSON.parse(await file.text());
+      if(manualImportBusy)throw Error("取込・解析処理中です。完了後に作業を読み込んでください");
+      await fn(value);
     } catch (e) {
       status(e.message);
     } finally {
@@ -419,7 +451,60 @@ $("active-window").onchange = () => {
 try {
   if (!token) throw new Error("CLIが表示した起動URLを開いてください");
   workspace = await api("/api/workspace");
+  async function comparisonAction(route,input){
+    if(manualImportBusy)throw Error("取込・解析処理中です。完了後に操作してください");
+    const saved=snapshot();manualImportBusy=true;
+    try{
+      await api("/api/workspace",saved);
+      const record=await api(route,input);
+      workspace=mergeComparison(workspace,record,{allow_stale:true});
+      await api("/api/workspace",workspace);
+      return record;
+    }finally{manualImportBusy=false;}
+  }
+  imageComparisonPanel=createImageComparisonPanel({element:$("image-comparison-panel"),workspace:()=>workspace,setWorkspace:next=>{workspace=next;},status,
+    assertEditable:()=>{if(manualImportBusy)throw Error("取込・解析処理中です");},compare:input=>comparisonAction("/api/images/compare",input),importReport:report_path=>comparisonAction("/api/images/import",{report_path}),
+    async preview(report_id,candidate_id,kind){return (await api(`/api/images/preview?${new URLSearchParams({report_id,candidate_id,kind})}`)).data_url;},
+    openImage(source){const {region}=assertComparisonSource(workspace,source);showRegion(viewer,region.selection);$("active-window").value=region.selection.window_id;status("図版候補の原領域を表示しました。関連TEI本文から本文校合へ進めます。");}});
+  manualOcrPanel = createManualOcrPanel({element:$("manual-ocr-panel"),workspace:()=>workspace,status,
+    async importCandidate(input) {
+      const saved = snapshot();
+      manualImportBusy=true;
+      try {
+        await api("/api/workspace", saved);
+        if(workspace !== saved)throw Error("作業が変更されました。対象を確認して再実行してください");
+        const result=await api("/api/ocr/manual",input);
+        const {archived}=mergeManualOcrCandidate(workspace,result.text);
+        renderTexts();return {...result,archived};
+      } finally {manualImportBusy=false;}
+    },
+    openImage(text){const {region}=assertManualOcrTarget(workspace,text);showRegion(viewer,region.selection);$("active-window").value=region.selection.window_id;},
+  });
+  ocrPanel = createOcrPanel({ element: $("ocr-panel"), workspace: () => workspace, current, status,
+    openImage(text, line) {
+      const { doc, source } = assertOcrTarget(workspace,text);
+      const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === doc.document_id) ?? workspace.windows.find((w) => w.document_id === doc.document_id);
+      if (!win) throw new Error("対応する資料の比較窓を開いてください");
+      showRegion(viewer,{window_id:win.window_id,canvas_id:source.selection.canvas_id,xywh:line?.canvas_xywh ?? source.selection.xywh});
+      $("active-window").value=win.window_id;
+      status("OCR候補に対応する画像へ移動しました。原画像で文字を確認できます。");
+    },
+  });
+  readingPanel=createReadingPanel({element:$("reading-panel"),workspace:()=>workspace,assertEditable:()=>{if(manualImportBusy)throw Error("取込・解析処理中です");},setWorkspace:next=>{workspace=next;},status,
+    openImage(text){const {doc,source}=assertReadingTarget(workspace,text);const active=current(),win=active.d?.document_id===doc.document_id?active.w:workspace.windows.find(w=>w.document_id===doc.document_id);
+      if(!win)throw Error("対象資料の窓がありません");showRegion(viewer,{window_id:win.window_id,canvas_id:source.selection.canvas_id,xywh:source.selection.xywh});$("active-window").value=win.window_id;status("AI候補の原画像領域を表示しました。");}});
+  teiPanel = createTeiPanel({ element: $("tei-panel"), workspace: () => workspace, current, selectedRegions, status,
+    openImage(link) {
+      const win = workspace.windows.find((w) => w.window_id === $("active-window").value && w.document_id === link.document_id) ?? workspace.windows.find((w) => w.document_id === link.document_id);
+      if (!win) throw new Error("対応する資料の比較窓を開いてください");
+      const c = workspace.documents.find((d) => d.document_id === link.document_id).canvases.find((c) => c.canvas_id === link.target.canvas_id);
+      showRegion(viewer, { window_id: win.window_id, canvas_id: c.canvas_id, xywh: link.target.xywh ?? [0, 0, c.width, c.height] });
+      $("active-window").value = win.window_id;
+      status("TEI本文に対応する画像へ移動しました。原画像を確認して校合を記録できます。");
+    },
+  });
   build();
+  teiPanel.render();
   status(
     `${workspace.documents.length}資料を読み込みました。画像は各提供元から表示します。`,
   );

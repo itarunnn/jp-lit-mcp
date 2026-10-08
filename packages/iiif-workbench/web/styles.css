@@ -205,6 +205,32 @@ pre {
   max-height: 180px;
   overflow: auto;
 }
+.tei-link {
+  border-top: 1px dotted var(--line);
+  padding: 12px 0;
+}
+.tei-link h3 {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  margin: 0 0 6px;
+}
+.tei-link p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.tei-link pre {
+  max-height: 260px;
+  overflow: auto;
+  line-height: 1.7;
+}
+.tei-content {
+  background: #fffef9;
+  padding: 10px;
+  border-left: 2px solid var(--accent);
+}
+.tei-link details {
+  margin-top: 10px;
+}
 .caption {
   margin: 8px 0;
 }
@@ -260,4 +286,11 @@ details summary {
 
 [hidden] {
   display: none !important;
+}
+.image-comparison-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: 1em;
+  border: 1px solid var(--line);
 }

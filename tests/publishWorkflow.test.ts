@@ -210,8 +210,10 @@ describe("publish workflow", () => {
       "Check package version is unpublished",
       "Install dependencies",
       "Build",
+      "Set up image analysis",
       "Test",
       "Test TEI reader",
+      "Test image analysis",
       "Publish to npm"
     ];
 
@@ -228,8 +230,10 @@ describe("publish workflow", () => {
     const packageCommands = {
       "Install dependencies": "npm ci",
       Build: "npm run build",
-      Test: "npm test",
+      Test: "npm test -- --maxWorkers=2",
       "Test TEI reader": "npm run test:tei",
+      "Set up image analysis": "node scripts/iiif-images.mjs --setup",
+      "Test image analysis": "npm run test:images",
       "Publish to npm": "npm publish"
     };
     for (const [name, command] of Object.entries(packageCommands)) {

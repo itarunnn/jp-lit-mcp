@@ -8,6 +8,10 @@ import { exportEvidence } from "./evidence.js";
 import { toWebAnnotations, fromWebAnnotations } from "./annotations.js";
 import { viewerManifest } from "./viewerManifest.js";
 import { loadSelectedText } from "./text.js";
+import { importManualOcr } from "./manualOcr.js";
+import { z } from "zod";
+import { compareFromEvidencePaths,importComparison,verifyComparisonArtifact } from "./imageComparison.js";
+import { ocrAbsoluteSchema } from "./ocrSchemas.js";
 import type { LocalServerOptions } from "./types.js";
 
 export async function startLocalServer(
@@ -28,6 +32,16 @@ export async function startLocalServer(
     "/app.mjs": ["app.mjs", "text/javascript"],
     "/viewer-adapter.mjs": ["viewer-adapter.mjs", "text/javascript"],
     "/workspace-state.mjs": ["workspace-state.mjs", "text/javascript"],
+    "/tei-state.mjs": ["tei-state.mjs", "text/javascript"],
+    "/tei-panel.mjs": ["tei-panel.mjs", "text/javascript"],
+    "/ocr-state.mjs": ["ocr-state.mjs", "text/javascript"],
+    "/ocr-panel.mjs": ["ocr-panel.mjs", "text/javascript"],
+    "/reading-state.mjs": ["reading-state.mjs", "text/javascript"],
+    "/reading-panel.mjs": ["reading-panel.mjs", "text/javascript"],
+    "/image-comparison-state.mjs": ["image-comparison-state.mjs", "text/javascript"],
+    "/image-comparison-panel.mjs": ["image-comparison-panel.mjs", "text/javascript"],
+    "/manual-ocr-state.mjs": ["manual-ocr-state.mjs", "text/javascript"],
+    "/manual-ocr-panel.mjs": ["manual-ocr-panel.mjs", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
     "/vendor/mirador.min.js": ["vendor/mirador.min.js", "text/javascript"],
   };
@@ -83,6 +97,12 @@ export async function startLocalServer(
         json(200, toWebAnnotations(workspace.regions));
         return;
       }
+      if(req.method==="GET"&&pathname==="/api/images/preview"){
+        const params=new URL(req.url!,origin).searchParams;
+        const id=z.string().min(1).parse(params.get("report_id")),candidate=z.string().parse(params.get("candidate_id")),kind=z.enum(["query","aligned","overlay","raw_difference","difference"]).parse(params.get("kind"));
+        const record=workspace.image_comparisons?.find(r=>r.report.report_id===id);if(!record)throw Error("保存した図版比較がありません");
+        const bytes=await verifyComparisonArtifact(record,candidate,kind);json(200,{data_url:`data:image/png;base64,${bytes.toString("base64")}`});return;
+      }
       if (req.method === "GET" && pathname.startsWith("/api/manifest/")) {
         const doc = workspace.documents.find(
           (d) =>
@@ -104,8 +124,11 @@ export async function startLocalServer(
           "/api/workspace",
           "/api/text",
           "/api/text/import",
+          "/api/ocr/manual",
           "/api/export",
           "/api/annotations/import",
+          "/api/images/compare",
+          "/api/images/import",
         ].includes(pathname)
       ) {
         json(404, { error: "routeが見つかりません" });
@@ -137,6 +160,21 @@ export async function startLocalServer(
         chunks.push(chunk);
       }
       const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if(pathname==="/api/images/compare"){
+        const input=z.object({evidence_paths:z.array(ocrAbsoluteSchema).min(1).max(21),query_region_id:z.string().min(1),output_dir:ocrAbsoluteSchema}).strict().parse(body);
+        json(200,await compareFromEvidencePaths(workspace,input.evidence_paths,input.query_region_id,input.output_dir));return;
+      }
+      if(pathname==="/api/images/import"){
+        const input=z.object({report_path:ocrAbsoluteSchema}).strict().parse(body),next=await importComparison(workspace,input.report_path);
+        json(200,next.image_comparisons!.find(record=>record.report_path===input.report_path));return;
+      }
+      if (pathname === "/api/ocr/manual") {
+        const imported = importManualOcr(workspace, body);
+        await saveWorkspace(options.workspace_path, imported.workspace, true);
+        workspace = imported.workspace;
+        json(200, imported);
+        return;
+      }
       if (pathname === "/api/workspace") {
         const next = validateWorkspace(body);
         await saveWorkspace(options.workspace_path, next, true);
@@ -191,6 +229,13 @@ export async function startLocalServer(
           : [textSchema.parse(body.text)];
       if (texts.some((t) => t.canvas_id !== body.canvas_id))
         throw new Error("textのCanvasが一致しません");
+      for (const incoming of texts) {
+        const previous = workspace.texts.find((t) => t.text_id === incoming.text_id);
+        if ((previous?.manual_ocr_provenance || previous?.ocr_provenance || previous?.reading_provenance) && JSON.stringify(previous) !== JSON.stringify(incoming))
+          throw new Error("OCR・AI候補の原出力と確認履歴を保持します。修訂候補は別のIDで読み込んでください");
+        if(incoming.reading_provenance&&!previous)
+          throw new Error("新しいAI候補はimport_readingで原応答を検証して取り込んでください");
+      }
       doc.diagnostics.push(...diagnostics);
       workspace = validateWorkspace({
         ...workspace,

@@ -6,12 +6,19 @@ import { ZodError } from "zod";
 import { parseIiifRequest } from "./schemas.js";
 import { loadPublicResource } from "./publicResource.js";
 import { normalizeManifest } from "./manifest.js";
-import { saveWorkspace, atomicWrite } from "./workspace.js";
+import { saveWorkspace, readWorkspace, atomicWrite } from "./workspace.js";
+import { linkTei, readTeiLinks } from "./tei.js";
 import { exportEvidence } from "./evidence.js";
 import { startLocalServer } from "./localServer.js";
+import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
+import { importOcr } from "./ocrImport.js";
+import { evaluateOcr } from "./ocrEvaluation.js";
+import { prepareReading, importReading } from "./reading.js";
+import { compareImages,importComparison,protectComparisonOutput } from "./imageComparison.js";
+import { protectWorkspaceSources } from "./outputProtection.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
-  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence\n';
+  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / evaluate_ocr / prepare_reading / import_reading / compare_images / import_comparison\n';
 export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
   let phase: "input" | "operation" = "input";
   try {
@@ -53,7 +60,48 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     );
     phase = "operation";
     let result: unknown;
-    if (request.operation === "export_evidence")
+    if (request.operation === "compare_images") {
+      const w=await readWorkspace(request.workspace_path);
+      await protectWorkspaceSources(request.output_dir,w,[request.workspace_path]);
+      result=await compareImages(w,request.query,request.candidates,request.output_dir);
+    } else if(request.operation === "import_comparison") {
+      const w=await readWorkspace(request.workspace_path);
+      await protectComparisonOutput(request.output_path,w,request.report_path);
+      const next=await importComparison(w,request.report_path);
+      await saveWorkspace(request.output_path,next,request.overwrite);
+      result={workspace_path:request.output_path,comparisons:next.image_comparisons!.length};
+    } else if (request.operation === "prepare_reading") {
+      result=await prepareReading(request.workspace_path,request.text_id,request.kind,request.output_dir);
+    } else if(request.operation === "import_reading") {
+      const imported=await importReading(await readWorkspace(request.workspace_path),request.task_path,request.response_path,request.output_path);
+      await saveWorkspace(request.output_path,imported.workspace,request.overwrite);
+      result={workspace_path:request.output_path,text_id:imported.text_id,imported:imported.imported};
+    } else if (request.operation === "evaluate_ocr") {
+      result = await evaluateOcr(request.workspace_path, request.evaluation_path, request.output_path, request.overwrite);
+    } else if (request.operation === "import_ocr") {
+      const imported=await importOcr(await readWorkspace(request.workspace_path),request.run_path);
+      await protectWorkspaceSources(request.output_path, imported.workspace);
+      await saveWorkspace(request.output_path,imported.workspace,request.overwrite);
+      result={workspace_path:request.output_path,imported:imported.imported,skipped:imported.skipped};
+    } else if (request.operation === "inspect_ocr_provider") {
+      result = await inspectOcrProvider(request);
+    } else if (request.operation === "run_ocr") {
+      const run = await runOcr(request);
+      if (run.status !== "completed") {
+        io.stdout(JSON.stringify({ok:false,result:run,error:"OCRの失敗があります。保存したrunと原出力を確認してください"})+"\n");
+        return 4;
+      }
+      result = run;
+    } else if (request.operation === "link_tei") {
+      const w = await readWorkspace(request.workspace_path);
+      await protectWorkspaceSources(request.output_path, w, [request.file_path]);
+      const response = await readTeiLinks(request.file_path, request.expected_sha256, request.limit, request.offset, request.include_inherited);
+      const next = linkTei(w, response, request);
+      await saveWorkspace(request.output_path, next, request.overwrite);
+      const page = response as { result: { total_occurrences: number; next_offset: number | null } };
+      result = { workspace_path: request.output_path, total_occurrences: page.result.total_occurrences, next_offset: page.result.next_offset,
+        states: { resolved: next.tei_links!.filter((l) => l.state === "resolved").length, candidate: next.tei_links!.filter((l) => l.state === "candidate").length, unresolved: next.tei_links!.filter((l) => l.state === "unresolved").length } };
+    } else if (request.operation === "export_evidence")
       result = await exportEvidence(request);
     else if (request.operation === "inspect_manifest") {
       const r = await loadPublicResource(request.manifest_url, {

@@ -18,6 +18,13 @@ import { parseIiifRequest } from "./schemas.js";
 import { readWorkspace } from "./workspace.js";
 import { loadPublicResource } from "./publicResource.js";
 import { imageDimensions } from "./imageMetadata.js";
+// @ts-expect-error Nodeとブラウザが同じ対応判定を使う
+import { teiLinksForRegion } from "./tei-state.mjs";
+import { manualOcrMatchesRegion } from "./manual-ocr-state.mjs";
+import { readingMatchesRegion } from "./reading-state.mjs";
+import { comparisonsForRegion } from "./image-comparison-state.mjs";
+import { verifyComparisonRecord } from "./imageComparison.js";
+import { protectWorkspaceSources } from "./outputProtection.js";
 export function regionToImageCrop(
   selection: RegionSelection,
   canvas: CanvasInfo,
@@ -134,6 +141,7 @@ export async function exportEvidence(
     if (!r) throw new Error(`領域が見つかりません: ${id}`);
     return r;
   });
+  await protectWorkspaceSources(request.output_dir,w,[request.workspace_path]);
   const existing = await readdir(request.output_dir).catch(
     (e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") return null;
@@ -149,6 +157,7 @@ export async function exportEvidence(
     `.iiif-export-${randomUUID()}`,
   );
   await mkdir(stage, { recursive: true });
+  const teiFiles: string[] = [];
   const images: string[] = [],
     texts: string[] = [],
     diagnostics: string[] = [],
@@ -227,9 +236,18 @@ export async function exportEvidence(
         diagnostics.push(
           `${r.selection.region_id}: ${crop.status === "unsupported" ? crop.diagnostics.join("; ") : "画像取得の利用確認を保留しています"}`,
         );
-      const linked = w.texts.filter((t) =>
-        r.text_evidence_ids.includes(t.text_id),
-      );
+      const linked = w.texts.filter((t) => {
+        if(!r.text_evidence_ids.includes(t.text_id))return false;
+        if(t.reading_provenance && !readingMatchesRegion(w,t,r.selection.region_id)) {
+          diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なるAI候補 ${t.text_id} を読解本文から除外しました`);
+          return false;
+        }
+        if(t.manual_ocr_provenance && !manualOcrMatchesRegion(w,t,r.selection.region_id)) {
+          diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なる手動OCR候補 ${t.text_id} を読解本文から除外しました`);
+          return false;
+        }
+        return true;
+      });
       const file = `${name}.txt`;
       await writeFile(
         path.join(stage, file),
@@ -242,6 +260,22 @@ export async function exportEvidence(
         "utf8",
       );
       texts.push(file);
+      const tei = teiLinksForRegion(w, r);
+      const comparisons=comparisonsForRegion(w,r);
+      for(const comparison of comparisons){
+        const original=w.image_comparisons!.find(c=>c.report.report_id===comparison.report_id)!;
+        await verifyComparisonRecord(original);
+      }
+      for(const record of w.image_comparisons??[]){
+        const related=record.report.candidates.filter(c=>record.report.query.input.source.selection.region_id===r.selection.region_id||c.id===r.selection.region_id);
+        const included=comparisons.find(c=>c.report_id===record.report.report_id)?.matches??[];
+        for(const c of related)if(!included.some(match=>match.id===c.id))diagnostics.push(`領域 ${r.selection.region_id}: 図版候補 ${c.id} を除外しました。現在の両側出典に一致するまで比較exportを保留します`);
+      }
+      const teiPath = tei.length ? `${name}.tei.json` : null;
+      if (teiPath) {
+        await writeFile(path.join(stage, teiPath), JSON.stringify(tei, null, 2) + "\n");
+        teiFiles.push(teiPath);
+      }
       items.push({
         evidence_id: r.selection.region_id,
         selection: r.selection,
@@ -281,6 +315,10 @@ export async function exportEvidence(
         display_image: display,
         text_evidence: linked,
         text_path: file,
+        tei_evidence: tei,
+        tei_path: teiPath,
+        tei_scope: "overlap_context",
+        image_comparison_evidence: comparisons,
         image_permission_confirmed: request.image_permission_confirmed,
       });
     }
@@ -328,6 +366,7 @@ export async function exportEvidence(
       prompt_path: path.join(request.output_dir, "prompt.md"),
       image_paths: images.map((f) => path.join(request.output_dir, f)),
       text_paths: texts.map((f) => path.join(request.output_dir, f)),
+      tei_paths: teiFiles.map((f) => path.join(request.output_dir, f)),
       diagnostics,
     };
   } finally {
