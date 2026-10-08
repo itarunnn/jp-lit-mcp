@@ -21,7 +21,7 @@ function workspace() {
         content: [{ kind: "text", value: "本文<script>" }] }, omission: null, attribute_value: "#missing", token_index: 0, raw_token: "#missing",
       reference_status: "unresolved_local", candidate_count: 0, xml_base_chain: [], target: null, surface: null, graphics: [], diagnostics: [],
     }] },
-  }, { file_path: "J:/research/source.xml", expected_sha256: hash, document_id: "d1", surface_bindings: [] });
+  }, { file_path: path.join(tmpdir(), "jp-lit-tei-synthetic-fixture", "source.xml"), expected_sha256: hash, document_id: "d1", surface_bindings: [] });
 }
 describe("TEI correspondence and collation", () => {
   it("reaches and records an unresolved reference after the first 100 entries", async () => {

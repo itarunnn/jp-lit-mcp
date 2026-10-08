@@ -25,7 +25,7 @@ function input() {
       content:{kind:"fragment",content:[{kind:"element",name:"{http://www.tei-c.org/ns/1.0}p",attributes:{},locator:loc("/t:body[1]/t:p[1]"),partial:true,content:[{kind:"text",value:"甲<script>"}]}]}}
   }]}};
 }
-const options = {file_path:"J:/research/source.xml",expected_sha256:hash,document_id:"d1",surface_bindings:[]};
+const options = {file_path:path.join(tmpdir(),"jp-lit-tei-synthetic-fixture","source.xml"),expected_sha256:hash,document_id:"d1",surface_bindings:[]};
 
 describe("TEI page range preservation", () => {
   it.each(["origin","start","end","container","content"])("rejects a substituted %s locator hash", key => {
