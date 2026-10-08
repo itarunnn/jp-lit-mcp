@@ -61,11 +61,19 @@ Skills によって実際の調査を進めます。どの source から入る�
 
 ## 導入前の確認
 
-必要なものは次のとおりです。
+文献検索に必要なものは次のとおりです。
 
 - `Node.js 22` 以上
 - `npm`
 - MCP に対応した AI アプリ
+
+TEI読解・IIIF比較を使う場合は、次の環境も用意します。
+
+- TEI reader: `uv` と `Python 3.13.15`。Pythonはuvで導入できます。
+- IIIF比較画面: Webブラウザ。基本の比較・出典保存はNode.jsだけで動きます。
+- AIへのTEI読解・IIIF操作の依頼: ローカルコマンドを実行できるAIアプリ。
+
+npmパッケージにはTEI readerのPythonコードと環境定義、IIIF Viewerを同梱しています。uvとPython本体は別途準備し、reader用の環境はuvが作成します。図版の類似検索・整列・差分には任意のPython画像解析環境、くずし字OCRには別途エンジンとモデルが必要です。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)を参照してください。
 
 Node.js と npm が使えるかは、ターミナルで確認できます。
 
@@ -74,7 +82,7 @@ node -v
 npm -v
 ```
 
-`v22` 以上の Node.js が表示されれば大丈夫です。表示されない場合は、先に Node.js を導入してください。
+Node.jsは`v22`以上、npmはバージョン番号が表示されることを確認します。表示されない場合は、先にNode.jsとnpmを導入してください。TEIを読む場合は、上の準備手順でreaderの起動も確認します。
 
 CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 検索を続行し、結果に警告を付けます。一方、KAKEN API tool は未設定では実行できません。OpenAlex / Crossref の照合設定とカーリル図書館MCPは任意です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
 

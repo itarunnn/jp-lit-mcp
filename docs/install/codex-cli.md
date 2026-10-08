@@ -7,6 +7,8 @@
 - `Node.js 22` 以上と `npm` が使えること
 - `Codex CLI` にログイン済みであること
 
+TEI読解にはuvとPython 3.13.15、IIIF比較画面にはWebブラウザを用意します。両機能をAIへ依頼する場合は、ローカルコマンドを実行できる環境も必要です。[機能別の必要環境と準備手順](runtime-requirements.md)を参照してください。
+
 `Codex CLI` が未導入なら、先に入れてログインします。
 
 ```bash
@@ -49,6 +51,8 @@ gh skill install itarunnn/jp-lit-mcp --all --dir "$HOME/.agents/skills"
 ```bash
 npx -y jp-lit-mcp install-skills codex
 ```
+
+TEIを読む場合は、[readerの環境を準備する](runtime-requirements.md#tei-readerの環境を準備する)手順でPythonを導入し、readerのヘルプが表示されることを確認します。Skillsの配置と実行環境の準備を済ませてから、新しいセッションを開きます。
 
 3. 設定を確認します。
 

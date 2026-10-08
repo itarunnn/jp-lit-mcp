@@ -7,6 +7,8 @@
 - `Node.js 22` 以上と `npm` が使えること
 - `Cursor` が起動できること
 
+TEI読解にはuvとPython 3.13.15、IIIF比較画面にはWebブラウザを用意します。両機能をAIへ依頼する場合は、ローカルコマンドを実行できる環境も必要です。[機能別の必要環境と準備手順](runtime-requirements.md)を参照してください。
+
 ## 手順
 
 1. プロジェクトルートに `.cursor/mcp.json` が無ければ作り、次を追加します。
@@ -55,6 +57,8 @@ npx -y jp-lit-mcp install-skills cursor
 ```
 
 このページの両コマンドはuser-levelへの導入です。Cursorではproject-levelのSkillディレクトリも使えます。作業repository内だけで管理する場合は、GitHub Skillsガイドの `--scope project` を参照してください。
+
+TEIを読む場合は、[readerの環境を準備する](runtime-requirements.md#tei-readerの環境を準備する)手順でPythonを導入し、readerのヘルプが表示されることを確認します。Skillsの配置と実行環境の準備を済ませてから、アプリを開き直します。
 
 3. `Cursor` を再読込して、このリポジトリまたは調査したい作業フォルダで対話を始めます。
 

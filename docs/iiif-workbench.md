@@ -70,7 +70,7 @@ IIIFは、機関ごとに公開されている画像と資料の情報を、共�
 
 ## 導入して最初の比較を始める
 
-比較画面と出典保存にはNode.js 22以上とnpmを使います。AIから操作する場合は、ローカルコマンドと画像読解に対応したアプリを用意します。Skillの導入は[GitHub CLI経由](install/github-skills.md)、または[Codex](install/codex-app.md)・[Cursor](install/cursor.md)・[Claude Code](install/claude-code.md)の導入案内に従います。
+比較画面と出典保存にはNode.js 22以上、npm、Webブラウザを使います。Viewerはnpmパッケージに同梱しています。TEI連携・図版解析・OCRの追加環境は[機能別の準備手順](install/runtime-requirements.md)を参照してください。AIから操作する場合は、ローカルコマンドと画像読解に対応したアプリを用意します。Skillの導入は[GitHub CLI経由](install/github-skills.md)、または[Codex](install/codex-app.md)・[Cursor](install/cursor.md)・[Claude Code](install/claude-code.md)の導入案内に従います。
 
 0.18.0の起動確認は次のとおりです。
 

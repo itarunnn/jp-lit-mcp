@@ -43,7 +43,7 @@ MCPの登録は、Skillsの導入方法に共通する手順です。`gh skill i
 1. `npx -y jp-lit-mcp` での `MCP` 登録
 2. 必要なら環境変数 `CINII_RESEARCH_APP_ID` の設定
 
-各アプリのSkills導入段階で、GitHub CLI経由のコマンドを選びます。MCP本体とTEI/IIIF CLIの起動には、引き続き `Node.js 22` 以上とnpmを使います。TEI readerのuv/Python環境は[TEIガイド](../tei-reader.md)、IIIF CLIの起動は[IIIFガイド](../iiif-workbench.md)を参照してください。
+各アプリのSkills導入段階で、GitHub CLI経由のコマンドを選びます。MCP本体とTEI/IIIF CLIの起動には、引き続き `Node.js 22` 以上とnpmを使います。TEI読解にはuvとPython 3.13.15、IIIF比較画面にはWebブラウザも用意します。Skillsの配置後に[機能別の必要環境と準備手順](runtime-requirements.md)で、使う機能の起動を確認してください。
 
 `gh skill install` はtarget agentとinstall scopeを指定できます。CursorとClaude Codeでは、それぞれ `--agent cursor` / `--agent claude-code` を明示し、個人用には `--scope user` を付けてください。Codexの個人用は次の配置先指定を使います。作業repository内だけで使う場合は、対応するagentと `--scope project` を選びます。
 
