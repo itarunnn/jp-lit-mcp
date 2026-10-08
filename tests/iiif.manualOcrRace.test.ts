@@ -7,7 +7,7 @@ import {validateWorkspace} from '../src/iiif/schemas.js';
 import {importManualOcr} from '../src/iiif/manualOcr.js';
 
 it('retains a saved candidate when its region is deleted during the response and blocks workspace replacement',async()=>{
-  const app=await readFile('packages/iiif-workbench/web/app.mjs','utf8');
+  const app=(await readFile('packages/iiif-workbench/web/app.mjs','utf8')).replace(/\r\n/g,'\n');
   const callback=app.match(/async importCandidate\(input\) \{([\s\S]*?)\n    \},\n    openImage/)![1];
   const fileAction=app.slice(app.indexOf('function fileAction('),app.indexOf('fileAction("import-workspace"'));
   const state=await import(pathToFileURL(path.resolve('src/iiif/manual-ocr-state.mjs')).href);

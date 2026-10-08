@@ -103,7 +103,7 @@ v3の既存テキストがあるページは「表示ページの既存テキス
 
 TEIの対応表は、保存したXMLのSHA-256・XPath・xml:id、原属性、本文の構造とCanvas／矩形を結び付けます。本文から画像へ、領域から関連するTEI要素へ移動できます。`choice`、`app`、`del`、`add`、`note`の枝を保持し、タグ付きで表示します。
 
-この機能には、開発checkoutでの`npm ci`・`npm run build`と、[TEI readerのuv・Python環境](tei-reader.md#導入)が必要です。通常の比較画面やMCP起動はNode.jsだけで使えます。AIへ「このTEIの画像参照を比較画面に結び付けて」と依頼するか、次の要求JSONを保存して実行します。
+公開前のcheckoutでは`npm ci`・`npm run build`を行います。公開後の配布CLIでもTEI連携を使え、[TEI readerのuv・Python環境](tei-reader.md#導入)は引き続き必要です。通常の比較画面やMCP起動はNode.jsだけで使えます。AIへ「このTEIの画像参照を比較画面に結び付けて」と依頼するか、次の要求JSONを保存して実行します。
 
 ```json
 {
