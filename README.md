@@ -15,6 +15,8 @@ IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文�
 
 通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
 
+**文献検索・書誌確認・文献検証が基本機能です。TEI読解とIIIF資料比較は任意機能で、Pythonを入れなくても基本機能を使えます。** TEI・IIIFのコードと4つのSkillsは同梱しているため、使いたいときに必要な実行環境だけを追加できます。
+
 ## 何をしたい人向けか
 
 たとえば、次のような作業に向いています。
@@ -56,7 +58,7 @@ Skills によって実際の調査を進めます。どの source から入る�
 
 - `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料、本文・図版探索などを扱います。プロンプトに「文献DB」を入れることで発動します。
 - `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill です。プロンプトに「文献検証」を入れることで発動します。
-- `jp-lit-tei`: 公開TEIの探索、取得版・hashの記録、章・歌・異読・注記の構造読解を進めるSkillです。「TEIを探して」「このTEIを構造付きで読んで」などで使います。[TEI readerの導入手順](docs/tei-reader.md)を参照してください。readerにはuvとPython3.13が必要です。
+- `jp-lit-tei`: 公開TEIの探索、取得版・hashの記録、章・歌・異読・注記の構造読解を進めるSkillです。「TEIを探して」「このTEIを構造付きで読んで」などで使います。[TEI readerの導入手順](docs/tei-reader.md)を参照してください。readerにはuvを追加し、指定Pythonは初回起動時にuvが準備します。
 - `jp-lit-iiif`: 古典籍の比較、TEI本文との往復、ローカルくずし字OCR、AI読解候補、類似図版と差分の確認を進めるSkillです。「この2資料をIIIFで比べて」などで使います。[IIIFの導入手順](docs/iiif-workbench.md)を参照してください。比較と書き出しはNode.jsだけで使えます。
 
 ## 導入前の確認
@@ -67,13 +69,18 @@ Skills によって実際の調査を進めます。どの source から入る�
 - `npm`
 - MCP に対応した AI アプリ
 
-TEI読解・IIIF比較を使う場合は、次の環境も用意します。
+基本導入は、MCPの登録とSkillsの配置です。各アプリの案内にある`gh skill install ... --all`で、TEI・IIIFを含む全4Skillsが入ります。npmの`install-skills codex`・`cursor`・`claude`も、指定アプリへ全4Skillsを配置します。Skillsの配置と、任意機能の実行環境の準備は別の手順です。
 
-- TEI reader: `uv` と `Python 3.13.15`。Pythonはuvで導入できます。
-- IIIF比較画面: Webブラウザ。基本の比較・出典保存はNode.jsだけで動きます。
-- AIへのTEI読解・IIIF操作の依頼: ローカルコマンドを実行できるAIアプリ。
+| 使いたい機能 | 基本導入後に追加するもの |
+| --- | --- |
+| 文献検索・書誌確認・文献検証 | 上の基本環境で利用可能 |
+| TEI/XMLの構造読解 | uv。readerの初回起動でPython 3.13.15と専用環境を自動準備 |
+| IIIFの比較画面・領域選択・出典保存 | Webブラウザ。Pythonは不要 |
+| IIIFとTEI本文の対応付け | TEI readerの環境 |
+| 図版の類似検索・整列・差分 | uvと初回セットアップ。Python・画像解析ライブラリを準備 |
+| 手元画像のくずし字OCR | OCRエンジン・モデルと、その実行環境の別途導入 |
 
-npmパッケージにはTEI readerのPythonコードと環境定義、IIIF Viewerを同梱しています。uvとPython本体は別途準備し、reader用の環境はuvが作成します。図版の類似検索・整列・差分には任意のPython画像解析環境、くずし字OCRには別途エンジンとモデルが必要です。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)を参照してください。
+Pythonの自動準備には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。TEI読解・IIIF操作をAIへ依頼するときは、ローカルコマンドを実行できるアプリを使います。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)に、uvの導入、起動確認、図版解析・OCRの追加手順をまとめています。
 
 Node.js と npm が使えるかは、ターミナルで確認できます。
 
@@ -99,6 +106,8 @@ CiNii Research の公式 API 仕様では `appid` が必須です。現在は未
 迷った場合は、まず普段文章やコードを書いているアプリに入れるのが楽です。複数のアプリに入れてもかまいませんが、それぞれで MCP 登録と Skills インストールが必要です。
 
 Skillsの導入方法は用途に合わせて選べます。GitHub CLIを既に使っている人や、Skillsの取得元・版・更新を管理したい人には[GitHub CLI経由](docs/install/github-skills.md)をおすすめします。追加ツールを減らしたい人や、npm同梱版を使いたい人には、各アプリのnpm導入手順をおすすめします。MCP登録は両経路に共通で、Skillsの導入・更新にはどちらか一方を使います。
+
+基本機能だけを使う場合は、各アプリの設定反映を確認して文献調査を始められます。TEI・IIIFも使う場合は、[任意機能の準備](docs/install/runtime-requirements.md)へ進んでください。npmの`install-skills all`は、全4SkillsをCodex・Cursor・Claude Codeの3アプリすべてへ配置する指定です。通常は利用するアプリ名だけを指定します。
 
 ## 追加で入れると便利な設定
 
@@ -347,10 +356,9 @@ jp-litで「廣瀬本 万葉集 書き入れ」などの研究と、菊池ほか
 XML: J:\Research\tei\manyo.xml
 ```
 
-readerにはNode.js22以上、uv、Python3.13.15が必要です。起動を確認するには次を使います。
+TEI readerを使うときは、基本環境に[uvを追加](docs/install/runtime-requirements.md#tei-readerの環境を準備する)して次を実行します。指定Python 3.13.15と専用環境は、初回起動時にuvが自動で準備します。
 
 ```sh
-uv python install 3.13.15
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
 ```
 

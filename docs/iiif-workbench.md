@@ -70,7 +70,11 @@ IIIFは、機関ごとに公開されている画像と資料の情報を、共�
 
 ## 導入して最初の比較を始める
 
-比較画面と出典保存にはNode.js 22以上、npm、Webブラウザを使います。Viewerはnpmパッケージに同梱しています。TEI連携・図版解析・OCRの追加環境は[機能別の準備手順](install/runtime-requirements.md)を参照してください。AIから操作する場合は、ローカルコマンドと画像読解に対応したアプリを用意します。Skillの導入は[GitHub CLI経由](install/github-skills.md)、または[Codex](install/codex-app.md)・[Cursor](install/cursor.md)・[Claude Code](install/claude-code.md)の導入案内に従います。
+**IIIFは任意機能で、基本の文献検索・書誌確認・文献検証はIIIFの準備を省いて使えます。IIIFの比較画面・領域選択・出典保存も、Pythonなしで利用できます。** Node.js 22以上、npm、Webブラウザを使い、CLIとViewerは`jp-lit-mcp`のnpmパッケージに同梱しています。
+
+まず[各アプリの導入ガイド](install/runtime-requirements.md#mcpとskillsの導入を確認する)に沿ってMCPを登録し、Skillsを配置します。`gh skill install ... --all`、またはnpmの`install-skills codex`・`cursor`・`claude`で、`jp-lit-iiif`を含む全4Skillsが入ります。既に導入済みなら、IIIF用Skillを入れ直す必要はありません。GitHub経由の管理や版固定は[GitHub Skillsガイド](install/github-skills.md)を参照してください。
+
+AIから比較画面を操作する場合は、ローカルコマンドを実行できるアプリを使います。画像をAIと読む場合は、画像読解にも対応したアプリを使います。
 
 0.18.0の起動確認は次のとおりです。
 
@@ -79,6 +83,8 @@ npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
 ```
 
 開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.18.0へ更新して使ってください。
+
+追加環境は使う機能に合わせて選びます。TEI本文との対応付けはuvとTEI reader、図版解析はuvと初回セットアップ、くずし字OCRはエンジン・モデルを用意します。これらを使う前に[機能別の準備手順](install/runtime-requirements.md)を確認してください。Skillsを配置しただけで、PythonやOCRエンジンが導入される仕組みはありません。
 
 AIへの最初の依頼は、資料のURLと研究で確かめたいことを含めます。
 
@@ -101,6 +107,8 @@ AIへの最初の依頼は、資料のURLと研究で確かめたいことを含
 
 ## TEI本文と画像を往復する
 
+本文と画像の対応付けには、[TEI readerの環境](install/runtime-requirements.md#tei-readerの環境を準備する)を追加します。uvを導入してreaderを起動すると、指定Pythonと専用環境が自動で準備されます。
+
 TEIには、本文の箇所から画像や画像内の範囲を参照する記述があります。本アプリは、その対応材料と保存した原XMLを使います。`facs`は画像参照、`surface`は画像面、`zone`はその中の範囲を表す記述です。
 
 > 保存した廣瀬本万葉集のTEIと、このIIIF資料を対応付けてください。まず20件を点検し、画像が特定できたものと保留になったものを分けてください。改頁に続く本文を表示し、画像へ移動して確かめられるようにしてください。
@@ -119,7 +127,7 @@ TEIには、本文の箇所から画像や画像内の範囲を参照する記�
 
 > この領域をローカルのNDL古典籍OCR-Liteで読んでください。入力画像、OCR原出力、engineの版を保存し、結果をこの領域へ結び付けてください。原画像と各行を見比べられる状態にしてください。
 
-初回導入は[Skill同梱のOCR手順](../skills/jp-lit-iiif/references/ocr.md)を使います。OCRを実行すると、画像のコピー、原JSON/TXT等、ログ、処理時間が残ります。取り込んだ結果は「くずし字OCRと画像校合」で読めます。「原画像の領域へ」「この行の画像へ」で誤字、欠落、読み順を確かめます。
+初回導入は[Skill同梱のOCR手順](../skills/jp-lit-iiif/references/ocr.md)で、エンジン・モデル・実行環境を別途準備します。npmパッケージ、Skills、Pythonの導入だけで、このOCR環境が自動で入ることはありません。OCRを実行すると、画像のコピー、原JSON/TXT等、ログ、処理時間が残ります。取り込んだ結果は「くずし字OCRと画像校合」で読めます。「原画像の領域へ」「この行の画像へ」で誤字、欠落、読み順を確かめます。
 
 確認内容と修訂候補は別の履歴へ保存し、OCRの原出力を保ちます。行のconfidenceは領域検出の値で、文字を正しく読めた確率には使いません。
 
@@ -150,7 +158,7 @@ PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」�
 
 保存図版から、基準に似た候補を最大20件比較できます。局所的な特徴点を使って回転・縮尺・位置を合わせ、成立した候補には重ね合わせと差分を作ります。対応点が少ない、小部分に偏る、共通範囲が狭い場合は整列を保留します。
 
-任意のローカル画像解析環境を初回に準備します。比較・出典保存の通常利用はNode.jsだけで動きます。uvを用意し、次を実行します。
+図版解析には、任意のローカル画像解析環境を追加します。[uvを導入](https://docs.astral.sh/uv/getting-started/installation/)し、初回に次を実行します。明示的な`--setup`でPython 3.13系とOpenCVなどの専用環境を準備します。初回はネット接続とuvのダウンロード許可が必要です。セットアップ後の解析はオフラインで動きます。基本の比較画面と出典保存は、この追加環境を省いて使えます。
 
 ```powershell
 npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.18.0

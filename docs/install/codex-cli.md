@@ -7,7 +7,7 @@
 - `Node.js 22` 以上と `npm` が使えること
 - `Codex CLI` にログイン済みであること
 
-TEI読解にはuvとPython 3.13.15、IIIF比較画面にはWebブラウザを用意します。両機能をAIへ依頼する場合は、ローカルコマンドを実行できる環境も必要です。[機能別の必要環境と準備手順](runtime-requirements.md)を参照してください。
+基本の文献検索・書誌確認・文献検証は、この環境で使えます。TEI・IIIFは任意機能で、Pythonを入れなくても基本機能を利用できます。追加環境は、下の「任意でTEI・IIIFを使う」で案内します。
 
 `Codex CLI` が未導入なら、先に入れてログインします。
 
@@ -52,7 +52,17 @@ gh skill install itarunnn/jp-lit-mcp --all --dir "$HOME/.agents/skills"
 npx -y jp-lit-mcp install-skills codex
 ```
 
-TEIを読む場合は、[readerの環境を準備する](runtime-requirements.md#tei-readerの環境を準備する)手順でPythonを導入し、readerのヘルプが表示されることを確認します。Skillsの配置と実行環境の準備を済ませてから、新しいセッションを開きます。
+GitHub経由の`--all`と、npm経由の`install-skills codex`は、どちらもTEI・IIIFを含む全4Skillsを配置します。全4Skillsを入れた状態で、基本機能だけを使えます。SkillsはAIへの手順書で、PythonやOCRエンジンの導入は別の準備です。
+
+### 任意でTEI・IIIFを使う
+
+基本機能の導入はここまでです。次の手順3・4で設定を確認し、新しいセッションから文献調査を始められます。TEI・IIIFも使う場合は、必要なものだけを追加してください。
+
+- **TEI読解**: [uvを導入してreaderを起動](runtime-requirements.md#tei-readerの環境を準備する)します。指定Python 3.13.15と専用環境は初回起動時に自動準備されます。Pythonだけを入れた場合はuvも必要です。
+- **IIIF比較・領域選択・出典保存**: [同梱CLIの起動を確認](runtime-requirements.md#iiif比較画面を準備する)し、ブラウザで使います。Pythonの追加は不要です。
+- **図版の類似検索・整列・差分、くずし字OCR**: [追加環境の準備](runtime-requirements.md#図版解析とくずし字ocrを追加する)へ進みます。図版解析は初回セットアップ、OCRはエンジン・モデルの別途導入が必要です。
+
+Pythonの自動取得には初回のネット接続とuvのダウンロード許可が必要です。AIからTEI・IIIFを操作するにはローカルコマンドの実行、画像を読むには画像読解に対応した環境を使います。uvを追加した後は、ターミナルを開き直して新しいセッションを始めてください。
 
 3. 設定を確認します。
 

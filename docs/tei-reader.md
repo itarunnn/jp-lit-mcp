@@ -226,19 +226,32 @@ jp_lit_search(session_id=SID, source="kokusho", query="萬葉集", limit=5)
 
 ## 導入
 
-TEI読解には、`jp-lit-tei` Skillを読み込めてローカルコマンドを実行できるAIアプリを使います。Node.js22以上、[uv](https://docs.astral.sh/uv/getting-started/installation/)、Python3.13.15を用意し、初回に次のコマンドでPythonとSkillsを導入してreaderの起動を確認します。
+**TEI読解は任意機能です。文献検索・書誌確認・文献検証は、Pythonなしで利用できます。** TEI readerのコードと環境定義は`jp-lit-mcp`のnpmパッケージに同梱しています。使うときにuvを追加し、初回起動で指定Pythonと専用環境を準備します。
+
+### 1. アプリとSkillsを準備する
+
+Node.js 22以上とnpmを用意し、[各アプリの導入ガイド](install/runtime-requirements.md#mcpとskillsの導入を確認する)に沿ってMCPを登録し、Skillsを配置します。AIへ読解を依頼するときは、`jp-lit-tei` Skillを読み込めてローカルコマンドを実行できるアプリを使います。
+
+案内の`gh skill install ... --all`、またはnpmの`install-skills codex`・`cursor`・`claude`で、TEI・IIIFを含む全4Skillsが入ります。既にその手順で導入していれば、TEI用Skillを入れ直す必要はありません。更新時も同じ導入方法を使い、個別に編集した同名Skillsは事前に退避してください。
+
+### 2. uvを追加してreaderを起動する
+
+[uvの公式導入手順](https://docs.astral.sh/uv/getting-started/installation/)に沿ってuvを導入し、ターミナルを開き直して次を実行します。
 
 ```sh
-uv python install 3.13.15
+uv --version
 npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
-npx --yes jp-lit-mcp@0.18.0 install-skills codex
 ```
 
-`codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。Skills installerはjp-lit-research、jp-lit-verification、jp-lit-tei、jp-lit-iiifの4種を導入し、既存の同名Skillsも指定版で置き換えます。個別に編集した内容は導入前に退避してください。導入後はアプリで新しい対話を開き、`jp-lit-tei`が利用できることを確認してください。
+初回起動時に、uvが専用環境を作成します。指定Python 3.13.15が見つからなければ、uvの既定設定で自動取得します。Pythonだけを入れた状態ではuvも必要です。自動取得には初回のネット接続とダウンロード許可が必要で、制限環境での事前準備は[共通の導入手順](install/runtime-requirements.md#tei-readerの環境を準備する)を参照してください。Skillsの配置時には、Python環境の準備は実行されません。
 
 通常導入の`npx --package=...`は、cloneしたjp-lit repositoryの外で実行してください。npmが同名のローカルpackageを参照すると、readerの実行名が見つからない場合があります。初回にはnpm packageやPythonがダウンロードされることがあります。
 
-ここで指定した`0.18.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。MCPの書誌検索とIIIFの基本比較・出典保存はNode.jsだけで動き、TEI読解にはuv/Pythonを使います。図版解析とOCRの追加環境は[機能別の準備手順](install/runtime-requirements.md)を参照してください。既存のMCP設定はそのまま利用できます。MCPの登録と、今回のSkill・readerの導入を済ませると、読解と書誌調査を組み合わせられます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.18.0へ揃えて使います。原TEIの編集と本文校合は別に進めます。
+### 3. アプリを開き直して読解を依頼する
+
+readerのヘルプが表示されたら、AIアプリを開き直して新しい対話を始め、`jp-lit-tei`とuvを利用できることを確認します。
+
+ここで指定した`0.18.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。既存のMCP設定はそのまま利用できます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.18.0へ揃えて使います。図版解析とOCRは[別途環境を準備](install/runtime-requirements.md#図版解析とくずし字ocrを追加する)します。原TEIの編集と本文校合は別に進めます。
 
 導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
 

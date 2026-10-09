@@ -43,7 +43,9 @@ MCPの登録は、Skillsの導入方法に共通する手順です。`gh skill i
 1. `npx -y jp-lit-mcp` での `MCP` 登録
 2. 必要なら環境変数 `CINII_RESEARCH_APP_ID` の設定
 
-各アプリのSkills導入段階で、GitHub CLI経由のコマンドを選びます。MCP本体とTEI/IIIF CLIの起動には、引き続き `Node.js 22` 以上とnpmを使います。TEI読解にはuvとPython 3.13.15、IIIF比較画面にはWebブラウザも用意します。Skillsの配置後に[機能別の必要環境と準備手順](runtime-requirements.md)で、使う機能の起動を確認してください。
+各アプリのSkills導入段階で、GitHub CLI経由のコマンドを選びます。基本の文献検索・書誌確認・文献検証には、MCP本体を動かす`Node.js 22`以上とnpmを使います。TEI・IIIFは任意機能で、Pythonなしでも基本機能を利用できます。
+
+SkillsはAIへの手順書で、`--all`が導入するものは全4Skillsです。uv・Python・OCRエンジンの導入は別の準備です。TEI読解ではuvを追加し、readerの初回起動で指定Python 3.13.15と専用環境を自動準備します。IIIFの基本比較にはブラウザを使い、Pythonは不要です。図版解析やOCRも使う場合は、[機能別の必要環境と準備手順](runtime-requirements.md)へ進んでください。
 
 `gh skill install` はtarget agentとinstall scopeを指定できます。CursorとClaude Codeでは、それぞれ `--agent cursor` / `--agent claude-code` を明示し、個人用には `--scope user` を付けてください。Codexの個人用は次の配置先指定を使います。作業repository内だけで使う場合は、対応するagentと `--scope project` を選びます。
 
@@ -69,6 +71,8 @@ gh skill install itarunnn/jp-lit-mcp --all --agent claude-code --scope user
 ```
 
 使うagentに合わせて1行だけ実行します。文献探索の `jp-lit-research`、文献検証の `jp-lit-verification`、TEI読解の `jp-lit-tei`、IIIF比較・画像読解の `jp-lit-iiif` が入ります。既存の同名Skillsを個別に編集した場合は、導入・更新の前に編集内容を退避してください。
+
+`--all`は、このrepositoryの全Skillsを指定した配置先へ入れる指定です。TEI・IIIFを使わない場合も、4つを配置したままで基本機能を利用できます。npmの`install-skills all`は、全4SkillsをCodex・Cursor・Claude Codeの3アプリすべてへ配置する指定なので、対象範囲が異なります。
 
 ### 対話的に選ぶ
 
