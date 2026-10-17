@@ -4,6 +4,7 @@ import { normalizeProviderOutput, validateOcrSource } from "./ocr.js";
 import { validateGpuCounts } from "./ocrGpu.js";
 import { ocrDigest, readOcrFile, resolveOcrArtifact, ocrEvidenceSchema, ocrSourceFromEvidenceItem } from "./ocrRunner.js";
 import { imageDimensions } from "./imageMetadata.js";
+import { normalizeLocalOcrOutput } from "./localOcr.js";
 import { validateWorkspace } from "./schemas.js";
 // @ts-expect-error Nodeとブラウザが共有する判定
 import { assertOcrTarget } from "./ocr-state.mjs";
@@ -48,7 +49,7 @@ export async function importOcr(workspace: IiifWorkspace, runPath: string) {
     const dim=imageDimensions(image[0].bytes);
     if(dim.width!==source.image_width || dim.height!==source.image_height)throw new Error("OCR入力画像寸法が一致しません");
     const raw=JSON.parse(json.bytes.toString("utf8")), text=txt.bytes.toString("utf8");
-    const lines=normalizeProviderOutput(run.engine.provider,raw,text,source);
+    const lines=run.engine.provider === "local-ocr" ? normalizeLocalOcrOutput(raw,text,source,run.engine) : normalizeProviderOutput(run.engine.provider,raw,text,source);
     if(run.engine.provider==="ndlkotenocr-ver3") {
       if(raw.imginfo?.img_name!==path.basename(image[0].path))throw new Error("GPU OCRの出力画像名が一致しません");
       const validation=artifacts.filter(a=>path.basename(a.path)==="gpu-validation.json");

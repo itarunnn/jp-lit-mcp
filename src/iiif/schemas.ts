@@ -153,9 +153,11 @@ export const requestSchema = z.discriminatedUnion("operation", [
   }),
   z.object({
     api_version: z.literal("0.1"), operation: z.literal("inspect_ocr_provider"),
-    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3"]).default("ndlkotenocr-lite"),
+    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr"]).default("ndlkotenocr-lite"),
     engine_dir: absolute.optional(), python_path: absolute.optional(), docker_path: absolute.optional(),
     image_id: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+    base_url: z.string().max(200).optional(), engine_id: z.literal("ndl-lite").optional(),
+    mode: z.enum(["layout", "line"]).optional(), timeout_ms: z.number().int().min(1000).max(600000).optional(),
   }),
   z.object({
     api_version: z.literal("0.1"), operation: z.literal("run_ocr"),

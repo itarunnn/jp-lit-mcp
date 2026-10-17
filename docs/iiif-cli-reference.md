@@ -174,6 +174,40 @@ PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア]
 
 手動OCR候補を含む作業JSONは、この機能がある開発版で保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
 
+### Local OCRの出力を併用する
+
+[Local OCRの公式手順](https://lo.ldas.jp/guide-more.html)は、画像・IIIFマニフェストの入力、複数engineの比較、TXT／TEI/XML出力を提供しています。外部アプリで作った原結果は、入力画像とともに研究directoryへ保存します。`import_ocr`は対応providerが生成したrun・原応答・TXT・画像を検証します。Local OCRのGUIが保存したTXT/XMLを直接取り込むadapterは後続の対応です。
+
+Local OCRのTEI出力は、ページを`pb@facs`から`surface`へ、行を`lb@corresp`から`zone`へ結びます。行本文は`lb`の直後に続き、`graphic@url`はローカル画像への相対pathです。行の位置を返さない結果ではzoneを省きます。[出力実装（2026-10-17確認版）](https://github.com/nakamura196/local-ocr/blob/13ce465acb3dfe1b0a347c20212343e9a7f866de/src/local_ocr/core/tei.py)
+
+保存XMLはTEI readerで検査・抽出できます。`check_references`は`corresp`の参照先も点検し、現行`facsimile_links`は`facs`の対応材料を返します。Local OCRのページ対応には必要な`surface_bindings`を明示し、行ごとの`corresp`と後続本文を使う連携は追加実装として扱います。相対画像pathと元Canvasの対応、画像寸法と座標系も確認します。
+
+### Local OCRを接続する（開発checkout）
+
+開発checkoutを`npm ci`・`npm run build`で準備すると、任意provider `local-ocr`を使えます。公開npm 0.18.0にはこのproviderを含みません。利用者がLocal OCRを開き、`ndl-lite`のモデルを取得した後、設定の「ほかの道具から使えるようにする」を有効にします。アプリ・モデルの自動導入や自動起動は行いません。[開発元の連携手順](https://lo.ldas.jp/guide-more.html#script)
+
+次の要求をUTF-8のJSONファイルへ保存します。接続先はLocal OCRの設定で確認し、`http://127.0.0.1:port`の形で指定します。初版の対象は近代活字用`ndl-lite`です。`mode`はページ・領域内の行を検出する`layout`と、入力画像全体を1行として読む`line`です。
+
+```json
+{
+  "api_version": "0.1", "operation": "inspect_ocr_provider",
+  "provider": "local-ocr", "base_url": "http://127.0.0.1:8080",
+  "engine_id": "ndl-lite", "mode": "layout", "timeout_ms": 180000
+}
+```
+
+```powershell
+$inspection = node scripts/iiif-workbench.mjs --request 'J:/research/inspect-local-ocr.json' | ConvertFrom-Json
+if (-not $inspection.ok) { throw 'Local OCRの導入・起動・engine設定を確認してください' }
+$inspection.result.config | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 'J:/research/local-ocr-provider.json'
+```
+
+生成した設定ファイルを、下の既存`run_ocr`要求の`provider_config_path`へ指定します。書き出し済みevidenceの保存画像をそのまま送信し、`run.json`、画像のコピー、原HTTP応答JSON、TXTを新しい出力directoryへ残します。再取込・保存・再開・`evaluate_ocr`は、保存したrunを使ってAPIへ再接続せずに行えます。座標のない行は全文と原応答へ保持し、座標のある行だけに画像へのリンクを付けます。
+
+接続は指定したnumeric loopbackのみとし、proxy・redirectを使いません。runの`image_transmission`は`loopback`、実行deviceは`unknown`です。時間超過・容量超過・engine/modeや画像寸法の相違では失敗を記録し、原画像と取得できた原応答を保持します。
+
+`expected_metadata_sha256`は`/v1/engines`の選択engine記述を固定する値です。APIが返さないアプリ版・モデル版・エンジン実体hashはnullで残します。モデル更新の検出や実体の同一性を、このmetadata hashだけで確認することはできません。既存のNDL古典籍OCR providerの実体hashとは分けて読みます。
+
 ### 任意のengineを導入する
 
 Windowsで検証した例はuvとPython3.12.12を使います。保存先を自分のtoolchain directoryへ変更してください。engineのcodeと重みは上流のCC BY 4.0に従い、研究画像の利用条件は資料ごとに確認します。

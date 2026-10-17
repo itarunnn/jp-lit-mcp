@@ -133,6 +133,23 @@ TEIには、本文の箇所から画像や画像内の範囲を参照する記�
 
 PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」を使います。利用者が[公式画面](https://codh.rois.ac.jp/kuronet/iiif-curation-viewer/)を開き、ログイン、画像指定、OCR、結果コピーを手動で行い、本アプリへ対応する原結果を貼り付けます。サービスの公開条件は[利用案内](https://mp.ex.nii.ac.jp/kuronet/)で確認してください。アプリからの自動接続・自動送信はありません。
 
+### 資料に応じてOCRを選ぶ
+
+[東洋文庫のLocal OCR紹介記事](https://toyo-bunko.or.jp/information/2951/)は、資料に合わせたエンジンの選択、同じ画像の複数OCR比較、画像位置を持つTEI/XML出力を案内しています。次の用途分類を、最初に試す候補の選択に使えます。
+
+| 資料の種類 | 紹介されているエンジン |
+| --- | --- |
+| 近代以降の日本語活字 | NDLOCR Lite |
+| くずし字・古典籍・漢文訓読資料 | NDL古典籍OCR Lite |
+| 漢籍・中国語・多言語 | PaddleOCR-VL |
+| チベット語 | Yigdzin-1 |
+
+[Local OCR](https://lo.ldas.jp/)はWindows/macOS用の外部アプリとして併用できます。必要なモデルを初回に取得し、認識は手元のPCで行います。画像ファイルやIIIFマニフェストから開き、複数のエンジンの結果を並べ、TXTまたはTEI/XMLで保存できます。[開発元の使い方](https://lo.ldas.jp/guide-more.html)
+
+比較には、この比較画面から出典付きで書き出した同じ画像ファイルを使います。画像と各エンジンの原結果、エンジン名・版・読み取りモードを残し、相違箇所を原画像で確認します。TEI/XMLは画像と一緒に保存し、[TEI reader](tei-reader.md)で構造と参照を点検できます。
+
+公開0.18.0の`run_ocr`はNDL古典籍OCR-Lite／ver.3用です。開発checkoutには、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを追加しています。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。Local OCRのTEIの行単位連携は後続の対応です。
+
 <a id="同じ画像の候補を比較評価する"></a>
 
 ### OCRとAIの読みを比較したいとき
