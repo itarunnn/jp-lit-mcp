@@ -95,12 +95,15 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
         const bound = binding ?? declared;
         const basis = binding ? "surface_binding" : "surface_same_as";
         if (binding && declared && binding !== declared) link.diagnostics.push("surface_binding_overrides_same_as");
-        const canvas = doc.canvases.find((c) => c.canvas_id === bound);
+        const declaredRegion = bound && /^(.*?)(?:#xywh=(?:pixel:)?(\d+(?:\.\d+)?),(\d+(?:\.\d+)?),(\d+(?:\.\d+)?),(\d+(?:\.\d+)?))?$/.exec(bound);
+        const canvas = declaredRegion && doc.canvases.find((c) => c.canvas_id === declaredRegion[1]);
+        const extent = canvas ? (declaredRegion![2] === undefined ? [0, 0, canvas.width, canvas.height] : declaredRegion!.slice(2).map(Number)) as [number, number, number, number] : null;
         const baseContext = [...surface.xml_base_chain, ...target.xml_base_chain].some((b) => b.value.length > 0);
         if (baseContext || ref.diagnostics.includes("nested_geometry") || geometryUnsupported(surface.attributes) || geometryUnsupported(target.attributes)) {
           link.diagnostics.push("unsupported_surface_geometry_or_base");
-        } else if (canvas) {
-          if (target.name === "{http://www.tei-c.org/ns/1.0}surface") link.target = { canvas_id: canvas.canvas_id, xywh: null, region_id: null, basis };
+        } else if (canvas && extent) {
+          if (!inside(extent, canvas)) { link.diagnostics.push("canvas_rectangle_out_of_bounds"); }
+          else if (target.name === "{http://www.tei-c.org/ns/1.0}surface") link.target = { canvas_id: canvas.canvas_id, xywh: declaredRegion![2] === undefined ? null : extent, region_id: null, basis };
           else if (target.name === "{http://www.tei-c.org/ns/1.0}zone") {
             const s = bounds(surface.attributes), t = bounds(target.attributes);
             if (s && t) {
@@ -109,8 +112,8 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
               if (t[0] < s[0] || t[1] < s[1] || t[2] > s[2] || t[3] > s[3]) link.diagnostics.push("zone_outside_surface");
               else {
                 const map = (value: number, lo: number, hi: number, size: number) => Math.max(0, Math.min(size, (value - lo) / (hi - lo) * size));
-                const x = map(t[0], s[0], s[2], canvas.width), y = map(t[1], s[1], s[3], canvas.height);
-                const right = map(t[2], s[0], s[2], canvas.width), bottom = map(t[3], s[1], s[3], canvas.height);
+                const x = extent[0] + map(t[0], s[0], s[2], extent[2]), y = extent[1] + map(t[1], s[1], s[3], extent[3]);
+                const right = extent[0] + map(t[2], s[0], s[2], extent[2]), bottom = extent[1] + map(t[3], s[1], s[3], extent[3]);
                 const rect: [number, number, number, number] = [x, y, Math.min(right - x, canvas.width - x), Math.min(bottom - y, canvas.height - y)];
                 if (inside(rect, canvas)) link.target = { canvas_id: canvas.canvas_id, xywh: rect, region_id: null, basis };
                 else link.diagnostics.push("zone_outside_surface");

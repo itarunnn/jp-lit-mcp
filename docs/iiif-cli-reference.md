@@ -136,6 +136,8 @@ node scripts/iiif-workbench.mjs serve --workspace 'J:/ResearchLibrary/Projects/E
 
 surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを明示していればその宣言を使います。利用者が全surfaceとCanvas全域の対応を確認した場合は、`surface_bindings`へ`{"surface_xpath":"/t:TEI[1]/t:facsimile[1]/t:surface[1]","canvas_id":"該当Canvas ID"}`を指定できます。zone矩形はsurfaceの原点・範囲からCanvasへ変換し、原属性を保持します。複雑な形状は手動の矩形対応で扱います。
 
+開発checkoutは、`surface/@sameAs="Canvas ID#xywh=x,y,w,h"`による切り出し画像の対応にも使えます。surface全体を宣言したCanvas領域へ写し、その中のzoneを原点・倍率付きで変換します。明示的な`surface_bindings`を指定した場合は、そのCanvas全域への対応を優先します。
+
 画面の「TEI本文と画像」から画像へ移動します。対応一覧は100件ずつページを送り、未解決参照も全件を操作できます。領域コレクションの「関連TEI本文」は同じ資料・ページで領域と重なる対応を表示します。手動対応ではcheckboxを1件選び、記録者と対応理由を入力します。本文校合は原画像を確認してから「一致を確認／相違あり／判断保留」と確認内容を別に追加します。「作業を保存」で保存し、校合履歴はその時点の対応先を保持します。
 
 読解資料は、重なるresolved対応を`region-N.tei.json`と`evidence.json`に保存します。範囲は`tei_scope="overlap_context"`で、全ページ対応や部分的な重なりも含む併読用の文脈です。選択矩形だけの翻刻を意味しません。原TEI構造と機械生成候補を分けて使います。
@@ -263,6 +265,25 @@ Liteと同じ方法で返る`result.config`を別のprovider JSONへ保存しま
 
 GPU版にも次の`run_ocr`・`import_ocr`を使います。原TXT/JSON、行座標、固定image ID、engineのhashを保持し、認識行数の欠落とTXT/JSONの不一致を検出します。失敗時は候補化を止めて部分出力とログを残し、タイムアウト時はこの処理が起動したcontainerだけを停止します。行のconfidenceは未取得としてnullです。旧Lite runとworkspaceは引き続き読み込めます。
 
+### 近代資料を通常版NDLOCRで読む（開発checkout）
+
+近代活字では、Local OCR経由のNDLOCR Liteに加え、[通常版NDLOCR 2.1](https://github.com/ndl-lab/ndlocr_cli)を任意provider `ndlocr-ver2`として選べます。利用者がDocker・NVIDIA GPUと、公式の`/root/ocr_cli`構成・モデルを備えたimageを準備してから指定します。古典籍用ver.3とは別のproviderです。公開npm 0.18.0にはこの追加providerを含みません。
+
+```json
+{
+  "api_version": "0.1", "operation": "inspect_ocr_provider",
+  "provider": "ndlocr-ver2",
+  "docker_path": "C:/Program Files/Docker/Docker/resources/bin/docker.exe",
+  "image_id": "sha256:<導入済みimageの64桁ID>"
+}
+```
+
+上記はIDを書き換えてUTF-8のJSONへ保存します。既存GPU providerと同じ方法でinspect応答の`result.config`を保存し、`run_ocr`の`provider_config_path`へ指定します。実行imageとcode・モデルのhashを固定し、`--pull never / --network none`で動かします。自動ダウンロードは行いません。
+
+処理範囲は`2..3`（レイアウト抽出・文字認識）です。保存画像の座標を使うため、頁分割と傾き補正を実行前処理へ加えません。原XMLのPAGEの画像名・寸法、各LINEの文字列・矩形・ORDERを検証し、文字列を持つBLOCKも保持します。[上流XML形式](https://github.com/ndl-lab/ndlocr_cli/blob/b844abf8e8251eb89e3e75b8b96c70be7d2c930e/ndlocr-xmlformat.md)
+
+取り込む共通TXTは、原XMLからORDER順、続いてORDERを持たない領域のXML順で導出します。上流の本文・caption・rubyのTXTも生成されたものを原出力として保存し、導出TXTと区別します。元のXML、行ID、TYPE・ORDER・TITLE・AUTHORとXPathを保持します。TITLEは文書レイアウトの分類として記録します。辞書の見出し語の分類は別の研究処理で付与します。
+
 ### 選択画像をOCRし、候補を読み込む
 
 画面の「画像と出典を保存」で作った`evidence.json`を使います。対象領域の画像が取得済みであることを確認し、`evidence_ids`をそのIDへ置き換えます。raw成果物はrepoの外の研究directory、例えばResearchLibraryのproject配下`work/ocr`へ保存します。
@@ -297,6 +318,35 @@ GPU版にも次の`run_ocr`・`import_ocr`を使います。原TXT/JSON、行座
 `with-ocr.json`で比較画面を再起動するか、「作業を読み込む」で読み込みます。「くずし字OCRと画像校合」の「原画像の領域へ」「この行の画像へ」で原画像を確認し、記録者・結果・確認内容・任意の修訂候補を追加して保存します。原OCR本文は`ocr_candidate / unverified`を保ち、校合履歴は別に蓄積します。領域の「関連OCR候補」でも戻れます。行のconfidenceは領域検出の信頼度で、文字認識の精度指標とは区別します。engine生成のTEIはraw成果物として保持し、原TEIへ自動統合しません。
 
 導入経路の確認は伊勢物語の公開画像1領域・9行で行いました。続く試験では伊勢物語、版本の当世料理、写本の膳部料理抄の計12 CanvasでOCRと取り込みを確認しています。公開翻刻との一致度を計算した範囲は6画像、参照未登録は6画像、文字単位の原画像校合は0画像です。万葉集等への適合、未知資料への精度、VLMとの実比較は継続します。画像の縮小で細字が読みにくい場合は、必要な領域を選び直して取得します。
+
+### OCR候補を位置情報付きTEIへ書き出す（開発checkout）
+
+古典籍Lite・古典籍ver.3・Local OCR・通常版NDLOCRの取り込み済み候補から、共通のTEI/XMLとDB向け位置情報JSONを作れます。古典籍Lite自身も[独自XMLとTEIを出力](https://github.com/ndl-lab/ndlkotenocr-lite/blob/3c62c34803bd4e4150ca1ed3447275ba17fbe374/src/ocr.py)します。今回の共通出力は、保存した原出力を検証して別に作る派生物です。
+
+```json
+{
+  "api_version": "0.1", "operation": "export_ocr_tei",
+  "workspace_path": "J:/research/workspace/with-ocr.json",
+  "text_ids": ["ocr-<取り込み済み候補ID>"],
+  "output_dir": "J:/research/tei/dictionary-page-1",
+  "title": "辞書の位置情報付きOCR候補"
+}
+```
+
+要求を`node scripts/iiif-workbench.mjs --request <要求JSON>`で実行します。出力先は新規directory、対象は1〜4候補です。原run・画像・原応答をオフラインで再照合してから、次を保存します。
+
+| ファイル | 内容 |
+| --- | --- |
+| `transcription.xml` | `surface/graphic/zone`と、行本文を持つ`seg@facs`の対応。`lb`は行の区切り。 |
+| `images/` | 実際にOCRした保存画像の同一bytesのコピー。 |
+| `lines.json` | 全文・行順・行ID・XML ID・画像上とCanvas上のxywh・行の4点座標・confidence・出典。通常版では原レイアウト属性とXPathも含む。 |
+| `provenance.json` | workspace・原runのhash・engine・manifest・Canvas・crop・座標変換、TEIと行indexのhash。 |
+
+TEIのsurfaceは保存画像のpixel空間、`sameAs`は対応するCanvasの`#xywh`です。cropの丸めと縮小倍率を反映し、zoneは保存画像上の行範囲を示します。応答の位置なし行は本文とJSONへ残し、zoneとfacsを省きます。XML内では文字の特殊記号・改行を保存し、本文と行の対応が取れない原出力は書き出し前に診断します。
+
+戻り値の`tei_path`・`tei_sha256`を`link_tei`へ指定すると、既存のTEI readerから行本文とIIIF領域を対応付けられます。元workspaceと同じ資料の`document_id`を使い、`next_offset`が数値なら続きも取り込みます。
+
+辞書DBでは、ページごとの行座標と本文から見出し語候補を選び、`xml_id`・Canvas ID・`canvas_xywh`を保持して画像確認へ戻せます。見出し語・語釈・用例の分類を後続のTEI編集やDB処理で付与できます。読み順はOCR結果に由来し、縦書き・段組みを原画像で点検します。
 
 ### 同じ画像の候補を比較評価する
 

@@ -12,13 +12,14 @@ import { exportEvidence } from "./evidence.js";
 import { startLocalServer } from "./localServer.js";
 import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
 import { importOcr } from "./ocrImport.js";
+import { exportOcrTei } from "./ocrTei.js";
 import { evaluateOcr } from "./ocrEvaluation.js";
 import { prepareReading, importReading } from "./reading.js";
 import { compareImages,importComparison,protectComparisonOutput } from "./imageComparison.js";
 import { protectWorkspaceSources } from "./outputProtection.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
-  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / evaluate_ocr / prepare_reading / import_reading / compare_images / import_comparison\n';
+  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / export_ocr_tei / evaluate_ocr / prepare_reading / import_reading / compare_images / import_comparison\n';
 export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
   let phase: "input" | "operation" = "input";
   try {
@@ -60,7 +61,9 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     );
     phase = "operation";
     let result: unknown;
-    if (request.operation === "compare_images") {
+    if (request.operation === "export_ocr_tei") {
+      result = await exportOcrTei(request);
+    } else if (request.operation === "compare_images") {
       const w=await readWorkspace(request.workspace_path);
       await protectWorkspaceSources(request.output_dir,w,[request.workspace_path]);
       result=await compareImages(w,request.query,request.candidates,request.output_dir);

@@ -137,6 +137,8 @@ const absolute = z
   .string()
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
+  z.object({api_version:z.literal("0.1"),operation:z.literal("export_ocr_tei"),workspace_path:absolute,
+    text_ids:z.array(id).min(1).max(4),output_dir:absolute,title:z.string().min(1).max(4096).optional()}).strict(),
   z.object({api_version:z.literal("0.1"),operation:z.literal("compare_images"),workspace_path:absolute,query:imageReferenceSchema,candidates:z.array(imageReferenceSchema).min(1).max(20),output_dir:absolute}).strict(),
   z.object({api_version:z.literal("0.1"),operation:z.literal("import_comparison"),workspace_path:absolute,report_path:absolute,output_path:absolute,overwrite:z.boolean().default(false)}).strict(),
   z.object({api_version:z.literal("0.1"),operation:z.literal("prepare_reading"),workspace_path:absolute,
@@ -153,7 +155,7 @@ export const requestSchema = z.discriminatedUnion("operation", [
   }),
   z.object({
     api_version: z.literal("0.1"), operation: z.literal("inspect_ocr_provider"),
-    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr"]).default("ndlkotenocr-lite"),
+    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr", "ndlocr-ver2"]).default("ndlkotenocr-lite"),
     engine_dir: absolute.optional(), python_path: absolute.optional(), docker_path: absolute.optional(),
     image_id: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
     base_url: z.string().max(200).optional(), engine_id: z.literal("ndl-lite").optional(),

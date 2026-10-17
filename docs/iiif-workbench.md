@@ -148,7 +148,13 @@ PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」�
 
 比較には、この比較画面から出典付きで書き出した同じ画像ファイルを使います。画像と各エンジンの原結果、エンジン名・版・読み取りモードを残し、相違箇所を原画像で確認します。TEI/XMLは画像と一緒に保存し、[TEI reader](tei-reader.md)で構造と参照を点検できます。
 
-公開0.18.0の`run_ocr`はNDL古典籍OCR-Lite／ver.3用です。開発checkoutには、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを追加しています。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。Local OCRのTEIの行単位連携は後続の対応です。
+公開0.18.0の`run_ocr`はNDL古典籍OCR-Lite／ver.3用です。開発checkoutには、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを追加しています。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。近代資料には、[通常版NDLOCR 2.1のDocker/GPU provider](iiif-cli-reference.md#近代資料を通常版ndlocrで読む開発checkout)も選べます。
+
+### 辞書の見出し語候補を画像位置付きで扱う
+
+開発checkoutの`export_ocr_tei`は、古典籍と近代資料のOCR候補を共通のTEI/XMLへ書き出します。行本文と画像のzone、crop・縮小を含む元Canvasとの対応、原OCRの出典を残します。同時に作る`lines.json`は、行順・行ID・画像とCanvas上の座標をDB処理へ渡せます。[TEI出力の手順](iiif-cli-reference.md#ocr候補を位置情報付きteiへ書き出す開発checkout)
+
+縦書きで段組みの複雑な辞書では、各ページの位置と本文を使って見出し語候補を拾い、候補から原画像へ戻って確かめられます。ページごとの位置のずれも保存した座標に反映されます。見出し語・語釈・用例の分類は、その座標と出典を保って追加できます。古典籍Liteが元から出すXML/TEIも、原出力として保存します。
 
 <a id="同じ画像の候補を比較評価する"></a>
 

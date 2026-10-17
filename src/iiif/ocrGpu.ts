@@ -7,13 +7,13 @@ import { z } from "zod";
 import { ocrAbsoluteSchema, ocrGpuConfigSchema, ocrGpuEngineSchema, ocrHashSchema } from "./ocrSchemas.js";
 
 const exec = promisify(execFile);
-const host = process.platform === "win32" ? "npipe:////./pipe/docker_engine" : "unix:///var/run/docker.sock";
+export const host = process.platform === "win32" ? "npipe:////./pipe/docker_engine" : "unix:///var/run/docker.sock";
 const digest = (text: string) => createHash("sha256").update(text).digest("hex");
 const environment = () => Object.fromEntries(Object.entries(process.env).filter(([key])=>/^(systemroot|windir|path|temp|tmp|pathext|systemdrive)$/i.test(key)));
-function command(docker: string, args: string[], timeout: number) {
+export function command(docker: string, args: string[], timeout: number) {
   return exec(docker, ["--host",host,...args], {env:environment(),shell:false,windowsHide:true,timeout,killSignal:"SIGKILL",maxBuffer:2*1024*1024,encoding:"utf8"});
 }
-async function ownedContainer(docker: string, args: string[], timeout: number) {
+export async function ownedContainer(docker: string, args: string[], timeout: number) {
   const name=`jp-lit-ocr-${randomUUID()}`;
   try {
     return await command(docker,["run","--rm","--pull","never","--name",name,"--network","none","--gpus","all",...args],timeout);
@@ -27,13 +27,13 @@ async function ownedContainer(docker: string, args: string[], timeout: number) {
     throw e;
   }
 }
-const probe = `import hashlib,json,pathlib,sys,torch
-root=pathlib.Path('/root/kotenocr_cli')
+export const gpuProbe = (root: string) => `import hashlib,json,pathlib,sys,torch
+root=pathlib.Path(${JSON.stringify(root)})
 if not torch.cuda.is_available(): raise RuntimeError('CUDA GPU unavailable')
 files=[]
 for file in sorted(root.rglob('*')):
  if '.git' in file.parts or '__pycache__' in file.parts: continue
- if file.is_file() and file.suffix.lower() in ('.py','.yaml','.yml','.json','.pth','.bin','.joblib','.txt'):
+ if file.is_file() and file.suffix.lower() in ('.py','.yaml','.yml','.json','.pth','.bin','.joblib','.txt'${root === "/root/ocr_cli" ? ",'.ckpt','.pkl'" : ""}):
   if file.is_symlink(): raise RuntimeError('Engine symbolic link unsupported')
   h=hashlib.sha256()
   with file.open('rb') as stream:
@@ -81,7 +81,7 @@ export async function inspectGpuProvider(input: { provider:"ndlkotenocr-ver3"; d
   if(!(await lstat(docker_path)).isFile())throw new Error("Docker実行fileを指定してください");
   const inspected=await command(docker_path,["image","inspect",parsed.image_id,"--format","{{.Id}}"],15000);
   if(inspected.stdout.trim()!==parsed.image_id)throw new Error("Docker image IDが一致しません");
-  const raw=await ownedContainer(docker_path,["--env","PYTHONDONTWRITEBYTECODE=1","--entrypoint","python3",parsed.image_id,"-c",probe],60000);
+  const raw=await ownedContainer(docker_path,["--env","PYTHONDONTWRITEBYTECODE=1","--entrypoint","python3",parsed.image_id,"-c",gpuProbe("/root/kotenocr_cli")],60000);
   const metadata=z.object({python_version:z.string().min(1),torch_version:z.string().min(1),cuda_version:z.string().min(1),gpu:z.string().min(1),
     files:z.array(z.object({path:z.string().min(1).max(4096),sha256:ocrHashSchema}).strict()).min(1).max(1000)}).strict().parse(JSON.parse(raw.stdout));
   const names=metadata.files.map(f=>f.path);
