@@ -4,6 +4,7 @@ import { z } from "zod";
 import { readBookStructure,protectBookOutput,writeBookSnapshot,type StructureResult } from "./bookStructure.js";
 import { structureFingerprint,structureId,type BookStructure } from "./bookStructureSchemas.js";
 import { reviewBookRequestSchema } from "./bookStructureRequests.js";
+import { currentBookReviews } from "./bookStructureState.js";
 export { reviewBookRequestSchema } from "./bookStructureRequests.js";
 
 export function bookSubjects(b:BookStructure):Map<string,any> {
@@ -22,17 +23,18 @@ export async function reviewBookStructure(input:z.input<typeof reviewBookRequest
       if(!("field_id" in subject)||d.result!=="needs_review")throw Error("文字訂正はfieldを指定し、確認状態をneeds_reviewにしてください");
       const before=structureFingerprint(subject),oldText=subject.text;
       subject.text=d.replacement_text;subject.normalized_text=subject.text.normalize("NFC");
-      b.revisions.push({revision_id:structureId("revision",b.revisions.length,at,before,subject.text),operation:"replace_text",subject_id:d.subject_id,
-        before_sha256:before,payload:{before_text:oldText,replacement_text:subject.text},actor:d.actor,recorded_at:at});
       const lineRefs=new Set(b.spans.filter(s=>subject.span_ids.includes(s.span_id)).map(s=>s.line_ref));
       const affected=new Set<string>([d.subject_id]);
       for(const u of b.units)if(u.span_ids.some(key=>b.spans.some(s=>s.span_id===key&&lineRefs.has(s.line_ref)))) {
         affected.add(u.unit_id);for(const f of u.fields)affected.add(f.field_id);
       }
       for(const rel of b.relations)if(affected.has(rel.from_id)||affected.has(rel.to_id))affected.add(rel.relation_id);
-      const invalidated=new Set<string>();
-      for(const old of [...b.reviews].reverse())if(affected.has(old.subject_id)&&!invalidated.has(`${old.subject_id}:${old.aspect}`)) {
-        invalidated.add(`${old.subject_id}:${old.aspect}`);const current=subjects.get(old.subject_id);if(!current)continue;
+      const prior=currentBookReviews(b).filter(old=>affected.has(old.subject_id));
+      b.revisions.push({revision_id:structureId("revision",b.revisions.length,at,before,subject.text),operation:"replace_text",subject_id:d.subject_id,
+        before_sha256:before,payload:{before_text:oldText,replacement_text:subject.text,invalidated_review_ids:b.reviews.filter(old=>affected.has(old.subject_id)).map(old=>old.review_id)},actor:d.actor,recorded_at:at});
+      const aspects=new Set<string>();
+      for(const old of prior)if(!aspects.has(`${old.subject_id}:${old.aspect}`)) {
+        aspects.add(`${old.subject_id}:${old.aspect}`);const current=subjects.get(old.subject_id);if(!current)continue;
         b.reviews.push({...old,review_id:structureId("review",b.reviews.length,at,old.subject_id),subject_sha256:structureFingerprint(current),
           result:"needs_review",actor:{kind:"agent",name:"book-structure"},recorded_at:at,note:"文字訂正に伴う再確認"});
       }

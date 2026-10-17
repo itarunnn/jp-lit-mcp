@@ -5,10 +5,22 @@ import tempfile
 import unittest
 from contextlib import closing
 
-from book_structure.sqlite_export import export_sqlite
+from book_structure.sqlite_export import export_sqlite, SCHEMA
 
 
 class SqliteExportTests(unittest.TestCase):
+    def test_current_reviews_keep_each_actor_and_explicit_invalidations(self):
+        with closing(sqlite3.connect(":memory:")) as db:
+            db.executescript(SCHEMA)
+            db.execute("INSERT INTO nodes VALUES('field','field')")
+            db.execute("INSERT INTO reviews VALUES(?,?,?,?,?,?,?,?,?)", ("human-old", "field", "a"*64, "transcription", "rejected", "human", "reader", "2026-10-17T00:00:00Z", "{}"))
+            for key, kind, name, result in [("human", "human", "reader", "accepted"), ("agent1", "agent", "one", "needs_review"), ("agent2", "agent", "two", "accepted")]:
+                db.execute("INSERT INTO reviews VALUES(?,?,?,?,?,?,?,?,?)", (key, "field", "a"*64, "transcription", result, kind, name, "2026-10-17T00:00:00Z", "{}"))
+            self.assertEqual(db.execute("SELECT count(*) FROM current_reviews").fetchone()[0], 3)
+            db.execute("INSERT INTO revisions VALUES('revision','field','replace_text','{}')")
+            db.execute("INSERT INTO review_invalidations VALUES('revision','human')")
+            self.assertEqual(db.execute("SELECT actor_name FROM current_reviews ORDER BY actor_name").fetchall(), [("one",), ("two",)])
+
     def test_search_and_join_keep_raw_text_geometry_and_same_spelling(self):
         book = {"schema_version": "0.1", "structure_id": "b1", "inputs": [], "pages": [{"page_id": "p1", "sequence_index": 0, "canvas_id": "canvas-1", "coverage": "ready"}],
                 "lines": [{"line_ref": "l1", "page_id": "p1", "raw_text": "圖一", "canvas_xywh": [10,20,30,40]}],

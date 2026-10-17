@@ -46,13 +46,14 @@ export async function buildBookStructure(input:BuildBookRequest):Promise<Structu
     if(side.input_image_sha256!==t.ocr_provenance!.source.image_sha256||ocrDigest(await readOcrFile(side.path,10*1024*1024))!==side.expected_sha256)
       throw Error("layout sidecarの画像・原XML hashが一致しません");
   }
-  await mkdir(r.output_dir);const sourceDir=path.join(r.output_dir,"source");
-  const original=await exportOcrTei({workspace_path:r.workspace_path,text_ids:r.text_ids,output_dir:sourceDir});
+  await mkdir(r.output_dir);const sourceDir=path.join(r.output_dir,"source"),sourceWorkspace=path.join(r.output_dir,"source-workspace.json");
+  await writeFile(sourceWorkspace,JSON.stringify(w,null,2)+"\n",{flag:"wx"});
+  const original=await exportOcrTei({workspace_path:sourceWorkspace,text_ids:r.text_ids,output_dir:sourceDir});
   const index=JSON.parse(await readFile(original.index_path,"utf8"));
   const b:BookStructure={schema_version:"0.1",structure_id:structureId("structure",w.workspace_id,r.text_ids,r.profile),profile:r.profile,
     workspace_id:w.workspace_id,document_id:selected[0].ocr_provenance!.source.document_id,inputs:[],pages:[],lines:[],regions:[],spans:[],units:[],relations:[],reviews:[],revisions:[],diagnostics:[]};
   const paths=new Map<string,string>();
-  paths.set(r.workspace_path,"workspace");for(const file of [original.tei_path,original.index_path,original.provenance_path])paths.set(file,"verified_ocr_export");
+  paths.set(sourceWorkspace,"workspace");for(const file of [original.tei_path,original.index_path,original.provenance_path])paths.set(file,"verified_ocr_export");
   if(r.pages&&(new Set(r.pages.map(p=>p.text_id).filter(Boolean)).size!==selected.length||r.pages.some(p=>p.text_id&&!r.text_ids.includes(p.text_id))))throw Error("印刷頁とOCR候補の対応が不正です");
   for(const [i,item] of index.items.entries()) {
     const spec=r.pages?.find(p=>p.text_id===item.text_id);if(r.pages&&!spec)throw Error("印刷頁の指定が不足しています");

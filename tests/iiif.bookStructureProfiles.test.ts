@@ -35,6 +35,21 @@ it("holds continuation across an explicit missing page",()=>{
   expect(parsed.diagnostics.some(s=>s.startsWith("continuation_gap:"))).toBe(true);
 });
 
+it("links several entirely headless ready pages while holding a gap",()=>{
+  const b=dictionary();b.lines.find(l=>l.line_ref==="e")!.raw_text="更に續く説明";
+  b.spans.find(s=>s.line_ref==="e")!.range_cp=[0,Array.from("更に續く説明").length];
+  Object.assign(b.units.find(u=>u.unit_id==="ue")!.fields[0],{raw_text:"更に續く説明",text:"更に續く説明",normalized_text:"更に續く説明"});
+  b.pages.push({...b.pages[1],page_id:"p3",sequence_index:2});
+  b.lines.push({...b.lines.find(l=>l.line_ref==="d")!,line_ref:"f",page_id:"p3"});
+  b.regions.push({...b.regions.find(r=>r.region_id==="rd")!,region_id:"rf",page_id:"p3",line_refs:["f"]});
+  b.spans.push({span_id:"sf",line_ref:"f",range_cp:[0,Array.from("頁頭の續き").length]});
+  b.units.push({unit_id:"uf",kind:"text",region_ids:["rf"],span_ids:["sf"],fields:[{...b.units.find(u=>u.unit_id==="ud")!.fields[0],field_id:"ff",span_ids:["sf"]}]});
+  const ready=applyBookProfile(b);expect(ready.relations.filter(r=>r.kind==="continues").map(r=>r.to_id)).toEqual(["ud","uf"]);
+  b.pages[1].sequence_index=3;b.pages[2].sequence_index=4;
+  const gap=applyBookProfile(b);expect(gap.relations.filter(r=>r.kind==="continues")).toHaveLength(0);
+  expect(gap.diagnostics.some(s=>s.startsWith("continuation_gap:"))).toBe(true);
+});
+
 it("keeps competing caption associations and uses figure number for body references",()=>{
   const b=bookFixture();b.spans[0].range_cp=[0,6];
   b.units[0].kind="text";b.units[0].region_ids=[];b.units[0].fields[0].role="text";
@@ -49,4 +64,5 @@ it("keeps competing caption associations and uses figure number for body referen
   expect(result.relations.filter(r=>r.kind==="refers_to")).toHaveLength(2);
   expect(result.diagnostics.some(s=>s.startsWith("ambiguous_caption:"))).toBe(true);
   expect(result.relations.filter(r=>r.kind==="precedes")).toHaveLength(0);
+  expect(result.relations.filter(r=>r.kind==="caption_of").every(r=>r.reasons.some(s=>s.startsWith("normalized_center_distance:")))).toBe(true);
 });

@@ -23,10 +23,12 @@ CREATE TABLE field_spans(field_id TEXT REFERENCES fields,span_id TEXT REFERENCES
 CREATE TABLE relations(relation_id TEXT PRIMARY KEY,kind TEXT,from_id TEXT REFERENCES nodes,to_id TEXT REFERENCES nodes,score REAL,data TEXT NOT NULL);
 CREATE TABLE reviews(review_id TEXT PRIMARY KEY,subject_id TEXT REFERENCES nodes,subject_sha256 TEXT,aspect TEXT,result TEXT,actor_kind TEXT,actor_name TEXT,recorded_at TEXT,data TEXT NOT NULL);
 CREATE TABLE revisions(revision_id TEXT PRIMARY KEY,subject_id TEXT REFERENCES nodes,operation TEXT,data TEXT NOT NULL);
+CREATE TABLE review_invalidations(revision_id TEXT REFERENCES revisions,review_id TEXT REFERENCES reviews,PRIMARY KEY(revision_id,review_id));
 CREATE INDEX fields_search ON fields(normalized_text);
 CREATE INDEX units_kind ON units(kind);
 CREATE INDEX relation_from ON relations(from_id,kind);
-CREATE VIEW current_reviews AS SELECT r.* FROM reviews r WHERE r.rowid=(SELECT max(n.rowid) FROM reviews n WHERE n.subject_id=r.subject_id AND n.aspect=r.aspect);
+CREATE VIEW current_reviews AS SELECT r.* FROM reviews r WHERE NOT EXISTS(SELECT 1 FROM review_invalidations i WHERE i.review_id=r.review_id)
+ AND r.rowid=(SELECT max(n.rowid) FROM reviews n WHERE n.subject_id=r.subject_id AND n.aspect=r.aspect AND n.actor_kind=r.actor_kind AND n.actor_name=r.actor_name);
 """
 
 
@@ -65,6 +67,7 @@ def export_sqlite(source: Path, output: Path):
             db.executemany("INSERT INTO relations VALUES(?,?,?,?,?,?)", [(r["relation_id"], r["kind"], r["from_id"], r["to_id"], r["score"], dump(r)) for r in book["relations"]])
             db.executemany("INSERT INTO reviews VALUES(?,?,?,?,?,?,?,?,?)", [(r["review_id"], r["subject_id"], r["subject_sha256"], r["aspect"], r["result"], r["actor"]["kind"], r["actor"]["name"], r["recorded_at"], dump(r)) for r in book["reviews"]])
             db.executemany("INSERT INTO revisions VALUES(?,?,?,?)", [(r["revision_id"], r["subject_id"], r["operation"], dump(r)) for r in book["revisions"]])
+            db.executemany("INSERT INTO review_invalidations VALUES(?,?)", [(r["revision_id"], key) for r in book["revisions"] for key in r.get("payload", {}).get("invalidated_review_ids", [])])
             if db.execute("PRAGMA foreign_key_check").fetchall():
                 raise sqlite3.IntegrityError("参照整合が不正です")
         success = True

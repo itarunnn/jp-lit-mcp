@@ -6,13 +6,30 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { buildBookStructure } from "../src/iiif/bookStructure.js";
 import { renderBookTei,exportBookStructure } from "../src/iiif/bookStructureTei.js";
-import { structureId } from "../src/iiif/bookStructureSchemas.js";
+import { structureId, structureFingerprint } from "../src/iiif/bookStructureSchemas.js";
 import { readTeiLinks,linkTei } from "../src/iiif/tei.js";
 import { makeBookRun } from "./fixtures/iiif/bookRun.js";
 import { digest } from "./fixtures/iiif/ocr.js";
 import { bookFixture } from "./fixtures/iiif/bookStructure.js";
 import { applyBookProfile } from "../src/iiif/bookStructureProfiles.js";
 const dirs:string[]=[];afterEach(async()=>{for(const d of dirs.splice(0))await rm(d,{recursive:true,force:true});});
+
+it("keeps actor-specific review states and relation decisions linked in TEI",()=>{
+  const b=bookFixture();b.spans[0].range_cp=[0,6];b.units[0].kind="text";
+  const profiled=applyBookProfile(b),relation=profiled.relations.find(r=>r.kind==="caption_of")!,field=profiled.units[0].fields[0];
+  const review=(id:string,subject:any,actor:any,result:string,aspect:string)=>({review_id:id,subject_id:subject.field_id??subject.relation_id,
+    subject_sha256:structureFingerprint(subject),actor,result,aspect,note:"test",recorded_at:"2026-10-17T00:00:00Z"});
+  profiled.reviews.push(review("human",field,{kind:"human",name:"reader"},"accepted","transcription"),
+    review("agent",field,{kind:"agent",name:"reviewer"},"needs_review","transcription"),
+    review("relation-review",relation,{kind:"human",name:"reader"},"rejected","association"));
+  const xml=renderBookTei(profiled);
+  expect(xml).toContain("#review-transcription-accepted-human");expect(xml).toContain("#review-transcription-needs_review-agent");
+  const linkId=structureId("link",relation.relation_id);
+  expect(xml).toMatch(new RegExp(`<link[^>]+xml:id="${linkId}"[^>]+review-association-rejected-human`));
+  expect(xml).toContain(`corresp="#${linkId}"`);expect(xml).not.toContain("<head ");
+  profiled.reviews.at(-1)!.result="accepted";
+  const accepted=renderBookTei(profiled);expect(accepted).toContain("<head ");expect(accepted).toContain(`#${linkId}`);
+});
 
 it("exports a two-page figure whose facs tokens resolve separately through the real reader",async()=>{
   const dir=await mkdtemp(path.join(tmpdir(),"book-tei-"));dirs.push(dir);const f=await makeBookRun(dir);

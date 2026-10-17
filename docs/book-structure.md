@@ -21,7 +21,7 @@
 
 NDLOCR 2.1の原run内にあるlayout XMLは自動で取り込みます。別保存の原XMLは`layout_sources`へ`text_id, path, expected_sha256, input_image_sha256`を指定します。原画像とXMLの寸法・hashの対応を検査し、文字のないBLOCKも領域として残します。polygonの原座標を記録し、画像への移動には外接矩形を使います。
 
-出力は`structure.json`、`review-queue.tsv`、`provenance.json`と、原出力を検証した`source/`です。原行・文字範囲・領域・論理単位・関係をそれぞれ保存します。文字範囲はUnicode code pointの半開区間です。画像の位置精度は原OCR・layoutから引き継ぎます。
+出力は`structure.json`、`review-queue.tsv`、`provenance.json`、取込時の固定コピー`source-workspace.json`と、原出力を検証した`source/`です。作業用workspaceへTEIを追加して保存した後も、この固定コピーと原OCR・画像を検証して再出力できます。原行・文字範囲・領域・論理単位・関係をそれぞれ保存します。文字範囲はUnicode code pointの半開区間です。画像の位置精度は原OCR・layoutから引き継ぎます。
 
 ## 確認と訂正を残す
 
@@ -29,7 +29,7 @@ NDLOCR 2.1の原run内にあるlayout XMLは自動で取り込みます。別保
 
 `actor.kind`は実際の確認主体に応じて`human/agent`を記録します。aspectは`transcription/layout/headword/boundary/continuation/sense/example/association/alignment`、resultは`accepted/rejected/needs_review`です。文字の確認と画像対応の確認を別々に記録します。
 
-fieldの訂正は`replacement_text`と`result: "needs_review"`を指定し、訂正後のsnapshotを再確認します。原OCRと既存snapshotを保持し、変更に関係する確認へ再確認記録を追加します。
+fieldの訂正は`replacement_text`と`result: "needs_review"`を指定し、訂正後のsnapshotを再確認します。原OCRと既存snapshotを保持し、変更に関係する確認をrevisionの`invalidated_review_ids`で失効させ、agentによる再確認記録を追加します。現在の確認状態はsubject・aspect・actor.kind・actor.name別に算出します。
 
 ## SQLite・TEIから利用する
 
@@ -50,6 +50,8 @@ JOIN lines AS l USING (line_ref)
 JOIN pages AS p USING (page_id);
 ```
 
-図版は`regions`、説明文・本文との関係は`relations`、最新のaspect別確認は`current_reviews`にあります。表は領域として保持し、セル構造が未取得の場合はTEIで`figure type="table"`として出力し診断を残します。
+図版は`regions`、説明文・本文との関係は`relations`、確認者・aspect別の有効な最新確認は`current_reviews`、訂正による失効は`review_invalidations`にあります。表は領域として保持し、セル構造が未取得の場合はTEIで`figure type="table"`として出力し診断を残します。
+
+TEIの`link`は関係の確認結果と確認記録への参照を持ちます。図の`head`にはassociationがacceptedの説明文を出し、未確認・却下・競合の関係はstandOffへ保持します。人のassociation確認がある場合はその記録を優先し、同じ層の確認者間で結果が一致しない場合はheadへの表示を保留します。各headから説明文と根拠linkを参照できます。
 
 図版の検出と、説明文・本文との対応付けは別の候補です。図番号や位置の根拠と競合する候補を保持し、確認記録を追加して利用します。原出力とsnapshotのhashを照合し、既存出力と原資料を保護します。日本語のOCR誤認・見出し境界・図番号は原画像に戻って確認してください。

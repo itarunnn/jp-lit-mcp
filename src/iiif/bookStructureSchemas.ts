@@ -115,5 +115,9 @@ export function parseBookStructure(input: unknown): BookStructure {
     for (const key of edges.keys()) visit(key,0);
   }
   for (const item of [...b.reviews,...b.revisions]) requireRef(item.subject_id);
+  for (const revision of b.revisions) if (revision.payload.invalidated_review_ids !== undefined) {
+    const invalidated = z.array(id).parse(revision.payload.invalidated_review_ids);
+    for (const key of invalidated) if (!b.reviews.some(r=>r.review_id===key)) throw Error("失効対象の確認記録がありません");
+  }
   return b;
 }

@@ -6,6 +6,7 @@ import { structureFingerprint,structureId,parseBookStructure,type BookStructure,
 import { exportBookSqlite,bookStructureProject } from "./bookStructureSqlite.js";
 import { ocrDigest } from "./ocrRunner.js";
 import { exportBookRequestSchema } from "./bookStructureRequests.js";
+import { currentBookReviews, acceptedBookAssociation } from "./bookStructureState.js";
 export { exportBookRequestSchema } from "./bookStructureRequests.js";
 
 export interface StructureExportResult {output_path:string;output_sha256:string;provenance_path:string;diagnostics:string[]}
@@ -23,12 +24,11 @@ export function renderBookTei(input:BookStructure):string {
   const categories=new Set<string>();
   const attrs=(key:string,value:unknown,regionIds:string[],prefix="unit")=>{
     const xid=prefix==="unit"?uid(key):structureId(prefix,key);ids.set(key,xid);
-    const latest=new Map<string,BookStructure["reviews"][number]>();
-    for(const r of b.reviews)if(r.subject_id===key)latest.set(r.aspect,r);
-    const statuses=["candidate",...[...latest.values()].filter(r=>r.subject_sha256===structureFingerprint(value)).map(r=>`review-${r.aspect}-${r.result}-${r.actor.kind}`)];
+    const current=currentBookReviews(b,key,value);
+    const statuses=[...new Set(["candidate",...current.map(r=>`review-${r.aspect}-${r.result}-${r.actor.kind}`)])];
     for(const status of statuses)categories.add(status);
     const facs=[...new Set(regionIds)].filter(key=>b.regions.some(r=>r.region_id===key&&r.image_xywh)).map(key=>`#${zone(key)}`).join(" ");
-    return `xml:id="${xid}" ana="${statuses.map(s=>"#"+s).join(" ")}"${facs?` facs="${facs}"`:""}`;
+    return `xml:id="${xid}" ana="${statuses.map(s=>"#"+s).join(" ")}"${facs?` facs="${facs}"`:""}${current.length?` corresp="${current.map(r=>"#"+structureId("review",r.review_id)).join(" ")}"`:""}`;
   };
   const field=(f:BookField,tag="seg")=>`<${tag} ${attrs(f.field_id,f,regionsFor(f.span_ids),"field")}${tag==="seg"?` type="${xml(f.role)}"`:""}>${xml(f.text)}</${tag}>`;
   const children=new Map<string,string[]>();
@@ -42,9 +42,9 @@ export function renderBookTei(input:BookStructure):string {
     if(u.kind==="sense")return `<sense ${a}>${u.fields.map(f=>field(f,f.role==="definition"?"def":"lbl")).join("")}${nested}</sense>`;
     if(u.kind==="example")return `<cit type="example" ${a}>${u.fields.map(f=>field(f,f.role==="quote"?"quote":"bibl")).join("")}${nested}</cit>`;
     if(u.kind==="figure"||u.kind==="table") {
-      const captions=b.relations.filter(r=>r.kind==="caption_of"&&r.to_id===u.unit_id).flatMap(r=>units.get(r.from_id)?.fields??[]);
+      const captions=b.relations.filter(r=>r.kind==="caption_of"&&r.to_id===u.unit_id&&acceptedBookAssociation(b,r)).flatMap(r=>(units.get(r.from_id)?.fields??[]).map(f=>({f,r})));
       // キャプションの本体は元unitに一度だけ保存し、図側は参照する。
-      return `<figure${u.kind==="table"?' type="table"':""} ${a}>${captions.map(f=>`<head corresp="#${structureId("field",f.field_id)}">${xml(f.text)}</head>`).join("")}${u.fields.map(f=>field(f)).join("")}${nested}</figure>`;
+      return `<figure${u.kind==="table"?' type="table"':""} ${a}>${captions.map(({f,r})=>`<head corresp="#${structureId("field",f.field_id)} #${structureId("link",r.relation_id)}">${xml(f.text)}</head>`).join("")}${u.fields.map(f=>field(f)).join("")}${nested}</figure>`;
     }
     return `<ab type="${u.kind}" ${a}>${u.fields.map(f=>field(f)).join("")}${nested}</ab>`;
   };
@@ -61,9 +61,9 @@ export function renderBookTei(input:BookStructure):string {
     const zones=b.regions.filter(r=>r.page_id===p.page_id&&r.image_xywh).map(r=>{ids.set(r.region_id,zone(r.region_id));const [x,y,w,h]=r.image_xywh!;return `<zone xml:id="${zone(r.region_id)}" type="${r.kind}" ulx="${x}" uly="${y}" lrx="${x+w}" lry="${y+h}"/>`;}).join("");
     return `<surface xml:id="${structureId("surface",p.page_id)}" sameAs="${xml(p.canvas_id)}#xywh=${[x,y,w,h].join(",")}" ulx="0" uly="0" lrx="${p.image_width}" lry="${p.image_height}"><graphic url="${imageName(p,i)}" width="${p.image_width}px" height="${p.image_height}px"/>${zones}</surface>`;
   }).join("");
-  const links=b.relations.filter(r=>ids.has(r.from_id)&&ids.has(r.to_id)).map(r=>`<link xml:id="${structureId("link",r.relation_id)}" type="${r.kind}" target="#${ids.get(r.from_id)} #${ids.get(r.to_id)}" ana="#candidate"/>`).join("");
+  const links=b.relations.filter(r=>ids.has(r.from_id)&&ids.has(r.to_id)).map(r=>`<link ${attrs(r.relation_id,r,[],"link")} type="${r.kind}" target="#${ids.get(r.from_id)} #${ids.get(r.to_id)}"/>`).join("");
   const actors=new Map(b.reviews.map(r=>[structureId("actor",r.actor),r.actor]));
-  const revisions=b.reviews.map(r=>`<change who="#${structureId("actor",r.actor)}" when="${r.recorded_at}" type="${r.aspect}" n="${r.result}"${ids.has(r.subject_id)?` corresp="#${ids.get(r.subject_id)}"`:""}>${xml(r.note)}</change>`).join("");
+  const revisions=b.reviews.map(r=>`<change xml:id="${structureId("review",r.review_id)}" who="#${structureId("actor",r.actor)}" when="${r.recorded_at}" type="${r.aspect}" n="${r.result}"${ids.has(r.subject_id)?` corresp="#${ids.get(r.subject_id)}"`:""}>${xml(r.note)}</change>`).join("");
   categories.add("candidate");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc><titleStmt><title>位置と関係を持つ書籍構造</title>${[...actors].map(([id,a])=>`<respStmt xml:id="${id}"><resp>${a.kind}</resp><name>${xml(a.name)}</name></respStmt>`).join("")}</titleStmt><publicationStmt><p>候補構造と確認記録。出典と訂正履歴はstructure.jsonとprovenance.jsonを参照。</p></publicationStmt><sourceDesc><p>IIIF原画像と検証済みOCR。</p></sourceDesc></fileDesc><encodingDesc><classDecl><taxonomy xml:id="structure-status">${[...categories].map(c=>`<category xml:id="${c}"><catDesc>${c}</catDesc></category>`).join("")}</taxonomy></classDecl></encodingDesc>${revisions?`<revisionDesc>${revisions}</revisionDesc>`:""}</teiHeader><facsimile>${surfaces}</facsimile>${links?`<standOff><linkGrp type="book-relations">${links}</linkGrp></standOff>`:""}<text><group><text type="ocr-source"><body>${raw}</body></text><text type="structure"><body>${logical}${remaining}</body></text></group></text></TEI>\n`;
 }

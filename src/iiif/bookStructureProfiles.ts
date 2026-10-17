@@ -52,16 +52,20 @@ export function applyBookProfile(input:BookStructure):BookStructure {
     const keys=figureKeys(line.raw_text),explicit=b.regions.some(r=>r.kind==="caption"&&r.line_refs.includes(line.line_ref));
     if(!explicit&&!keys.some(k=>line.raw_text.slice(0,k.index).trim()===""))continue;
     captionLines.add(line.line_ref);const unit=originalUnits.get(line.line_ref);if(!unit)continue;
+    const distances=new Map<string,number>();
     const targets=figureUnits.filter(u=>{
       const r=b.regions.find(r=>r.region_id===u.region_ids[0])!;if(r.page_id!==line.page_id)return false;
       if(keys.length&&!keys.some(k=>k.key.startsWith(u.kind+":")))return false;
       if(!line.image_xywh||!r.image_xywh)return explicit;
       const [x,y,w,h]=r.image_xywh,[lx,ly,lw,lh]=line.image_xywh,p=pages.find(p=>p.page_id===line.page_id)!;
       const distance=Math.hypot(lx+lw/2-x-w/2,ly+lh/2-y-h/2)/Math.hypot(p.image_width!,p.image_height!);
+      distances.set(u.unit_id,distance);
       return distance<=.4;
     });
     for(const target of targets) {
-      relation("caption_of",unit.unit_id,target.unit_id,[explicit?"explicit_caption_region":"caption_number_at_line_start","same_page","nearby_region",...(keys.map(k=>k.key))]);
+      const distance=distances.get(target.unit_id);
+      relation("caption_of",unit.unit_id,target.unit_id,[explicit?"explicit_caption_region":"caption_number_at_line_start","same_page",
+        ...(distance===undefined?["distance_unavailable"]:["nearby_region",`normalized_center_distance:${distance}`,"distance_denominator:page_diagonal","distance_threshold:0.4"]),...(keys.map(k=>k.key))]);
       for(const {key} of keys){if(!keyTargets.has(key))keyTargets.set(key,new Set());keyTargets.get(key)!.add(target.unit_id);}
     }
     if(targets.length>1)b.diagnostics.push(`ambiguous_caption:${line.line_ref}`);
@@ -81,10 +85,10 @@ export function applyBookProfile(input:BookStructure):BookStructure {
     for(let i=1;i<body.length;i++){const from=originalUnits.get(body[i-1].line_ref),to=originalUnits.get(body[i].line_ref);if(from&&to)relation("precedes",from.unit_id,to.unit_id,[b.profile==="dictionary"?"per_page_rows_right_to_left":"original_ocr_order"]);}
     if(b.profile!=="dictionary")continue;
     const starts=ordered.map((l,i)=>({l,i,match:headPattern.exec(l.raw_text)})).filter(({l,match})=>match&&l.image_xywh&&l.image_xywh[3]/l.image_xywh[2]>2&&Math.abs(l.image_xywh[1]-row.anchors[rowNumber(l)])<=row.tolerance);
-    if(previousEntry&&starts[0]?.i>0) {
+    if(previousEntry&&ordered.length&&(starts.length===0||starts[0].i>0)) {
       const to=originalUnits.get(ordered[0].line_ref);
       if(previousPage!==undefined&&page.sequence_index===previousPage+1&&to)relation("continues",previousEntry.unit_id,to.unit_id,["adjacent_ready_pages","headless_page_start"]);
-      else b.diagnostics.push(`continuation_gap:${page.page_id}`);
+      else {b.diagnostics.push(`continuation_gap:${page.page_id}`);previousEntry=undefined;}
     }
     for(let i=0;i<starts.length;i++) {
       const start=starts[i],match=start.match!,part=ordered.slice(start.i,starts[i+1]?.i??ordered.length),owner=structureId("entry",start.l.line_ref);

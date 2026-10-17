@@ -3,7 +3,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { parseBookLayout } from "../src/iiif/bookStructureLayout.js";
-import { buildBookStructure } from "../src/iiif/bookStructure.js";
+import { buildBookStructure, readBookStructure } from "../src/iiif/bookStructure.js";
+import { exportBookStructure } from "../src/iiif/bookStructureTei.js";
+import { readTeiLinks, linkTei } from "../src/iiif/tei.js";
 import { bookFixture } from "./fixtures/iiif/bookStructure.js";
 import { makeBookRun } from "./fixtures/iiif/bookRun.js";
 import { digest } from "./fixtures/iiif/ocr.js";
@@ -40,3 +42,17 @@ it("rejects an altered raw OCR before producing any structure",async()=>{
   await writeFile(path.join(f.root,"raw.txt"),"差し替え");
   await expect(buildBookStructure({workspace_path:f.workspacePath,text_ids:[f.textId],profile:"general",output_dir:path.join(dir,"out")})).rejects.toThrow();
 });
+
+it("keeps its fixed source workspace after linking TEI into the editable workspace",async()=>{
+  const dir=await mkdtemp(path.join(tmpdir(),"book-workspace-"));dirs.push(dir);const f=await makeBookRun(dir);
+  const built=await buildBookStructure({workspace_path:f.workspacePath,text_ids:[f.textId],profile:"general",output_dir:path.join(dir,"built")});
+  const tei=await exportBookStructure({structure_path:built.structure_path,expected_sha256:built.structure_sha256,format:"tei",output_dir:path.join(dir,"tei")});
+  const links=await readTeiLinks(tei.output_path,tei.output_sha256,100,0);
+  const linked=linkTei(f.workspace,links,{file_path:tei.output_path,expected_sha256:tei.output_sha256,document_id:"d1",surface_bindings:[]});
+  await writeFile(f.workspacePath,JSON.stringify(linked));
+  const b=await readBookStructure(built.structure_path,built.structure_sha256);
+  expect(b.inputs.find(i=>i.role==="workspace")?.path).not.toBe(f.workspacePath);
+  await exportBookStructure({structure_path:built.structure_path,expected_sha256:built.structure_sha256,format:"tei",output_dir:path.join(dir,"tei-again")});
+  await writeFile(path.join(f.root,"raw.txt"),"changed");
+  await expect(readBookStructure(built.structure_path,built.structure_sha256)).rejects.toThrow(/hash/);
+},60000);
