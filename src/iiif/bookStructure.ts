@@ -6,6 +6,7 @@ import { readWorkspace } from "./workspace.js";
 import { protectWorkspaceSources, assertDistinctOutput } from "./outputProtection.js";
 import { ocrDigest, readOcrFile } from "./ocrRunner.js";
 import { parseBookLayout } from "./bookStructureLayout.js";
+import { applyBookProfile } from "./bookStructureProfiles.js";
 import { parseBookStructure, structureId, type BookStructure, type BookPage } from "./bookStructureSchemas.js";
 
 const absolute=z.string().refine(s=>path.isAbsolute(s),"絶対pathを指定してください"),id=z.string().min(1).max(4096),hash=z.string().regex(/^[a-f0-9]{64}$/);
@@ -97,7 +98,7 @@ export async function buildBookStructure(input:BuildBookRequest):Promise<Structu
       canvas_width:canvas.width,canvas_height:canvas.height,canvas_xywh:null,image_path:null,image_sha256:null,image_width:null,image_height:null,text_id:null,coverage:spec.coverage});
   }
   for(const [file,role] of paths)b.inputs.push({path:file,role,sha256:ocrDigest(await readOcrFile(file,64*1024*1024))});
-  return writeBookSnapshot(parseBookStructure(b),r.output_dir);
+  return writeBookSnapshot(applyBookProfile(parseBookStructure(b)),r.output_dir);
 }
 
 export async function protectBookOutput(outputDir:string,b:BookStructure,additional:string[]=[]) {
