@@ -7,6 +7,7 @@ import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
 import { readingProvenanceSchema, readingKindSchema } from "./readingSchemas.js";
 import { imageComparisonRecordSchema,imageReferenceSchema } from "./imageComparisonSchemas.js";
 import { validateOcrSource, normalizeKotenOutput } from "./ocr.js";
+import { buildBookRequestSchema,reviewBookRequestSchema,exportBookRequestSchema } from "./bookStructureRequests.js";
 
 const id = z.string().min(1).max(4096);
 const num = z.number().finite();
@@ -137,6 +138,9 @@ const absolute = z
   .string()
   .refine((v) => path.isAbsolute(v), "絶対pathを指定してください");
 export const requestSchema = z.discriminatedUnion("operation", [
+  buildBookRequestSchema.extend({api_version:z.literal("0.1"),operation:z.literal("build_book_structure")}),
+  reviewBookRequestSchema.extend({api_version:z.literal("0.1"),operation:z.literal("review_book_structure")}),
+  exportBookRequestSchema.extend({api_version:z.literal("0.1"),operation:z.literal("export_book_structure")}),
   z.object({api_version:z.literal("0.1"),operation:z.literal("export_ocr_tei"),workspace_path:absolute,
     text_ids:z.array(id).min(1).max(4),output_dir:absolute,title:z.string().min(1).max(4096).optional()}).strict(),
   z.object({api_version:z.literal("0.1"),operation:z.literal("compare_images"),workspace_path:absolute,query:imageReferenceSchema,candidates:z.array(imageReferenceSchema).min(1).max(20),output_dir:absolute}).strict(),

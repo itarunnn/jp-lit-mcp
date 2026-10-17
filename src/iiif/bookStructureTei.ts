@@ -5,10 +5,9 @@ import { readBookStructure,protectBookOutput } from "./bookStructure.js";
 import { structureFingerprint,structureId,parseBookStructure,type BookStructure,type BookUnit,type BookField } from "./bookStructureSchemas.js";
 import { exportBookSqlite,bookStructureProject } from "./bookStructureSqlite.js";
 import { ocrDigest } from "./ocrRunner.js";
+import { exportBookRequestSchema } from "./bookStructureRequests.js";
+export { exportBookRequestSchema } from "./bookStructureRequests.js";
 
-const absolute=z.string().refine(s=>path.isAbsolute(s));
-export const exportBookRequestSchema=z.object({structure_path:absolute,expected_sha256:z.string().regex(/^[a-f0-9]{64}$/),
-  format:z.enum(["tei","sqlite"]),output_dir:absolute}).strict();
 export interface StructureExportResult {output_path:string;output_sha256:string;provenance_path:string;diagnostics:string[]}
 function xml(s:string) {
   if(/[^\u0009\u000a\u000d\u0020-\ud7ff\ue000-\ufffd\u{10000}-\u{10ffff}]/u.test(s))throw Error("XMLに保存できない文字があります");

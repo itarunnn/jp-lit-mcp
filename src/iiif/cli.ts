@@ -13,13 +13,16 @@ import { startLocalServer } from "./localServer.js";
 import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
 import { importOcr } from "./ocrImport.js";
 import { exportOcrTei } from "./ocrTei.js";
+import { buildBookStructure } from "./bookStructure.js";
+import { reviewBookStructure } from "./bookStructureReview.js";
+import { exportBookStructure } from "./bookStructureTei.js";
 import { evaluateOcr } from "./ocrEvaluation.js";
 import { prepareReading, importReading } from "./reading.js";
 import { compareImages,importComparison,protectComparisonOutput } from "./imageComparison.js";
 import { protectWorkspaceSources } from "./outputProtection.js";
 import type { CliIo, IiifWorkspace, ManifestCandidate } from "./types.js";
 const help =
-  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / export_ocr_tei / evaluate_ocr / prepare_reading / import_reading / compare_images / import_comparison\n';
+  'jp-lit-iiif --request <UTF-8 JSON path>\njp-lit-iiif serve --workspace <absolute workspace.json path>\napi_version: "0.1"; operations: inspect_manifest / prepare_workspace / export_evidence / link_tei / inspect_ocr_provider / run_ocr / import_ocr / export_ocr_tei / build_book_structure / review_book_structure / export_book_structure / evaluate_ocr / prepare_reading / import_reading / compare_images / import_comparison\n';
 export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
   let phase: "input" | "operation" = "input";
   try {
@@ -61,7 +64,13 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
     );
     phase = "operation";
     let result: unknown;
-    if (request.operation === "export_ocr_tei") {
+    if (request.operation === "build_book_structure") {
+      const {api_version,operation,...args}=request;result=await buildBookStructure(args);
+    } else if(request.operation === "review_book_structure") {
+      const {api_version,operation,...args}=request;result=await reviewBookStructure(args);
+    } else if(request.operation === "export_book_structure") {
+      const {api_version,operation,...args}=request;result=await exportBookStructure(args);
+    } else if (request.operation === "export_ocr_tei") {
       result = await exportOcrTei(request);
     } else if (request.operation === "compare_images") {
       const w=await readWorkspace(request.workspace_path);

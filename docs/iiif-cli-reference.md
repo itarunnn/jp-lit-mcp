@@ -1,5 +1,7 @@
 # IIIF CLI・保存形式・ローカル処理の技術リファレンス
 
+開発checkoutの`build_book_structure / review_book_structure / export_book_structure`は[書籍構造の共通基盤](book-structure.md)を参照してください。
+
 > 用途・画面操作・AIへの依頼は[IIIF利用ガイド](iiif-workbench.md)を参照してください。この資料は0.18.0の要求JSON、engine導入、保存・検証仕様を扱います。
 
 IIIF比較画面は、複数の機関が公開する資料を同じ操作で並べ、必要なページや矩形を出典付きで保存するローカルアプリです。「この2資料を並べて」「選んだ部分を画像と翻刻で比べて」とAIへ依頼できます。選択した画像と出典を既存AIアプリに渡して読み、元の場所へ戻って確認する流れを支えます。
