@@ -83,13 +83,18 @@ export function createViewer(element, workspace, token, onError = () => {}) {
           viewer: p.viewer,
           canvasWorld: p.canvasWorld,
         });
-        if (previous?.viewer !== p.viewer)
+        if (previous?.viewer !== p.viewer) {
           p.viewer.world.addHandler("add-item", () => {
             restore(p.windowId, p.viewer);
+          });
+          // Miradorはtile-loadedの同期handlerで新しい頁へ再配置する。
+          // その処理後に、最新の行・領域への移動要求を適用する。
+          p.viewer.addHandler("tile-loaded", () => queueMicrotask(() => {
             const selection = handle.pendingFocus.get(p.windowId);
             if (selection && focusRegion(handle, selection))
               handle.pendingFocus.delete(p.windowId);
-          });
+          }));
+        }
         restore(p.windowId, p.viewer);
       }
       return null;
@@ -154,6 +159,7 @@ export function createViewer(element, workspace, token, onError = () => {}) {
     handle.cancelSelection?.();
     handle.viewer.unmount();
     handles.clear();
+    handle.pendingFocus.clear();
   };
   return handle;
 }
@@ -186,10 +192,11 @@ export function setCanvas(handle, windowId, canvasId) {
 export function showRegion(handle, selection) {
   const current =
     handle.viewer.store.getState().windows[selection.window_id]?.canvasId;
-  if (current !== selection.canvas_id)
-    handle.pendingFocus.set(selection.window_id, selection);
+  const waitingForPage = handle.pendingFocus.get(selection.window_id)?.canvas_id === selection.canvas_id;
+  handle.pendingFocus.set(selection.window_id, selection);
   setCanvas(handle, selection.window_id, selection.canvas_id);
-  if (current === selection.canvas_id) focusRegion(handle, selection);
+  if (current === selection.canvas_id && !waitingForPage && focusRegion(handle, selection))
+    handle.pendingFocus.delete(selection.window_id);
 }
 function focusRegion(handle, selection) {
   const h = handle.handles.get(selection.window_id);
