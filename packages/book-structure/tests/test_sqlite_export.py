@@ -9,6 +9,21 @@ from book_structure.sqlite_export import export_sqlite, SCHEMA
 
 
 class SqliteExportTests(unittest.TestCase):
+    def test_relations_to_review_and_revision_keep_their_nodes(self):
+        actor = {"kind": "agent", "name": "reader"}
+        book = {"schema_version": "0.1", "structure_id": "b", "inputs": [], "pages": [{"page_id": "p", "sequence_index": 0, "canvas_id": "canvas", "coverage": "ready"}],
+                "lines": [], "regions": [], "spans": [], "units": [],
+                "reviews": [{"review_id": "review", "subject_id": "p", "subject_sha256": "a"*64, "aspect": "layout", "result": "accepted", "actor": actor, "recorded_at": "2026-10-18T00:00:00Z"}],
+                "revisions": [{"revision_id": "revision", "subject_id": "p", "operation": "review", "payload": {}, "actor": actor}],
+                "relations": [{"relation_id": "relation", "kind": "refers_to", "from_id": "review", "to_id": "revision", "score": None}]}
+        with tempfile.TemporaryDirectory() as directory:
+            source, target = Path(directory)/"structure.json", Path(directory)/"book.sqlite"
+            source.write_text(json.dumps(book), encoding="utf-8")
+            export_sqlite(source, target)
+            with closing(sqlite3.connect(target)) as db:
+                self.assertEqual(db.execute("SELECT from_id,to_id FROM relations").fetchall(), [("review", "revision")])
+                self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])
+
     def test_current_reviews_keep_each_actor_and_explicit_invalidations(self):
         with closing(sqlite3.connect(":memory:")) as db:
             db.executescript(SCHEMA)

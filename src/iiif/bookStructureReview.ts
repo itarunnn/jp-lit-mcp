@@ -23,12 +23,15 @@ export async function reviewBookStructure(input:z.input<typeof reviewBookRequest
       if(!("field_id" in subject)||d.result!=="needs_review")throw Error("文字訂正はfieldを指定し、確認状態をneeds_reviewにしてください");
       const before=structureFingerprint(subject),oldText=subject.text;
       subject.text=d.replacement_text;subject.normalized_text=subject.text.normalize("NFC");
-      const lineRefs=new Set(b.spans.filter(s=>subject.span_ids.includes(s.span_id)).map(s=>s.line_ref));
+      const spanLines=new Map(b.spans.map(s=>[s.span_id,s.line_ref]));
+      const lineRefs=new Set(subject.span_ids.map((key:string)=>spanLines.get(key)));
       const affected=new Set<string>([d.subject_id]);
-      for(const u of b.units)if(u.span_ids.some(key=>b.spans.some(s=>s.span_id===key&&lineRefs.has(s.line_ref)))) {
+      for(const u of b.units)if([...u.span_ids,...u.fields.flatMap(f=>f.span_ids)].some(key=>lineRefs.has(spanLines.get(key)))) {
         affected.add(u.unit_id);for(const f of u.fields)affected.add(f.field_id);
       }
+      const captionTargets=new Set(b.relations.filter(rel=>rel.kind==="caption_of"&&affected.has(rel.from_id)).map(rel=>rel.to_id));
       for(const rel of b.relations)if(affected.has(rel.from_id)||affected.has(rel.to_id))affected.add(rel.relation_id);
+      for(const rel of b.relations)if(rel.kind==="refers_to"&&captionTargets.has(rel.to_id))affected.add(rel.relation_id);
       const prior=currentBookReviews(b).filter(old=>affected.has(old.subject_id));
       b.revisions.push({revision_id:structureId("revision",b.revisions.length,at,before,subject.text),operation:"replace_text",subject_id:d.subject_id,
         before_sha256:before,payload:{before_text:oldText,replacement_text:subject.text,invalidated_review_ids:b.reviews.filter(old=>affected.has(old.subject_id)).map(old=>old.review_id)},actor:d.actor,recorded_at:at});

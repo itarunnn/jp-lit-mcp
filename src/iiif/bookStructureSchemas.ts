@@ -5,6 +5,7 @@ const id = z.string().min(1).max(4096), num = z.number().finite();
 const rect = z.tuple([num.nonnegative(), num.nonnegative(), num.positive(), num.positive()]);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const refs = z.array(id).max(100000);
+const uniqueRefs = refs.refine(values=>new Set(values).size===values.length,"集合型の参照が重複しています");
 const locator = z.record(z.unknown());
 export const bookActorSchema = z.object({ kind: z.enum(["human", "agent"]), name: id }).strict();
 export const bookAspectSchema = z.enum(["transcription", "layout", "headword", "boundary", "continuation", "sense", "example", "association", "alignment"]);
@@ -18,13 +19,13 @@ const lineSchema = z.object({ line_ref: id, page_id: id, original_line_id: id, r
   image_xywh: rect.nullable(), canvas_xywh: rect.nullable(), source_locator: locator }).strict();
 export const bookRegionSchema = z.object({ region_id: id, page_id: id,
   kind: z.enum(["text", "figure", "caption", "table", "heading", "note", "unknown"]),
-  image_xywh: rect.nullable(), canvas_xywh: rect.nullable(), line_refs: refs,
+  image_xywh: rect.nullable(), canvas_xywh: rect.nullable(), line_refs: uniqueRefs,
   origin: z.enum(["ocr_line", "ocr_layout", "manual_region"]), source_locator: locator }).strict();
 const spanSchema = z.object({ span_id: id, line_ref: id, range_cp: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]) }).strict();
 const fieldSchema = z.object({ field_id: id, role: id, span_ids: refs,
   raw_text: z.string().max(2 * 1024 * 1024), text: z.string().max(2 * 1024 * 1024), normalized_text: z.string().max(2 * 1024 * 1024) }).strict();
 const unitSchema = z.object({ unit_id: id, kind: z.enum(["text", "entry", "sense", "example", "figure", "table", "unknown"]),
-  region_ids: refs, span_ids: refs, fields: z.array(fieldSchema).max(10000) }).strict();
+  region_ids: uniqueRefs, span_ids: uniqueRefs, fields: z.array(fieldSchema).max(10000) }).strict();
 const relationSchema = z.object({ relation_id: id, kind: z.enum(["contains", "precedes", "continues", "caption_of", "refers_to"]),
   from_id: id, to_id: id, reasons: z.array(id).max(100), score: num.nullable(), state: z.literal("candidate") }).strict();
 const reviewSchema = z.object({ review_id: id, subject_id: id, subject_sha256: hash, aspect: bookAspectSchema,
@@ -104,15 +105,19 @@ export function parseBookStructure(input: unknown): BookStructure {
   for (const r of b.relations) { requireRef(r.from_id); requireRef(r.to_id); }
   for (const kind of ["contains","precedes","continues"]) {
     const edges = new Map<string,string[]>();
-    for (const r of b.relations.filter(r => r.kind === kind)) edges.set(r.from_id,[...(edges.get(r.from_id) ?? []),r.to_id]);
-    const visited = new Set<string>(), active = new Set<string>();
-    const visit = (key: string, depth: number) => {
-      if (depth > 500 || active.has(key)) throw Error("書籍構造の関係が循環または深すぎます");
-      if (visited.has(key)) return; active.add(key);
-      for (const next of edges.get(key) ?? []) visit(next,depth+1);
-      active.delete(key); visited.add(key);
-    };
-    for (const key of edges.keys()) visit(key,0);
+    const incoming=new Map<string,number>(),depth=new Map<string,number>();
+    for (const r of b.relations.filter(r => r.kind === kind)) {
+      if(!edges.has(r.from_id))edges.set(r.from_id,[]);edges.get(r.from_id)!.push(r.to_id);
+      if(!incoming.has(r.from_id))incoming.set(r.from_id,0);
+      incoming.set(r.to_id,(incoming.get(r.to_id)??0)+1);
+    }
+    const queue=[...incoming.keys()].filter(key=>incoming.get(key)===0);
+    for(let i=0;i<queue.length;i++)for(const next of edges.get(queue[i])??[]) {
+      depth.set(next,Math.max(depth.get(next)??0,(depth.get(queue[i])??0)+1));
+      if(kind==="contains"&&depth.get(next)!>500)throw Error("書籍構造の包含関係が深すぎます");
+      incoming.set(next,incoming.get(next)!-1);if(incoming.get(next)===0)queue.push(next);
+    }
+    if(queue.length!==incoming.size)throw Error("書籍構造の関係が循環しています");
   }
   for (const item of [...b.reviews,...b.revisions]) requireRef(item.subject_id);
   for (const revision of b.revisions) if (revision.payload.invalidated_review_ids !== undefined) {

@@ -5,16 +5,16 @@ import { digest, ocrCandidate, ocrSource } from "./ocr.js";
 import { normalizeKotenOutput } from "../../../src/iiif/ocr.js";
 import { importOcr } from "../../../src/iiif/ocrImport.js";
 
-export async function makeBookRun(dir: string) {
+export async function makeBookRun(dir: string, options: { textless?: boolean } = {}) {
   const root = path.join(dir,"run"); await mkdir(root,{recursive:true});
   const image = Buffer.alloc(24); Buffer.from([137,80,78,71,13,10,26,10]).copy(image);
   image.write("IHDR",12); image.writeUInt32BE(150,16); image.writeUInt32BE(200,20);
   const source = {...ocrSource(),image_sha256:digest(image)};
-  const raw = {imginfo:{img_width:150,img_height:200},contents:[[
+  const raw = {imginfo:{img_width:150,img_height:200},contents:[options.textless ? [] : [
     {id:0,text:"圖一　花の圖",boundingBox:[[10,150],[130,150],[130,170],[10,170]]},
     {id:1,text:"本文。圖一を見よ。",boundingBox:[[130,10],[145,10],[145,140],[130,140]]},
   ]]};
-  const text = "圖一　花の圖\n本文。圖一を見よ。\n", lines = normalizeKotenOutput(raw,source), engine = ocrCandidate().ocr_provenance.engine;
+  const text = options.textless ? "" : "圖一　花の圖\n本文。圖一を見よ。\n", lines = normalizeKotenOutput(raw,source), engine = ocrCandidate().ocr_provenance.engine;
   const evidence = {schema_version:"0.1",workspace_id:"w1",items:[{evidence_id:"r1",selection:source.selection,
     source:{document_id:"d1",receipt:{sha256:source.manifest_sha256}},canvas:{canvas_id:source.selection.canvas_id,width:1000,height:2000},
     crop:{status:"supported",image_xywh:source.original_image_xywh,transform:source.canvas_to_image},

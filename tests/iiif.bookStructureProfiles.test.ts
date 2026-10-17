@@ -66,3 +66,29 @@ it("keeps competing caption associations and uses figure number for body referen
   expect(result.relations.filter(r=>r.kind==="precedes")).toHaveLength(0);
   expect(result.relations.filter(r=>r.kind==="caption_of").every(r=>r.reasons.some(s=>s.startsWith("normalized_center_distance:")))).toBe(true);
 });
+
+function numberedFigure(caption:string,body:string) {
+  const b=bookFixture();
+  b.lines[0].raw_text=caption;b.spans[0].range_cp=[0,Array.from(caption).length];
+  Object.assign(b.units[0],{kind:"text",region_ids:[]});
+  Object.assign(b.units[0].fields[0],{role:"text",raw_text:caption,text:caption,normalized_text:caption.normalize("NFC")});
+  b.lines.push({...b.lines[0],line_ref:"body",raw_text:body});
+  b.spans.push({span_id:"body-span",line_ref:"body",range_cp:[0,Array.from(body).length]});
+  b.units.push({unit_id:"body-unit",kind:"text",region_ids:[],span_ids:["body-span"],fields:[{field_id:"body-field",role:"text",span_ids:["body-span"],raw_text:body,text:body,normalized_text:body.normalize("NFC")}]});
+  return b;
+}
+
+it.each([
+  ["図一〇","本文は図十を參照","figure:10"],
+  ["図１０","本文は図一〇を參照","figure:10"],
+  ["表二〇二","本文は表202を參照","table:202"],
+])("links equivalent figure numbers %s",(caption,body,key)=>{
+  const b=numberedFigure(caption,body);if(caption.startsWith("表"))b.regions[0].kind="table";
+  const links=applyBookProfile(b).relations.filter(r=>r.kind==="refers_to");
+  expect(links).toHaveLength(1);expect(links[0].reasons).toContain(key);
+});
+
+it("keeps different long figure numbers distinct",()=>{
+  const b=numberedFigure("図12345678901234567890","本文は図12345678901234567891を參照");
+  expect(applyBookProfile(b).relations.filter(r=>r.kind==="refers_to")).toHaveLength(0);
+});

@@ -46,7 +46,7 @@ def export_sqlite(source: Path, output: Path):
         db.executescript(SCHEMA)
         with db:
             db.execute("INSERT INTO metadata VALUES(?,?)", ("structure_id", book["structure_id"]))
-            for items, key, kind in [(book[k], key, k) for k, key in [("pages", "page_id"), ("lines", "line_ref"), ("regions", "region_id"), ("spans", "span_id"), ("units", "unit_id"), ("relations", "relation_id")]]:
+            for items, key, kind in [(book[k], key, k) for k, key in [("pages", "page_id"), ("lines", "line_ref"), ("regions", "region_id"), ("spans", "span_id"), ("units", "unit_id"), ("relations", "relation_id"), ("reviews", "review_id"), ("revisions", "revision_id")]]:
                 db.executemany("INSERT INTO nodes VALUES(?,?)", [(item[key], kind) for item in items])
             for unit in book["units"]:
                 db.executemany("INSERT INTO nodes VALUES(?,?)", [(field["field_id"], "field") for field in unit["fields"]])

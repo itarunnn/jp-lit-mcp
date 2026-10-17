@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { parseBookLayout } from "../src/iiif/bookStructureLayout.js";
@@ -41,6 +41,14 @@ it("rejects an altered raw OCR before producing any structure",async()=>{
   const dir=await mkdtemp(path.join(tmpdir(),"book-raw-"));dirs.push(dir);const f=await makeBookRun(dir);
   await writeFile(path.join(f.root,"raw.txt"),"差し替え");
   await expect(buildBookStructure({workspace_path:f.workspacePath,text_ids:[f.textId],profile:"general",output_dir:path.join(dir,"out")})).rejects.toThrow();
+});
+
+it.each(["duplicate-text","wrong-canvas"])("rejects %s page assignment before writing a bundle",async kind=>{
+  const dir=await mkdtemp(path.join(tmpdir(),"book-pages-"));dirs.push(dir);const f=await makeBookRun(dir),output=path.join(dir,"out");
+  const page={text_id:f.textId,page_id:"p1",sequence_index:0,printed_label:"1",coverage:"ready" as const};
+  const pages=kind==="duplicate-text"?[page,{...page,page_id:"p2",sequence_index:1}]:[{...page,canvas_id:"https://example.org/wrong-canvas"}];
+  await expect(buildBookStructure({workspace_path:f.workspacePath,text_ids:[f.textId],profile:"general",pages,output_dir:output})).rejects.toThrow();
+  await expect(access(output)).rejects.toMatchObject({code:"ENOENT"});
 });
 
 it("keeps its fixed source workspace after linking TEI into the editable workspace",async()=>{

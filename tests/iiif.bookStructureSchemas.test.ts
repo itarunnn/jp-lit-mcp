@@ -28,3 +28,20 @@ it("retains unlocated text and independent entries with the same spelling", () =
     { unit_id: "e2", kind: "entry", region_ids: [], span_ids: ["s1"], fields: [] }];
   expect(parseBookStructure(b).units.map(u => u.unit_id)).toEqual(["e1", "e2"]);
 });
+
+it("accepts a long flat reading order and still rejects a cycle", () => {
+  const b=bookFixture();b.spans[0].range_cp=[0,6];
+  b.units=Array.from({length:600},(_,i)=>({unit_id:`text-${i}`,kind:"text",region_ids:[],span_ids:[],fields:[]}));
+  b.relations=b.units.slice(1).map((_:unknown,i:number)=>({relation_id:`order-${i}`,kind:"precedes",from_id:`text-${i}`,to_id:`text-${i+1}`,reasons:[],score:null,state:"candidate"}));
+  expect(parseBookStructure(b).relations).toHaveLength(599);
+  b.relations.push({relation_id:"back",kind:"precedes",from_id:"text-599",to_id:"text-0",reasons:[],score:null,state:"candidate"});
+  expect(()=>parseBookStructure(b)).toThrow(/循環/);
+});
+
+it.each(["unit-region","unit-span","region-line"])("rejects repeated %s set references before export", kind=>{
+  const b=bookFixture();b.spans[0].range_cp=[0,6];
+  if(kind==="unit-region")b.units[0].region_ids=["r1","r1"];
+  if(kind==="unit-span")b.units[0].span_ids=["s1","s1"];
+  if(kind==="region-line")b.regions[0].line_refs=["l1","l1"];
+  expect(()=>parseBookStructure(b)).toThrow();
+});

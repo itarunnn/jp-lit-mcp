@@ -15,8 +15,11 @@ function rows(lines:Line[],height:number) {
 }
 const headPattern=/^[\s(（\[〔「『{〈]*([ぁ-ゖァ-ヺー・\-]{1,35})\s*[（(〔\[]\s*(自動|他動|名|代|形|副|感|動|助)[）)〕\]]?/u;
 function numberKey(s:string) {
-  s=s.normalize("NFKC");if(/^\d+$/.test(s))return String(Number(s));
-  const digits:Record<string,number>={〇:0,零:0,一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};let total=0,n=0;
+  s=s.normalize("NFKC");const trimZero=(value:string)=>value.replace(/^0+(?=\d)/,"");
+  if(/^\d+$/.test(s))return trimZero(s);
+  const digits:Record<string,number>={〇:0,零:0,一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+  if(Array.from(s).every(c=>c in digits))return trimZero(Array.from(s,c=>digits[c]).join(""));
+  let total=0,n=0;
   for(const c of s)if(c in digits)n=digits[c];else if(c==="十"||c==="百"||c==="千"){total+=(n||1)*({十:10,百:100,千:1000}[c]);n=0;}else return s;
   return String(total+n);
 }

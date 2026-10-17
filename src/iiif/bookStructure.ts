@@ -40,6 +40,20 @@ export async function buildBookStructure(input:BuildBookRequest):Promise<Structu
   const selected=r.text_ids.map(key=>{const t=w.texts.find(t=>t.text_id===key);if(!t?.ocr_provenance)throw Error("原OCRを持つ候補を指定してください");return t;});
   if(new Set(selected.map(t=>t.ocr_provenance!.source.document_id)).size!==1)throw Error("同じ資料のOCR候補を指定してください");
   if(r.layout_sources.some(s=>!r.text_ids.includes(s.text_id))||new Set(r.layout_sources.map(s=>s.text_id)).size!==r.layout_sources.length)throw Error("layoutとOCR候補の対応が重複または不明です");
+  if(r.pages) {
+    const ready=r.pages.filter(p=>p.text_id!==null);
+    if(ready.length!==selected.length||new Set(ready.map(p=>p.text_id)).size!==ready.length||ready.some(p=>!r.text_ids.includes(p.text_id!)))
+      throw Error("印刷頁とOCR候補を一対一で指定してください");
+    if(new Set(r.pages.map(p=>p.page_id)).size!==r.pages.length||new Set(r.pages.map(p=>p.sequence_index)).size!==r.pages.length)
+      throw Error("印刷頁のID・順序が重複しています");
+    const document=w.documents.find(d=>d.document_id===selected[0].ocr_provenance!.source.document_id);
+    for(const page of r.pages) {
+      if(page.text_id!==null) {
+        const canvas=selected.find(t=>t.text_id===page.text_id)!.ocr_provenance!.source.selection.canvas_id;
+        if(page.coverage!=="ready"||(page.canvas_id!==undefined&&page.canvas_id!==canvas))throw Error("印刷頁の処理状態・Canvasが原OCRと一致しません");
+      } else if(page.coverage==="ready"||!document?.canvases.some(c=>c.canvas_id===page.canvas_id))throw Error("未処理頁のCanvasと処理状態を指定してください");
+    }
+  }
   await protectWorkspaceSources(r.output_dir,w,[r.workspace_path,...r.layout_sources.map(s=>s.path)]);
   for(const side of r.layout_sources) {
     const t=selected.find(t=>t.text_id===side.text_id)!;
@@ -54,7 +68,6 @@ export async function buildBookStructure(input:BuildBookRequest):Promise<Structu
     workspace_id:w.workspace_id,document_id:selected[0].ocr_provenance!.source.document_id,inputs:[],pages:[],lines:[],regions:[],spans:[],units:[],relations:[],reviews:[],revisions:[],diagnostics:[]};
   const paths=new Map<string,string>();
   paths.set(sourceWorkspace,"workspace");for(const file of [original.tei_path,original.index_path,original.provenance_path])paths.set(file,"verified_ocr_export");
-  if(r.pages&&(new Set(r.pages.map(p=>p.text_id).filter(Boolean)).size!==selected.length||r.pages.some(p=>p.text_id&&!r.text_ids.includes(p.text_id))))throw Error("印刷頁とOCR候補の対応が不正です");
   for(const [i,item] of index.items.entries()) {
     const spec=r.pages?.find(p=>p.text_id===item.text_id);if(r.pages&&!spec)throw Error("印刷頁の指定が不足しています");
     if(spec&&spec.coverage!=="ready")throw Error("取り込み済みOCRの頁はreadyで指定してください");

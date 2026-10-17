@@ -2,7 +2,7 @@ import path from "node:path";
 import { mkdir,readFile,writeFile } from "node:fs/promises";
 import { z } from "zod";
 import { readBookStructure,protectBookOutput } from "./bookStructure.js";
-import { structureFingerprint,structureId,parseBookStructure,type BookStructure,type BookUnit,type BookField } from "./bookStructureSchemas.js";
+import { structureId,parseBookStructure,type BookStructure,type BookUnit,type BookField } from "./bookStructureSchemas.js";
 import { exportBookSqlite,bookStructureProject } from "./bookStructureSqlite.js";
 import { ocrDigest } from "./ocrRunner.js";
 import { exportBookRequestSchema } from "./bookStructureRequests.js";
@@ -19,6 +19,10 @@ function imageName(p:BookStructure["pages"][number],i:number) {return `images/pa
 export function renderBookTei(input:BookStructure):string {
   const b=parseBookStructure(input),units=new Map(b.units.map(u=>[u.unit_id,u])),spans=new Map(b.spans.map(s=>[s.span_id,s]));
   const ids=new Map<string,string>(),emitted=new Set<string>();
+  for(const [items,key,prefix] of [[b.pages,"page_id","surface"],[b.lines,"line_ref","raw-line"],[b.regions,"region_id","zone"],
+    [b.spans,"span_id","span"],[b.units,"unit_id","unit"],[b.units.flatMap(u=>u.fields),"field_id","field"],
+    [b.relations,"relation_id","link"],[b.reviews,"review_id","review"],[b.revisions,"revision_id","revision"]] as const)
+    for(const item of items){const id=(item as any)[key] as string;ids.set(id,structureId(prefix,id));}
   const zone=(key:string)=>structureId("zone",key),uid=(key:string)=>structureId("unit",key);
   const regionsFor=(spanIds:string[])=>[...new Set(spanIds.flatMap(s=>{const line=spans.get(s)?.line_ref;return b.regions.filter(r=>r.origin==="ocr_line"&&r.line_refs.includes(line??"")&&r.image_xywh).map(r=>r.region_id);}))];
   const categories=new Set<string>();
@@ -44,28 +48,36 @@ export function renderBookTei(input:BookStructure):string {
     if(u.kind==="figure"||u.kind==="table") {
       const captions=b.relations.filter(r=>r.kind==="caption_of"&&r.to_id===u.unit_id&&acceptedBookAssociation(b,r)).flatMap(r=>(units.get(r.from_id)?.fields??[]).map(f=>({f,r})));
       // キャプションの本体は元unitに一度だけ保存し、図側は参照する。
-      return `<figure${u.kind==="table"?' type="table"':""} ${a}>${captions.map(({f,r})=>`<head corresp="#${structureId("field",f.field_id)} #${structureId("link",r.relation_id)}">${xml(f.text)}</head>`).join("")}${u.fields.map(f=>field(f)).join("")}${nested}</figure>`;
+      return `<figure${u.kind==="table"?' type="table"':""} ${a}>${captions.map(({f,r})=>`<head corresp="#${structureId("field",f.field_id)} #${structureId("link",r.relation_id)}">${xml(f.text)}</head>`).join("")}${u.fields.map(f=>f.role==="caption"?field(f,"head"):`<ab type="transcription">${field(f)}</ab>`).join("")}${nested}</figure>`;
     }
     return `<ab type="${u.kind}" ${a}>${u.fields.map(f=>field(f)).join("")}${nested}</ab>`;
   };
   const childIds=new Set([...children.values()].flat());
   const roots=b.units.filter(u=>!childIds.has(u.unit_id));
-  const logical=roots.map(u=>u.kind==="sense"?`<entryFree type="orphan-sense">${render(u)}</entryFree>`:render(u)).join("");
-  const remaining=b.units.filter(u=>!emitted.has(u.unit_id)).map(u=>render(u)).join("");
+  const root=(u:BookUnit)=>u.kind==="sense"?`<entryFree type="orphan-sense">${render(u)}</entryFree>`:
+    u.kind==="figure"||u.kind==="table"?`<ab type="figure-container">${render(u)}</ab>`:render(u);
+  const logical=roots.map(root).join("");
+  const remaining=b.units.filter(u=>!emitted.has(u.unit_id)).map(root).join("");
   const raw=b.lines.map(l=>{
-    const facs=regionsFor(b.spans.filter(s=>s.line_ref===l.line_ref).map(s=>s.span_id)).map(key=>`#${zone(key)}`).join(" ");
-    return `<ab xml:id="${structureId("raw-line",l.line_ref)}"${facs?` facs="${facs}"`:""} xml:space="preserve">${xml(l.raw_text)}</ab>`;
+    return `<ab ${attrs(l.line_ref,l,regionsFor(b.spans.filter(s=>s.line_ref===l.line_ref).map(s=>s.span_id)),"raw-line")} xml:space="preserve">${xml(l.raw_text)}</ab>`;
   }).join("");
   const surfaces=b.pages.map((p,i)=>{
-    if(p.coverage!=="ready")return "";const [x,y,w,h]=p.canvas_xywh!;
-    const zones=b.regions.filter(r=>r.page_id===p.page_id&&r.image_xywh).map(r=>{ids.set(r.region_id,zone(r.region_id));const [x,y,w,h]=r.image_xywh!;return `<zone xml:id="${zone(r.region_id)}" type="${r.kind}" ulx="${x}" uly="${y}" lrx="${x+w}" lry="${y+h}"/>`;}).join("");
-    return `<surface xml:id="${structureId("surface",p.page_id)}" sameAs="${xml(p.canvas_id)}#xywh=${[x,y,w,h].join(",")}" ulx="0" uly="0" lrx="${p.image_width}" lry="${p.image_height}"><graphic url="${imageName(p,i)}" width="${p.image_width}px" height="${p.image_height}px"/>${zones}</surface>`;
+    const a=attrs(p.page_id,p,[],"surface");
+    if(p.coverage!=="ready")return `<surface ${a} sameAs="${xml(p.canvas_id)}" type="${p.coverage}"/>`;
+    const [x,y,w,h]=p.canvas_xywh!;
+    const zones=b.regions.filter(r=>r.page_id===p.page_id).map(r=>{
+      const geometry=r.image_xywh?` ulx="${r.image_xywh[0]}" uly="${r.image_xywh[1]}" lrx="${r.image_xywh[0]+r.image_xywh[2]}" lry="${r.image_xywh[1]+r.image_xywh[3]}"`:"";
+      return `<zone ${attrs(r.region_id,r,[],"zone")} type="${r.kind}"${geometry}/>`;
+    }).join("");
+    return `<surface ${a} sameAs="${xml(p.canvas_id)}#xywh=${[x,y,w,h].join(",")}" ulx="0" uly="0" lrx="${p.image_width}" lry="${p.image_height}"><graphic url="${imageName(p,i)}" width="${p.image_width}px" height="${p.image_height}px"/>${zones}</surface>`;
   }).join("");
-  const links=b.relations.filter(r=>ids.has(r.from_id)&&ids.has(r.to_id)).map(r=>`<link ${attrs(r.relation_id,r,[],"link")} type="${r.kind}" target="#${ids.get(r.from_id)} #${ids.get(r.to_id)}"/>`).join("");
-  const actors=new Map(b.reviews.map(r=>[structureId("actor",r.actor),r.actor]));
-  const revisions=b.reviews.map(r=>`<change xml:id="${structureId("review",r.review_id)}" who="#${structureId("actor",r.actor)}" when="${r.recorded_at}" type="${r.aspect}" n="${r.result}"${ids.has(r.subject_id)?` corresp="#${ids.get(r.subject_id)}"`:""}>${xml(r.note)}</change>`).join("");
+  const sourceSpans=b.spans.map(s=>`<span ${attrs(s.span_id,s,regionsFor([s.span_id]),"span")} from="#${ids.get(s.line_ref)}" n="${s.range_cp.join(":")}"/>`).join("");
+  const links=b.relations.map(r=>`<link ${attrs(r.relation_id,r,[],"link")} type="${r.kind}" target="#${ids.get(r.from_id)} #${ids.get(r.to_id)}"/>`).join("");
+  const actors=new Map([...b.reviews,...b.revisions].map(r=>[structureId("actor",r.actor),r.actor]));
+  const revisions=b.reviews.map(r=>`<change xml:id="${structureId("review",r.review_id)}" who="#${structureId("actor",r.actor)}" when="${r.recorded_at}" type="${r.aspect}" n="${r.result}" corresp="#${ids.get(r.subject_id)}">${xml(r.note)}</change>`).join("")+
+    b.revisions.map(r=>`<change xml:id="${structureId("revision",r.revision_id)}" who="#${structureId("actor",r.actor)}" when="${r.recorded_at}" type="${r.operation}" corresp="#${ids.get(r.subject_id)}">${xml(JSON.stringify(r.payload))}</change>`).join("");
   categories.add("candidate");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc><titleStmt><title>位置と関係を持つ書籍構造</title>${[...actors].map(([id,a])=>`<respStmt xml:id="${id}"><resp>${a.kind}</resp><name>${xml(a.name)}</name></respStmt>`).join("")}</titleStmt><publicationStmt><p>候補構造と確認記録。出典と訂正履歴はstructure.jsonとprovenance.jsonを参照。</p></publicationStmt><sourceDesc><p>IIIF原画像と検証済みOCR。</p></sourceDesc></fileDesc><encodingDesc><classDecl><taxonomy xml:id="structure-status">${[...categories].map(c=>`<category xml:id="${c}"><catDesc>${c}</catDesc></category>`).join("")}</taxonomy></classDecl></encodingDesc>${revisions?`<revisionDesc>${revisions}</revisionDesc>`:""}</teiHeader><facsimile>${surfaces}</facsimile>${links?`<standOff><linkGrp type="book-relations">${links}</linkGrp></standOff>`:""}<text><group><text type="ocr-source"><body>${raw}</body></text><text type="structure"><body>${logical}${remaining}</body></text></group></text></TEI>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc><titleStmt><title>位置と関係を持つ書籍構造</title>${[...actors].map(([id,a])=>`<respStmt xml:id="${id}"><resp>${a.kind}</resp><name>${xml(a.name)}</name></respStmt>`).join("")}</titleStmt><publicationStmt><p>候補構造と確認記録。出典と訂正履歴はstructure.jsonとprovenance.jsonを参照。</p></publicationStmt><sourceDesc><p>IIIF原画像と検証済みOCR。</p></sourceDesc></fileDesc><encodingDesc><classDecl><taxonomy xml:id="structure-status">${[...categories].map(c=>`<category xml:id="${c}"><catDesc>${c}</catDesc></category>`).join("")}</taxonomy></classDecl></encodingDesc>${revisions?`<revisionDesc>${revisions}</revisionDesc>`:""}</teiHeader><facsimile>${surfaces}</facsimile>${sourceSpans||links?`<standOff>${sourceSpans?`<spanGrp type="source-codepoint-ranges">${sourceSpans}</spanGrp>`:""}${links?`<linkGrp type="book-relations">${links}</linkGrp>`:""}</standOff>`:""}<text><group><text type="ocr-source"><body>${raw||"<p/>"}</body></text><text type="structure"><body>${logical+remaining||"<p/>"}</body></text></group></text></TEI>\n`;
 }
 
 export async function exportBookStructure(input:z.input<typeof exportBookRequestSchema>):Promise<StructureExportResult> {
