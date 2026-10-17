@@ -12,7 +12,7 @@ export async function bookStructureProject():Promise<string> {
 export async function exportBookSqlite(structurePath:string,outputPath:string):Promise<void> {
   const root=await bookStructureProject();
   await new Promise<void>((resolve,reject)=>{
-    const child=spawn("uv",["run","--quiet","--directory",root,"--frozen","--no-dev","python","-m","book_structure","sqlite","--input",structurePath,"--output",outputPath],
+    const child=spawn("uv",["run","--quiet","--directory",root,"--frozen","--inexact","--no-dev","python","-m","book_structure","sqlite","--input",structurePath,"--output",outputPath],
       {shell:false,windowsHide:true,stdio:["ignore","pipe","pipe"]});
     let bytes=0,settled=false;const chunks:Buffer[]=[];
     const finish=(error?:Error)=>{if(settled)return;settled=true;clearTimeout(timer);if(error){child.kill();reject(error);}else resolve();};

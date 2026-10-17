@@ -102,5 +102,8 @@ export async function buildBookStructure(input:BuildBookRequest):Promise<Structu
 }
 
 export async function protectBookOutput(outputDir:string,b:BookStructure,additional:string[]=[]) {
-  await assertDistinctOutput(outputDir,[...b.inputs.map(i=>i.path),...b.pages.flatMap(p=>p.image_path?[p.image_path]:[]),...additional]);
+  const workspace=b.inputs.find(i=>i.role==="workspace");
+  if(workspace)await protectWorkspaceSources(outputDir,await readWorkspace(workspace.path),additional);
+  await assertDistinctOutput(outputDir,[...b.inputs.map(i=>i.path),...b.inputs.filter(i=>i.role==="ocr_run"||i.role==="verified_ocr_export").map(i=>path.dirname(i.path)),
+    ...b.pages.flatMap(p=>p.image_path?[p.image_path]:[]),...additional]);
 }

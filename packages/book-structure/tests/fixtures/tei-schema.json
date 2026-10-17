@@ -1,0 +1,6 @@
+{
+  "version": "4.12.0",
+  "source": "https://tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng",
+  "sha256": "b0f115095ead2ccc6933aa3365c6f4a82cba3b2ec7eee7f76bb616d7a63b7e48",
+  "license": "BSD-2-Clause (TEI source header also offers CC BY)"
+}

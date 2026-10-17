@@ -15,7 +15,7 @@ export function bookSubjects(b:BookStructure):Map<string,any> {
 }
 export async function reviewBookStructure(input:z.input<typeof reviewBookRequestSchema>):Promise<StructureResult> {
   const r=reviewBookRequestSchema.parse(input),b=await readBookStructure(r.structure_path,r.expected_sha256);
-  await protectBookOutput(r.output_dir,b,[path.dirname(r.structure_path)]);
+  await protectBookOutput(r.output_dir,b,[r.structure_path]);
   const subjects=bookSubjects(b);
   for(const d of r.decisions) {
     const subject=subjects.get(d.subject_id);
