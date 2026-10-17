@@ -1,0 +1,12 @@
+[project]
+name = "jp-lit-book-structure"
+version = "0.1.0"
+description = "書籍構造JSONからSQLiteとTEI検証を行う任意のローカル機能"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = ["lxml"]
+
+[tool.uv]
+package = false
