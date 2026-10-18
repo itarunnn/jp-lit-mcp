@@ -49,6 +49,50 @@ class ModalContractsTests(unittest.TestCase):
             def cancel(self, **kwargs): raise AssertionError('completed call cancelled')
         self.assertEqual(c.wait_for_call(Call(), 1), {'raw': 'preserved'})
 
+    def test_host_cancellation_cancels_owned_call_after_poll(self):
+        c = self.module()
+        class PollTimeout(Exception): pass
+        class Call:
+            cancelled = False
+            polled = False
+            def get(self, timeout):
+                self.polled = True
+                raise PollTimeout()
+            def cancel(self, terminate_containers=False): self.cancelled = terminate_containers
+        call = Call(); confirmations = []
+        with self.assertRaises(InterruptedError):
+            c.wait_for_call(call, 30, cancelled=lambda: call.polled,
+                            poll_timeout_types=(PollTimeout,), on_cancel=lambda: confirmations.append(True))
+        self.assertTrue(call.cancelled)
+        self.assertEqual(confirmations, [True])
+
+    def test_remote_timeout_is_not_retried_as_a_poll_timeout(self):
+        c = self.module()
+        class PollTimeout(Exception): pass
+        class RemoteTimeout(PollTimeout): pass
+        class Call:
+            count = 0
+            def get(self, timeout):
+                self.count += 1
+                raise RemoteTimeout()
+            def cancel(self, **kwargs): pass
+        call = Call()
+        with self.assertRaises(RemoteTimeout):
+            c.wait_for_call(call, 30, cancelled=lambda: False, poll_timeout_types=(PollTimeout,))
+        self.assertEqual(call.count, 1)
+
+    def test_builtin_sdk_poll_timeout_can_be_followed_by_completion(self):
+        c = self.module()
+        class Call:
+            count = 0
+            def get(self, timeout):
+                self.count += 1
+                if self.count == 1: raise TimeoutError()
+                return {'raw': 'preserved after poll'}
+            def cancel(self, **kwargs): raise AssertionError('completed call cancelled')
+        self.assertEqual(c.wait_for_call(Call(), 30, cancelled=lambda: False, poll_timeout_types=(TimeoutError,)),
+                         {'raw': 'preserved after poll'})
+
     def test_rejects_response_traversal_and_hash_drift(self):
         c = self.module()
         body = base64.b64encode(b'raw').decode()
@@ -72,7 +116,7 @@ class ModalContractsTests(unittest.TestCase):
         request = self.request(); request['operation'] = 'inspect'
         stdin = SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()))
         stdout, stderr = io.StringIO(), io.StringIO()
-        with patch.dict(sys.modules, {'modal': SimpleNamespace(enable_output=output), 'iiif_ocr_modal.cloud': cloud}), \
+        with patch.dict(sys.modules, {'modal': SimpleNamespace(enable_output=output), 'modal.exception': SimpleNamespace(TimeoutError=TimeoutError), 'iiif_ocr_modal.cloud': cloud}), \
                 patch.object(sys, 'stdin', stdin), redirect_stdout(stdout), redirect_stderr(stderr):
             self.assertEqual(main(), 0)
         self.assertTrue(stdout.getvalue().startswith('{'), 'SDK progress corrupted JSON stdout')

@@ -227,6 +227,31 @@ $inspection.result.config | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf
 
 `expected_metadata_sha256`は`/v1/engines`の選択engine記述を固定する値です。APIが返さないアプリ版・モデル版・エンジン実体hashはnullで残します。モデル更新の検出や実体の同一性を、このmetadata hashだけで確認することはできません。既存のNDL古典籍OCR providerの実体hashとは分けて読みます。
 
+### Modal A10で古典籍OCR ver.3を使う（開発checkout）
+
+任意provider `ndlkotenocr-modal`は、同じ`run_ocr`・`import_ocr`・`export_ocr_tei`に接続します。利用者が外部処理を許可した公開画像を1〜4件指定し、対象の保存画像SHA-256をscopeへ固定します。Modalの既存認証設定とGPUを利用できるaccountを準備します。SDKは専用のuv packageへ隔離し、通常MCPの起動時には導入しません。
+
+```json
+{
+  "api_version": "0.1", "operation": "inspect_ocr_provider",
+  "provider": "ndlkotenocr-modal",
+  "approved_image_sha256": ["保存画像のSHA-256を64桁で指定"],
+  "timeout_ms": 600000
+}
+```
+
+このinspectは、固定版の公式code・モデルを含むimageをModalに構築し、A10上で実体hashとPython/PyTorch/CUDA/GPUを検査します。画像は送信しません。初回buildとGPU検査はModalの課金対象です。返る`result.config`をJSONへ保存し、`run_ocr`の`provider_config_path`へ指定します。configはengine snapshotとadapter hashを持ち、既存configを使うrunではlocalでそれらを検証してから、scopeに一致した画像だけを送ります。
+
+公式codeは`939cbfaf617eb8fd7e54cf1daeb66fb5a92749ec`、GPUはA10一枚、CPU 2 core、memory 8192 MiB、一時App・並列1・リトライ0を使います。推論時はネットワークを遮断し、各画像の推論は最大600秒です。永続deploy・公開endpoint・Volumeは作成しません。
+
+モデル実体のhashはcode・重み・image ID・Python/PyTorch/CUDAから計算します。実行先のGPU表示はA10/A10Gを許可してreceiptへ別途記録します。認識batchの入力・返却行数と、重複除去を含む整序の入力・最終出力行数をそれぞれ検査します。認識行数と整序後行数の差は検査記録に残ります。
+
+`image_transmission="modal"`と原画像hash、原TXT/JSON、モデル・code hash、行数検査、`modal-response.json`、`modal-receipt.json`、stdout/stderrをrunへ保存します。receiptにはcall ID、Modal image ID、SDK版、worker秒・wall秒・resource条件が付きます。worker秒からの費用は概算として記録し、実請求額はModal側の利用記録で確認します。
+
+取込・TEI出力・評価は保存済みartifactをofflineで再検証します。推論失敗や行batchの脱落、画像・engine・adapterの不一致では候補化を止め、取得できた原応答とlogを保持します。失敗runは保存して、再試行には新しい出力先を使います。外部処理先と画像scopeが変わる場合は、新しいscopeの確認とconfig作成を行います。
+
+host待機はbuildを含め40分で打ち切ります。停止時はSDKへ所有callのcancelを依頼し、call IDとcancel確認logを保持します。15秒で終了しないhelperは、その起動PIDの子processを含めて回収します。build中の停止要求は画像dispatch前にも確認します。回線断や強制終了でcancel確認が得られない場合は、保存したcall IDからModal側の状態を確認してください。
+
 ### 任意のengineを導入する
 
 Windowsで検証した例はuvとPython3.12.12を使います。保存先を自分のtoolchain directoryへ変更してください。engineのcodeと重みは上流のCC BY 4.0に従い、研究画像の利用条件は資料ごとに確認します。

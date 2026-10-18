@@ -1,6 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { localOcrEngineSchema, localOcrConfigSchema, localOcrMetadataHash } from "./localOcrSchemas.js";
+import { modalOcrEngineSchema,modalOcrConfigSchema,modalEngineHash } from "./ocrModalSchemas.js";
 const id = z.string().min(1).max(4096), n = z.number().finite(), positive = n.positive();
 export const ocrHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const ocrAbsoluteSchema = z.string().refine((s) => path.isAbsolute(s), "絶対pathを指定してください");
@@ -17,7 +18,8 @@ export const ocrGpuEngineSchema = z.object({
   python_version: id, torch_version: id, cuda_version: id, gpu: id, files: z.array(artifact).min(1).max(1000),
 });
 export const ndlOcrEngineSchema = ocrGpuEngineSchema.extend({ provider: z.literal("ndlocr-ver2"), model_version: z.literal("2.1") });
-export const ocrEngineSchema = z.discriminatedUnion("provider", [ocrLiteEngineSchema, ocrGpuEngineSchema, localOcrEngineSchema, ndlOcrEngineSchema])
+export const ocrEngineSchema = z.discriminatedUnion("provider", [ocrLiteEngineSchema, ocrGpuEngineSchema, localOcrEngineSchema, ndlOcrEngineSchema,modalOcrEngineSchema])
+  .refine(engine=>engine.provider!=="ndlkotenocr-modal"||modalEngineHash(engine.image_id,engine)===engine.engine_sha256,"Modal実体hashが一致しません")
   .refine(engine => engine.provider !== "local-ocr" || (engine.metadata.ready && engine.metadata.id === engine.engine_id &&
     engine.metadata.modes.includes(engine.mode) && localOcrMetadataHash(engine.metadata) === engine.metadata_sha256), "Local OCRのmetadata記録が一致しません");
 const timeout = z.number().int().min(1000).max(600000).default(180000);
@@ -30,7 +32,7 @@ export const ocrGpuConfigSchema = z.object({
   image_id: z.string().regex(/^sha256:[a-f0-9]{64}$/), expected_engine_sha256: ocrHashSchema, timeout_ms: timeout,
 }).strict();
 export const ndlOcrConfigSchema = ocrGpuConfigSchema.extend({ provider: z.literal("ndlocr-ver2") });
-export const ocrConfigSchema = z.discriminatedUnion("provider", [liteConfigSchema, ocrGpuConfigSchema, localOcrConfigSchema, ndlOcrConfigSchema]);
+export const ocrConfigSchema = z.discriminatedUnion("provider", [liteConfigSchema, ocrGpuConfigSchema, localOcrConfigSchema, ndlOcrConfigSchema,modalOcrConfigSchema]);
 export const ocrSourceSchema = z.object({
   workspace_id: id, document_id: id, manifest_sha256: ocrHashSchema, evidence_id: id,
   selection: z.object({ region_id: id, window_id: id, canvas_id: id, xywh: rect, coordinate_space: z.literal("canvas"), rotation_degrees: n }),
@@ -64,12 +66,12 @@ export const ocrRunItemSchema = z.object({
 });
 export const ocrRunSchema = z.object({
   schema_version: z.literal("0.1"), run_id: id, status: z.enum(["running", "completed", "partial", "failed"]),
-  image_transmission: z.enum(["none", "loopback"]), device: z.enum(["cpu", "cuda", "unknown"]), engine: ocrEngineSchema,
+  image_transmission: z.enum(["none", "loopback","modal"]), device: z.enum(["cpu", "cuda", "unknown"]), engine: ocrEngineSchema,
   evidence_path: ocrAbsoluteSchema, evidence_sha256: ocrHashSchema,
   requested_evidence_ids: z.array(id).min(1).max(4).optional(), active_evidence_id: id.nullable().optional(),
   items: z.array(ocrRunItemSchema).max(4),
 }).refine(run => run.device === (run.engine.provider === "local-ocr" ? "unknown" : run.engine.provider === "ndlkotenocr-lite" ? "cpu" : "cuda") &&
-  run.image_transmission === (run.engine.provider === "local-ocr" ? "loopback" : "none"), "OCR providerとdevice・送信範囲が一致しません");
+  run.image_transmission === (run.engine.provider === "local-ocr" ? "loopback" : run.engine.provider==="ndlkotenocr-modal"?"modal":"none"), "OCR providerとdevice・送信範囲が一致しません");
 export type OcrSource = z.infer<typeof ocrSourceSchema>;
 export type OcrLine = z.infer<typeof ocrLineSchema>;
 export type OcrRun = z.infer<typeof ocrRunSchema>;

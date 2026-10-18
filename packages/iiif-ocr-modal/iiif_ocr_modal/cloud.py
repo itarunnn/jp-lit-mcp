@@ -10,7 +10,7 @@ image = (modal.Image.from_registry('nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04'
                'HF_DATASETS_OFFLINE': '1', 'PYTHONDONTWRITEBYTECODE': '1'})
          .run_commands(f'git clone https://github.com/ndl-lab/ndlkotenocr_cli.git /root/kotenocr_cli && cd /root/kotenocr_cli && git checkout {SOURCE_COMMIT}')
          .run_commands('python -m pip install torch==2.1.1 torchvision==0.16.1 torchaudio==2.1.1 torchtext==0.16.1 --index-url https://download.pytorch.org/whl/cu121')
-         .run_commands('python -m pip install -r /root/kotenocr_cli/requirements.txt')
+         .run_commands('CC=gcc CXX=g++ python -m pip install -r /root/kotenocr_cli/requirements.txt')
          .run_commands('python -m pip install mmcv==2.1.0 -f https://download.openmmlab.com/mmcv/dist/cu121/torch2.1/index.html')
          .run_commands('wget -q https://lab.ndl.go.jp/dataset/ndlkotensekiocr/trocr/model-ver2.zip -O /tmp/koten-model.zip && unzip -q /tmp/koten-model.zip -d /root/kotenocr_cli/src/text_kotenseki_recognition/',
                        'wget -q https://lab.ndl.go.jp/dataset/ndlkotensekiocr/layoutmodel/ndl_kotenseki_layout_ver3.pth -O /root/kotenocr_cli/src/ndl_kotenseki_layout/models/ndl_kotenseki_layout_ver3.pth')

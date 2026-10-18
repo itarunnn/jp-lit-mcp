@@ -160,7 +160,8 @@ export const requestSchema = z.discriminatedUnion("operation", [
   }),
   z.object({
     api_version: z.literal("0.1"), operation: z.literal("inspect_ocr_provider"),
-    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr", "ndlocr-ver2"]).default("ndlkotenocr-lite"),
+    provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr", "ndlocr-ver2","ndlkotenocr-modal"]).default("ndlkotenocr-lite"),
+    approved_image_sha256: z.array(teiHashSchema).min(1).max(4).optional(),
     engine_dir: absolute.optional(), python_path: absolute.optional(), docker_path: absolute.optional(),
     image_id: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
     base_url: z.string().max(200).optional(), engine_id: localOcrEngineIdSchema.optional(),

@@ -15,7 +15,7 @@ metadata:
 
 既存テキストがあれば画像と併読する。細字の疑義が残る場合は必要な範囲を選び直す。TEI画像対応はCLIのhelpに`link_tei`がある0.18.0以降の版で使う。固定XMLの原構造・hash・locatorを保持し、画像への対応と本文校合を別に記録する。詳細はworkflowのTEI連携を読む。
 
-ローカルくずし字OCRはhelpに`run_ocr`がある版で、標準の任意engineにNDL古典籍OCR-Liteを使う。導入済みDockerの古典籍OCR ver.3も追加providerとして選べる。[workflowのOCR連携](references/workflow.md#ローカルくずし字ocr)でproviderの固定、実行、import、失敗時の原出力保全を確認する。OCR原文・修訂候補・校合記録を分け、機械出力から校合済みへ自動昇格させない。engine未導入なら同梱[OCR導入・評価手順](references/ocr.md)を読む。KuroNetは手動補助を使い、貼付候補の評価でもサービス入力画像hashとモデル版の不明状態を保持する。公開OCRサービスや外部モデルへの自動接続は、利用者による明示設定と資料別許可を具体化する後続段階である。
+ローカルくずし字OCRはhelpに`run_ocr`がある版で、標準の任意engineにNDL古典籍OCR-Liteを使う。導入済みDockerの古典籍OCR ver.3も追加providerとして選べる。[workflowのOCR連携](references/workflow.md#ローカルくずし字ocr)でproviderの固定、実行、import、失敗時の原出力保全を確認する。OCR原文・修訂候補・校合記録を分け、機械出力から校合済みへ自動昇格させない。engine未導入なら同梱[OCR導入・評価手順](references/ocr.md)を読む。利用者がModalでの公開画像処理を指定した開発checkoutでは、[Modal A10手順](references/ocr-modal.md)で対象画像hashとengineを固定する。KuroNetは手動補助を使い、貼付候補の評価でもサービス入力画像hashとモデル版の不明状態を保持する。
 
 読解結果の確認にはworkspaceを再開し、同じ領域IDの「元の場所へ戻る」を使う。機械読解の完了と原資料との照合を別の状態として報告する。
 

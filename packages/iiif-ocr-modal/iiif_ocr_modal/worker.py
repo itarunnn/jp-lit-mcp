@@ -19,7 +19,8 @@ def worker(request, image_id):
     if completed.returncode:
         raise RuntimeError('engine inspection failed: ' + completed.stderr.decode('utf-8', errors='replace')[-2000:])
     metadata = json.loads(completed.stdout)
-    identity = {'source_commit': SOURCE_COMMIT, 'image_id': image_id, 'metadata': metadata}
+    model_metadata = {key: value for key, value in metadata.items() if key != 'gpu'}
+    identity = {'source_commit': SOURCE_COMMIT, 'image_id': image_id, 'metadata': model_metadata}
     engine_hash = hashlib.sha256(json.dumps(identity, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
     result = {'metadata': metadata, 'engine_sha256': engine_hash, 'image_id': image_id,
               'source_commit': SOURCE_COMMIT, 'gpu_type': 'A10', 'status': 'completed',
@@ -28,7 +29,9 @@ def worker(request, image_id):
         result['worker_seconds'] = time.monotonic() - began
         return result
     if engine_hash != request['expected_engine_sha256']:
-        raise ValueError('remote engine identity changed')
+        result.update(status='failed', error='remote engine identity changed', input_sha256=request['image_sha256'],
+                      worker_seconds=time.monotonic() - began)
+        return result
     from PIL import Image
     data = base64.b64decode(request['image'], validate=True)
     with Image.open(io.BytesIO(data)) as image:

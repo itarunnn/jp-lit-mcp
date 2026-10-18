@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import re
+import time
 
 
 def validate_request(request):
@@ -26,11 +27,27 @@ def validate_request(request):
     return request
 
 
-def wait_for_call(call, timeout):
+def wait_for_call(call, timeout, cancelled=None, poll_timeout_types=(), on_cancel=None):
     try:
-        return call.get(timeout=timeout)
+        if cancelled is None:
+            return call.get(timeout=timeout)
+        deadline = time.monotonic() + timeout
+        while True:
+            if cancelled():
+                raise InterruptedError('host cancelled owned call')
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('call wait exceeded limit')
+            try:
+                return call.get(timeout=min(2, remaining))
+            except Exception as error:
+                # FunctionTimeoutError等のremote例外はpoll timeoutとして再待機しない。
+                if type(error) not in poll_timeout_types:
+                    raise
     except BaseException:
         call.cancel(terminate_containers=True)
+        if on_cancel is not None:
+            on_cancel()
         raise
 
 

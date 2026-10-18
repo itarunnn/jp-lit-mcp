@@ -57,9 +57,10 @@ export function normalizeGpuOutput(input: unknown, source: OcrSource): OcrLine[]
   }))] }, source);
 }
 
-export function normalizeProviderOutput(provider: "ndlkotenocr-lite" | "ndlkotenocr-ver3", input: unknown, text: string, source: OcrSource) {
-  const lines = provider === "ndlkotenocr-ver3" ? normalizeGpuOutput(input, source) : normalizeKotenOutput(input, source);
-  if (provider === "ndlkotenocr-ver3" && text !== lines.map(line=>line.text).join("")+"\n")
+export function normalizeProviderOutput(provider: "ndlkotenocr-lite" | "ndlkotenocr-ver3" | "ndlkotenocr-modal", input: unknown, text: string, source: OcrSource) {
+  const gpu=provider!=="ndlkotenocr-lite";
+  const lines = gpu ? normalizeGpuOutput(input, source) : normalizeKotenOutput(input, source);
+  if (gpu && text !== lines.map(line=>line.text).join("")+"\n")
     throw new Error("GPU OCRの原JSONとTXT本文が一致しません");
   if (!lines.length && text.trim()) throw new Error("OCR行座標と本文が一致しません");
   return lines;

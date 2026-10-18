@@ -49,7 +49,7 @@ root=pathlib.Path('/root/kotenocr_cli')
 sys.path.insert(0,str(root))
 from src.text_kotenseki_recognition.text_recognition import TextRecognizer
 original=TextRecognizer.predict
-counts={'expected_lines':0,'returned_lines':0}
+counts={'expected_lines':0,'returned_lines':0,'ordered_input_lines':0,'ordered_output_lines':0}
 def checked(self,images,coords):
  result=original(self,images,coords)
  counts['expected_lines']+=len(images)
@@ -58,6 +58,15 @@ def checked(self,images,coords):
   raise RuntimeError('OCR silently dropped line batches: expected=%s returned=%s'%(len(images),len(result)))
  return result
 TextRecognizer.predict=checked
+sys.path.insert(0,str(root/'src/reading_order'))
+from src.reading_order.tools.process import InferencerWithCLI as LineOrder
+original_order=LineOrder.inference_wich_cli
+def checked_order(self,obj):
+ result=original_order(self,obj)
+ counts['ordered_input_lines']+=len(obj['json'])
+ counts['ordered_output_lines']+=len(result['json'])
+ return result
+LineOrder.inference_wich_cli=checked_order
 image,out=sys.argv[1:3]
 sys.argv=['main.py','infer',image,out,'-s','f','-a']
 status='completed'
@@ -111,7 +120,10 @@ export async function runGpuImage(engine: z.infer<typeof ocrGpuEngineSchema>, im
 export async function validateGpuCounts(rawDir: string, lineCount: number) {
   const file=path.join(rawDir,"gpu-validation.json"),stat=await lstat(file);
   if(!stat.isFile() || stat.isSymbolicLink() || stat.size>65536)throw new Error("GPU検証fileを確認してください");
-  const validation=z.object({status:z.literal("completed"),expected_lines:z.number().int().nonnegative(),returned_lines:z.number().int().nonnegative()}).parse(JSON.parse(await readFile(file,"utf8")));
-  if(validation.expected_lines!==validation.returned_lines || validation.returned_lines!==lineCount)
+  const validation=z.object({status:z.literal("completed"),expected_lines:z.number().int().nonnegative(),returned_lines:z.number().int().nonnegative(),
+    ordered_input_lines:z.number().int().nonnegative().optional(),ordered_output_lines:z.number().int().nonnegative().optional()}).parse(JSON.parse(await readFile(file,"utf8")));
+  if(validation.expected_lines!==validation.returned_lines ||
+    (validation.ordered_input_lines===undefined ? validation.ordered_output_lines!==undefined||validation.returned_lines!==lineCount :
+      validation.ordered_input_lines!==validation.returned_lines||validation.ordered_output_lines!==lineCount||validation.ordered_output_lines>validation.ordered_input_lines))
     throw new Error("GPU OCRの認識行数が一致しません");
 }

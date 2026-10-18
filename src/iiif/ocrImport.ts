@@ -6,6 +6,7 @@ import { ocrDigest, readOcrFile, resolveOcrArtifact, ocrEvidenceSchema, ocrSourc
 import { imageDimensions } from "./imageMetadata.js";
 import { normalizeLocalOcrOutput } from "./localOcr.js";
 import { validateNdlOcrOutput } from "./ndlOcr.js";
+import { validateModalReceipt } from "./ocrModal.js";
 import { validateWorkspace } from "./schemas.js";
 // @ts-expect-error Nodeとブラウザが共有する判定
 import { assertOcrTarget } from "./ocr-state.mjs";
@@ -41,7 +42,7 @@ export async function importOcr(workspace: IiifWorkspace, runPath: string) {
       artifacts.push({...artifact,path:file,bytes:raw});
     }
     const one = (extension:string) => {
-      const matches=artifacts.filter((a)=>a.path.endsWith(extension) && !["gpu-validation.json","opt.json"].includes(path.basename(a.path)) &&
+      const matches=artifacts.filter((a)=>a.path.endsWith(extension) && !["gpu-validation.json","opt.json","modal-receipt.json","modal-response.json"].includes(path.basename(a.path)) &&
         !(run.engine.provider==="ndlocr-ver2" && path.relative(root,a.path).split(path.sep).includes("native")));
       if (matches.length !== 1) throw new Error(`OCR原出力を確認してください: ${extension}`);
       return matches[0];
@@ -53,11 +54,16 @@ export async function importOcr(workspace: IiifWorkspace, runPath: string) {
     const raw=JSON.parse(json.bytes.toString("utf8")), text=txt.bytes.toString("utf8");
     const lines=run.engine.provider === "local-ocr" ? normalizeLocalOcrOutput(raw,text,source,run.engine) : run.engine.provider === "ndlocr-ver2" ?
       validateNdlOcrOutput(one(".xml").bytes.toString("utf8"),raw,text,source,path.basename(image[0].path)) : normalizeProviderOutput(run.engine.provider,raw,text,source);
-    if(run.engine.provider==="ndlkotenocr-ver3") {
+    if(run.engine.provider==="ndlkotenocr-ver3"||run.engine.provider==="ndlkotenocr-modal") {
       if(raw.imginfo?.img_name!==path.basename(image[0].path))throw new Error("GPU OCRの出力画像名が一致しません");
       const validation=artifacts.filter(a=>path.basename(a.path)==="gpu-validation.json");
       if(validation.length!==1)throw new Error("GPU原検証fileを確認してください");
       await validateGpuCounts(path.dirname(validation[0].path),lines.length);
+    }
+    if(run.engine.provider==="ndlkotenocr-modal"){
+      const receipts=artifacts.filter(a=>path.basename(a.path)==="modal-receipt.json");
+      if(receipts.length!==1)throw new Error("Modal実行receiptを確認してください");
+      validateModalReceipt(JSON.parse(receipts[0].bytes.toString("utf8")),run.engine,source.image_sha256,artifacts);
     }
     if(text!==item.text || JSON.stringify(lines)!==JSON.stringify(item.lines))throw new Error("OCR候補と原出力の本文・行座標が一致しません");
     const textId=`ocr-${ocrDigest(`${run.run_id}:${source.evidence_id}`).slice(0,24)}`;
