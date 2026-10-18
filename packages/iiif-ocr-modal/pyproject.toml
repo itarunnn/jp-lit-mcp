@@ -1,0 +1,9 @@
+[project]
+name = "jp-lit-iiif-ocr-modal"
+version = "0.1.0"
+description = "公開画像の限定範囲をModal A10上のNDL古典籍OCR ver.3で処理する任意bridge"
+requires-python = ">=3.10,<3.11"
+dependencies = ["modal==1.5.1"]
+
+[tool.uv]
+package = false

@@ -44,7 +44,7 @@ print(json.dumps({'python_version':sys.version,'torch_version':torch.__version__
 `;
 
 // upstreamのbatch例外による行脱落を検出し、原engineを変更せず失敗と部分出力を保存する。
-const wrapper = `import json,pathlib,runpy,sys,traceback
+export const gpuWrapper = `import json,pathlib,runpy,sys,traceback
 root=pathlib.Path('/root/kotenocr_cli')
 sys.path.insert(0,str(root))
 from src.text_kotenseki_recognition.text_recognition import TextRecognizer
@@ -98,7 +98,7 @@ export async function runGpuImage(engine: z.infer<typeof ocrGpuEngineSchema>, im
   const input=await realpath(imagePath), output=await realpath(rawDir);
   if([input,output].some(p=>/[,"\r\n]/.test(p)))throw new Error("Docker mountのpathにcomma・引用符・改行を含められません");
   const wrapperPath=path.join(output,"gpu-wrapper.py");
-  await writeFile(wrapperPath,wrapper,{flag:"wx"});
+  await writeFile(wrapperPath,gpuWrapper,{flag:"wx"});
   const imageName=path.basename(input);
   return ownedContainer(engine.docker_path,[
       "--env","HF_HUB_OFFLINE=1","--env","TRANSFORMERS_OFFLINE=1","--env","HF_DATASETS_OFFLINE=1","--env","PYTHONDONTWRITEBYTECODE=1",
