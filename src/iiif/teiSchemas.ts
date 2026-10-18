@@ -13,16 +13,24 @@ const pageRange = z.object({
   content: z.object({ kind: z.literal("fragment"), content: z.array(z.record(z.unknown())).max(4000) }).nullable(),
   omission: omission.nullable(),
 }).refine(p => (p.boundary === "next_pb") === (p.end_locator !== null) && (p.content === null) === (p.omission !== null), "ページ範囲の境界・省略状態が一致しません");
+const lineRange = z.object({
+  start_locator: teiLocatorSchema, end_locator: teiLocatorSchema.nullable(), container_locator: teiLocatorSchema,
+  boundary: z.enum(["next_milestone", "container_end"]),
+  content: z.object({ kind: z.literal("fragment"), content: z.array(z.record(z.unknown())).max(4000) }).nullable(),
+  omission: omission.nullable(),
+}).refine(p => (p.boundary === "next_milestone") === (p.end_locator !== null) && (p.content === null) === (p.omission !== null), "行範囲の境界・省略状態が一致しません");
 export const facsimileItemSchema = z.object({
   source_locator: teiLocatorSchema,
   source_content: z.record(z.unknown()).nullable(),
   omission: omission.nullable(),
   attribute_value: z.string(), token_index: z.number().int().nonnegative(), raw_token: id,
+  attribute_name: z.enum(["facs", "corresp"]).optional(),
   reference_status: z.enum(["resolved_local", "unresolved_local", "ambiguous_local", "empty_fragment_unverified", "base_context_unverified", "external_unverified", "relative_or_bare_unverified"]),
   candidate_count: z.number().int().nonnegative(), xml_base_chain: base,
   target: node.nullable(), surface: node.nullable(), graphics: z.array(node).max(10), diagnostics: z.array(z.string()),
   facs_origin: z.object({ kind: z.enum(["explicit", "ancestor"]), locator: teiLocatorSchema, attribute_value: z.string() }).optional(),
   page_range: pageRange.nullable().optional(),
+  line_range: lineRange.nullable().optional(),
 });
 
 // 原snapshotの位置を、XML取得版と参照の宣言元へ結び付ける。
@@ -37,12 +45,32 @@ export function validateTeiReference(ref: z.infer<typeof facsimileItemSchema>) {
     const path = origin.locator.xpath;
     if (origin.attribute_value !== ref.attribute_value || (origin.kind === "explicit" ? path !== source.xpath : !source.xpath.startsWith(path + "/"))) throw new Error("TEI facs参照元が一致しません");
   }
+  const line = ref.line_range;
+  if (ref.attribute_name === "corresp") {
+    const attrs = z.record(z.string()).safeParse(ref.source_content?.attributes);
+    if (ref.source_content?.name !== "{http://www.tei-c.org/ns/1.0}lb" || ref.target?.name !== "{http://www.tei-c.org/ns/1.0}zone" ||
+      ref.reference_status !== "resolved_local" || origin?.kind !== "explicit" || !attrs.success || attrs.data.corresp !== ref.attribute_value || ref.page_range)
+      throw new Error("TEI lb corresp参照元が一致しません");
+  } else if (line) throw new Error("TEI行範囲にはlb corresp参照を指定してください");
+  if (line) {
+    for (const locator of [line.start_locator, line.end_locator, line.container_locator, line.omission?.locator]) if (locator) sameHash(locator);
+    const container = line.container_locator.xpath + "/";
+    if (line.start_locator.xpath !== source.xpath || source.xpath.slice(0, source.xpath.lastIndexOf("/")) !== line.container_locator.xpath ||
+      (line.end_locator && (!line.end_locator.xpath.startsWith(container) || !/^t:(?:lb|pb|cb)\[\d+\]$/.test(line.end_locator.xpath.slice(container.length)))) ||
+      (line.omission && line.omission.locator.xpath !== source.xpath)) throw new Error("TEI行範囲の位置が一致しません");
+    validateFragment(line.content, container, sameHash);
+  }
   const page = ref.page_range;
   if (!page) return;
   for (const locator of [page.start_locator, page.end_locator, page.container_locator, page.omission?.locator]) if (locator) sameHash(locator);
   const container = page.container_locator.xpath + "/";
   if (page.start_locator.xpath !== source.xpath || !source.xpath.startsWith(container) || (page.end_locator && !page.end_locator.xpath.startsWith(container)) || ref.source_content?.name !== "{http://www.tei-c.org/ns/1.0}pb") throw new Error("TEIページ範囲の位置が一致しません");
-  const stack = (page.content?.content ?? []).map(n => ({ n, depth: 1 }));
+  validateFragment(page.content, container, sameHash);
+}
+
+function validateFragment(content: { content: Record<string, unknown>[] } | null, container: string,
+  sameHash: (locator: z.infer<typeof teiLocatorSchema>) => void) {
+  const stack = (content?.content ?? []).map(n => ({ n, depth: 1 }));
   let elements = 0, nodes = 0, payload = 0;
   while (stack.length) {
     const { n, depth } = stack.pop()!;

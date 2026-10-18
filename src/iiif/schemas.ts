@@ -3,6 +3,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { teiLinkSchema, teiHashSchema, surfaceBindingSchema, validateTeiReference } from "./teiSchemas.js";
 import { ocrProvenanceSchema } from "./ocrSchemas.js";
+import { localOcrEngineIdSchema } from "./localOcrSchemas.js";
 import { manualOcrProvenanceSchema } from "./manualOcrSchemas.js";
 import { readingProvenanceSchema, readingKindSchema } from "./readingSchemas.js";
 import { imageComparisonRecordSchema,imageReferenceSchema } from "./imageComparisonSchemas.js";
@@ -162,7 +163,7 @@ export const requestSchema = z.discriminatedUnion("operation", [
     provider: z.enum(["ndlkotenocr-lite", "ndlkotenocr-ver3", "local-ocr", "ndlocr-ver2"]).default("ndlkotenocr-lite"),
     engine_dir: absolute.optional(), python_path: absolute.optional(), docker_path: absolute.optional(),
     image_id: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
-    base_url: z.string().max(200).optional(), engine_id: z.literal("ndl-lite").optional(),
+    base_url: z.string().max(200).optional(), engine_id: localOcrEngineIdSchema.optional(),
     mode: z.enum(["layout", "line"]).optional(), timeout_ms: z.number().int().min(1000).max(600000).optional(),
   }),
   z.object({
@@ -176,6 +177,7 @@ export const requestSchema = z.discriminatedUnion("operation", [
     expected_sha256: teiHashSchema, document_id: id,
     surface_bindings: z.array(surfaceBindingSchema).max(2000).default([]),
     include_inherited: z.boolean().default(false),
+    include_lb_corresp: z.boolean().default(false),
     limit: z.number().int().min(1).max(100).default(20), offset: z.number().int().nonnegative().default(0),
     overwrite: z.boolean().default(false),
   }),

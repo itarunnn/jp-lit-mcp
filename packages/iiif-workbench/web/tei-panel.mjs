@@ -41,10 +41,11 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       const title = node("h3", link.reference.source_locator.xml_id || link.reference.source_locator.xpath);
       const states = { resolved: "対応あり", candidate: "候補", unresolved: "未解決" };
       article.append(title, node("p", `${states[link.state]} · ${link.reference.raw_token}`));
-      const range = link.reference.page_range, origin = link.reference.facs_origin;
-      if (range) article.append(node("p", `改頁後の本文 · ${range.boundary === "next_pb" ? "次の改頁の直前まで" : "本文containerの末尾まで"}。途中で切れたタグは原構造の一部です。`));
+      const lineRange = link.reference.line_range, range = link.reference.page_range, origin = link.reference.facs_origin;
+      if (lineRange) article.append(node("p", `改行後の本文 · ${lineRange.boundary === "next_milestone" ? "次の改行・改頁・改段の直前まで" : "親要素の末尾まで"}。lbのcorrespから行の画像位置へ対応します。`));
+      else if (range) article.append(node("p", `改頁後の本文 · ${range.boundary === "next_pb" ? "次の改頁の直前まで" : "本文containerの末尾まで"}。途中で切れたタグは原構造の一部です。`));
       if (origin?.kind === "ancestor") article.append(node("p", `親のfacs参照を使用 · ${origin.locator.xml_id || origin.locator.xpath}。画像対応の宣言として確認してください。`));
-      const shown = range ? range.content : link.reference.source_content;
+      const shown = lineRange ? lineRange.content : range ? range.content : link.reference.source_content;
       const content = node("pre", shown ? formatTei(shown) : "本文単位が上限を超えています。TEI readerで小さい単位を指定してください。");
       content.className = "tei-content"; article.append(content);
       const go = node("button", "対応する画像へ"); go.disabled = !link.target;
@@ -63,7 +64,7 @@ export function createTeiPanel({ element, workspace, current, openImage, selecte
       details.append(node("p", `対応記録${link.assignments.length}件 / 校合記録${link.collations.length}件`));
       details.append(node("pre", JSON.stringify({ file_path: link.file_path, source_locator: link.reference.source_locator, target: link.target, candidates: link.candidates,
         diagnostics: link.diagnostics, assignments: link.assignments, collations: link.collations, reference: { target: link.reference.target, surface: link.reference.surface, graphics: link.reference.graphics, xml_base_chain: link.reference.xml_base_chain,
-          facs_origin: origin, page_range: range } }, null, 2)));
+          attribute_name: link.reference.attribute_name ?? "facs", facs_origin: origin, page_range: range, line_range: lineRange } }, null, 2)));
       article.append(details); list.append(article);
     }
   }

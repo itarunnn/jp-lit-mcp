@@ -148,7 +148,7 @@ surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを�
 
 親の画像参照を使う場合は、`link_tei`要求へ`"include_inherited": true`を加えます。最も近い親の`facs`とその宣言元を`facs_origin`へ残します。子の明示`facs`を優先し、空の`facs`は親からの展開を止めます。これはアプリの任意補助で、既定は明示参照だけです。同じモードの`next_offset`を使って続けます。先行改頁の画像を後続改頁へ補完しません。
 
-注記・異読等の中の改頁、異なる`ed/edRef`、本文範囲の不明な改頁は診断付きで保留します。大きい範囲は全体を省略したことを記録し、途中までを全文として保存しません。従来の校合・手動対応がある同IDは当時のsnapshotを保持します。`cb/lb`の後続範囲、任意のcorrespチェーン、外部XML解決は後続の対応です。
+注記・異読等の中の改頁、異なる`ed/edRef`、本文範囲の不明な改頁は診断付きで保留します。大きい範囲は全体を省略したことを記録し、途中までを全文として保存しません。従来の校合・手動対応がある同IDは当時のsnapshotを保持します。開発checkoutの`lb@corresp`は以下のLocal OCR連携で扱います。`cb`単位の本文展開、任意のcorrespチェーン、外部XML解決は後続の対応です。
 
 ## ローカルくずし字OCRを使う
 
@@ -180,17 +180,30 @@ PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア]
 
 ### Local OCRの出力を併用する
 
-[Local OCRの公式手順](https://lo.ldas.jp/guide-more.html)は、画像・IIIFマニフェストの入力、複数engineの比較、TXT／TEI/XML出力を提供しています。外部アプリで作った原結果は、入力画像とともに研究directoryへ保存します。`import_ocr`は対応providerが生成したrun・原応答・TXT・画像を検証します。Local OCRのGUIが保存したTXT/XMLを直接取り込むadapterは後続の対応です。
+[Local OCRの公式手順](https://lo.ldas.jp/guide-more.html)は、画像・IIIFマニフェストの入力、複数engineの比較、TXT／TEI/XML出力を提供しています。外部アプリで作った原結果は、入力画像とともに研究directoryへ保存します。`import_ocr`は対応providerが生成したrun・原応答・TXT・画像を検証します。GUIが保存したTEI/XMLは、開発checkoutの`link_tei`で本文と位置を結び付けます。
 
 Local OCRのTEI出力は、ページを`pb@facs`から`surface`へ、行を`lb@corresp`から`zone`へ結びます。行本文は`lb`の直後に続き、`graphic@url`はローカル画像への相対pathです。行の位置を返さない結果ではzoneを省きます。[出力実装（2026-10-17確認版）](https://github.com/nakamura196/local-ocr/blob/13ce465acb3dfe1b0a347c20212343e9a7f866de/src/local_ocr/core/tei.py)
 
-保存XMLはTEI readerで検査・抽出できます。`check_references`は`corresp`の参照先も点検し、現行`facsimile_links`は`facs`の対応材料を返します。Local OCRのページ対応には必要な`surface_bindings`を明示し、行ごとの`corresp`と後続本文を使う連携は追加実装として扱います。相対画像pathと元Canvasの対応、画像寸法と座標系も確認します。
+保存XMLはTEI readerで検査・抽出できます。`check_references`で参照を点検し、`link_tei`要求へ`"include_lb_corresp": true`を加えると、同一XMLのzoneへ解決した`lb@corresp`も取り込みます。原の属性名は`attribute_name="corresp"`、行本文は`line_range`へ保存します。同じ親の次の`lb/pb/cb`または親末尾を境界とし、タグと原XPathを保ちます。枝の中のlbや入れ子のmilestoneは`line_stream_requires_review`、本文上限は省略記録で示します。既存facsとは別IDで保存し、両方の属性を持つlbも扱います。
+
+Local OCRの相対画像pathと元Canvas・寸法の対応を確認して、ページごとの`surface_bindings`を明示します。既存の`link_tei`要求へ追加する部分は次のとおりです。
+
+```json
+{
+  "include_lb_corresp": true,
+  "surface_bindings": [
+    { "surface_xpath": "/t:TEI[1]/t:facsimile[1]/t:surface[1]", "canvas_id": "https://example.org/canvas/1" }
+  ]
+}
+```
+
+同じoptionとbindingで`next_offset`の続きも取り込みます。Viewerは行本文を表示し、「対応する画像へ」で変換済みCanvas領域を開きます。座標のない行は原XMLとページ本文へ保持されます。未解決・曖昧なcorrespは`check_references`で確認します。
 
 ### Local OCRを接続する（開発checkout）
 
-開発checkoutを`npm ci`・`npm run build`で準備すると、任意provider `local-ocr`を使えます。公開npm 0.18.0にはこのproviderを含みません。利用者がLocal OCRを開き、`ndl-lite`のモデルを取得した後、設定の「ほかの道具から使えるようにする」を有効にします。アプリ・モデルの自動導入や自動起動は行いません。[開発元の連携手順](https://lo.ldas.jp/guide-more.html#script)
+開発checkoutを`npm ci`・`npm run build`で準備すると、任意provider `local-ocr`を使えます。公開npm 0.18.0にはこのproviderを含みません。利用者がLocal OCRを開き、選択するengineのモデルを取得した後、設定の「ほかの道具から使えるようにする」を有効にします。アプリ・モデルの自動導入や自動起動は行いません。[開発元の連携手順](https://lo.ldas.jp/guide-more.html#script)
 
-次の要求をUTF-8のJSONファイルへ保存します。接続先はLocal OCRの設定で確認し、`http://127.0.0.1:port`の形で指定します。初版の対象は近代活字用`ndl-lite`です。`mode`はページ・領域内の行を検出する`layout`と、入力画像全体を1行として読む`line`です。
+次の要求をUTF-8のJSONファイルへ保存します。接続先はLocal OCRの設定で確認し、`http://127.0.0.1:port`の形で指定します。`engine_id`は近代活字用`ndl-lite`（既定）と古典籍用`ndl-koten-lite`を選べます。両者とも`mode`はページ・領域内の行を検出する`layout`と、入力画像全体を1行として読む`line`です。[上流engine仕様](https://github.com/nakamura196/local-ocr/blob/13ce465acb3dfe1b0a347c20212343e9a7f866de/src/local_ocr/engines/ndl.py)
 
 ```json
 {
@@ -199,6 +212,8 @@ Local OCRのTEI出力は、ページを`pb@facs`から`surface`へ、行を`lb@c
   "engine_id": "ndl-lite", "mode": "layout", "timeout_ms": 180000
 }
 ```
+
+`export_ocr_tei`の`lines.json`と`build_book_structure`のLine.source_locator.layoutには、原のbox・polygon、engine・mode、`coordinate_space="saved_image_pixels"`を保存します。画像・Canvasへの共通矩形はboxから変換し、polygonは原形を保持します。
 
 ```powershell
 $inspection = node scripts/iiif-workbench.mjs --request 'J:/research/inspect-local-ocr.json' | ConvertFrom-Json

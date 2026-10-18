@@ -116,6 +116,8 @@ readerは、文書検査、構造一覧、構造付き抽出、参照点検の4�
 
 0.18.0の改頁対応は、`pb`直後から次の改頁の直前までを構造付き`page_range`として保存します。原の`pb`とページ範囲を分け、段落途中の切り出しや本文の異読・訂正を保持します。任意の`include_inherited=true`は最も近い親のfacsを宣言元付きで展開します。範囲が曖昧な改頁は診断を残し、大きい範囲は省略を明示します。本文校合と画像対応の状態は別に読みます。
 
+開発checkoutでは、`facsimile_links`に`include_lb_corresp=true`を加えると、Local OCR型の`lb@corresp`から同一XMLのzoneへ解決した参照を返します。属性名を`attribute_name`、lb直後の行本文を`line_range`へ保存します。同じ親の次の`lb/pb/cb`または親末尾までを原構造付きで返し、枝内のlb・入れ子のmilestoneを診断します。参照全体の未解決状態は`check_references`で点検できます。IIIFのCanvasとの対応は比較室の`link_tei`と`surface_bindings`で指定します。詳細は[Local OCR連携](iiif-cli-reference.md#local-ocrの出力を併用する)を参照してください。
+
 読解結果には、ファイルの版を識別する**SHA-256（hash）**と、XML内の位置を指す**locator**が付きます。hashはファイルの指紋、locatorのXPathは要素へ戻るための道順と考えると使いやすくなります。これらはXMLの版と位置を示し、底本の頁番号はデータ内の頁記述から別に確認します。
 
 本文の採用、人物への発話の帰属、解釈、画像の実見・校合は研究者が確かめます。readerはXML内の記述を保持して返し、画像取得・TEI編集・schema検証は行いません。公開元のビューワで画像と本文を見比べる作業と組み合わせて使います。

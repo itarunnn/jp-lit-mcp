@@ -48,7 +48,11 @@ export async function exportOcrTei(request: { workspace_path: string; text_ids: 
     if (p.engine.provider === "local-ocr") {
       const artifact = item.artifacts.find(a => a.path.endsWith(".json"))!;
       const raw = JSON.parse((await readOcrFile(await resolveOcrArtifact(path.dirname(p.run_path), artifact.path))).toString("utf8"));
-      allLines = raw.lines.map((line: { text: string }, index: number) => ({ text: line.text, line_id: String(index), located: p.lines.find(l => l.line_id === String(index)) ?? null }));
+      allLines = raw.lines.map((line: { text: string; box: unknown; polygon: unknown }, index: number) => ({
+        text: line.text, line_id: String(index), located: p.lines.find(l => l.line_id === String(index)) ?? null,
+        layout: { provider: "local-ocr", engine_id: p.engine.provider === "local-ocr" ? p.engine.engine_id : null,
+          mode: raw.mode, coordinate_space: "saved_image_pixels", box: line.box, polygon: line.polygon },
+      }));
     }
     if (p.engine.provider === "ndlocr-ver2") {
       const artifact = item.artifacts.find(a => a.path.endsWith(".json") && !a.path.endsWith("opt.json"))!;

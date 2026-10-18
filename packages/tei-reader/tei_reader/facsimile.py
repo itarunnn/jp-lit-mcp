@@ -6,6 +6,7 @@ import re
 from .references import resolve_reference, _base_chain
 from .operations import validate_page
 from .page_ranges import page_range
+from .line_ranges import line_range
 from .tree import structured_unit
 
 
@@ -18,7 +19,7 @@ def _summary(index, node):
             'attributes': dict(node.attributes), 'xml_base_chain': _base_chain(index, node)}
 
 
-def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, include_inherited=False):
+def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, include_inherited=False, include_lb_corresp=False):
     validate_page(limit, offset)
     references = []
     total = 0
@@ -26,17 +27,30 @@ def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, inclu
     for node in index.elements:
         owner = node if 'facs' in node.attributes else owners.get(index.parents[node])
         owners[node] = owner
-        if owner is None or (owner is not node and (not include_inherited or not node.name.startswith(f'{{{TEI_NS}}}'))):
-            continue
-        value = owner.attributes['facs']
-        for token_index, token in enumerate(t for t in re.split(r'[ \t\r\n]+', value) if t):
-            if offset <= total < offset + limit:
-                references.append({'source_locator': make_locator(index, node), 'attribute_value': value,
-                                   'raw_token': token, 'token_index': token_index,
-                                   'facs_origin': {'kind': 'explicit' if owner is node else 'ancestor',
-                                                   'locator': make_locator(index, owner), 'attribute_value': value},
-                                   **resolve_reference(index, owner, token)})
-            total += 1
+        attributes = []
+        if owner is not None and (owner is node or (include_inherited and node.name.startswith(f'{{{TEI_NS}}}'))):
+            attributes.append(('facs', owner))
+        if include_lb_corresp and _named(node, 'lb') and 'corresp' in node.attributes:
+            attributes.append(('corresp', node))
+        for attribute, declaring_node in attributes:
+            value = declaring_node.attributes[attribute]
+            for token_index, token in enumerate(t for t in re.split(r'[ \t\r\n]+', value) if t):
+                resolved = None
+                if attribute == 'corresp':
+                    if not token.startswith('#'):
+                        continue
+                    resolved = resolve_reference(index, declaring_node, token)
+                    target = resolve_path(index, resolved['target_locator']['xpath']) if resolved['target_locator'] else None
+                    if resolved['status'] != 'resolved_local' or not _named(target, 'zone'):
+                        continue
+                if offset <= total < offset + limit:
+                    references.append({'source_locator': make_locator(index, node), 'attribute_value': value,
+                                       'raw_token': token, 'token_index': token_index,
+                                       **({'attribute_name': 'corresp'} if attribute == 'corresp' else {}),
+                                       'facs_origin': {'kind': 'explicit' if declaring_node is node else 'ancestor',
+                                                       'locator': make_locator(index, declaring_node), 'attribute_value': value},
+                                       **(resolved or resolve_reference(index, declaring_node, token))})
+                total += 1
     items = []
     for ref in references:
         source = resolve_path(index, ref['source_locator']['xpath'])
@@ -54,7 +68,9 @@ def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, inclu
             diagnostics.append('nested_geometry')
         page, page_diagnostics = page_range(index, source, limits)
         diagnostics.extend(page_diagnostics)
-        if (_named(source, 'pb') and page is None) or _named(source, 'cb') or _named(source, 'lb'):
+        line, line_diagnostics = line_range(index, source, limits) if ref.get('attribute_name') == 'corresp' else (None, [])
+        diagnostics.extend(line_diagnostics)
+        if (_named(source, 'pb') and page is None) or _named(source, 'cb') or (_named(source, 'lb') and line is None):
             diagnostics.append('milestone_content_not_expanded')
         graphics = []
         if _named(target, 'graphic'):
@@ -75,6 +91,7 @@ def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, inclu
                       'reference_status': ref['status'], 'candidate_count': ref['candidate_count'],
                       'xml_base_chain': ref['xml_base_chain'],
                       'facs_origin': ref['facs_origin'], 'page_range': page,
+                      **({'attribute_name': 'corresp', 'line_range': line} if ref.get('attribute_name') == 'corresp' else {}),
                       'target': _summary(index, target) if target is not None else None,
                       'surface': _summary(index, surface) if surface is not None else None,
                       'graphics': [_summary(index, n) for n in graphics[:10]],
@@ -82,4 +99,4 @@ def facsimile_links(index: Index, limit: int, offset: int, limits: Limits, inclu
     return {'remote_resources_fetched': False, 'source_collated': False,
             'total_occurrences': total, 'offset': offset, 'limit': limit,
             'returned_count': len(items), 'next_offset': offset + len(items) if offset + len(items) < total else None,
-            'include_inherited': include_inherited, 'items': items}
+            'include_inherited': include_inherited, 'include_lb_corresp': include_lb_corresp, 'items': items}

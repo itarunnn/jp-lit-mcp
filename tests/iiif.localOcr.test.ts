@@ -47,7 +47,7 @@ async function fixture() {
   const state = {
     metadata: { id: "ndl-lite", label: "NDLOCR Lite", ready: true, lines: true, modes: ["layout", "line"] },
     response: { engine: "ndl-lite", width: 150, height: 200, seconds: .125, mode: "layout", region: null,
-      text: "舊字", lines: [{ text: "舊字", box: { x: 0, y: 0, w: 50, h: 100 } as {x:number;y:number;w:number;h:number} | null, polygon: null }] },
+      text: "舊字", lines: [{ text: "舊字", box: { x: 0, y: 0, w: 50, h: 100 } as {x:number;y:number;w:number;h:number} | null, polygon: null as number[][] | null }] },
     status: 200, redirect: false, hang: false, oversized: false, posts: [] as any[],
   };
   const server = createServer(async (req, res) => {
@@ -78,6 +78,42 @@ async function fixture() {
 }
 
 describe("Local OCR adapter", () => {
+  it.each(["layout", "line"])("runs the selected classical engine in %s mode and retains its geometry in the common structure", async mode => {
+    const f = await fixture();
+    f.state.metadata.id = "ndl-koten-lite"; f.state.metadata.label = "NDL Kotenseki OCR Lite";
+    f.state.response.engine = "ndl-koten-lite"; f.state.response.mode = mode;
+    const polygon = [[0, 5], [45, 0], [50, 95], [5, 100]];
+    f.state.response.lines[0].polygon = polygon;
+    const inspected = await f.inspect({ engine_id: "ndl-koten-lite", mode });
+    expect(inspected.code, JSON.stringify(inspected)).toBe(0);
+    const config = path.join(f.dir, "classical-provider.json");
+    await writeFile(config, JSON.stringify(inspected.result.config));
+    const result = await f.run(config); expect(result.code, JSON.stringify(result)).toBe(0);
+    expect(f.state.posts[0]).toMatchObject({ engine: "ndl-koten-lite", mode });
+    const workspacePath = path.join(f.dir, "workspace.json"), importedPath = path.join(f.dir, "imported.json");
+    await saveWorkspace(workspacePath, sampleWorkspace(), false);
+    expect((await cli({ api_version: "0.1", operation: "import_ocr", workspace_path: workspacePath,
+      run_path: result.result.run_path, output_path: importedPath })).code).toBe(0);
+    const w = await readWorkspace(importedPath), output = path.join(f.dir, "structure");
+    const built = await cli({ api_version: "0.1", operation: "build_book_structure", workspace_path: importedPath,
+      text_ids: [w.texts[0].text_id], output_dir: output, profile: "general" });
+    expect(built.code, JSON.stringify(built)).toBe(0);
+    const structure = JSON.parse(await readFile(path.join(output, "structure.json"), "utf8"));
+    expect(structure.lines[0].source_locator.layout).toEqual({ provider: "local-ocr", engine_id: "ndl-koten-lite", mode,
+      coordinate_space: "saved_image_pixels", box: f.state.response.lines[0].box, polygon });
+    expect(structure.lines[0].canvas_xywh).toEqual([100, 200, 100, 200]);
+  });
+
+  it("rejects a different supported engine in a classical response", async () => {
+    const f = await fixture(); f.state.metadata.id = "ndl-koten-lite";
+    const inspected = await f.inspect({ engine_id: "ndl-koten-lite" });
+    expect(inspected.code).toBe(0);
+    const config = path.join(f.dir, "provider.json"); await writeFile(config, JSON.stringify(inspected.result.config));
+    const result = await f.run(config); expect(result.code).toBe(4);
+    const run = JSON.parse(await readFile(result.result.run_path, "utf8"));
+    expect(run.items[0].status).toBe("failed");
+  });
+
   it("keeps the selected capability fingerprint distinct from unknown engine and model revisions", async () => {
     const f = await fixture(), result = await f.inspect();
     expect(result.code).toBe(0);

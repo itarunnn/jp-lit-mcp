@@ -7,7 +7,7 @@ import { validateWorkspace } from "./schemas.js";
 import type { IiifWorkspace, CanvasInfo } from "./types.js";
 
 // Python環境を使うのは利用者がlink_teiを要求した場合だけ。
-export async function readTeiLinks(file: string, hash: string, limit: number, offset: number, includeInherited = false): Promise<unknown> {
+export async function readTeiLinks(file: string, hash: string, limit: number, offset: number, includeInherited = false, includeLbCorresp = false): Promise<unknown> {
   const parent = fileURLToPath(new URL("../../", import.meta.url));
   const root = path.basename(path.normalize(parent)) === "dist" ? path.dirname(path.normalize(parent)) : parent;
   const launcher = path.join(root, "scripts/tei-reader.mjs");
@@ -41,7 +41,7 @@ export async function readTeiLinks(file: string, hash: string, limit: number, of
         resolve(result);
       } catch (error) { reject(error instanceof Error ? error : new Error("TEI readerの応答が不正です")); }
     });
-    child.stdin.end(JSON.stringify({ operation: "facsimile_links", file_path: file, expected_sha256: hash, limit, offset, include_inherited: includeInherited }));
+    child.stdin.end(JSON.stringify({ operation: "facsimile_links", file_path: file, expected_sha256: hash, limit, offset, include_inherited: includeInherited, include_lb_corresp: includeLbCorresp }));
   });
 }
 
@@ -72,7 +72,9 @@ export function linkTei(workspace: IiifWorkspace, input: unknown, options: Optio
   const links = new Map((workspace.tei_links ?? []).map((l) => [l.link_id, l]));
   for (const ref of response.result.items) {
     if (ref.source_locator.document_sha256 !== response.document.sha256) throw new Error("TEI locatorのhashが一致しません");
-    const link_id = "tei-" + createHash("sha256").update(JSON.stringify([response.document.sha256, ref.source_locator.xpath, ref.token_index, options.document_id])).digest("hex");
+    const identity = [response.document.sha256, ref.source_locator.xpath, ref.token_index, options.document_id];
+    if (ref.attribute_name === "corresp") identity.push("corresp");
+    const link_id = "tei-" + createHash("sha256").update(JSON.stringify(identity)).digest("hex");
     // 実行者の記録を保全し、未記録の対応には後から明示bindingを適用できる。
     const existing = links.get(link_id);
     if (existing && (existing.assignments.length || existing.collations.length)) continue;

@@ -5,7 +5,7 @@ import { normalizeKotenOutput } from "./ocr.js";
 import type { OcrSource } from "./ocrSchemas.js";
 import {
   localOcrInspectionSchema, localOcrEndpointSchema, localOcrConfigSchema,
-  localOcrEngineSchema, localOcrMetadataSchema, localOcrMetadataHash, type LocalOcrEngine,
+  localOcrEngineSchema, localOcrEngineIdSchema, localOcrModeSchema, localOcrMetadataSchema, localOcrMetadataHash, type LocalOcrEngine,
 } from "./localOcrSchemas.js";
 
 /** Numeric loopback only; node:http does not use proxy environment variables or follow redirects. */
@@ -41,9 +41,9 @@ export async function inspectLocalOcrProvider(input: unknown) {
   const { engines } = z.object({ engines: z.array(z.object({ id: z.string() }).passthrough()).max(64) })
     .parse(JSON.parse(response.bytes.toString("utf8")));
   const matches = engines.filter(engine => engine.id === config.engine_id);
-  if (matches.length !== 1) throw new Error("Local OCRのndl-liteを確認してください");
+  if (matches.length !== 1) throw new Error(`Local OCRの${config.engine_id}を確認してください`);
   const metadata = localOcrMetadataSchema.parse(matches[0]);
-  if (!metadata.ready) throw new Error("Local OCRでndl-liteのモデルを取得してください");
+  if (!metadata.ready) throw new Error(`Local OCRで${config.engine_id}のモデルを取得してください`);
   if (!metadata.modes.includes(config.mode)) throw new Error("Local OCRの対応modeを確認してください");
   const metadata_sha256 = localOcrMetadataHash(metadata);
   return {
@@ -56,7 +56,7 @@ export async function inspectLocalOcrProvider(input: unknown) {
 
 const number = z.number().finite();
 const localOutputSchema = z.object({
-  engine: z.literal("ndl-lite"), mode: z.enum(["layout", "line"]), region: z.null(),
+  engine: localOcrEngineIdSchema, mode: localOcrModeSchema, region: z.null(),
   width: number.int().positive(), height: number.int().positive(), seconds: number.nonnegative(),
   text: z.string().max(2 * 1024 * 1024),
   lines: z.array(z.object({ text: z.string().max(2 * 1024 * 1024),
