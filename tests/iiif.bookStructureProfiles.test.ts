@@ -92,3 +92,110 @@ it("keeps different long figure numbers distinct",()=>{
   const b=numberedFigure("図12345678901234567890","本文は図12345678901234567891を參照");
   expect(applyBookProfile(b).relations.filter(r=>r.kind==="refers_to")).toHaveLength(0);
 });
+
+function illustratedPage(boxes: number[][], captions: {id:string;text:string;box:number[]|null}[]) {
+  const b=bookFixture();b.lines=[];b.regions=[];b.spans=[];b.units=[];
+  Object.assign(b.pages[0],{canvas_width:1500,canvas_height:2000,canvas_xywh:[0,0,1500,2000],image_width:1500,image_height:2000});
+  boxes.forEach((box,i)=>b.regions.push({region_id:`figure-${i}`,page_id:"p1",kind:"figure",image_xywh:box,canvas_xywh:box,line_refs:[],origin:"ocr_layout",source_locator:{}}));
+  for(const {id,text,box}of captions){
+    b.lines.push({line_ref:id,page_id:"p1",original_line_id:id,raw_text:text,image_xywh:box,canvas_xywh:box,source_locator:{}});
+    b.regions.push({region_id:`region-${id}`,page_id:"p1",kind:"text",image_xywh:box,canvas_xywh:box,line_refs:[id],origin:"ocr_line",source_locator:{}});
+    b.spans.push({span_id:`span-${id}`,line_ref:id,range_cp:[0,Array.from(text).length]});
+    b.units.push({unit_id:`unit-${id}`,kind:"text",region_ids:[`region-${id}`],span_ids:[`span-${id}`],fields:[{field_id:`field-${id}`,role:"text",span_ids:[`span-${id}`],raw_text:text,text,normalized_text:text}]});
+  }
+  return b;
+}
+
+it("groups near-identical figure detections while retaining both source regions",()=>{
+  const input=illustratedPage([[300,300,500,700],[305,305,500,700]],[]);
+  const result=applyBookProfile(input),figures=result.units.filter(u=>u.kind==="figure");
+  expect(figures).toHaveLength(1);
+  expect(figures[0].region_ids).toEqual(["figure-0","figure-1"]);
+  expect(result.regions).toEqual(input.regions);
+  expect(input.units).toHaveLength(0);
+});
+
+it("preserves separate part figures and identical rectangles on different pages",()=>{
+  const b=illustratedPage([[300,300,700,800],[350,350,250,600]],[]);
+  b.pages.push({...b.pages[0],page_id:"p2",sequence_index:1});
+  b.regions.push({...b.regions[0],region_id:"other-page",page_id:"p2"});
+  expect(applyBookProfile(b).units.filter(u=>u.kind==="figure")).toHaveLength(3);
+});
+
+it("treats a long vertical figure reference as body text rather than a caption",()=>{
+  const b=illustratedPage([[270,327,277,273]],[
+    {id:"caption",text:"第二十五圖",box:[350,246,145,27]},
+    {id:"body",text:"第二十五圖ハ葉ノ配置ヲ示ス",box:[1000,220,40,1400]},
+  ]);
+  const result=applyBookProfile(b);
+  expect(result.relations.filter(r=>r.kind==="caption_of").map(r=>r.from_id)).toEqual(["unit-caption"]);
+  expect(result.relations.filter(r=>r.kind==="refers_to").map(r=>r.from_id)).toEqual(["unit-body"]);
+});
+
+it("associates stacked figure labels with their own nearby aligned figures",()=>{
+  const b=illustratedPage([[271,327,277,273],[290,766,254,422],[200,1309,492,402]],[
+    {id:"25",text:"第二十五圖",box:[350,246,145,27]},
+    {id:"26",text:"第二十六圖",box:[350,698,146,29]},
+    {id:"27",text:"第二十七圖",box:[357,1230,148,29]},
+  ]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of");
+  expect(links).toHaveLength(3);
+  expect(links.map(r=>[r.from_id,result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0]])).toEqual([
+    ["unit-25","figure-0"],["unit-26","figure-1"],["unit-27","figure-2"],
+  ]);
+});
+
+it("holds captions with no aligned nearby figure instead of assigning a distant one",()=>{
+  const b=illustratedPage([[1000,400,200,600]],[{id:"caption",text:"第一圖",box:[300,300,160,30]}]);
+  const result=applyBookProfile(b);
+  expect(result.relations.filter(r=>r.kind==="caption_of")).toHaveLength(0);
+  expect(result.diagnostics.some(d=>d.startsWith("unmatched_caption:"))).toBe(true);
+});
+
+it("preserves mixed caption placement when a page has labels above and below figures",()=>{
+  const b=illustratedPage([[300,300,200,200],[300,800,200,200],[300,1300,200,200]],[
+    {id:"a",text:"第一圖",box:[320,240,160,30]},
+    {id:"b",text:"第二圖",box:[320,740,160,30]},
+    {id:"c",text:"第三圖",box:[320,1520,160,30]},
+  ]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of");
+  expect(links.map(r=>[r.from_id,result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0]])).toEqual([
+    ["unit-a","figure-0"],["unit-b","figure-1"],["unit-c","figure-2"],
+  ]);
+});
+
+it("prefers a caption beside its figure over a large enclosing detection",()=>{
+  const b=illustratedPage([[300,1200,500,400],[300,300,600,1400]],[{id:"caption",text:"第二十圖",box:[450,1140,200,30]}]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of");
+  expect(links.map(r=>result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0])).toEqual(["figure-0"]);
+});
+
+it("keeps an explicit caption with unavailable coordinates as an unscored candidate",()=>{
+  const b=illustratedPage([[300,300,500,700]],[{id:"caption",text:"圖版の説明",box:null}]);
+  b.regions.push({region_id:"explicit",page_id:"p1",kind:"caption",image_xywh:null,canvas_xywh:null,line_refs:["caption"],origin:"ocr_layout",source_locator:{}});
+  const links=applyBookProfile(b).relations.filter(r=>r.kind==="caption_of");
+  expect(links).toHaveLength(1);expect(links[0].score).toBeNull();expect(links[0].reasons).toContain("distance_unavailable");
+});
+
+it("retains an explicitly classified long vertical caption",()=>{
+  const b=illustratedPage([[300,300,400,700]],[{id:"caption",text:"図版の長い説明文",box:[740,350,40,500]}]);
+  b.regions.push({...b.regions.at(-1),region_id:"explicit-caption",kind:"caption",origin:"ocr_layout"});
+  expect(applyBookProfile(b).relations.filter(r=>r.kind==="caption_of")).toHaveLength(1);
+});
+
+it("retains a caption inside its figure when another separate figure is outside",()=>{
+  const b=illustratedPage([[300,300,400,400],[300,800,400,400]],[{id:"caption",text:"第一圖",box:[380,650,200,30]}]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of");
+  expect(links.map(r=>result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0])).toEqual(["figure-0"]);
+});
+
+it("holds both close candidates for a caption between mixed-position figures",()=>{
+  const b=illustratedPage([[300,300,200,200],[300,800,200,200],[300,1300,200,200],[300,1580,200,200]],[
+    {id:"a",text:"第一圖",box:[320,240,160,30]},
+    {id:"b",text:"第二圖",box:[320,740,160,30]},
+    {id:"c",text:"第三圖",box:[320,1520,160,30]},
+  ]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of"&&r.from_id==="unit-c");
+  expect(links.map(r=>result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0])).toEqual(["figure-2","figure-3"]);
+  expect(result.diagnostics).toContain("ambiguous_caption:c");
+});

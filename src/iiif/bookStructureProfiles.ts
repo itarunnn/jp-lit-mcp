@@ -1,4 +1,5 @@
 import { parseBookStructure, structureId, type BookStructure, type BookUnit, type BookField } from "./bookStructureSchemas.js";
+import { illustrationUnits, isLongVerticalBody, captionGeometry, enclosesIllustration } from "./bookStructureIllustrations.js";
 
 type Line=BookStructure["lines"][number];
 function quantile(values:number[],p:number) {const a=[...values].sort((a,b)=>a-b),i=(a.length-1)*p,l=Math.floor(i);return a[l]+(a[Math.ceil(i)]-a[l])*(i-l);}
@@ -24,7 +25,7 @@ function numberKey(s:string) {
   return String(total+n);
 }
 const figurePattern=/(?:([圖図表])\s*([〇零一二三四五六七八九十百千0-9０-９]{1,20})|第?([〇零一二三四五六七八九十百千0-9０-９]{1,20})\s*([圖図表]))/gu;
-function figureKeys(text:string) {return [...text.matchAll(figurePattern)].map(m=>({key:`${(m[1]??m[4])==="表"?"table":"figure"}:${numberKey(m[2]??m[3])}`,index:m.index!}));}
+function figureKeys(text:string) {return [...text.matchAll(figurePattern)].map(m=>({key:`${(m[1]??m[4])==="表"?"table":"figure"}:${numberKey(m[2]??m[3])}`,index:m.index!,end:m.index!+m[0].length}));}
 
 /** 共通の物理データへ候補の論理単位と関係を追加する。原行は常に保持する。 */
 export function applyBookProfile(input:BookStructure):BookStructure {
@@ -45,30 +46,44 @@ export function applyBookProfile(input:BookStructure):BookStructure {
     const id=structureId("relation",kind,from,to);if(!b.relations.some(r=>r.relation_id===id))b.relations.push({relation_id:id,kind,from_id:from,to_id:to,reasons,score,state:"candidate"});
   };
   const pages=[...b.pages].sort((a,b)=>a.sequence_index-b.sequence_index);
-  const figureUnits:BookUnit[]=[];
-  for(const r of b.regions.filter(r=>r.kind==="figure"||r.kind==="table")) {
-    const unit:BookUnit={unit_id:structureId("unit",r.region_id),kind:r.kind==="table"?"table":"figure",region_ids:[r.region_id],span_ids:[],fields:[]};
-    b.units.push(unit);figureUnits.push(unit);
-  }
+  const figureUnits=illustrationUnits(b.regions,b.profile==="illustrated");
+  b.units.push(...figureUnits);
+  for(const u of figureUnits)if(u.region_ids.length>1)b.diagnostics.push(`near_duplicate_figure_regions:${u.region_ids.join(",")}`);
   const captionLines=new Set<string>(),keyTargets=new Map<string,Set<string>>();
-  if(b.profile==="illustrated")for(const line of b.lines) {
+  const captionData=b.profile==="illustrated"?b.lines.flatMap(line=>{
     const keys=figureKeys(line.raw_text),explicit=b.regions.some(r=>r.kind==="caption"&&r.line_refs.includes(line.line_ref));
-    if(!explicit&&!keys.some(k=>line.raw_text.slice(0,k.index).trim()===""))continue;
-    captionLines.add(line.line_ref);const unit=originalUnits.get(line.line_ref);if(!unit)continue;
-    const distances=new Map<string,number>();
-    const targets=figureUnits.filter(u=>{
-      const r=b.regions.find(r=>r.region_id===u.region_ids[0])!;if(r.page_id!==line.page_id)return false;
-      if(keys.length&&!keys.some(k=>k.key.startsWith(u.kind+":")))return false;
-      if(!line.image_xywh||!r.image_xywh)return explicit;
-      const [x,y,w,h]=r.image_xywh,[lx,ly,lw,lh]=line.image_xywh,p=pages.find(p=>p.page_id===line.page_id)!;
-      const distance=Math.hypot(lx+lw/2-x-w/2,ly+lh/2-y-h/2)/Math.hypot(p.image_width!,p.image_height!);
-      distances.set(u.unit_id,distance);
-      return distance<=.4;
+    const page=pages.find(p=>p.page_id===line.page_id)!;
+    if(!explicit&&(isLongVerticalBody(line.image_xywh,page)||!keys.some(k=>line.raw_text.slice(0,k.index).trim()===""&&!/^\s*[)）]/u.test(line.raw_text.slice(k.end)))))return [];
+    const matches=figureUnits.flatMap<{u:BookUnit;geometry:ReturnType<typeof captionGeometry>}>(u=>{
+      const r=b.regions.find(r=>r.region_id===u.region_ids[0])!;if(r.page_id!==line.page_id)return [];
+      if(keys.length&&!keys.some(k=>k.key.startsWith(u.kind+":")))return [];
+      if(!line.image_xywh||!r.image_xywh)return explicit?[{u,geometry:null}]:[];
+      const geometry=captionGeometry(line.image_xywh,r.image_xywh,page);
+      return geometry?[{u,geometry}]:[];
     });
-    for(const target of targets) {
-      const distance=distances.get(target.unit_id);
+    const region=(u:BookUnit)=>b.regions.find(r=>r.region_id===u.region_ids[0])!;
+    const nearby=matches.filter(m=>m.geometry?.side!=="inside"||!matches.some(other=>other.u.kind===m.u.kind&&other.geometry&&other.geometry.side!=="inside"&&enclosesIllustration(region(m.u),region(other.u))));
+    const nearest=Math.min(...nearby.flatMap(m=>m.geometry?[m.geometry.distance]:[]));
+    const targets=nearby.filter(m=>!m.geometry||m.geometry.distance<=nearest+.02);
+    return [{line,keys,explicit,targets}];
+  }):[];
+  // 一つに定まる別番号の説明文を根拠に、隣の図への二重対応を整理する。
+  // 近い候補が残る場合や全候補を失う場合は競合を保持する。
+  let changed=true;
+  while(changed){changed=false;
+    const anchors=captionData.filter(c=>c.keys.length===1&&c.targets.length===1&&c.targets[0].geometry);
+    for(const caption of captionData){
+      if(caption.keys.length!==1||caption.targets.length<2)continue;
+      const remaining=caption.targets.filter(t=>!anchors.some(a=>a.line.page_id===caption.line.page_id&&a.keys[0].key!==caption.keys[0].key&&a.targets[0].u.unit_id===t.u.unit_id));
+      if(remaining.length&&remaining.length<caption.targets.length){caption.targets=remaining;changed=true;}
+    }
+  }
+  for(const {line,keys,explicit,targets}of captionData) {
+    captionLines.add(line.line_ref);const unit=originalUnits.get(line.line_ref);if(!unit)continue;
+    for(const {u:target,geometry}of targets) {
+      const distance=geometry?.distance;
       relation("caption_of",unit.unit_id,target.unit_id,[explicit?"explicit_caption_region":"caption_number_at_line_start","same_page",
-        ...(distance===undefined?["distance_unavailable"]:["nearby_region",`normalized_center_distance:${distance}`,"distance_denominator:page_diagonal","distance_threshold:0.4"]),...(keys.map(k=>k.key))]);
+        ...(distance===undefined?["distance_unavailable"]:["nearby_region","aligned_caption_axis",`caption_side:${geometry!.side}`,`edge_gap_px:${geometry!.gap}`,`normalized_center_distance:${distance}`,"distance_denominator:page_diagonal","distance_threshold:0.4","nearest_distance_margin:0.02"]),...(keys.map(k=>k.key))]);
       for(const {key} of keys){if(!keyTargets.has(key))keyTargets.set(key,new Set());keyTargets.get(key)!.add(target.unit_id);}
     }
     if(targets.length>1)b.diagnostics.push(`ambiguous_caption:${line.line_ref}`);
