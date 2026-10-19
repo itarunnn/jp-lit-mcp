@@ -56,6 +56,25 @@ JOIN pages AS p USING (page_id);
 
 図版は`regions`、説明文・本文との関係は`relations`、確認者・aspect別の有効な最新確認は`current_reviews`、訂正による失効は`review_invalidations`にあります。表は領域として保持し、セル構造が未取得の場合はTEIで`figure type="table"`として出力し診断を残します。
 
+説明文から図版の画像位置を検索する場合は、`caption_of`関係を経由して図版の領域と頁を結びます。次の例は対応候補と、その確認者別の状態を返します。
+
+```sql
+SELECT f.text AS caption, p.canvas_id, r.canvas_xywh,
+  (SELECT group_concat(actor_kind || ':' || result, ', ')
+   FROM current_reviews
+   WHERE subject_id = rel.relation_id AND aspect = 'association')
+  AS association_reviews
+FROM fields AS f
+JOIN relations AS rel
+  ON rel.from_id = f.unit_id AND rel.kind = 'caption_of'
+JOIN unit_regions AS ur ON ur.unit_id = rel.to_id
+JOIN regions AS r USING (region_id)
+JOIN pages AS p USING (page_id)
+WHERE f.normalized_text LIKE '%第六十八%';
+```
+
+図版番号・説明文の対応確認と、図版領域の確認は別の記録です。`association_reviews`には採用・却下・要確認が含まれます。複数の確認者がいる場合の採用判断は、後述の人の確認優先・競合保留の規則に従います。
+
 TEIの`link`は関係の確認結果と確認記録への参照を持ちます。図の`head`にはassociationがacceptedの説明文を出し、未確認・却下・競合の関係はstandOffへ保持します。人のassociation確認がある場合はその記録を優先し、同じ層の確認者間で結果が一致しない場合はheadへの表示を保留します。各headから説明文と根拠linkを参照できます。
 
 頁・原行・領域・文字範囲・unit・field・関係・確認・訂正履歴にXML IDを付け、関係先を参照できます。文字範囲は`spanGrp`へ保存し、`from`で原行、`n="開始:終了"`でcode point範囲を示します。画像参照は元の行領域を使います。欠落頁と無座標領域は状態を保持し、座標属性を省略して保存します。
@@ -63,3 +82,9 @@ TEIの`link`は関係の確認結果と確認記録への参照を持ちます�
 文字がない図版頁と空白頁もTEIへ出力できます。図版内の印刷キャプションfieldは`head`、ほかの転記fieldは本文blockへ写します。図番号は「一〇」「十」「１０」のような表記を対応付け、元のOCR表記も保持します。
 
 図版の検出と、説明文・本文との対応付けは別の候補です。図番号や位置の根拠と競合する候補を保持し、確認記録を追加して利用します。原出力とsnapshotのhashを照合し、既存出力と原資料を保護します。日本語のOCR誤認・見出し境界・図番号は原画像に戻って確認してください。
+
+## 図版資料での検証例
+
+2026-10-19、公開資料[『普通植物学教科書』](https://ndlsearch.ndl.go.jp/books/R100000039-I832615)のCanvas 15・20の右頁と30の左頁を使い、NDLOCR-Liteの文字行と原layout XMLから構造化しました。3頁・39行・109領域・図版候補16件をSQLiteへ出力し、全図版候補のCanvasと矩形がTEIの画像参照と一致することを確認しました。TEIの画像参照172件は全件解決し、TEI P5の固定Relax NGにも適合しました。
+
+図版領域はagentによる画像照合で10件採用・6件要確認、説明文との対応は14件採用・34件却下・19件要確認です。図群と部分図の重複、本文の欧文誤認、二つの図の説明が同じOCR行へ連結する例を保持しています。検索一覧で図番号から画像へ移動し、比較画面では第六十八図→第二十九図→第六十八図の移動と保存後の表示中心を検査しました。全冊の処理は、対象頁を分割して取り込む運用と集約の実装が次の対象です。
