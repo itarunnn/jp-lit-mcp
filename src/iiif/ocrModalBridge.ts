@@ -37,7 +37,15 @@ export async function modalBridge(payload:unknown){
     child.on("error",()=>fail("Modal bridgeを起動できません"));
     child.stdin.on("error",()=>fail("Modal bridgeへ要求を渡せません"));
     child.stdout.on("data",(b:Buffer)=>{const room=16*1024*1024-size;if(room>0)out.push(b.subarray(0,room));size+=b.length;if(size>16*1024*1024)fail("Modal原応答の容量上限です");});
-    child.stderr.on("data",(b:Buffer)=>{const room=2*1024*1024-errors;if(room>0)err.push(b.subarray(0,room));errors+=b.length;});
+    child.stderr.on("data",(b:Buffer)=>{
+      err.push(b);errors+=b.length;
+      // 大きいbuild logの末尾に出る実行ID・cancel確認を容量内に保つ。
+      while(errors>2*1024*1024){
+        const first=err[0],excess=errors-2*1024*1024;
+        if(first.length<=excess){err.shift();errors-=first.length;}
+        else{err[0]=first.subarray(excess);errors-=excess;}
+      }
+    });
     child.on("close",()=>{
       if(settled)return;if(failure){finishFailure();return;}settled=true;cleanup();
       try {resolve({response:JSON.parse(Buffer.concat(out).toString("utf8")),stderr:Buffer.concat(err).toString("utf8")});}

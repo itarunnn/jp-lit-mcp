@@ -242,6 +242,8 @@ $inspection.result.config | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf
 
 このinspectは、固定版の公式code・モデルを含むimageをModalに構築し、A10上で実体hashとPython/PyTorch/CUDA/GPUを検査します。画像は送信しません。初回buildとGPU検査はModalの課金対象です。返る`result.config`をJSONへ保存し、`run_ocr`の`provider_config_path`へ指定します。configはengine snapshotとadapter hashを持ち、既存configを使うrunではlocalでそれらを検証してから、scopeに一致した画像だけを送ります。
 
+検査中の失敗は終了値4で返します。応答の`diagnostics`には、取得できた`call_id`・安全な`error_type`と、SDKによるキャンセル確認の有無を記録します。未取得の識別子や例外型はnullです。実行IDからModal側の状態を確認でき、認証情報を含みうるSDKの生logはCLI応答へ混ぜません。
+
 公式codeは`939cbfaf617eb8fd7e54cf1daeb66fb5a92749ec`、GPUはA10一枚、CPU 2 core、memory 8192 MiB、一時App・並列1・リトライ0を使います。推論時はネットワークを遮断し、各画像の推論は最大600秒です。永続deploy・公開endpoint・Volumeは作成しません。
 
 モデル実体のhashはcode・重み・image ID・Python/PyTorch/CUDAから計算します。実行先のGPU表示はA10/A10Gを許可してreceiptへ別途記録します。認識batchの入力・返却行数と、重複除去を含む整序の入力・最終出力行数をそれぞれ検査します。認識行数と整序後行数の差は検査記録に残ります。
@@ -363,7 +365,7 @@ GPU版にも次の`run_ocr`・`import_ocr`を使います。原TXT/JSON、行座
 
 ### OCR候補を位置情報付きTEIへ書き出す（開発checkout）
 
-古典籍Lite・古典籍ver.3・Local OCR・通常版NDLOCRの取り込み済み候補から、共通のTEI/XMLとDB向け位置情報JSONを作れます。古典籍Lite自身も[独自XMLとTEIを出力](https://github.com/ndl-lab/ndlkotenocr-lite/blob/3c62c34803bd4e4150ca1ed3447275ba17fbe374/src/ocr.py)します。今回の共通出力は、保存した原出力を検証して別に作る派生物です。
+古典籍Lite・古典籍ver.3（ローカルDocker／Modal A10）・Local OCR・通常版NDLOCRの取り込み済み候補から、共通のTEI/XMLとDB向け位置情報JSONを作れます。古典籍Lite自身も[独自XMLとTEIを出力](https://github.com/ndl-lab/ndlkotenocr-lite/blob/3c62c34803bd4e4150ca1ed3447275ba17fbe374/src/ocr.py)します。今回の共通出力は、保存した原出力を検証して別に作る派生物です。
 
 ```json
 {

@@ -1,0 +1,9 @@
+# Modalの固定実体hashをcheckout間で保つ。
+/scripts/iiif-ocr-modal.mjs text eol=lf
+/packages/iiif-ocr-modal/.python-version text eol=lf
+/packages/iiif-ocr-modal/pyproject.toml text eol=lf
+/packages/iiif-ocr-modal/uv.lock text eol=lf
+/packages/iiif-ocr-modal/iiif_ocr_modal/*.py text eol=lf
+
+# 取得版schemaのbytesと出典に記録したhashを保つ。
+/packages/book-structure/tests/fixtures/tei_all.rng -text

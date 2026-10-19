@@ -18,6 +18,16 @@ it("preserves partial JSON, SDK error and call ID after malformed output",async(
   c.stdout.emit("data",Buffer.from('{"partial":'));c.stderr.emit("data",Buffer.from("Modal call fc-proof\nSDK failure detail\n"));c.emit("close",4);
   await checked;
 });
+it("retains the final call and cancellation IDs after verbose build output",async()=>{
+  const c=child(),pending=modalBridge({operation:"inspect"}).catch(error=>error);
+  await vi.waitFor(()=>expect(c.stdin.end).toHaveBeenCalled());
+  c.stderr.emit("data",Buffer.alloc(2*1024*1024,120));
+  const ending="\nModal call fc-tail\nModal call cancelled fc-tail\n";
+  c.stderr.emit("data",Buffer.from(ending));c.stdout.emit("data",Buffer.from("not JSON"));c.emit("close",4);
+  const error=await pending;
+  expect(error.stderr.endsWith(ending)).toBe(true);
+  expect(Buffer.byteLength(error.stderr)).toBeLessThanOrEqual(2*1024*1024);
+});
 it("requests cancellation before returning a host timeout and retains cancellation confirmation",async()=>{
   vi.useFakeTimers();const c=child(),pending=modalBridge({operation:"inspect"});
   const checked=expect(pending).rejects.toMatchObject({stderr:expect.stringContaining("Modal call cancelled fc-owned")});

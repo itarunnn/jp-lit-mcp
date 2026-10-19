@@ -7,11 +7,16 @@ import { digest, ocrSource } from "./fixtures/iiif/ocr.js";
 import { sampleWorkspace } from "./fixtures/iiif/sample.js";
 import { readWorkspace, saveWorkspace } from "../src/iiif/workspace.js";
 
-const external = vi.hoisted(()=>({ requests: [] as any[], changeEngine:false, failed:false, dropped:false }));
+const external = vi.hoisted(()=>({ requests: [] as any[], changeEngine:false, failed:false, dropped:false, inspectionFailure:null as null|"remote"|"transport" }));
 vi.mock("../src/iiif/ocrModalBridge.js",async importOriginal=>({...await importOriginal<typeof import("../src/iiif/ocrModalBridge.js")>(),modalBridge:async (payload:any)=>{
   const { createHash }=await import("node:crypto");
   const hash=(value:string)=>createHash("sha256").update(value).digest("hex");
   external.requests.push(payload);
+  if(payload.operation==="inspect"&&external.inspectionFailure){
+    const stderr="Modal call fc-inspect-owned\n"+(external.inspectionFailure==="remote"?"Modal call cancelled fc-inspect-owned\n":"")+"private SDK context token=do-not-expose\n";
+    if(external.inspectionFailure==="transport")throw Object.assign(new Error("invalid JSON"),{stdout:'{"partial":',stderr});
+    return {response:{ok:false,error:"FunctionTimeoutError"},stderr};
+  }
   const metadata={python_version:"3.10.20",torch_version:"2.1.1",cuda_version:"12.1",gpu:"NVIDIA A10",files:[
     {path:"main.py",sha256:"a".repeat(64)},{path:"config.yml",sha256:"b".repeat(64)},
     {path:"src/ndl_kotenseki_layout/models/ndl_kotenseki_layout_ver3.pth",sha256:"c".repeat(64)},
@@ -33,7 +38,7 @@ vi.mock("../src/iiif/ocrModalBridge.js",async importOriginal=>({...await importO
 }}));
 
 const dirs:string[]=[];
-afterEach(async()=>{for(const dir of dirs.splice(0))await rm(dir,{recursive:true,force:true});external.requests=[];external.changeEngine=false;external.failed=false;external.dropped=false;});
+afterEach(async()=>{for(const dir of dirs.splice(0))await rm(dir,{recursive:true,force:true});external.requests=[];external.changeEngine=false;external.failed=false;external.dropped=false;external.inspectionFailure=null;});
 async function cli(input:unknown){
   const cwd=await mkdtemp(path.join(tmpdir(),"modal-request-"));dirs.push(cwd);await writeFile(path.join(cwd,"request.json"),JSON.stringify(input));
   let stdout="";const code=await runIiifCli(["--request","request.json"],{cwd,stdout:s=>{stdout+=s;},stderr:()=>{}});
@@ -55,6 +60,13 @@ async function fixture(){
 }
 
 describe("Modal classical OCR provider",()=>{
+  it.each(["remote","transport"] as const)("returns safe inspection diagnostics for a %s failure",async failure=>{
+    external.inspectionFailure=failure;
+    const response=await cli({api_version:"0.1",operation:"inspect_ocr_provider",provider:"ndlkotenocr-modal",approved_image_sha256:["a".repeat(64)]});
+    expect(response.code).toBe(4);
+    expect(response.diagnostics).toEqual({provider:"ndlkotenocr-modal",call_id:"fc-inspect-owned",error_type:failure==="remote"?"FunctionTimeoutError":null,cancellation_confirmed:failure==="remote"});
+    expect(JSON.stringify(response)).not.toMatch(/do-not-expose|private SDK context|partial/);
+  });
   it("imports cloud output offline and exports its exact line text and Canvas location to TEI",async()=>{
     const f=await fixture(),result=await f.run();expect(result.code,JSON.stringify(result)).toBe(0);
     const run=JSON.parse(await readFile(result.result.run_path,"utf8"));expect(run).toMatchObject({image_transmission:"modal",device:"cuda",status:"completed",engine:{provider:"ndlkotenocr-modal",gpu:"NVIDIA A10"}});

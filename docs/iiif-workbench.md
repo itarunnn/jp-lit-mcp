@@ -152,6 +152,10 @@ PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」�
 
 公開0.18.0の`run_ocr`はNDL古典籍OCR-Lite／ver.3用です。開発checkoutには、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを追加しています。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。近代資料には、[通常版NDLOCR 2.1のDocker/GPU provider](iiif-cli-reference.md#近代資料を通常版ndlocrで読む開発checkout)も選べます。
 
+Local OCRで保存したTEI/XMLは、[出力形式と行単位連携](iiif-cli-reference.md#local-ocrの出力を併用する)に沿って比較室へ結び付けられます。
+
+古典籍OCR ver.3は、開発checkoutの[Modal A10 provider](iiif-cli-reference.md#modal-a10で古典籍ocr-ver3を使う開発checkout)でも使えます。送信する公開画像とModalでの処理を指定し、同じ画像のLite版とA10版を比較できます。対象画像のhash、原出力、実行IDを保存し、TEIから元画像の行位置へ戻れます。
+
 ### 辞書の見出し語候補を画像位置付きで扱う
 
 開発checkoutの`export_ocr_tei`は、古典籍と近代資料のOCR候補を共通のTEI/XMLへ書き出します。行本文と画像のzone、crop・縮小を含む元Canvasとの対応、原OCRの出典を残します。同時に作る`lines.json`は、行順・行ID・画像とCanvas上の座標をDB処理へ渡せます。[TEI出力の手順](iiif-cli-reference.md#ocr候補を位置情報付きteiへ書き出す開発checkout)
@@ -227,7 +231,7 @@ node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs'
 
 公開IIIF Presentation 2/3の個別Manifestに対応します。取得は利用者が指定した範囲に限定します。ログイン、閲覧制限の回避、資料全体の一括取得は扱いません。利用条件は[source利用条件](source-usage-conditions.md)と原機関の表示で確認してください。
 
-比較画面は127.0.0.1で動きます。原機関の画像を表示するときは、その公開サーバーへアクセスします。OCR・図版解析は保存画像のローカル処理、AI読解は利用中アプリと資料別の許可に従って進めます。
+比較画面は127.0.0.1で動きます。原機関の画像を表示するときは、その公開サーバーへアクセスします。ローカルOCR・図版解析は保存画像を手元で処理します。任意のModal OCRは指定した公開画像をModalへ送り、AI読解は利用中アプリと資料別の許可に従って進めます。
 
 <a id="ocrモデル接続画像解析への進め方"></a>
 <a id="任意のgpu版を固定する"></a>

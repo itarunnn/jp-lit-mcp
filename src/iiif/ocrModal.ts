@@ -26,6 +26,21 @@ function resultOf(response:unknown){
     !names.some(n=>n.startsWith("src/text_kotenseki_recognition/")&&n.endsWith(".bin")))throw new Error("Modal engine file記録を確認してください");
   return r;
 }
+
+/** 検査失敗の調査に必要な識別子だけを返し、SDKの認証contextは公開しない。 */
+export class ModalInspectionError extends Error {
+  readonly diagnostics:{provider:"ndlkotenocr-modal";call_id:string|null;error_type:string|null;cancellation_confirmed:boolean};
+  constructor(response:unknown,bridgeLog:string){
+    super("Modal engineの検査に失敗しました。実行診断からModal側の状態を確認してください");
+    this.name="ModalInspectionError";
+    const envelope=z.object({error:z.string().optional(),result:z.object({call_id:z.string().optional()}).passthrough().optional()}).passthrough().safeParse(response);
+    const declared=envelope.success?envelope.data.result?.call_id:undefined;
+    const call_id=declared&&/^fc-[A-Za-z0-9-]{1,100}$/.test(declared)?declared:bridgeLog.match(/^Modal call (fc-[A-Za-z0-9-]{1,100})\r?$/m)?.[1]??null;
+    const error=envelope.success?envelope.data.error:undefined;
+    this.diagnostics={provider:"ndlkotenocr-modal",call_id,error_type:error&&/^[A-Za-z][A-Za-z0-9]*(?:Error|Exception)$/.test(error)?error:null,
+      cancellation_confirmed:call_id!==null&&bridgeLog.split(/\r?\n/).includes(`Modal call cancelled ${call_id}`)};
+  }
+}
 export async function inspectModalProvider(input:unknown){
   const options=modalInspectionSchema.parse(input),adapter_sha256=await modalAdapterHash();
   if(typeof input==="object"&&input!==null&&"engine" in input){
@@ -34,11 +49,20 @@ export async function inspectModalProvider(input:unknown){
       modalEngineHash(engine.image_id,engine)!==engine.engine_sha256)throw new Error("Modal adapter・engineの固定記録が変わりました");
     return {engine,config};
   }
-  const {response}=await modalBridge({operation:"inspect",probe_code:gpuProbe("/root/kotenocr_cli"),wrapper_code:gpuWrapper,timeout_seconds:600});
-  const r=resultOf(response);if(r.status!=="completed")throw new Error("Modal engineの検査に失敗しました");
-  const engine=modalOcrEngineSchema.parse({provider:"ndlkotenocr-modal",runtime:"modal",model_version:"3",source_commit:r.source_commit,
-    image_id:r.image_id,engine_sha256:r.engine_sha256,adapter_sha256,...r.metadata});
-  return {engine,config:modalOcrConfigSchema.parse({...options,expected_engine_sha256:engine.engine_sha256,expected_adapter_sha256:adapter_sha256,engine})};
+  let response:unknown,bridgeLog="";
+  try{
+    const result=await modalBridge({operation:"inspect",probe_code:gpuProbe("/root/kotenocr_cli"),wrapper_code:gpuWrapper,timeout_seconds:600});
+    response=result.response;bridgeLog=result.stderr;
+    const r=resultOf(response);if(r.status!=="completed")throw new Error("Modal engineの検査に失敗しました");
+    const engine=modalOcrEngineSchema.parse({provider:"ndlkotenocr-modal",runtime:"modal",model_version:"3",source_commit:r.source_commit,
+      image_id:r.image_id,engine_sha256:r.engine_sha256,adapter_sha256,...r.metadata});
+    return {engine,config:modalOcrConfigSchema.parse({...options,expected_engine_sha256:engine.engine_sha256,expected_adapter_sha256:adapter_sha256,engine})};
+  }catch(error){
+    const failure=error as {stdout?:unknown;stderr?:unknown};
+    if(typeof failure?.stderr==="string")bridgeLog=failure.stderr;
+    if(response===undefined&&typeof failure?.stdout==="string")try{response=JSON.parse(failure.stdout);}catch{}
+    throw new ModalInspectionError(response,bridgeLog);
+  }
 }
 export async function runModalImage(engine:ModalOcrEngine,imagePath:string,rawDir:string,timeout:number){
   const image=await readFile(imagePath),input_sha256=digest(image);

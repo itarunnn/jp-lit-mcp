@@ -13,6 +13,7 @@ import { startLocalServer } from "./localServer.js";
 import { inspectOcrProvider, runOcr } from "./ocrRunner.js";
 import { importOcr } from "./ocrImport.js";
 import { exportOcrTei } from "./ocrTei.js";
+import { ModalInspectionError } from "./ocrModal.js";
 import { buildBookStructure } from "./bookStructure.js";
 import { reviewBookStructure } from "./bookStructureReview.js";
 import { exportBookStructure } from "./bookStructureTei.js";
@@ -207,7 +208,7 @@ export async function runIiifCli(argv: string[], io: CliIo): Promise<number> {
         : /未対応|静止画像/.test(message)
           ? 3
           : 4;
-    io.stdout(JSON.stringify({ ok: false, error: message }) + "\n");
+    io.stdout(JSON.stringify({ ok: false, error: message,...(error instanceof ModalInspectionError?{diagnostics:error.diagnostics}:{}) }) + "\n");
     return code;
   }
 }
