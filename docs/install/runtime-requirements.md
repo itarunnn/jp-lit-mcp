@@ -28,6 +28,7 @@ SkillsはAIへ操作手順を渡すファイルです。上のコマンドが準
 | IIIFとTEI本文の対応付け | IIIFとTEI readerの環境 | TEI readerの環境を使用 |
 | 保存図版の類似検索・整列・差分 | IIIFの環境に加えてuv、初回の明示セットアップ | `--setup`実行時にPython 3.13系とOpenCVなどの専用環境を準備 |
 | ローカルくずし字OCR | IIIFの環境に加えて、選んだOCRエンジン・モデルとその実行環境 | エンジンごとの導入手順で準備 |
+| 書籍構造のSQLite出力（開発checkout） | Node.jsとuv | 同梱の`packages/book-structure`環境でPython 3.13.15を使用。SQLiteは標準ライブラリ |
 
 Pythonの自動取得には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。既に指定版があればそれを使います。AIにTEI readerやIIIF CLIの操作を依頼する場合は、ローカルコマンドを実行できるアプリを使います。画像をAIと読む場合は、画像読解にも対応したアプリを使います。
 
@@ -72,6 +73,18 @@ npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
 図版の類似検索・整列・差分は、uvを用意し、[画像解析環境の導入](../iiif-workbench.md#似た図版を探し重ね合わせて確かめる)で`iiif-images.mjs --setup`を一度実行します。この明示操作で、PythonとOpenCVなどを取得し、専用環境を作ります。通常の解析はオフラインで動くため、事前のセットアップを済ませてください。
 
 くずし字OCRには、標準の任意エンジンであるNDL古典籍OCR-Lite、または導入済みDocker/GPUを使う古典籍OCR ver.3を用意します。[OCRエンジンの導入案内](../iiif-workbench.md#くずし字ocrを使い画像と校合する)に沿って、エンジン・モデル・実行環境を別途準備します。PythonやSkillsを入れるだけでOCRエンジンが導入される仕組みはありません。
+
+開発checkoutでは、近代活字向けのNDLOCR Lite／通常版NDLOCR 2.1、Local OCRのローカルAPI、古典籍OCR ver.3のModal A10 providerも選べます。各接続先のengine・モデル・実行環境は[OCRの選択手順](../iiif-workbench.md#くずし字ocrを使い画像と校合する)で確認します。Modalは送信する公開画像の範囲と処理先を指定して使います。
+
+## 書籍構造の出力環境を準備する（開発checkout）
+
+書籍構造の共通JSONとTEIはNode.jsで生成します。SQLiteへ出力する場合はuvと、同梱`packages/book-structure`のPython 3.13系環境を使います。開発checkoutで次を実行すると、指定Pythonの準備と起動を確認できます。
+
+```bash
+uv run --directory packages/book-structure --frozen --inexact --no-dev python --version
+```
+
+Python 3.13.15が表示されたら、[書籍構造の共通基盤](../book-structure.md)に沿って`export_book_structure`を使います。通常のSQLite出力の実行依存はPython標準ライブラリです。TEIを比較画面へ結び付ける場合はTEI readerの環境、Relax NG検証を行う場合は開発用lxmlと固定schemaも使います。
 
 ## MCPとSkillsの導入を確認する
 

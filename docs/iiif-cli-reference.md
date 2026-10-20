@@ -2,6 +2,8 @@
 
 開発checkoutの`build_book_structure / review_book_structure / export_book_structure`は[書籍構造の共通基盤](book-structure.md)を参照してください。
 
+`build_book_structure`は1回1〜4 OCR候補から原行・領域と論理候補を作ります。図版向けの`illustrated`は重複検出の統合と説明文・本文参照の候補を追加し、確認結果をSQLite・TEIへ保存できます。20ページの実資料試験で使った集約・検索画面は研究用helperです。入力例、確認主体別の採否、複数領域の扱いと[検証結果](book-structure.md#図版資料での検証例)は同ガイドを参照してください。
+
 > 用途・画面操作・AIへの依頼は[IIIF利用ガイド](iiif-workbench.md)を参照してください。この資料は0.18.0の要求JSON、engine導入、保存・検証仕様を扱います。
 
 IIIF比較画面は、複数の機関が公開する資料を同じ操作で並べ、必要なページや矩形を出典付きで保存するローカルアプリです。「この2資料を並べて」「選んだ部分を画像と翻刻で比べて」とAIへ依頼できます。選択した画像と出典を既存AIアプリに渡して読み、元の場所へ戻って確認する流れを支えます。
