@@ -53,7 +53,8 @@ export function applyBookProfile(input:BookStructure):BookStructure {
   const captionData=b.profile==="illustrated"?b.lines.flatMap(line=>{
     const keys=figureKeys(line.raw_text),explicit=b.regions.some(r=>r.kind==="caption"&&r.line_refs.includes(line.line_ref));
     const page=pages.find(p=>p.page_id===line.page_id)!;
-    if(!explicit&&(isLongVerticalBody(line.image_xywh,page)||!keys.some(k=>line.raw_text.slice(0,k.index).trim()===""&&!/^\s*[)）]/u.test(line.raw_text.slice(k.end)))))return [];
+    const numberOnly=keys.length===1&&line.raw_text.slice(0,keys[0].index).trim()===""&&line.raw_text.slice(keys[0].end).trim()==="";
+    if(!explicit&&((!numberOnly&&isLongVerticalBody(line.image_xywh,page))||!keys.some(k=>line.raw_text.slice(0,k.index).trim()===""&&!/^\s*[)）]/u.test(line.raw_text.slice(k.end)))))return [];
     const matches=figureUnits.flatMap<{u:BookUnit;geometry:ReturnType<typeof captionGeometry>}>(u=>{
       const r=b.regions.find(r=>r.region_id===u.region_ids[0])!;if(r.page_id!==line.page_id)return [];
       if(keys.length&&!keys.some(k=>k.key.startsWith(u.kind+":")))return [];
@@ -67,11 +68,12 @@ export function applyBookProfile(input:BookStructure):BookStructure {
     const targets=nearby.filter(m=>!m.geometry||m.geometry.distance<=nearest+.02);
     return [{line,keys,explicit,targets}];
   }):[];
-  // 一つに定まる別番号の説明文を根拠に、隣の図への二重対応を整理する。
+  // 図の外側で一つに定まる別番号の説明文を根拠に、隣の図への二重対応を整理する。
+  // 図内の番号は図群に属する別の図を示すことがあるため、排他の根拠にしない。
   // 近い候補が残る場合や全候補を失う場合は競合を保持する。
   let changed=true;
   while(changed){changed=false;
-    const anchors=captionData.filter(c=>c.keys.length===1&&c.targets.length===1&&c.targets[0].geometry);
+    const anchors=captionData.filter(c=>c.keys.length===1&&c.targets.length===1&&c.targets[0].geometry&&c.targets[0].geometry.side!=="inside");
     for(const caption of captionData){
       if(caption.keys.length!==1||caption.targets.length<2)continue;
       const remaining=caption.targets.filter(t=>!anchors.some(a=>a.line.page_id===caption.line.page_id&&a.keys[0].key!==caption.keys[0].key&&a.targets[0].u.unit_id===t.u.unit_id));

@@ -199,3 +199,23 @@ it("holds both close candidates for a caption between mixed-position figures",()
   expect(links.map(r=>result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0])).toEqual(["figure-2","figure-3"]);
   expect(result.diagnostics).toContain("ambiguous_caption:c");
 });
+
+it("retains a vertical number-only label and its body reference",()=>{
+  const b=illustratedPage([[300,300,500,700]],[
+    {id:"caption",text:"第六十八圖",box:[820,400,40,350]},
+    {id:"body",text:"本文は第六十八圖を参照",box:[1300,300,40,1000]},
+  ]);
+  const result=applyBookProfile(b);
+  expect(result.relations.filter(r=>r.kind==="caption_of").map(r=>r.from_id)).toEqual(["unit-caption"]);
+  expect(result.relations.filter(r=>r.kind==="refers_to").map(r=>r.from_id)).toEqual(["unit-body"]);
+});
+
+it("keeps competing figures when another numbered label is inside a group",()=>{
+  const b=illustratedPage([[300,300,200,200],[300,580,200,200]],[
+    {id:"first",text:"第一圖",box:[320,520,160,30]},
+    {id:"inside",text:"第二圖",box:[320,400,160,30]},
+  ]);
+  const result=applyBookProfile(b),links=result.relations.filter(r=>r.kind==="caption_of"&&r.from_id==="unit-first");
+  expect(links.map(r=>result.units.find(u=>u.unit_id===r.to_id)!.region_ids[0])).toEqual(["figure-0","figure-1"]);
+  expect(result.diagnostics).toContain("ambiguous_caption:first");
+});
