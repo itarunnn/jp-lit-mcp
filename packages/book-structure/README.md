@@ -6,7 +6,7 @@ Python 3.13系とuvを使用します。SQLiteの実行依存はPython標準ラ�
 
 通常の入口は`jp-lit-iiif`の`export_book_structure`です。Node.js側が原資料とsnapshotのhash・出力先を検査してから、このmoduleを呼びます。
 
-開発checkoutでの入力・profile選択・確認・出力の一連の操作は、[書籍構造の共通基盤](../../docs/book-structure.md)を参照してください。
+配布CLIでの入力・profile選択・確認・出力の一連の操作は、[書籍構造の共通基盤](../../docs/book-structure.md)を参照してください。
 
 ```powershell
 uv run --directory packages/book-structure --frozen python -m unittest discover -s tests -v

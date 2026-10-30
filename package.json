@@ -1,6 +1,6 @@
 {
   "name": "jp-lit-mcp",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "private": false,
   "license": "MIT",
   "type": "module",
@@ -37,6 +37,7 @@
     "docs/releases/v0.16.0.md",
     "docs/releases/v0.17.0.md",
     "docs/releases/v0.18.0.md",
+    "docs/releases/v0.19.0.md",
     "packages/tei-reader/.python-version",
     "packages/tei-reader/pyproject.toml",
     "packages/tei-reader/uv.lock",
@@ -107,7 +108,7 @@
     "skills:install": "node scripts/install-skills.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "fast-xml-parser": "^5.10.1",
     "zod": "^3.23.8"
   },
@@ -120,7 +121,7 @@
     "mirador": "4.2.6",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "yaml": "^2.9.0"
   }
 }

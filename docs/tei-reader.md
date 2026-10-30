@@ -116,7 +116,7 @@ readerは、文書検査、構造一覧、構造付き抽出、参照点検の4�
 
 0.18.0の改頁対応は、`pb`直後から次の改頁の直前までを構造付き`page_range`として保存します。原の`pb`とページ範囲を分け、段落途中の切り出しや本文の異読・訂正を保持します。任意の`include_inherited=true`は最も近い親のfacsを宣言元付きで展開します。範囲が曖昧な改頁は診断を残し、大きい範囲は省略を明示します。本文校合と画像対応の状態は別に読みます。
 
-開発checkoutでは、`facsimile_links`に`include_lb_corresp=true`を加えると、Local OCR型の`lb@corresp`から同一XMLのzoneへ解決した参照を返します。属性名を`attribute_name`、lb直後の行本文を`line_range`へ保存します。同じ親の次の`lb/pb/cb`または親末尾までを原構造付きで返し、枝内のlb・入れ子のmilestoneを診断します。参照全体の未解決状態は`check_references`で点検できます。IIIFのCanvasとの対応は比較室の`link_tei`と`surface_bindings`で指定します。詳細は[Local OCR連携](iiif-cli-reference.md#local-ocrの出力を併用する)を参照してください。
+0.19.0では、`facsimile_links`に`include_lb_corresp=true`を加えると、Local OCR型の`lb@corresp`から同一XMLのzoneへ解決した参照を返します。属性名を`attribute_name`、lb直後の行本文を`line_range`へ保存します。同じ親の次の`lb/pb/cb`または親末尾までを原構造付きで返し、枝内のlb・入れ子のmilestoneを診断します。参照全体の未解決状態は`check_references`で点検できます。IIIFのCanvasとの対応は比較室の`link_tei`と`surface_bindings`で指定します。詳細は[Local OCR連携](iiif-cli-reference.md#local-ocrの出力を併用する)を参照してください。
 
 読解結果には、ファイルの版を識別する**SHA-256（hash）**と、XML内の位置を指す**locator**が付きます。hashはファイルの指紋、locatorのXPathは要素へ戻るための道順と考えると使いやすくなります。これらはXMLの版と位置を示し、底本の頁番号はデータ内の頁記述から別に確認します。
 
@@ -242,7 +242,7 @@ Node.js 22以上とnpmを用意し、[各アプリの導入ガイド](install/ru
 
 ```sh
 uv --version
-npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
 ```
 
 初回起動時に、uvが専用環境を作成します。指定Python 3.13.15が見つからなければ、uvの既定設定で自動取得します。Pythonだけを入れた状態ではuvも必要です。自動取得には初回のネット接続とダウンロード許可が必要で、制限環境での事前準備は[共通の導入手順](install/runtime-requirements.md#tei-readerの環境を準備する)を参照してください。Skillsの配置時には、Python環境の準備は実行されません。
@@ -253,7 +253,7 @@ npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
 
 readerのヘルプが表示されたら、AIアプリを開き直して新しい対話を始め、`jp-lit-tei`とuvを利用できることを確認します。
 
-ここで指定した`0.18.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。既存のMCP設定はそのまま利用できます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.18.0へ揃えて使います。図版解析とOCRは[別途環境を準備](install/runtime-requirements.md#図版解析とくずし字ocrを追加する)します。原TEIの編集と本文校合は別に進めます。
+ここで指定した`0.19.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。既存のMCP設定はそのまま利用できます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.19.0へ揃えて使います。図版解析とOCRは[別途環境を準備](install/runtime-requirements.md#図版解析とくずし字ocrを追加する)します。原TEIの編集と本文校合は別に進めます。
 
 導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
 

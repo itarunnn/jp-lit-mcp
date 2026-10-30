@@ -6,7 +6,7 @@ readerは、固定したローカルTEI/XMLの情報・単位一覧・構造抽�
 
 ## 起動と開発時の検証
 
-開発版の任意操作`facsimile_links`は、画像対応用の原構造と参照材料を返します。従来4操作の契約を維持し、外部資源を取得しません。
+任意操作`facsimile_links`は、画像対応用の原構造と参照材料を返します。従来4操作の契約を維持し、外部資源を取得しません。
 
 ```json
 {
@@ -198,7 +198,7 @@ XMLパーサー処理後の論理内容を扱う。CDATA境界、entityの元表
 
 ## 範囲と参照
 
-開発checkoutの`facsimile_links`は任意の`include_lb_corresp=true`で、TEIのlbから同一XMLのzoneへ解決したcorrespを画像参照として返す。属性名はattribute_name、lb直後から同じ親の次のlb/pb/cbまたは親末尾までの本文はline_rangeへ原XPathと構造付きで保存する。枝内のlb・入れ子のmilestoneはline_stream_requires_review、本文上限はomissionで示す。既定はfacs参照だけ。任意correspの参照検査はcheck_referencesを使う。
+0.19.0の`facsimile_links`は任意の`include_lb_corresp=true`で、TEIのlbから同一XMLのzoneへ解決したcorrespを画像参照として返す。属性名はattribute_name、lb直後から同じ親の次のlb/pb/cbまたは親末尾までの本文はline_rangeへ原XPathと構造付きで保存する。枝内のlb・入れ子のmilestoneはline_stream_requires_review、本文上限はomissionで示す。既定はfacs参照だけ。任意correspの参照検査はcheck_referencesを使う。
 
 listのchildren/descendantsはscope自身を除外する。checkのscopeは自身と子孫を含み、summary・total_occurrences・paginationも選択範囲。checkのscope省略/nullは全文書。参照先xml:idの一意性と祖先xml:baseは全文書で確認する。
 

@@ -1,12 +1,12 @@
 # IIIF比較・読解の呼び出し
 
-0.18.0向けの手順。CLIとSkillを同じ版へ揃えて使う。開発checkoutはbuild後に使う。0.17.0は比較・出典書き出しまでを提供する。
+0.19.0向けの手順。CLIとSkillを同じ版へ揃えて使う。開発checkoutはbuild後に使う。0.17.0は比較・出典書き出しまでを提供する。
 
-Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
+Node22以上を使う。v0.17.0から配布する。通常導入はrepo外から`npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif`を呼ぶ。global/local install済みなら`jp-lit-iiif`を呼ぶ。source checkoutは`npm ci` / `npm run build`後に`node scripts/iiif-workbench.mjs`を呼ぶ。
 
 要求JSONはUTF-8、`api_version="0.1"`、JSON内の保存先pathは絶対pathにする。`--request`のpathだけはcaller cwdからの相対指定も使える。stdoutにJSON1件、終了値は0成功／2入力不正／3未対応／4取得・起動失敗。
 
-開発版の利用可否は、実行するCLIの`--help`で確認する。AI候補の登録は[AI読解](ai-reading.md)、保存済み図版の整列・差分と結果登録は[図版比較](image-comparison.md)を読む。各referenceはSkillと一緒に配布される。開発checkoutの詳細ガイドはrepo内の`docs/iiif-workbench.md`を参照する。
+各操作の利用可否は、実行するCLIの`--help`で確認する。AI候補の登録は[AI読解](ai-reading.md)、保存済み図版の整列・差分と結果登録は[図版比較](image-comparison.md)を読む。各referenceはSkillと一緒に配布される。開発checkoutの詳細ガイドはrepo内の`docs/iiif-workbench.md`を参照する。
 
 ## ページを調べる
 

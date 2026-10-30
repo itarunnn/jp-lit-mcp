@@ -28,7 +28,7 @@ SkillsはAIへ操作手順を渡すファイルです。上のコマンドが準
 | IIIFとTEI本文の対応付け | IIIFとTEI readerの環境 | TEI readerの環境を使用 |
 | 保存図版の類似検索・整列・差分 | IIIFの環境に加えてuv、初回の明示セットアップ | `--setup`実行時にPython 3.13系とOpenCVなどの専用環境を準備 |
 | ローカルくずし字OCR | IIIFの環境に加えて、選んだOCRエンジン・モデルとその実行環境 | エンジンごとの導入手順で準備 |
-| 書籍構造のSQLite出力（開発checkout） | Node.jsとuv | 同梱の`packages/book-structure`環境でPython 3.13.15を使用。SQLiteは標準ライブラリ |
+| 書籍構造のSQLite出力 | Node.jsとuv | 同梱の`packages/book-structure`環境でPython 3.13.15を使用。SQLiteは標準ライブラリ |
 
 Pythonの自動取得には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。既に指定版があればそれを使います。AIにTEI readerやIIIF CLIの操作を依頼する場合は、ローカルコマンドを実行できるアプリを使います。画像をAIと読む場合は、画像読解にも対応したアプリを使います。
 
@@ -41,7 +41,7 @@ Pythonの自動取得には初回のネット接続と、uvの自動ダウンロ
 
 ```bash
 uv --version
-npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
 ```
 
 readerの初回起動で、uvが同梱の環境定義に従って専用環境を作ります。指定Pythonが見つからない場合は、[uvの既定の自動ダウンロード](https://docs.astral.sh/uv/guides/install-python/)で取得します。仮想環境やPythonライブラリを手で入れる必要はありません。npmやSkillsの導入時には、このTEI環境の準備は実行されません。
@@ -61,7 +61,7 @@ uv python install 3.13.15
 **IIIFの基本比較・領域選択・出典保存は、Pythonやuvを追加せずに使えます。** 同梱のViewerをWebブラウザで開きます。Node.jsとnpmが使える環境で、CLIの起動を確認できます。
 
 ```bash
-npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
+npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --help
 ```
 
 ヘルプが表示されたら、[IIIFの使い方](../iiif-workbench.md)に沿ってAIに資料の選定と比較画面の起動を依頼します。CLIが返すローカルURLをブラウザで開きます。
@@ -74,17 +74,18 @@ npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
 
 くずし字OCRには、標準の任意エンジンであるNDL古典籍OCR-Lite、または導入済みDocker/GPUを使う古典籍OCR ver.3を用意します。[OCRエンジンの導入案内](../iiif-workbench.md#くずし字ocrを使い画像と校合する)に沿って、エンジン・モデル・実行環境を別途準備します。PythonやSkillsを入れるだけでOCRエンジンが導入される仕組みはありません。
 
-開発checkoutでは、近代活字向けのNDLOCR Lite／通常版NDLOCR 2.1、Local OCRのローカルAPI、古典籍OCR ver.3のModal A10 providerも選べます。各接続先のengine・モデル・実行環境は[OCRの選択手順](../iiif-workbench.md#くずし字ocrを使い画像と校合する)で確認します。Modalは送信する公開画像の範囲と処理先を指定して使います。
+0.19.0では、近代活字向けのNDLOCR Lite／通常版NDLOCR 2.1、Local OCRのローカルAPI、古典籍OCR ver.3のModal A10 providerも選べます。各接続先のengine・モデル・実行環境は[OCRの選択手順](../iiif-workbench.md#くずし字ocrを使い画像と校合する)で確認します。Modalは送信する公開画像の範囲と処理先を指定して使います。
 
-## 書籍構造の出力環境を準備する（開発checkout）
+<a id="書籍構造の出力環境を準備する開発checkout"></a>
+## 書籍構造の出力環境を準備する
 
-書籍構造の共通JSONとTEIはNode.jsで生成します。SQLiteへ出力する場合はuvと、同梱`packages/book-structure`のPython 3.13系環境を使います。開発checkoutで次を実行すると、指定Pythonの準備と起動を確認できます。
+書籍構造の共通JSONとTEIはNode.jsで生成します。SQLiteへ出力する場合はuvと、同梱`packages/book-structure`のPython 3.13系環境を使います。`export_book_structure`の初回SQLite出力で、同梱定義に従い指定Pythonの環境を準備します。Pythonだけを先に用意する場合は次を実行します。
 
 ```bash
-uv run --directory packages/book-structure --frozen --inexact --no-dev python --version
+uv python install 3.13.15
 ```
 
-Python 3.13.15が表示されたら、[書籍構造の共通基盤](../book-structure.md)に沿って`export_book_structure`を使います。通常のSQLite出力の実行依存はPython標準ライブラリです。TEIを比較画面へ結び付ける場合はTEI readerの環境、Relax NG検証を行う場合は開発用lxmlと固定schemaも使います。
+Python 3.13.15を準備したら、[書籍構造の共通基盤](../book-structure.md)に沿って`export_book_structure`を使います。通常のSQLite出力の実行依存はPython標準ライブラリです。TEIを比較画面へ結び付ける場合はTEI readerの環境、Relax NG検証を行う場合は開発用lxmlと固定schemaも使います。
 
 ## MCPとSkillsの導入を確認する
 

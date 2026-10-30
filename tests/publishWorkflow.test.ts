@@ -210,10 +210,14 @@ describe("publish workflow", () => {
       "Check package version is unpublished",
       "Install dependencies",
       "Build",
+      "Typecheck scripts",
       "Set up image analysis",
       "Test",
       "Test TEI reader",
+      "Test book structure",
+      "Test Modal bridge",
       "Test image analysis",
+      "Offline MCP smoke",
       "Publish to npm"
     ];
 
@@ -230,10 +234,14 @@ describe("publish workflow", () => {
     const packageCommands = {
       "Install dependencies": "npm ci",
       Build: "npm run build",
+      "Typecheck scripts": "npm run typecheck:scripts",
       Test: "npm test -- --maxWorkers=2",
       "Test TEI reader": "npm run test:tei",
+      "Test book structure": "npm run test:book",
+      "Test Modal bridge": "npm run test:ocr-modal",
       "Set up image analysis": "node scripts/iiif-images.mjs --setup",
       "Test image analysis": "npm run test:images",
+      "Offline MCP smoke": "npm run smoke:mcp:offline",
       "Publish to npm": "npm publish"
     };
     for (const [name, command] of Object.entries(packageCommands)) {

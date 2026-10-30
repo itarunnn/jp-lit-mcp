@@ -13,9 +13,9 @@
 
 IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文と画像を往復し、くずし字OCR・AIの候補を原画像と確かめられます。保存した図版から似た候補を探し、重ね合わせ・差分と両側の出典へ戻れます。任意CLI `jp-lit-iiif`とSkillを同梱し、0.18.0でTEI連携・OCR・AI候補取込・図版比較を追加しました。[比較・画像読解の使い方](docs/iiif-workbench.md)を参照してください。
 
-開発checkoutでは、位置付きOCRから辞書項目や図版・説明文の対応候補を作り、SQLiteとTEIへ保存できます。図群と部分図、重複した検出、確認・訂正履歴を保持し、原画像の該当位置へ戻って確認します。[書籍構造の共通基盤](docs/book-structure.md)に操作と20ページの検証結果をまとめています。
+0.19.0では、位置付きOCRから辞書項目や図版・説明文の対応候補を作り、SQLiteとTEIへ保存できます。図群と部分図、重複した検出、確認・訂正履歴を保持し、原画像の該当位置へ戻って確認します。[書籍構造の共通基盤](docs/book-structure.md)に操作と20ページの検証結果をまとめています。
 
-開発checkoutのOCRは、近代活字のNDLOCR Lite／通常版NDLOCR 2.1、古典籍のLite版／GPU版を選べます。導入済みLocal OCRへのローカルAPI接続と、公開画像を指定したModal A10での処理も使えます。[OCRの選択と画像校合](docs/iiif-workbench.md#くずし字ocrを使い画像と校合する)を参照してください。
+OCRは、近代活字のNDLOCR Lite／通常版NDLOCR 2.1、古典籍のLite版／GPU版を選べます。導入済みLocal OCRへのローカルAPI接続と、公開画像を指定したModal A10での処理も使えます。[OCRの選択と画像校合](docs/iiif-workbench.md#くずし字ocrを使い画像と校合する)を参照してください。
 
 通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
 
@@ -83,7 +83,7 @@ Skills によって実際の調査を進めます。どの source から入る�
 | IIIFとTEI本文の対応付け | TEI readerの環境 |
 | 図版の類似検索・整列・差分 | uvと初回セットアップ。Python・画像解析ライブラリを準備 |
 | 手元画像のくずし字OCR | OCRエンジン・モデルと、その実行環境の別途導入 |
-| 書籍構造のSQLite出力（開発checkout） | uvとPython 3.13系。TEIの生成はNode.jsで実行 |
+| 書籍構造のSQLite出力 | uvとPython 3.13系。TEIの生成はNode.jsで実行 |
 
 Pythonの自動準備には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。TEI読解・IIIF操作をAIへ依頼するときは、ローカルコマンドを実行できるアプリを使います。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)に、uvの導入、起動確認、図版解析・OCRの追加手順をまとめています。
 

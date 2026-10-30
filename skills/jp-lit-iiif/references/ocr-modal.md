@@ -1,6 +1,6 @@
 # Modal A10で公開古典籍を処理する
 
-`ndlkotenocr-modal`を含む開発checkoutで、利用者が指定した公開画像をA10で処理する。既存のModal認証とuvを使う。通常のMCPはNode-onlyで、Python SDKは選択したproviderだけが使う。
+0.19.0の`ndlkotenocr-modal`で、利用者が指定した公開画像をA10で処理する。既存のModal認証とuvを使う。通常のMCPはNode-onlyで、Python SDKは選択したproviderだけが使う。
 
 1. 資料の利用条件、Modalへの送信範囲、画像1〜4件のSHA-256を記録する。セッション中の同じ対象・送信先の承認を引き継ぐ。
 2. 次のinspect要求で、例のhashを保存画像の実測値へ置き換える。inspectは固定imageをbuildし、画像を送らずA10上でcode・モデルを検査する。buildとprobeは課金対象になる。

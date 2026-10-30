@@ -1,5 +1,11 @@
 # 実装状況
 
+## 2026-10-31: v0.19.0 位置付きOCRと書籍構造
+
+位置付きOCR、辞書・図版資料の共通構造、SQLite・TEI出力、Local OCR・通常版NDLOCR・Modal A10、初見分野の調査workflowを0.19.0へまとめた。CLIとSkillの版指定、配布版からの起動手順、機能別の任意環境を更新し、旧文書のリンク先も保持した。[リリースノート](releases/v0.19.0.md)に変更内容と確認範囲をまとめている。
+
+SDKとVitest、互換範囲の依存を更新し、Node 137ファイル・1,323テスト、PythonのTEI 68件・SQLite 4件・Modal 8件・画像解析11件、build・scripts型検査・offline smokeが成功した。公開workflowにも新しいPython suiteと型検査・smokeを追加した。依存監査の残るZod high 1件・Mirador/deepmerge low 2件は[利用経路と後続確認](third-party-notices.md#0190の依存監査)へ記録した。
+
 ## 2026-10-30: ブランチのmain集約と統合レビュー
 
 位置付きOCR・共通書籍構造・Modal対応・図版と説明文の対応改善に、初見分野の見取り図workflowを加え、mainへ統合した。統合済みの作業branch3本を整理し、元checkoutもmainへ揃えた。研究用の成果物とworktreeは保持している。

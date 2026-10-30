@@ -1,12 +1,12 @@
 # IIIFの使い方: 古典籍を並べ、本文・OCR・図版を確かめる
 
-開発checkoutでは、[書籍構造の共通基盤](book-structure.md)で辞書項目や図版・説明文の対応を保存し、SQLite・TEIから原画像へ戻れます。
+0.19.0では、[書籍構造の共通基盤](book-structure.md)で辞書項目や図版・説明文の対応を保存し、SQLite・TEIから原画像へ戻れます。
 
 IIIF比較画面は、図書館や研究機関が公開する資料を手元のPCで並べ、選んだページや部分を出典付きで保存するアプリです。異本を見比べる、翻刻の文字を原画像で確かめる、くずし字OCRとAIの読みを比較する、別本の似た図版を探す、といった作業を一つの画面で続けられます。
 
 AIには「この2資料を並べて」「この翻刻に対応する画像へ戻って」「OCRの疑わしい箇所を画像で確かめて」と依頼できます。候補と原資料を結び付けて残すので、後から同じ箇所へ戻り、研究者が校合を進められます。
 
-このガイドは0.18.0の機能を説明します。npmからCLIを導入し、GitHub CLIまたはnpmから同じ版のSkillを導入して使います。
+このガイドは0.19.0の機能を説明します。npmからCLIを導入し、GitHub CLIまたはnpmから同じ版のSkillを導入して使います。
 
 ## このガイドでわかること
 
@@ -78,13 +78,13 @@ IIIFは、機関ごとに公開されている画像と資料の情報を、共�
 
 AIから比較画面を操作する場合は、ローカルコマンドを実行できるアプリを使います。画像をAIと読む場合は、画像読解にも対応したアプリを使います。
 
-0.18.0の起動確認は次のとおりです。
+0.19.0の起動確認は次のとおりです。
 
 ```powershell
-npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-iiif --help
+npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --help
 ```
 
-開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.18.0へ更新して使ってください。
+開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.19.0へ更新して使ってください。
 
 追加環境は使う機能に合わせて選びます。TEI本文との対応付けはuvとTEI reader、図版解析はuvと初回セットアップ、くずし字OCRはエンジン・モデルを用意します。これらを使う前に[機能別の準備手順](install/runtime-requirements.md)を確認してください。Skillsを配置しただけで、PythonやOCRエンジンが導入される仕組みはありません。
 
@@ -150,19 +150,20 @@ PCから別の読みを得たい場合は、領域の「KuroNetで補助OCR」�
 
 比較には、この比較画面から出典付きで書き出した同じ画像ファイルを使います。画像と各エンジンの原結果、エンジン名・版・読み取りモードを残し、相違箇所を原画像で確認します。TEI/XMLは画像と一緒に保存し、[TEI reader](tei-reader.md)で構造と参照を点検できます。
 
-公開0.18.0の`run_ocr`はNDL古典籍OCR-Lite／ver.3用です。開発checkoutには、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを追加しています。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。近代資料には、[通常版NDLOCR 2.1のDocker/GPU provider](iiif-cli-reference.md#近代資料を通常版ndlocrで読む開発checkout)も選べます。
+0.19.0の`run_ocr`は、NDL古典籍OCR-Lite／ver.3と、導入済みLocal OCRのNDLOCR LiteへローカルAPIで接続する任意providerを選べます。ページ全体の`layout`と、選択画像を1行として読む`line`を選び、同じ画像・原応答を保存して既存workspaceへ取り込めます。[接続手順](iiif-cli-reference.md#local-ocrを接続する開発checkout)を参照してください。近代資料には、[通常版NDLOCR 2.1のDocker/GPU provider](iiif-cli-reference.md#近代資料を通常版ndlocrで読む開発checkout)も選べます。
 
 Local OCRで保存したTEI/XMLは、[出力形式と行単位連携](iiif-cli-reference.md#local-ocrの出力を併用する)に沿って比較室へ結び付けられます。
 
-古典籍OCR ver.3は、開発checkoutの[Modal A10 provider](iiif-cli-reference.md#modal-a10で古典籍ocr-ver3を使う開発checkout)でも使えます。送信する公開画像とModalでの処理を指定し、同じ画像のLite版とA10版を比較できます。対象画像のhash、原出力、実行IDを保存し、TEIから元画像の行位置へ戻れます。
+古典籍OCR ver.3は、[Modal A10 provider](iiif-cli-reference.md#modal-a10で古典籍ocr-ver3を使う開発checkout)でも使えます。送信する公開画像とModalでの処理を指定し、同じ画像のLite版とA10版を比較できます。対象画像のhash、原出力、実行IDを保存し、TEIから元画像の行位置へ戻れます。
 
 ### 辞書の見出し語候補を画像位置付きで扱う
 
-開発checkoutの`export_ocr_tei`は、古典籍と近代資料のOCR候補を共通のTEI/XMLへ書き出します。行本文と画像のzone、crop・縮小を含む元Canvasとの対応、原OCRの出典を残します。同時に作る`lines.json`は、行順・行ID・画像とCanvas上の座標をDB処理へ渡せます。[TEI出力の手順](iiif-cli-reference.md#ocr候補を位置情報付きteiへ書き出す開発checkout)
+`export_ocr_tei`は、古典籍と近代資料のOCR候補を共通のTEI/XMLへ書き出します。行本文と画像のzone、crop・縮小を含む元Canvasとの対応、原OCRの出典を残します。同時に作る`lines.json`は、行順・行ID・画像とCanvas上の座標をDB処理へ渡せます。[TEI出力の手順](iiif-cli-reference.md#ocr候補を位置情報付きteiへ書き出す開発checkout)
 
 縦書きで段組みの複雑な辞書では、各ページの位置と本文を使って見出し語候補を拾い、候補から原画像へ戻って確かめられます。ページごとの位置のずれも保存した座標に反映されます。見出し語・語釈・用例の分類は、その座標と出典を保って追加できます。古典籍Liteが元から出すXML/TEIも、原出力として保存します。
 
-### 図版の多い本を位置付きDBとして扱う（開発checkout）
+<a id="図版の多い本を位置付きdbとして扱う開発checkout"></a>
+### 図版の多い本を位置付きDBとして扱う
 
 図版と本文が回り込む資料も、同じ[書籍構造の共通基盤](book-structure.md)で処理できます。AIには「この本の前半と後半から10ページずつ選び、図版・説明文の対応を確認してSQLiteとTEIに保存して」と依頼できます。
 
@@ -198,7 +199,7 @@ Local OCRで保存したTEI/XMLは、[出力形式と行単位連携](iiif-cli-r
 図版解析には、任意のローカル画像解析環境を追加します。[uvを導入](https://docs.astral.sh/uv/getting-started/installation/)し、初回に次を実行します。明示的な`--setup`でPython 3.13系とOpenCVなどの専用環境を準備します。初回はネット接続とuvのダウンロード許可が必要です。セットアップ後の解析はオフラインで動きます。基本の比較画面と出典保存は、この追加環境を省いて使えます。
 
 ```powershell
-npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.18.0
+npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.19.0
 node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs' --setup
 ```
 
@@ -244,4 +245,4 @@ node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs'
 <a id="ocrモデル接続画像解析への進め方"></a>
 <a id="任意のgpu版を固定する"></a>
 
-要求JSON、GPU設定、評価形式、保存先保護、数値上限は[技術リファレンス](iiif-cli-reference.md)へまとめています。0.18.0の主要フローは、TEI往復、ローカルOCR、利用中AIアプリでの読解取込、保存図版の検索・整列差分です。外部モデルAPI、大規模な類似画像探索、透視・非線形変形、資料別のOCR/LLM性能比較は後続の拡張・評価として扱います。
+要求JSON、GPU設定、評価形式、保存先保護、数値上限は[技術リファレンス](iiif-cli-reference.md)へまとめています。0.19.0の主要フローは、書籍構造のSQLite・TEI出力、TEI往復、ローカルOCR、利用中AIアプリでの読解取込、保存図版の検索・整列差分です。外部モデルAPI、大規模な類似画像探索、透視・非線形変形、資料別のOCR/LLM性能比較は後続の拡張・評価として扱います。

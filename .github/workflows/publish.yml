@@ -132,6 +132,10 @@ jobs:
         working-directory: package
         run: npm run build
 
+      - name: Typecheck scripts
+        working-directory: package
+        run: npm run typecheck:scripts
+
       - name: Set up image analysis
         working-directory: package
         run: node scripts/iiif-images.mjs --setup
@@ -144,9 +148,21 @@ jobs:
         working-directory: package
         run: npm run test:tei
 
+      - name: Test book structure
+        working-directory: package
+        run: npm run test:book
+
+      - name: Test Modal bridge
+        working-directory: package
+        run: npm run test:ocr-modal
+
       - name: Test image analysis
         working-directory: package
         run: npm run test:images
+
+      - name: Offline MCP smoke
+        working-directory: package
+        run: npm run smoke:mcp:offline
 
       - name: Publish to npm
         working-directory: package
