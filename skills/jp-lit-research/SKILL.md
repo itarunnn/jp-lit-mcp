@@ -34,6 +34,7 @@ description: >-
 - `source` 未指定のラウンドロビン検索は、8 source を同じ query で比較する強い理由がある場合だけ使い、使う理由を trace と回答に残す。
 - 新規テーマでは検索前に短い調査方針を提示し、ユーザー確認後に検索する。継続指示では既定方針を 1〜2 文で宣言して検索を続けてよい。
 - 1 回の検索で終えず、結果を見て次の query / source / 深掘り可否を決める。
+- 初見分野の用語・人・場・原典への入口を求める依頼では `workflows/field-orientation.md` を読む。既存の見取り図がある継続調査は、その記録と未確認事項を引き継ぐ。
 - 生の検索結果、OCR payload、`raw` JSON を会話へ大量に貼らない。cache / session を原本とし、会話には要点と判断を残す。
 - cache は検索結果・取得 payload の保管場所であり、調査報告そのものではない。
 - 調査トレース報告 / handoff report は、主エージェントが統合判断するための人間可読な調査報告として扱う。低レベル trace とは分ける。
@@ -114,6 +115,7 @@ description: >-
 - `reference/02-source-and-query.md`: source 選択、検索語展開、ページング、典拠・分類からの語彙展開。
 - `reference/03-evidence-and-output.md`: 証拠評価、候補表示、本文確認ラベル、調査ログ、trace、出力詳細。
 - `reference/04-ephemeral-web-discovery.md`: 速報性が高く消えやすいWeb投稿を調査の発端として記録し、正式 source の確認へつなぐ場合。
+- [workflows/field-orientation.md](workflows/field-orientation.md): `research_guide` / `topic_literature_review` で、初見分野の見取り図と次の読書候補を作る場合。
 - `heuristics/source-selection.md`: DB 選択で迷う場合。
 - `heuristics/query-expansion.md`: 表記ゆれ、旧字、異体字、古語が重要な場合。
 - `heuristics/evidence-grading.md`: 文献価値や根拠の強さを評価する場合。

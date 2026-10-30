@@ -20,6 +20,14 @@ README・利用ガイド・CLI資料・SQLite packageの案内を、開発checko
 
 この実装時の検証はNode 137ファイル・1,321テスト、SQLite packageのPython 4テスト、build、固定TEI schema、検索14項目。試験の追加OCR・外部処理は0件で、原284行と526領域を保持し、分類図のmanual_regionを1件追加した。変更は専用branch `codex/illustrated-db-pilot`へ保存し、main統合・公開は次の工程とする。[現在の利用範囲と検証例](book-structure.md)を参照。
 
+## 2026-10-19: 初見分野の見取り図 workflow
+
+`jp-lit-research`に、初めて扱う分野の用語・人・場・原典を整理する[workflow](../skills/jp-lit-research/workflows/field-orientation.md)を追加した。既存の調べ方案内・テーマ文献探索から参照し、問いの更新、原文根拠の対応表、引用等の追跡経路、次の読書候補、停止理由を残す。継続調査、概要のみの依頼、本文取得の壁は既存の範囲・確認状態を引き継いで扱う。
+
+保存には既存sessionのtraceと自由記述欄を使う。同梱Skillと利用案内の変更で、公開tool・schema・依存関係・versionは維持する。公開反映とuser-wideに導入済みのSkillへの同期は次工程とする。
+
+関連テスト73件、Skill形式、ローカルリンク49件、隔離先への導入と配布物収録を確認した。架空資料による初見調査の前後比較と、継続・件数限定・全文未取得・指定資料読解の適用試験を行い、独立差分レビューの指摘は0件だった。
+
 ## 2026-10-09: TEI・IIIFの導入前提の明確化
 
 READMEと各アプリの導入ガイドで、MCP検索、TEI reader、IIIF比較、画像解析、OCRの必要環境を区別した。npmにPythonコードと環境定義を同梱すること、uvとPython本体の準備、Skills配置後のreader起動確認を[共通手順](install/runtime-requirements.md)にまとめた。
