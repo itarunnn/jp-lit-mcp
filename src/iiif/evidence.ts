@@ -22,6 +22,7 @@ import { imageDimensions } from "./imageMetadata.js";
 import { teiLinksForRegion } from "./tei-state.mjs";
 import { manualOcrMatchesRegion } from "./manual-ocr-state.mjs";
 import { readingMatchesRegion } from "./reading-state.mjs";
+import { ocrMatchesRegion } from "./ocr-state.mjs";
 import { comparisonsForRegion } from "./image-comparison-state.mjs";
 import { verifyComparisonRecord } from "./imageComparison.js";
 import { protectWorkspaceSources } from "./outputProtection.js";
@@ -238,6 +239,10 @@ export async function exportEvidence(
         );
       const linked = w.texts.filter((t) => {
         if(!r.text_evidence_ids.includes(t.text_id))return false;
+        if(t.ocr_provenance && !ocrMatchesRegion(w,t,r.selection.region_id)) {
+          diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なるOCR候補 ${t.text_id} を読解本文から除外しました`);
+          return false;
+        }
         if(t.reading_provenance && !readingMatchesRegion(w,t,r.selection.region_id)) {
           diagnostics.push(`領域 ${r.selection.region_id}: 出典と現行領域が異なるAI候補 ${t.text_id} を読解本文から除外しました`);
           return false;

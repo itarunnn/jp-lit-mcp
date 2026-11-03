@@ -5,7 +5,6 @@ import { readingFixture } from "./fixtures/iiif/reading.js";
 import { runIiifCli } from "../src/iiif/cli.js";
 import { digest } from "./fixtures/iiif/ocr.js";
 import { recordReadingReview } from "../src/iiif/reading-state.mjs";
-// @ts-expect-error ブラウザと共有するOCR校合
 import { recordOcrReview } from "../src/iiif/ocr-state.mjs";
 import { exportEvidence } from "../src/iiif/evidence.js";
 import { evaluateOcr } from "../src/iiif/ocrEvaluation.js";

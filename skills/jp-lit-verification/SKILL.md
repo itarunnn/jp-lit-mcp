@@ -24,6 +24,7 @@ description: >-
 - `部分一致` / `混線の疑い` では、近い候補の著者名・書名・掲載誌または出版社・発行年を可能な限り示す
 - 一次検証や再確認で `highlights` / `summary` / `table_of_contents` が得られた場合は、判定理由や確認候補に短い抜粋を添える
 - `ndl_search` を一次検証の第一関門に使う
+- 最初の検索前に `jp_lit_start_session` を呼び、返された `session_id` を検索・取得・照合・注釈・exportへ毎回渡す。同じ検証案件では同じIDを保持し、独立した案件では新しいIDを開始する。
 - `部分一致` / `混線の疑い` / 再確認価値の高い `非実在の疑い` だけ、必要なら個別 source で再確認する
 - 生の検索結果を会話へ大量に貼り付けず、表と判定理由を主に残す
 - 重い record / OCR payload は必要時だけ再読込する
@@ -35,9 +36,12 @@ description: >-
 
 1. 貼り付け文章を受け取る
 2. 文献候補を抽出する
-3. `jp_lit_search(source=ndl_search, query=...)` で一次検証する
-4. 必要なら個別 source で再確認する
-5. 表で報告する
+3. `SID = jp_lit_start_session(research_goal="貼り付け文章の文献検証").session_id` で検証案件を開始する
+4. `jp_lit_search(session_id=SID, source=ndl_search, query=...)` で一次検証する
+5. 必要なら同じ `session_id` を渡して個別 source で再確認する
+6. 表で報告する
+
+呼び出し例の `SID` は、開始時に返された実際の調査IDに置き換える。同じ案件の継続依頼では既存のIDを引き継ぐ。新しい検証を開始するときに別のIDを発行する。
 
 ## コンテキスト運用
 
@@ -79,7 +83,7 @@ description: >-
 ## 利用ツール
 
 - 一次検証:
-  - `jp_lit_search(source=ndl_search, query=...)`
+  - `jp_lit_search(session_id=SID, source=ndl_search, query=...)`
 - 必要なら個別 source で再確認:
   - 図書: `ndl_catalog` / `cinii_books`
   - 論文: `cinii_articles` / `jstage_articles` / `ndl_articles`

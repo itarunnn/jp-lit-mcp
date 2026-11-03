@@ -9,7 +9,7 @@ import { mergeTextResult, addComparisonWindow } from "./workspace-state.mjs";
 import { createTeiPanel } from "./tei-panel.mjs";
 import { detachTeiRegion } from "./tei-state.mjs";
 import { createOcrPanel } from "./ocr-panel.mjs";
-import { assertOcrTarget } from "./ocr-state.mjs";
+import { assertOcrTarget, ocrMatchesRegion } from "./ocr-state.mjs";
 import { createManualOcrPanel } from "./manual-ocr-panel.mjs";
 import { assertManualOcrTarget, manualOcrMatchesRegion, mergeManualOcrCandidate } from "./manual-ocr-state.mjs";
 import { createReadingPanel } from "./reading-panel.mjs";
@@ -255,7 +255,7 @@ function renderRegions() {
     const link = node("button", "テキストを関連付ける");
     link.onclick = () => {
       r.text_evidence_ids = workspace.texts
-        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)) && (!t.reading_provenance||readingMatchesRegion(workspace,t,r.selection.region_id)))
+        .filter((t) => t.canvas_id === r.selection.canvas_id && (!t.ocr_provenance || ocrMatchesRegion(workspace,t,r.selection.region_id)) && (!t.manual_ocr_provenance || manualOcrMatchesRegion(workspace,t,r.selection.region_id)) && (!t.reading_provenance||readingMatchesRegion(workspace,t,r.selection.region_id)))
         .map((t) => t.text_id);
       status(`${r.text_evidence_ids.length}件の原テキストを関連付けました。`);
     };

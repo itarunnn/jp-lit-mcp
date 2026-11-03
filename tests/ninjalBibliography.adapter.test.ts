@@ -104,7 +104,7 @@ describe("ninjalBibliography mapper / adapter", () => {
     expect(searchUrl.searchParams.get("lop")).toBe("and");
     expect(searchUrl.searchParams.get("per")).toBe("20");
     expect(searchUrl.searchParams.get("disp")).toBe("snipet");
-    expect(searchUrl.searchParams.get("skip")).toBe("20");
+    expect(searchUrl.searchParams.get("skip")).toBe("1");
     expect(search.items).toHaveLength(1);
     expect(fetch.mock.calls[1][0]).toBe(
       "https://bibdb.ninjal.ac.jp/bunken/ja/article/102025006447"

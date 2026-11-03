@@ -87,10 +87,10 @@ description: >-
 ## 最小ワークフロー
 
 1. 依頼を intent に分類する。
-2. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う。NDL リサーチ・ナビは Web 検索で探し、固有名詞 query が不発なら抽象度を上げた調べ方 query を試す。
-3. `ndl_search` + `japan_search` + 調査前情報収集で示唆された source を初手実行 source として、検索語の初期案を作る。
-4. 新規テーマでは検索方針を提示し、確認を取る。
-5. `jp_lit_start_session` で調査用 `session_id` を発行する。
+2. `jp_lit_start_session` で調査用 `session_id` を発行する。同じ調査の継続なら既存IDを引き継ぐ。
+3. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う。レファ協toolには同じ `session_id` を渡す。NDL リサーチ・ナビは Web 検索で探し、固有名詞 query が不発なら抽象度を上げた調べ方 query を試す。
+4. `ndl_search` + `japan_search` + 調査前情報収集で示唆された source を初手実行 source として、検索語の初期案を作る。
+5. 新規テーマでは検索方針を提示し、確認を取る。
 6. 同じ `session_id` を明示して最小限の source / query で検索する。
 7. 結果を読み、次の一手を決める。
 8. 必要なら同じ `session_id` で query / source を変えて再検索する。

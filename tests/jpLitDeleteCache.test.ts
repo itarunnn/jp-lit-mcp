@@ -106,6 +106,25 @@ describe("jp_lit_delete_cache", () => {
     ).rejects.toThrow();
   });
 
+  it("新旧rootで同じkeyが併存しても単体削除後に旧cacheが復活しない", async () => {
+    const baseDir = await createTempDir();
+    const cache = createFileCache(baseDir);
+    const key = createCacheKey("jp_lit_search", { query: "overlap" });
+    const envelope = {
+      version: 1 as const, tool: "jp_lit_search", cache_key: key,
+      saved_at: "2026-05-01T00:00:00.000Z", input: { query: "overlap" },
+      structured_content: { total: 1 }
+    };
+    const legacyDir = path.join(getLegacyCacheRoot(baseDir), "jp_lit_search");
+    await mkdir(legacyDir, { recursive: true });
+    await writeFile(path.join(legacyDir, `${key}.json`), JSON.stringify(envelope));
+    await cache.write("jp_lit_search", envelope);
+    const result = await createJpLitDeleteCacheTool(cache)({ tool: "jp_lit_search", cache_key: key });
+    expect(result.structuredContent.deleted).toBe(true);
+    expect(await cache.read("jp_lit_search", key)).toBeNull();
+    expect(await cache.delete("jp_lit_search", key)).toBe(false);
+  });
+
   it("SHA-256 形式でない cache key を schema error にする", async () => {
     const baseDir = await createTempDir();
     const tool = createJpLitDeleteCacheTool(createFileCache(baseDir));

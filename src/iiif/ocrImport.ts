@@ -8,7 +8,6 @@ import { normalizeLocalOcrOutput } from "./localOcr.js";
 import { validateNdlOcrOutput } from "./ndlOcr.js";
 import { validateModalReceipt } from "./ocrModal.js";
 import { validateWorkspace } from "./schemas.js";
-// @ts-expect-error Nodeとブラウザが共有する判定
 import { assertOcrTarget } from "./ocr-state.mjs";
 import type { IiifWorkspace, TextEvidence } from "./types.js";
 

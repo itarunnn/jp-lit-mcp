@@ -49,21 +49,49 @@ export async function fetchWithTimeout(
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let expire!: (error: UpstreamTimeoutError) => void;
+  const deadline = new Promise<never>((_resolve, reject) => { expire = reject; });
+  // headersだけを使う呼出しでもdeadlineの拒否を未処理にしない。
+  void deadline.catch(() => undefined);
+  const timeout = setTimeout(() => {
+    expire(new UpstreamTimeoutError(timeoutMs));
+    controller.abort();
+  }, timeoutMs);
+  timeout.unref();
+
+  async function withinDeadline<T>(operation: Promise<T>): Promise<T> {
+    return Promise.race([operation, deadline]);
+  }
 
   try {
-    return await fetch(input, {
+    const response = await withinDeadline(fetch(input, {
       ...init,
       signal: controller.signal
+    }));
+    // Response属性とheaders直後の返却を保ち、本文readerにも同じ期限を適用する。
+    return new Proxy(response, {
+      get(target, property) {
+        const value = Reflect.get(target, property, target);
+        if (typeof value !== "function") return value;
+        if (["text", "json", "arrayBuffer", "blob", "formData", "bytes"].includes(String(property))) {
+          return async (...args: unknown[]) => {
+            try {
+              return await withinDeadline(Promise.resolve(Reflect.apply(value, target, args)));
+            } finally {
+              clearTimeout(timeout);
+            }
+          };
+        }
+        return value.bind(target);
+      }
     });
   } catch (error) {
+    clearTimeout(timeout);
     if (error instanceof Error && error.name === "AbortError") {
       throw new UpstreamTimeoutError(timeoutMs);
     }
 
     throw error;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 

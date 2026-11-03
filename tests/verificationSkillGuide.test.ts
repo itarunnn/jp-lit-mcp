@@ -23,8 +23,8 @@ describe("jp-lit-verification skill guide", () => {
 
   it("uses ndl_search as the first verification gate and source-specific follow-up only when needed", () => {
     const skill = readFileSync("skills/jp-lit-verification/SKILL.md", "utf8");
-    expect(skill).toContain("jp_lit_search(source=ndl_search");
-    expect(skill).toContain("必要なら個別 source で再確認");
+    expect(skill).toMatch(/jp_lit_search\([^)]*\bsource=ndl_search/);
+    expect(skill).toMatch(/必要なら.*個別 source で再確認/);
     expect(skill).toContain("cinii_articles");
     expect(skill).toContain("ndl_catalog");
   });

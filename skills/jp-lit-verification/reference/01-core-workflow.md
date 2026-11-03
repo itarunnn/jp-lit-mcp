@@ -9,9 +9,12 @@
 
 1. 貼り付け文章を受け取る
 2. 文献候補を抽出する
-3. `jp_lit_search(source=ndl_search, query=...)` で一次検証する
-4. 必要なら個別 source で再確認する
-5. 判定表で報告する
+3. `SID = jp_lit_start_session(research_goal="貼り付け文章の文献検証").session_id` を保持する
+4. `jp_lit_search(session_id=SID, source=ndl_search, query=...)` で一次検証する
+5. 必要なら同じ `session_id` を渡して個別 source で再確認する
+6. 判定表で報告する
+
+`SID` は開始時に返された実際のIDに置き換える。検索・取得・照合・注釈・exportには同じIDを毎回明示する。継続依頼は既存IDを引き継ぎ、独立した検証案件では新しいIDを開始する。
 
 ## 原則
 

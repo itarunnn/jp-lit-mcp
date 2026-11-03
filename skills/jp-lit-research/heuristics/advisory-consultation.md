@@ -40,9 +40,11 @@
 
 ### 1. レファ協を確認する
 
+新しい調査では、この情報収集より先に `jp_lit_start_session` を呼び、返された `session_id` を `SID` として保持する。同じ調査の続きでは既存IDを使う。以下は引数を示す擬似コードで、`SID` を実際のIDに置き換える。
+
 ```
-jp_lit_search_guides_manuals(query=テーマ, limit=3)
-jp_lit_search_guides_cases(query=テーマ, limit=3)
+jp_lit_search_guides_manuals(session_id=SID, query=テーマ, limit=3)
+jp_lit_search_guides_cases(session_id=SID, query=テーマ, limit=3)
 ```
 
 #### `jp_lit_search_guides_manuals` から取るもの

@@ -9,10 +9,10 @@
 ## 基本フロー
 
 1. 依頼を intent に分類する
-2. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う。NDL リサーチ・ナビは Web 検索で該当ページを探し、固有名詞 query が不発なら抽象度を上げた調べ方 query を試す
-3. `ndl_search` + `japan_search` + 調査前情報収集で示唆された source を初手実行 source として、検索語の案を作る
-4. 検索方針をユーザーに提示して確認を取る
-5. `jp_lit_start_session` を呼び、返された調査用 `session_id` を保持する
+2. `jp_lit_start_session` を呼び、返された調査用 `session_id` を保持する。同じ調査の継続なら既存IDを引き継ぐ
+3. 原則として、レファ協・NDL リサーチ・ナビを参考に調査前情報収集を行う。レファ協toolには同じ `session_id` を渡す。NDL リサーチ・ナビは Web 検索で該当ページを探し、固有名詞 query が不発なら抽象度を上げた調べ方 query を試す
+4. `ndl_search` + `japan_search` + 調査前情報収集で示唆された source を初手実行 source として、検索語の案を作る
+5. 検索方針をユーザーに提示して確認を取る
 6. 同じ `session_id` を `jp_lit_update_session_trace` に渡して調査目的と source plan を残す
 7. 同じ `session_id` を明示して最小限の source / query で検索する
 8. 結果を読み、同じ `session_id` を `jp_lit_annotate_session.trace` に渡して検索試行・採否理由・本文確認範囲を残す

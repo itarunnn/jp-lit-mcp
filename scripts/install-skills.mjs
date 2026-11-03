@@ -4,7 +4,36 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const platform = process.argv[2] ?? "all";
+const arguments_ = process.argv.slice(2);
+const targets = new Set(["codex", "cursor", "claude", "all"]);
+let platform;
+let help = false;
+for (const argument of arguments_) {
+  if (argument === "--help" || argument === "-h") {
+    help = true;
+  } else if (!targets.has(argument)) {
+    console.error(`Unknown platform or argument: ${argument}. Use cursor, claude, codex, or all.`);
+    process.exit(1);
+  } else if (platform !== undefined) {
+    console.error("Specify one target: cursor, claude, codex, or all.");
+    process.exit(1);
+  } else {
+    platform = argument;
+  }
+}
+if (help) {
+  console.log(`Codex / Claude Code / Cursor 向け jp-lit Skills インストーラー
+
+Usage:
+  jp-lit-mcp install-skills [codex|cursor|claude|all]
+  jp-lit-mcp install-skills --help
+
+対象を省略すると全3アプリへ全4Skillsを導入します。
+通常の導入・更新は既存の同名Skillsを置き換えます。個別編集は事前に退避してください。
+--help / -h はヘルプだけを表示します。`);
+  process.exit(0);
+}
+platform ??= "all";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = dirname(scriptDir);
 const skillsRoot = join(repoRoot, "skills");

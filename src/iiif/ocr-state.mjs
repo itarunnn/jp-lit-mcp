@@ -12,6 +12,10 @@ export function assertOcrTarget(workspace, text) {
       JSON.stringify(text.target_xywh) !== JSON.stringify(s.selection.xywh)) throw new Error("OCR出典と現在の領域・資料が一致しません");
   return { source: s, region, doc, canvas };
 }
+export function ocrMatchesRegion(workspace, text, regionId) {
+  try { return assertOcrTarget(workspace, text).region.selection.region_id === regionId; }
+  catch { return false; }
+}
 export function recordOcrReview(workspace, textId, author, result, note, correctedText = null) {
   const text = workspace.texts.find((t) => t.text_id === textId);
   if (!text) throw new Error("OCR候補が見つかりません");

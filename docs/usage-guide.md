@@ -862,7 +862,7 @@ jp_lit_export_view(view="refined_results", format="markdown", output_path="expor
 
 ### どこに保存されるか
 
-保存先は 3 つあります。
+保存先は、MCPサーバーの作業ディレクトリ（cwd）を基準にした次の3つです。通常のnpm導入でも、アプリがMCPプロセスを起動したフォルダが基準になります。
 
 - 原本キャッシュ: `.cache/jp-lit-mcp/cache/v1/`
   - 検索・取得結果の正規化済み payload が、ツール呼び出し結果ごとに増えていきます
@@ -872,6 +872,8 @@ jp_lit_export_view(view="refined_results", format="markdown", output_path="expor
   - `jp_lit_find_sessions` はここに残っている archive session をキーワード検索します
 - 明示 export: `exports/`
   - Markdown / JSON / CSL JSON のユーザー向け書き出し先です
+
+AIへ「この調査の保存先を絶対パスで教えてください」と依頼すると、実際の場所を確認できます。exportを依頼するときも保存先の絶対パスを一緒に返してもらいます。後日再開する際は、同じ保存先の調査記録を使うMCPサーバーへ接続してください。
 
 考え方としては、
 

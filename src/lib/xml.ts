@@ -195,6 +195,11 @@ export function parseSruXml(xml: string): SruXmlResult {
     );
   }
 
+  // SRUはHTTP 200でもdiagnosticsで検索失敗を返す。正常な0件と区別する。
+  if (response.diagnostics != null) {
+    throw new UnsupportedPayloadError("SRU upstream returned search diagnostics");
+  }
+
   const numberOfRecords = Number(String(response.numberOfRecords ?? "0"));
   const nextRecordPosition =
     response.nextRecordPosition == null

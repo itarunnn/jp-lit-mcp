@@ -34,7 +34,7 @@ export function createNinjalBibliographyAdapter(
         url.searchParams.set("per", String(per));
         url.searchParams.set("disp", "snipet");
         if (page > 1) {
-          url.searchParams.set("skip", String((page - 1) * per));
+          url.searchParams.set("skip", String((page - 1) * limit));
         }
 
         const payload = await fetchText(url.toString());

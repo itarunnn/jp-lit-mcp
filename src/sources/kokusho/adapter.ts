@@ -10,13 +10,13 @@ export function createKokushoAdapter(options: KokushoAdapterOptions = {}): Sourc
 
   return {
     source: "kokusho",
-    async search({ query, limit }) {
+    async search({ query, limit, page }) {
       try {
         const payload = await client.searchBiblios(query);
         const result = mapKokushoSearchResponse(payload);
         return {
           total: result.total,
-          items: result.items.slice(0, limit),
+          items: result.items.slice((page - 1) * limit, page * limit),
           facets: result.facets
         };
       } catch (error) {

@@ -9,18 +9,17 @@
 
 基本の文献検索・書誌確認・文献検証は、この環境で使えます。TEI・IIIFは任意機能で、Pythonを入れなくても基本機能を利用できます。追加環境は、下の「任意でTEI・IIIFを使う」で案内します。
 
-CLI ルートを使う場合だけ、`Codex CLI` にログイン済みであることも必要です。`Codex CLI` が未導入なら、先に入れてログインします。
+CLIルートを使う場合は、`Codex CLI`を導入します。MCPの設定登録・表示にはCLIへのログインは不要です。CLIで対話する場合に`codex login`を使います。
 
 ```bash
 npm install -g @openai/codex
-codex login
 ```
 
 ## 手順
 
 1. `MCP` を追加します。
 
-`Codex App` 単体で追加する場合は、`Settings` から `Integrations & MCP` を開き、custom MCP server として次の stdio server を追加します。
+`Codex App` 単体で追加する場合は、`Settings` → `MCP servers` → `Add server` から次のSTDIO serverを追加します。保存後に`Restart`で反映します。[OpenAI公式のMCP手順](https://learn.chatgpt.com/docs/extend/mcp)に沿った表記です。アプリの版によって`Integrations & MCP`などの表示名を使う場合もあります。
 
 | 項目 | 値 |
 | --- | --- |
@@ -94,7 +93,7 @@ Pythonの自動取得には初回のネット接続とuvのダウンロード許
 
 ## カーリル図書館MCPを併用する場合
 
-地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別に[カーリル図書館MCP](https://calil.jp/ai/)を追加します。`Codex App` の `Integrations & MCP` から custom Streamable HTTP server として追加する場合は、URL に `https://mcp-beta.calil.jp/mcp` を指定します。OAuth が必要な場合は App 側で認可フローが始まります。認可後は通常、新しい Codex App の対話で再利用されます。
+地域資料・地方人物・地方紙・地方雑誌の調査で公共図書館蔵書まで確認したい場合は、`jpLit` とは別に[カーリル図書館MCP](https://calil.jp/ai/)を追加します。`Codex App` の `MCP servers` から custom Streamable HTTP server として追加する場合は、URL に `https://mcp-beta.calil.jp/mcp` を指定します。OAuth が必要な場合は App 側で認可フローが始まります。認可後は通常、新しい Codex App の対話で再利用されます。
 
 CLI から追加する場合は次のコマンドを使います。カーリル公式の対応表・設定ガイドには、現時点では Codex は載っていませんが、Codex CLI では Streamable HTTP MCP と OAuth を使って追加できます。初回のみブラウザでカーリルにログインし、OAuth 認可が必要です。
 
@@ -121,9 +120,12 @@ CLI ルートを使った場合は、CLI 側で MCP 登録を確認します。
 ```bash
 codex mcp list
 codex mcp get jpLit
+codex mcp get jpLit --json
 ```
 
-そのうえで `Codex App` を開き直し、新しい対話を始めます。
+JSONの`enabled`が`true`なら有効な設定です。`false`の場合は`disabled_reason`を確認してください。`requirements`などの管理方針による無効化は、管理者にserver名とidentity（commandまたはURL）の許可を確認します。[OpenAI公式の管理設定](https://learn.chatgpt.com/docs/enterprise/managed-configuration)に、MCP allowlistの条件があります。登録の成功と有効化・接続の成功をそれぞれ確認してから、`Codex App`を開き直して新しい対話を始めます。
+
+Appだけで追加した場合は、設定画面のserver一覧で有効状態を確認し、対話の`/mcp`で接続状態を確認します。
 
 導入環境の基本チェックには `doctor` コマンドを使えます。
 
@@ -137,9 +139,9 @@ npx -y jp-lit-mcp doctor
 
 - `codex mcp list` に `jpLit` が出ない
   - CLI 側で追加した場合は登録ができていません。`codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
-  - App 設定画面から追加した場合は、`Settings` の `Integrations & MCP` で `jpLit` が有効になっているか確認してください
+  - App 設定画面から追加した場合は、`Settings` の `MCP servers` で `jpLit` が有効になっているか確認してください
 - `jpLit` は出るが App で使えない
-  - `Codex App` を開き直して新しい対話を作ってください
+  - `codex mcp get jpLit --json`の`enabled`と`disabled_reason`、またはApp設定の有効状態を確認します。管理方針で無効の場合は管理者へ確認します。有効な場合は`/mcp`の接続状態・起動エラーを確認し、設定の変更後にAppを開き直します
 - KAKEN で `KAKEN API requires CINII_RESEARCH_APP_ID.` が出る
   - `CINII_RESEARCH_APP_ID` がユーザー環境変数にあっても、起動済みの `Codex App` や MCP 子プロセスに渡っていない場合があります。`Codex App` を開き直して新しい対話を作るか、`codex mcp add jpLit --env CINII_RESEARCH_APP_ID=your-cinii-app-id -- npx -y jp-lit-mcp` で MCP 設定に明示してください。
   - 既存設定を手で直す場合は、利用者の `~/.codex/config.toml` にある登録名に合わせて `[mcp_servers.<登録名>.env]` を追加し、`CINII_RESEARCH_APP_ID = "your-cinii-app-id"` を置きます。実値は Git 管理しないでください。

@@ -1,5 +1,13 @@
 # 実装状況
 
+## 2026-11-02: 検索と初回利用のレビュー修正
+
+0.19.0後のローカル修正として、国書DB・国語研・国立公文書館・JACARのページ送り、HTTP本文受信の期限、NDL SRU診断のエラー判定、新旧キャッシュの単体削除を修正した。IIIFはlocal OCRの出典と現在領域を関連付け・書き出し時に照合する。Skills installerはhelpと不正引数で書き込みを行わず、wrapperは全引数と終了値を伝播する。
+
+文献検証・調査Skillのsession開始とID受け渡しを揃え、READMEをアプリ選択・導入・短い依頼・成功確認の順へ整理した。Codex導入、保存先の作業ディレクトリ基準、TEIの版と参照先も更新した。
+
+回帰テストでは修正前の不具合を再現し、修正後のNode 140ファイル・1,364テスト、Python 91テスト、build・scripts型検査・offline MCP smokeが成功した。WindowsでskipしたUnix wrapperの回帰1件は、Git Bashで別途実行してhelpと不正引数の書き込み0を確認した。ローカルtarballの隔離導入、TEI/IIIFの起動、NDL Search・J-STAGEの少数検索も確認した。依存監査の既知残件は0.19.0の記録を引き継ぐ。npm/GitHubへの公開は後続作業とする。
+
 ## 2026-10-31: v0.19.0 位置付きOCRと書籍構造
 
 位置付きOCR、辞書・図版資料の共通構造、SQLite・TEI出力、Local OCR・通常版NDLOCR・Modal A10、初見分野の調査workflowを0.19.0へまとめた。CLIとSkillの版指定、配布版からの起動手順、機能別の任意環境を更新し、旧文書のリンク先も保持した。[リリースノート](releases/v0.19.0.md)に変更内容と確認範囲をまとめている。

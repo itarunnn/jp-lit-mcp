@@ -128,11 +128,11 @@ describe("README public onboarding", () => {
     expect(readme).toContain("docs/install/github-skills.md");
   });
 
-  it("presents Skill-first onboarding instead of a tool catalog", () => {
+  it("presents app setup and Skill examples with detailed MCP guidance", () => {
     const readme = readFileSync("README.md", "utf8");
 
     expect(readme).toContain("## Skill と MCP の役割");
-    expect(readme).toContain("## 最短導入");
+    expect(readme).toContain("## 使うアプリを選ぶ");
     expect(readme).toContain("## 最初の依頼例");
     expect(readme).toContain("## MCP 単体で使う場合");
     expect(readme).not.toContain("npx -y jp-lit-mcp install-skills codex");

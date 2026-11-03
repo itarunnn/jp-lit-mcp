@@ -206,6 +206,12 @@ describe("xml helpers", () => {
   it("壊れた SRU XML は InvalidXmlError を投げる", () => {
     expect(() => parseSruXml("<broken")).toThrow(InvalidXmlError);
   });
+
+  it("SRU diagnosticsを正常0件と区別してエラーにする", () => {
+    const diagnostic = `<searchRetrieveResponse><version>1.2</version><diagnostics><diagnostic><uri>info:srw/diagnostic/1/1</uri><message>General system error</message></diagnostic></diagnostics></searchRetrieveResponse>`;
+    expect(() => parseSruXml(diagnostic)).toThrow(UnsupportedPayloadError);
+    expect(parseSruXml("<searchRetrieveResponse><numberOfRecords>0</numberOfRecords></searchRetrieveResponse>").numberOfRecords).toBe(0);
+  });
 });
 
 describe("fetchText", () => {

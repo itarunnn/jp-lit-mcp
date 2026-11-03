@@ -9,17 +9,110 @@
 - `MCP サーバー`: AI アプリから各種文献データベースを検索・取得するための接続口
 - `Skills`: 「どの DB から見るか」「検索語をどう広げるか」「結果をどう読むか」を AI に指示する調査手順
 
-日本文学・日本史のTEI/XMLを読む場合は、`jp-lit-tei` Skillと任意CLI `jp-lit-tei-reader`を使えます。章・歌・史料の項目、異読、訂正、注記を位置付きで取り出し、原構造と読解上の解釈を分けて扱います。[TEIの使い方](docs/tei-reader.md)に依頼例と操作手順をまとめています。
+<a id="最短導入"></a>
 
-IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文と画像を往復し、くずし字OCR・AIの候補を原画像と確かめられます。保存した図版から似た候補を探し、重ね合わせ・差分と両側の出典へ戻れます。任意CLI `jp-lit-iiif`とSkillを同梱し、0.18.0でTEI連携・OCR・AI候補取込・図版比較を追加しました。[比較・画像読解の使い方](docs/iiif-workbench.md)を参照してください。
+## 使うアプリを選ぶ
 
-0.19.0では、位置付きOCRから辞書項目や図版・説明文の対応候補を作り、SQLiteとTEIへ保存できます。図群と部分図、重複した検出、確認・訂正履歴を保持し、原画像の該当位置へ戻って確認します。[書籍構造の共通基盤](docs/book-structure.md)に操作と20ページの検証結果をまとめています。
+普段使っているAIアプリの導入ページを開いてください。各ページに、MCP登録、Skillsの配置、設定反映の確認をまとめています。通常利用はclone不要で、npmから導入できます。
 
-OCRは、近代活字のNDLOCR Lite／通常版NDLOCR 2.1、古典籍のLite版／GPU版を選べます。導入済みLocal OCRへのローカルAPI接続と、公開画像を指定したModal A10での処理も使えます。[OCRの選択と画像校合](docs/iiif-workbench.md#くずし字ocrを使い画像と校合する)を参照してください。
+- [Cursor での導入手順](docs/install/cursor.md)
+- [Claude Code での導入手順](docs/install/claude-code.md)
+- [Codex CLI での導入手順](docs/install/codex-cli.md)
+- [Codex App での導入手順](docs/install/codex-app.md)
 
-通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
+迷った場合は、まず普段文章やコードを書いているアプリに入れるのが楽です。複数のアプリに入れてもかまいませんが、それぞれで MCP 登録と Skills インストールが必要です。
 
-**文献検索・書誌確認・文献検証が基本機能です。TEI読解とIIIF資料比較は任意機能で、Pythonを入れなくても基本機能を使えます。** TEI・IIIFのコードと4つのSkillsは同梱しているため、使いたいときに必要な実行環境だけを追加できます。
+Skillsの導入方法は用途に合わせて選べます。GitHub CLIを既に使っている人や、Skillsの取得元・版・更新を管理したい人には[GitHub CLI経由](docs/install/github-skills.md)をおすすめします。追加ツールを減らしたい人や、npm同梱版を使いたい人には、各アプリのnpm導入手順をおすすめします。MCP登録は両経路に共通で、Skillsの導入・更新にはどちらか一方を使います。
+
+基本機能だけを使う場合は、各アプリの設定反映を確認して文献調査を始められます。TEI・IIIFも使う場合は、[任意機能の準備](docs/install/runtime-requirements.md)へ進んでください。npmの`install-skills all`は、全4SkillsをCodex・Cursor・Claude Codeの3アプリすべてへ配置する指定です。通常は利用するアプリ名だけを指定します。
+
+## 導入前の確認
+
+文献検索に必要なものは次のとおりです。
+
+- `Node.js 22` 以上
+- `npm`
+- MCP に対応した AI アプリ
+
+文献検索・書誌確認・文献検証はこの基本環境で使えます。Pythonは、後半で案内するTEI読解などの任意機能で追加します。
+
+基本導入は、MCPの登録とSkillsの配置です。各アプリの案内にある`gh skill install ... --all`で、TEI・IIIFを含む全4Skillsが入ります。npmの`install-skills codex`・`cursor`・`claude`も、指定アプリへ全4Skillsを配置します。Skillsの配置と、任意機能の実行環境の準備は別の手順です。
+
+Node.js と npm が使えるかは、ターミナルで確認できます。
+
+```bash
+node -v
+npm -v
+```
+
+Node.jsは`v22`以上、npmはバージョン番号が表示されることを確認します。導入が必要な場合は、[Node.js公式ダウンロード](https://nodejs.org/ja/download)で使うOSに合うNode.jsとnpmを選び、ターミナルを開き直して同じコマンドを試してください。TEIを読む場合は、[任意機能の準備](docs/install/runtime-requirements.md)でreaderの起動も確認します。
+
+CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 検索を続行し、結果に警告を付けます。一方、KAKEN API tool は未設定では実行できません。OpenAlex / Crossref の照合設定とカーリル図書館MCPは任意です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
+
+## 最初の依頼例
+
+導入ページの手順を終えたら、新しい対話で少数の文献を探します。
+
+```text
+文献DBで、夏目漱石の研究書をNDLから2件探してください。
+```
+
+新しいテーマでは、AIが調査方針を提示して確認を取ります。検索後に、候補の書名・著者・出典URLと、どの範囲を確認したかが表示されれば、最初の調査を確認できています。アプリのツール実行表示では、調査開始の `jp_lit_start_session` と検索の `jp_lit_search` を確認できます。件数が足りない場合も、検索したsourceと結果が報告されることを確かめてください。
+
+調査の目的に応じて、次のようにも依頼できます。
+
+```text
+文献DBで、近代日本の労働文化について、論文と図書を探してください。
+```
+
+```text
+文献DBを始めます。明治期の俳句雑誌について、最初に見るべき資料と、使うべき DB を教えてください。
+```
+
+```text
+文献検証で、この文章に出てくる文献の実在性を確認してください。
+```
+
+`文献DBで` / `文献DBを始めます` は `jp-lit-research` を起動する合図です。`文献検証で` / `資料検証で` は `jp-lit-verification` を起動する合図です。
+
+### うまく動かないとき
+
+よくある原因は次のとおりです。
+
+- MCP 登録後に AI アプリやセッションを開き直していない
+- MCP は登録したが Skills をインストールしていない
+- Skills は入れたが、起動語として `文献DBで` や `文献検証で` を付けていない
+- Node.js が古い、または `npx` が使えない
+- `CINII_RESEARCH_APP_ID` をユーザー環境変数には入れたが、MCP 子プロセスへ渡っていない
+
+切り分けの順番は、`doctor`、アプリ側の MCP 一覧、Skills のインストール先、新しいセッションでの短い依頼、の順がおすすめです。
+
+## 導入後の確認
+
+まず軽量診断コマンドを実行します。
+
+```bash
+npx -y jp-lit-mcp doctor
+```
+
+`doctor` は次を確認します。
+
+- `Node.js 22` 以上か
+- npm パッケージを取得できるか
+- MCP entrypoint が見えるか
+- 同梱 Skills が見えるか
+- cache / exports ディレクトリへ書き込めるか
+- `CINII_RESEARCH_APP_ID` が設定されているか
+
+外部 DB への live API アクセスは行いません。つまり、`doctor` が通っても、NDL や CiNii の検索結果の品質まで保証するものではありません。
+
+MCP 登録そのものの確認は、各アプリの個別ページにある確認手順を使ってください。設定後は、AI アプリを再起動するか、新しいセッションを開くのがおすすめです。
+
+## 結果を読む・保存先を確認する
+
+候補一覧では、出典と確認範囲を読んで次に見る資料を選びます。「書誌を確認した」「要旨を読んだ」「本文を読んだ」という状態は、候補ごとに表示されます。詳しい出力例は[使い方ガイド](docs/usage-guide.md#確認本文優先度根拠の読み方)を参照してください。
+
+調査を保存したい場合は「この調査をMarkdownで保存し、保存先の絶対パスも教えてください」と依頼できます。内部の検索結果と調査記録は、MCPサーバーの作業フォルダにある `.cache/jp-lit-mcp/`、書き出しは同じフォルダの `exports/` に保存します。アプリがサーバーを起動したフォルダが基準になるため、AIへ実際の保存先を確認してください。[保存場所と再開](docs/usage-guide.md#どこに保存されるか)に詳しい手順があります。
 
 ## 何をしたい人向けか
 
@@ -37,9 +130,20 @@ OCRは、近代活字のNDLOCR Lite／通常版NDLOCR 2.1、古典籍のLite版�
 
 MCPはタイトル、要旨、目次、書誌、所蔵情報、全文検索スニペットなどを集め、読む資料の候補を整理します。任意のTEI readerは、手元のXMLから読解対象の単位を取り出します。本文の評価、異読の採用、史料批判、研究上の結論づけは、原資料と照合しながら人間が行う前提です。
 
+## Skill と MCP の役割
+
+MCP は検索・取得の道具です。データベースへ問い合わせ、書誌、所蔵、OCR、会議録、研究データなどを返します。
+
+Skills によって実際の調査を進めます。どの source から入るか、検索語をどう広げるか、候補をどう評価するか、本文確認の有無をどうラベルづけするかを案内します。
+
+- `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料、本文・図版探索などを扱います。プロンプトに「文献DB」を入れることで発動します。
+- `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill です。プロンプトに「文献検証」を入れることで発動します。
+- `jp-lit-tei`: 公開TEIの探索、取得版・hashの記録、章・歌・異読・注記の構造読解を進めるSkillです。「TEIを探して」「このTEIを構造付きで読んで」などで使います。[TEI readerの導入手順](docs/tei-reader.md)を参照してください。readerにはuvを追加し、指定Pythonは初回起動時にuvが準備します。
+- `jp-lit-iiif`: 古典籍の比較、TEI本文との往復、ローカルくずし字OCR、AI読解候補、類似図版と差分の確認を進めるSkillです。「この2資料をIIIFで比べて」などで使います。[IIIFの導入手順](docs/iiif-workbench.md)を参照してください。比較と書き出しはNode.jsだけで使えます。
+
 ## まず知っておく用語
 
-初めて使う場合、次の用語を押さえれば十分です。
+MCP単体での操作や、以下のAPI呼び出し例を読む場合は、次の用語を参照してください。通常はAIが調査IDと保存結果を管理します。
 
 - `MCP`: AI アプリに外部ツールを追加する仕組みです。ここでは、AI に「NDL や CiNii などを検索できる道具」を渡すものだと思ってください。
 - `Skills`: AI に調査の進め方を教えるための手順書です。MCP だけでも検索はできますが、Skills を入れると「最初にどの DB を見るか」「表記ゆれをどう試すか」「候補の強弱をどう説明するか」が安定します。
@@ -53,66 +157,6 @@ SID = jp_lit_start_session(research_goal="調査テーマ").session_id
 ```
 
 通常は、MCP と Skills の両方を入れるのがおすすめです。
-
-## Skill と MCP の役割
-
-MCP は検索・取得の道具です。データベースへ問い合わせ、書誌、所蔵、OCR、会議録、研究データなどを返します。
-
-Skills によって実際の調査を進めます。どの source から入るか、検索語をどう広げるか、候補をどう評価するか、本文確認の有無をどうラベルづけするかを案内します。
-
-- `jp-lit-research`: 日本語文献・資料調査を進める Skill。テーマ調査、書誌確認、地域資料、本文・図版探索などを扱います。プロンプトに「文献DB」を入れることで発動します。
-- `jp-lit-verification`: 貼り付けた文章や他サービスの回答に出てくる文献候補を抽出し、実在性や混線の可能性を確認する Skill です。プロンプトに「文献検証」を入れることで発動します。
-- `jp-lit-tei`: 公開TEIの探索、取得版・hashの記録、章・歌・異読・注記の構造読解を進めるSkillです。「TEIを探して」「このTEIを構造付きで読んで」などで使います。[TEI readerの導入手順](docs/tei-reader.md)を参照してください。readerにはuvを追加し、指定Pythonは初回起動時にuvが準備します。
-- `jp-lit-iiif`: 古典籍の比較、TEI本文との往復、ローカルくずし字OCR、AI読解候補、類似図版と差分の確認を進めるSkillです。「この2資料をIIIFで比べて」などで使います。[IIIFの導入手順](docs/iiif-workbench.md)を参照してください。比較と書き出しはNode.jsだけで使えます。
-
-## 導入前の確認
-
-文献検索に必要なものは次のとおりです。
-
-- `Node.js 22` 以上
-- `npm`
-- MCP に対応した AI アプリ
-
-基本導入は、MCPの登録とSkillsの配置です。各アプリの案内にある`gh skill install ... --all`で、TEI・IIIFを含む全4Skillsが入ります。npmの`install-skills codex`・`cursor`・`claude`も、指定アプリへ全4Skillsを配置します。Skillsの配置と、任意機能の実行環境の準備は別の手順です。
-
-| 使いたい機能 | 基本導入後に追加するもの |
-| --- | --- |
-| 文献検索・書誌確認・文献検証 | 上の基本環境で利用可能 |
-| TEI/XMLの構造読解 | uv。readerの初回起動でPython 3.13.15と専用環境を自動準備 |
-| IIIFの比較画面・領域選択・出典保存 | Webブラウザ。Pythonは不要 |
-| IIIFとTEI本文の対応付け | TEI readerの環境 |
-| 図版の類似検索・整列・差分 | uvと初回セットアップ。Python・画像解析ライブラリを準備 |
-| 手元画像のくずし字OCR | OCRエンジン・モデルと、その実行環境の別途導入 |
-| 書籍構造のSQLite出力 | uvとPython 3.13系。TEIの生成はNode.jsで実行 |
-
-Pythonの自動準備には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。TEI読解・IIIF操作をAIへ依頼するときは、ローカルコマンドを実行できるアプリを使います。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)に、uvの導入、起動確認、図版解析・OCRの追加手順をまとめています。
-
-Node.js と npm が使えるかは、ターミナルで確認できます。
-
-```bash
-node -v
-npm -v
-```
-
-Node.jsは`v22`以上、npmはバージョン番号が表示されることを確認します。表示されない場合は、先にNode.jsとnpmを導入してください。TEIを読む場合は、上の準備手順でreaderの起動も確認します。
-
-CiNii Research の公式 API 仕様では `appid` が必須です。現在は未設定でも応答する場合がありますが、正式な利用では `CINII_RESEARCH_APP_ID` を設定してください。未設定時も互換性のため CiNii 検索を続行し、結果に警告を付けます。一方、KAKEN API tool は未設定では実行できません。OpenAlex / Crossref の照合設定とカーリル図書館MCPは任意です。入れ先は下の [追加で入れると便利な設定](#追加で入れると便利な設定) にまとめています。
-
-## 最短導入
-
-導入でいちばんつまずきやすいのは、アプリごとの MCP / Skills 設定の違いです。README では全体の登録コマンドを重ねて並べません。MCP 登録、Skills インストール、設定反映の確認、つまずきやすい点は、使うアプリの個別ページに沿って進めてください。
-
-- [Cursor での導入手順](docs/install/cursor.md)
-- [Claude Code での導入手順](docs/install/claude-code.md)
-- [Codex CLI での導入手順](docs/install/codex-cli.md)
-- [Codex App での導入手順](docs/install/codex-app.md)
-- [GitHub CLI で Skills を入れる](docs/install/github-skills.md)
-
-迷った場合は、まず普段文章やコードを書いているアプリに入れるのが楽です。複数のアプリに入れてもかまいませんが、それぞれで MCP 登録と Skills インストールが必要です。
-
-Skillsの導入方法は用途に合わせて選べます。GitHub CLIを既に使っている人や、Skillsの取得元・版・更新を管理したい人には[GitHub CLI経由](docs/install/github-skills.md)をおすすめします。追加ツールを減らしたい人や、npm同梱版を使いたい人には、各アプリのnpm導入手順をおすすめします。MCP登録は両経路に共通で、Skillsの導入・更新にはどちらか一方を使います。
-
-基本機能だけを使う場合は、各アプリの設定反映を確認して文献調査を始められます。TEI・IIIFも使う場合は、[任意機能の準備](docs/install/runtime-requirements.md)へ進んでください。npmの`install-skills all`は、全4SkillsをCodex・Cursor・Claude Codeの3アプリすべてへ配置する指定です。通常は利用するアプリ名だけを指定します。
 
 ## 追加で入れると便利な設定
 
@@ -128,7 +172,7 @@ CiNii Research の公式 API 仕様では `appid` が必須です。現在は未
 
 設定の書き方はアプリごとに違います。
 
-- Codex App: `Settings` の `Integrations & MCP` で、`jpLit` server の環境変数として `CINII_RESEARCH_APP_ID` を追加します
+- Codex App: `Settings` の `MCP servers` で、`jpLit` server の環境変数として `CINII_RESEARCH_APP_ID` を追加します
 - Codex CLI: MCP 追加時に `--env CINII_RESEARCH_APP_ID=...` を渡します
 - Claude Code: MCP 追加時に `--env CINII_RESEARCH_APP_ID=...` を渡します
 - Cursor: `mcpServers.<server>.env.CINII_RESEARCH_APP_ID` に入れます
@@ -177,57 +221,6 @@ REST API のアプリケーションキーではなく、初回にブラウザ�
 地域資料調査でどう使うかは、[地方公共図書館・地域資料調査メモ](docs/regional-public-library-research.md) にまとめています。
 
 カーリル図書館MCPを入れていない場合でも、`jp-lit-mcp` は NDL / CiNii / Japan Search / レファ協などから地域資料の手がかりを整理できます。ただし、カーリル側の live 所蔵検索はできないため、必要な図書館 OPAC やレファレンス相談を次アクションとして案内する形になります。
-
-## 導入後の確認
-
-まず軽量診断コマンドを実行します。
-
-```bash
-npx -y jp-lit-mcp doctor
-```
-
-`doctor` は次を確認します。
-
-- `Node.js 22` 以上か
-- npm パッケージを取得できるか
-- MCP entrypoint が見えるか
-- 同梱 Skills が見えるか
-- cache / exports ディレクトリへ書き込めるか
-- `CINII_RESEARCH_APP_ID` が設定されているか
-
-外部 DB への live API アクセスは行いません。つまり、`doctor` が通っても、NDL や CiNii の検索結果の品質まで保証するものではありません。
-
-MCP 登録そのものの確認は、各アプリの個別ページにある確認手順を使ってください。設定後は、AI アプリを再起動するか、新しいセッションを開くのがおすすめです。
-
-## 最初の依頼例
-
-新しい対話で、次のように依頼します。
-
-```text
-文献DBで、近代日本の労働文化について、論文と図書を探してください。
-```
-
-```text
-文献DBを始めます。明治期の俳句雑誌について、最初に見るべき資料と、使うべき DB を教えてください。
-```
-
-```text
-文献検証で、この文章に出てくる文献の実在性を確認してください。
-```
-
-`文献DBで` / `文献DBを始めます` は `jp-lit-research` を起動する合図です。`文献検証で` / `資料検証で` は `jp-lit-verification` を起動する合図です。
-
-### うまく動かないとき
-
-よくある原因は次のとおりです。
-
-- MCP 登録後に AI アプリやセッションを開き直していない
-- MCP は登録したが Skills をインストールしていない
-- Skills は入れたが、起動語として `文献DBで` や `文献検証で` を付けていない
-- Node.js が古い、または `npx` が使えない
-- `CINII_RESEARCH_APP_ID` をユーザー環境変数には入れたが、MCP 子プロセスへ渡っていない
-
-切り分けの順番は、`doctor`、アプリ側の MCP 一覧、Skills のインストール先、新しいセッションでの短い依頼、の順がおすすめです。
 
 ## 何ができるか
 
@@ -364,7 +357,7 @@ XML: J:\Research\tei\manyo.xml
 TEI readerを使うときは、基本環境に[uvを追加](docs/install/runtime-requirements.md#tei-readerの環境を準備する)して次を実行します。指定Python 3.13.15と専用環境は、初回起動時にuvが自動で準備します。
 
 ```sh
-npx --yes --package=jp-lit-mcp@0.18.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
 ```
 
 [TEIの使い方](docs/tei-reader.md)に、万葉集・延喜式の研究例と論文、廣瀬本での読解と文献調査の往復、漱石・源氏物語も含む公開資料の案内、jp-litでの検索例、導入とAIへの依頼・結果の確認をまとめています。手動実行や要求JSONは[CLI技術資料](packages/tei-reader/README.md)を参照してください。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。
@@ -480,6 +473,32 @@ cache / session trace / handoff report は、似ていますが役割が違い�
 地域資料、地方人物、地方紙、地方雑誌では、NDL / CiNii / Japan Search だけでは足りないことがあります。この場合は、県立図書館、市区町村中央館、郷土資料室、専門資料機関、カーリル図書館MCPを組み合わせる調査ルートを検討できます。
 
 カーリル図書館MCPを実検索に使うには、利用する AI クライアント側でカーリル図書館MCPの設定と初回 OAuth 認可が別途必要です。詳しくは [地方公共図書館・地域資料調査メモ](docs/regional-public-library-research.md) を参照してください。
+
+## 任意のTEI・IIIF・OCRを使う
+
+日本文学・日本史のTEI/XMLを読む場合は、`jp-lit-tei` Skillと任意CLI `jp-lit-tei-reader`を使えます。章・歌・史料の項目、異読、訂正、注記を位置付きで取り出し、原構造と読解上の解釈を分けて扱います。[TEIの使い方](docs/tei-reader.md)に依頼例と操作手順をまとめています。
+
+IIIF比較画面では、複数機関の古典籍を1〜4窓に並べ、本文と画像を往復し、くずし字OCR・AIの候補を原画像と確かめられます。保存した図版から似た候補を探し、重ね合わせ・差分と両側の出典へ戻れます。任意CLI `jp-lit-iiif`とSkillを同梱し、0.18.0でTEI連携・OCR・AI候補取込・図版比較を追加しました。[比較・画像読解の使い方](docs/iiif-workbench.md)を参照してください。
+
+0.19.0では、位置付きOCRから辞書項目や図版・説明文の対応候補を作り、SQLiteとTEIへ保存できます。図群と部分図、重複した検出、確認・訂正履歴を保持し、原画像の該当位置へ戻って確認します。[書籍構造の共通基盤](docs/book-structure.md)に操作と20ページの検証結果をまとめています。
+
+OCRは、近代活字のNDLOCR Lite／通常版NDLOCR 2.1、古典籍のLite版／GPU版を選べます。導入済みLocal OCRへのローカルAPI接続と、公開画像を指定したModal A10での処理も使えます。[OCRの選択と画像校合](docs/iiif-workbench.md#くずし字ocrを使い画像と校合する)を参照してください。
+
+通常利用では、このリポジトリを clone する必要はありません。使うアプリの個別ページに沿って、`npx -y jp-lit-mcp` を MCP サーバーとして登録し、必要に応じて Skills を入れます。
+
+**文献検索・書誌確認・文献検証が基本機能です。TEI読解とIIIF資料比較は任意機能で、Pythonを入れなくても基本機能を使えます。** TEI・IIIFのコードと4つのSkillsは同梱しているため、使いたいときに必要な実行環境だけを追加できます。
+
+| 使いたい機能 | 基本導入後に追加するもの |
+| --- | --- |
+| 文献検索・書誌確認・文献検証 | 上の基本環境で利用可能 |
+| TEI/XMLの構造読解 | uv。readerの初回起動でPython 3.13.15と専用環境を自動準備 |
+| IIIFの比較画面・領域選択・出典保存 | Webブラウザ。Pythonは不要 |
+| IIIFとTEI本文の対応付け | TEI readerの環境 |
+| 図版の類似検索・整列・差分 | uvと初回セットアップ。Python・画像解析ライブラリを準備 |
+| 手元画像のくずし字OCR | OCRエンジン・モデルと、その実行環境の別途導入 |
+| 書籍構造のSQLite出力 | uvとPython 3.13系。TEIの生成はNode.jsで実行 |
+
+Pythonの自動準備には初回のネット接続と、uvの自動ダウンロードが許可された設定が必要です。TEI読解・IIIF操作をAIへ依頼するときは、ローカルコマンドを実行できるアプリを使います。[機能別の必要環境と準備手順](docs/install/runtime-requirements.md)に、uvの導入、起動確認、図版解析・OCRの追加手順をまとめています。
 
 ## Skills を使う理由
 

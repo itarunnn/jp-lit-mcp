@@ -5,7 +5,6 @@ import { ocrRunSchema } from "./ocrSchemas.js";
 import { ocrDigest, readOcrFile } from "./ocrRunner.js";
 import { assertDistinctOutput } from "./outputProtection.js";
 import type { IiifWorkspace, TextEvidence } from "./types.js";
-// @ts-expect-error Nodeとブラウザで共有する対応検査
 import { assertOcrTarget } from "./ocr-state.mjs";
 import { assertManualOcrTarget } from "./manual-ocr-state.mjs";
 

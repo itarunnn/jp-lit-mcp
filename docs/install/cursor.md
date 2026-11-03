@@ -38,7 +38,7 @@
 
 - `.cursor/mcp.json` は Cursor の project configuration です
 - グローバルに使いたい場合は `~/.cursor/mcp.json` に同様の形式で書けます
-- editor と `cursor-agent` CLI は同じ MCP 設定を使います
+- editor と `agent` CLI（`cursor-agent`は互換alias）は同じ MCP 設定を使います（[Cursor公式MCP手順](https://cursor.com/docs/cli/mcp)）
 
 2. `Skills` をインストールします。
 

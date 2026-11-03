@@ -5,15 +5,14 @@
 ## 前提
 
 - `Node.js 22` 以上と `npm` が使えること
-- `Codex CLI` にログイン済みであること
+- `Codex CLI` が使えること。対話を始める前にログインします
 
 基本の文献検索・書誌確認・文献検証は、この環境で使えます。TEI・IIIFは任意機能で、Pythonを入れなくても基本機能を利用できます。追加環境は、下の「任意でTEI・IIIFを使う」で案内します。
 
-`Codex CLI` が未導入なら、先に入れてログインします。
+`Codex CLI` が未導入なら、先に導入します。MCPの設定登録・表示にはログインは不要です。CLIで対話する場合に`codex login`を使います。
 
 ```bash
 npm install -g @openai/codex
-codex login
 ```
 
 ## 手順
@@ -69,7 +68,10 @@ Pythonの自動取得には初回のネット接続とuvのダウンロード許
 ```bash
 codex mcp list
 codex mcp get jpLit
+codex mcp get jpLit --json
 ```
+
+JSONの`enabled`が`true`であることを確認します。`false`の場合は`disabled_reason`を読み、`requirements`などの管理方針で無効なら管理者にserver名とidentity（commandまたはURL）の許可を確認してください。[OpenAI公式の管理設定](https://learn.chatgpt.com/docs/enterprise/managed-configuration)は、MCP allowlistによる制限を説明しています。登録済みでも無効のserverは再起動だけでは有効になりません。
 
 導入環境の基本チェックには `doctor` コマンドを使えます。
 
@@ -82,8 +84,11 @@ npx -y jp-lit-mcp doctor
 4. `Codex` を起動し、新しいセッションで文献調査を依頼します。
 
 ```bash
+codex login
 codex
 ```
+
+ログイン済みなら`codex login`を省略できます。起動後は`/mcp`で接続状態を確認します。[OpenAI公式のMCP手順](https://learn.chatgpt.com/docs/extend/mcp)も参照してください。
 
 最初の一言は、次のどちらかがおすすめです。
 
@@ -126,7 +131,7 @@ Codex を SSH 先やコンテナ上で動かす場合は、`localhost` の指す
 - `codex mcp list` に `jpLit` が出ない
   - `codex mcp add jpLit -- npx -y jp-lit-mcp` をやり直してください
 - `jpLit` は出るが対話中に使われない
-  - `codex` を起動し直して新しいセッションで試してください
+  - `codex mcp get jpLit --json`で`enabled`と`disabled_reason`を確認します。管理方針による無効化は管理者へ確認してください。有効な場合は`/mcp`で接続状態や起動エラーを確認し、設定の変更後に新しいセッションで試します
 - 文献DBモードが起動しない
   - 手順2で選んだ導入方法と `~/.agents/skills/` の配置を確認してください。導入し直す場合も同じ方法を使います
 

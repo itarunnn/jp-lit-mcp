@@ -171,27 +171,30 @@ export function createFileCache(baseDir = process.cwd()): FileCache {
 
     async delete(tool: string, key: string) {
       const target = getCacheFilePath(baseDir, cacheRoot, tool, key);
+      let deleted = false;
       try {
         await rm(target, { force: false });
-        return true;
+        deleted = true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
           throw error;
         }
       }
 
-      const legacyTarget = getCacheFilePath(
-        baseDir,
-        legacyCacheRoot,
-        tool,
-        key
-      );
+      let legacyTarget: string;
+      try {
+        legacyTarget = getCacheFilePath(baseDir, legacyCacheRoot, tool, key);
+      } catch (error) {
+        // 現rootの削除が済んでいれば、境界外を指す旧rootには触れない。
+        if (deleted && error instanceof InvalidRequestError) return true;
+        throw error;
+      }
       try {
         await rm(legacyTarget, { force: false });
         return true;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          return false;
+          return deleted;
         }
         throw error;
       }

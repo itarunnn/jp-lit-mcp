@@ -42,14 +42,24 @@ export function createJacarAdapter(options: JacarAdapterOptions = {}): SourceAda
         url.searchParams.set("kw0", query);
         url.searchParams.set("ks0", "kw_all");
         url.searchParams.set("kl0", "AND");
-        url.searchParams.set("rows", String(resolveRows(limit)));
-        url.searchParams.set("page", String(page));
+        const rows = resolveRows(limit);
+        const offset = (page - 1) * limit;
+        const upstreamPage = Math.floor(offset / rows) + 1;
+        const pageOffset = offset % rows;
+        url.searchParams.set("rows", String(rows));
+        url.searchParams.set("page", String(upstreamPage));
 
-        const payload = await fetchText(url.toString());
-        const result = mapJacarSearchResponse(payload.text);
+        const result = mapJacarSearchResponse((await fetchText(url.toString())).text);
+        const items = result.items.slice(pageOffset, pageOffset + limit);
+        // 利用者の区間が上流ページ境界をまたぐ場合だけ、続きのページを取得する。
+        if (items.length < limit && result.items.length === rows && upstreamPage * rows < result.total) {
+          url.searchParams.set("page", String(upstreamPage + 1));
+          const next = mapJacarSearchResponse((await fetchText(url.toString())).text);
+          items.push(...next.items.slice(0, limit - items.length));
+        }
         return {
           total: result.total,
-          items: result.items.slice(0, limit),
+          items,
           facets: result.facets
         };
       } catch (error) {
