@@ -1,8 +1,8 @@
 # 保存済み図版の類似候補・整列・差分を確かめる
 
-0.19.0の要求実行は
+0.19.1の要求実行は
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --request 'J:/research/request.json'
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request 'J:/research/request.json'
 ```
 を使える。開発checkoutでは下記のコマンドで実行する。
 
@@ -58,7 +58,7 @@ npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --request 'J:/research/request
 任意のtoolchain先へpackageを導入し、同じ導入先からsetupとCLIを使う。
 
 ```powershell
-npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.19.0
+npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.19.1
 node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs' --setup
 node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-workbench.mjs' --request 'J:/research/request.json'
 ```

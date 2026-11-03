@@ -4,7 +4,7 @@
 
 `build_book_structure`は1回1〜4 OCR候補から原行・領域と論理候補を作ります。図版向けの`illustrated`は重複検出の統合と説明文・本文参照の候補を追加し、確認結果をSQLite・TEIへ保存できます。20ページの実資料試験で使った集約・検索画面は研究用helperです。入力例、確認主体別の採否、複数領域の扱いと[検証結果](book-structure.md#図版資料での検証例)は同ガイドを参照してください。
 
-> 用途・画面操作・AIへの依頼は[IIIF利用ガイド](iiif-workbench.md)を参照してください。この資料は0.19.0の要求JSON、engine導入、保存・検証仕様を扱います。
+> 用途・画面操作・AIへの依頼は[IIIF利用ガイド](iiif-workbench.md)を参照してください。この資料は0.19.1の要求JSON、engine導入、保存・検証仕様を扱います。
 
 IIIF比較画面は、複数の機関が公開する資料を同じ操作で並べ、必要なページや矩形を出典付きで保存するローカルアプリです。「この2資料を並べて」「選んだ部分を画像と翻刻で比べて」とAIへ依頼できます。選択した画像と出典を既存AIアプリに渡して読み、元の場所へ戻って確認する流れを支えます。
 
@@ -13,8 +13,8 @@ IIIF比較画面は、複数の機関が公開する資料を同じ操作で並�
 v0.17.0からCLIと比較画面を同梱します。Node.js22以上とnpm、ローカルコマンド・画像読解を使えるAIアプリを用意します。repoの外に研究用directoryを作り、そこで導入と起動確認を行います。
 
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --help
-npx --yes jp-lit-mcp@0.19.0 install-skills codex
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --help
+npx --yes jp-lit-mcp@0.19.1 install-skills codex
 ```
 
 `codex`はCodex CLI / App向けです。Cursorは`cursor`、Claude Codeは`claude`に置き換えます。installerはjp-lit-research、jp-lit-verification、jp-lit-tei、jp-lit-iiifの4種を導入し、既存の同名Skillsを置き換えます。個別に編集した内容は導入前に退避してください。導入後はAIアプリで新しい対話を開き、資料URLと保存先を渡します。
@@ -62,8 +62,8 @@ AIはSkillの[呼び出し資料](../skills/jp-lit-iiif/references/workflow.md)�
 workspaceを作成した後、比較画面を起動します。表示された起動URLをブラウザで開きます。再起動時は新しいURLを使います。終了はターミナルのCtrl+Cです。
 
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --request .\prepare.json
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif serve --workspace "J:/Research/iiif-comparison/workspace.json"
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request .\prepare.json
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif serve --workspace "J:/Research/iiif-comparison/workspace.json"
 ```
 
 最初の要求はmanifestを取得し、画像は比較画面で提供元から表示します。返された`workspace_path`が上の起動pathと一致することを確認してください。既存のworkspaceがある場合は保存先を変えるか、そのworkspaceを再開します。初回にはnpm packageがダウンロードされることがあります。
@@ -156,7 +156,7 @@ surfaceの座標は任意の座標空間です。`surface/@sameAs`がCanvasを�
 
 前近代の写本・版本を読む利用者向けに、[NDL古典籍OCR-Lite](https://github.com/ndl-lab/ndlkotenocr-lite)を任意のローカルengineとして接続します。[国会図書館の案内](https://lab.ndl.go.jp/news/2025/2026-02-24/)は、古典籍と近代活字の処理系を分けて紹介しています。ここで扱うのは古典籍用です。CPUで動き、実行時は保存済みのJPEG/PNGを読みます。通常の比較画面とMCPはNodeだけで使えます。
 
-OCR操作は0.19.0のCLIで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。通常は保存画像をローカルengineへ渡し、Modal providerでは承認した公開画像と送信先を指定します。
+OCR操作は0.19.1のCLIで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。通常は保存画像をローカルengineへ渡し、Modal providerでは承認した公開画像と送信先を指定します。
 
 ### ローカルOCRと手動補助を選ぶ
 
@@ -178,7 +178,7 @@ PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア]
 
 候補は作業JSONと領域の読解資料へ含めて保存できます。修訂は別IDの本文候補として保持し、原TEIへ自動統合しません。`evaluate_ocr`にもこの手動候補の`text_id`を指定できます。貼付本文hash・候補ID・出典snapshot・現在領域の整合性を確認し、参照翻刻との一致度を計算します。サービス側の原出力・画像同一性の独立検証は、この手動記録からは行えません。
 
-手動OCR候補を含む作業JSONは、0.19.0のCLIで保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
+手動OCR候補を含む作業JSONは、0.19.1のCLIで保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
 
 ### Local OCRの出力を併用する
 
@@ -204,7 +204,7 @@ Local OCRの相対画像pathと元Canvas・寸法の対応を確認して、ペ�
 <a id="local-ocrを接続する開発checkout"></a>
 ### Local OCRを接続する
 
-0.19.0のCLIで任意provider `local-ocr`を使えます。利用者がLocal OCRを開き、選択するengineのモデルを取得した後、設定の「ほかの道具から使えるようにする」を有効にします。アプリ・モデルの自動導入や自動起動は行いません。[開発元の連携手順](https://lo.ldas.jp/guide-more.html#script)
+0.19.1のCLIで任意provider `local-ocr`を使えます。利用者がLocal OCRを開き、選択するengineのモデルを取得した後、設定の「ほかの道具から使えるようにする」を有効にします。アプリ・モデルの自動導入や自動起動は行いません。[開発元の連携手順](https://lo.ldas.jp/guide-more.html#script)
 
 次の要求をUTF-8のJSONファイルへ保存します。接続先はLocal OCRの設定で確認し、`http://127.0.0.1:port`の形で指定します。`engine_id`は近代活字用`ndl-lite`（既定）と古典籍用`ndl-koten-lite`を選べます。両者とも`mode`はページ・領域内の行を検出する`layout`と、入力画像全体を1行として読む`line`です。[上流engine仕様](https://github.com/nakamura196/local-ocr/blob/13ce465acb3dfe1b0a347c20212343e9a7f866de/src/local_ocr/engines/ndl.py)
 
@@ -219,7 +219,7 @@ Local OCRの相対画像pathと元Canvas・寸法の対応を確認して、ペ�
 `export_ocr_tei`の`lines.json`と`build_book_structure`のLine.source_locator.layoutには、原のbox・polygon、engine・mode、`coordinate_space="saved_image_pixels"`を保存します。画像・Canvasへの共通矩形はboxから変換し、polygonは原形を保持します。
 
 ```powershell
-$inspection = npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --request 'J:/research/inspect-local-ocr.json' | ConvertFrom-Json
+$inspection = npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request 'J:/research/inspect-local-ocr.json' | ConvertFrom-Json
 if (-not $inspection.ok) { throw 'Local OCRの導入・起動・engine設定を確認してください' }
 $inspection.result.config | ConvertTo-Json -Depth 20 | Set-Content -Encoding utf8 'J:/research/local-ocr-provider.json'
 ```
@@ -316,7 +316,7 @@ GPU版にも次の`run_ocr`・`import_ocr`を使います。原TXT/JSON、行座
 <a id="近代資料を通常版ndlocrで読む開発checkout"></a>
 ### 近代資料を通常版NDLOCRで読む
 
-近代活字では、Local OCR経由のNDLOCR Liteに加え、[通常版NDLOCR 2.1](https://github.com/ndl-lab/ndlocr_cli)を任意provider `ndlocr-ver2`として選べます。利用者がDocker・NVIDIA GPUと、公式の`/root/ocr_cli`構成・モデルを備えたimageを準備してから指定します。古典籍用ver.3とは別のproviderです。0.19.0のCLIにこのproviderを同梱しています。
+近代活字では、Local OCR経由のNDLOCR Liteに加え、[通常版NDLOCR 2.1](https://github.com/ndl-lab/ndlocr_cli)を任意provider `ndlocr-ver2`として選べます。利用者がDocker・NVIDIA GPUと、公式の`/root/ocr_cli`構成・モデルを備えたimageを準備してから指定します。古典籍用ver.3とは別のproviderです。0.19.1のCLIにこのproviderを同梱しています。
 
 ```json
 {

@@ -41,7 +41,7 @@ Pythonの自動取得には初回のネット接続と、uvの自動ダウンロ
 
 ```bash
 uv --version
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-tei-reader --help
 ```
 
 readerの初回起動で、uvが同梱の環境定義に従って専用環境を作ります。指定Pythonが見つからない場合は、[uvの既定の自動ダウンロード](https://docs.astral.sh/uv/guides/install-python/)で取得します。仮想環境やPythonライブラリを手で入れる必要はありません。npmやSkillsの導入時には、このTEI環境の準備は実行されません。
@@ -61,7 +61,7 @@ uv python install 3.13.15
 **IIIFの基本比較・領域選択・出典保存は、Pythonやuvを追加せずに使えます。** 同梱のViewerをWebブラウザで開きます。Node.jsとnpmが使える環境で、CLIの起動を確認できます。
 
 ```bash
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --help
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --help
 ```
 
 ヘルプが表示されたら、[IIIFの使い方](../iiif-workbench.md)に沿ってAIに資料の選定と比較画面の起動を依頼します。CLIが返すローカルURLをブラウザで開きます。

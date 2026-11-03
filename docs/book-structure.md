@@ -1,6 +1,6 @@
 # 書籍構造の共通基盤
 
-位置付きOCRから、文字行・図版・表・説明文の領域、読む順序、図版との対応関係を保存します。`general`は原行と領域、`dictionary`は見出し・語義・用例、`illustrated`は図版と説明文・本文参照の候補を追加します。0.19.0の任意CLI `jp-lit-iiif`で利用できます。
+位置付きOCRから、文字行・図版・表・説明文の領域、読む順序、図版との対応関係を保存します。`general`は原行と領域、`dictionary`は見出し・語義・用例、`illustrated`は図版と説明文・本文参照の候補を追加します。0.19.1の任意CLI `jp-lit-iiif`で利用できます。
 
 ## 現在の利用範囲
 
@@ -26,7 +26,7 @@
 }
 ```
 
-要求JSONをUTF-8で保存し、`npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --request <request.json>`で実行します。開発checkoutでは`npm run build`後に`node scripts/iiif-workbench.mjs --request <request.json>`を使います。1回の対象は1〜4 OCR候補です。出力先は新規directoryを指定します。
+要求JSONをUTF-8で保存し、`npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request <request.json>`で実行します。開発checkoutでは`npm run build`後に`node scripts/iiif-workbench.mjs --request <request.json>`を使います。1回の対象は1〜4 OCR候補です。出力先は新規directoryを指定します。
 
 同じCanvasの左右頁は別の`pages`要素にし、`page_id, text_id, sequence_index, printed_label, coverage`を指定します。欠落頁は`text_id: null, coverage: "ocr_failed"`と`canvas_id`を指定して、頁を飛ばした継続判定を保留します。
 

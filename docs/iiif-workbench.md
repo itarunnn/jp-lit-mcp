@@ -6,7 +6,7 @@ IIIF比較画面は、図書館や研究機関が公開する資料を手元のP
 
 AIには「この2資料を並べて」「この翻刻に対応する画像へ戻って」「OCRの疑わしい箇所を画像で確かめて」と依頼できます。候補と原資料を結び付けて残すので、後から同じ箇所へ戻り、研究者が校合を進められます。
 
-このガイドは0.19.0の機能を説明します。npmからCLIを導入し、GitHub CLIまたはnpmから同じ版のSkillを導入して使います。
+このガイドは0.19.1の機能を説明します。npmからCLIを導入し、GitHub CLIまたはnpmから同じ版のSkillを導入して使います。
 
 ## このガイドでわかること
 
@@ -78,13 +78,13 @@ IIIFは、機関ごとに公開されている画像と資料の情報を、共�
 
 AIから比較画面を操作する場合は、ローカルコマンドを実行できるアプリを使います。画像をAIと読む場合は、画像読解にも対応したアプリを使います。
 
-0.19.0の起動確認は次のとおりです。
+0.19.1の起動確認は次のとおりです。
 
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-iiif --help
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --help
 ```
 
-開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.19.0へ更新して使ってください。
+開発checkoutでは、`npm ci`・`npm run build`の後に`node scripts/iiif-workbench.mjs --help`を使います。既存の0.17.0を使う場合は、比較と出典書き出しを利用できます。TEI連携・OCR・AI候補取込・図版比較は0.19.1へ更新して使ってください。
 
 追加環境は使う機能に合わせて選びます。TEI本文との対応付けはuvとTEI reader、図版解析はuvと初回セットアップ、くずし字OCRはエンジン・モデルを用意します。これらを使う前に[機能別の準備手順](install/runtime-requirements.md)を確認してください。Skillsを配置しただけで、PythonやOCRエンジンが導入される仕組みはありません。
 
@@ -199,7 +199,7 @@ Local OCRで保存したTEI/XMLは、[出力形式と行単位連携](iiif-cli-r
 図版解析には、任意のローカル画像解析環境を追加します。[uvを導入](https://docs.astral.sh/uv/getting-started/installation/)し、初回に次を実行します。明示的な`--setup`でPython 3.13系とOpenCVなどの専用環境を準備します。初回はネット接続とuvのダウンロード許可が必要です。セットアップ後の解析はオフラインで動きます。基本の比較画面と出典保存は、この追加環境を省いて使えます。
 
 ```powershell
-npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.19.0
+npm install --prefix 'J:/toolchains/jp-lit-iiif' --omit=dev jp-lit-mcp@0.19.1
 node 'J:/toolchains/jp-lit-iiif/node_modules/jp-lit-mcp/scripts/iiif-images.mjs' --setup
 ```
 

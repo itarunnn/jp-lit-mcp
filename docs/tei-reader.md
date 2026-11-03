@@ -242,7 +242,7 @@ Node.js 22以上とnpmを用意し、[各アプリの導入ガイド](install/ru
 
 ```sh
 uv --version
-npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-tei-reader --help
 ```
 
 初回起動時に、uvが専用環境を作成します。指定Python 3.13.15が見つからなければ、uvの既定設定で自動取得します。Pythonだけを入れた状態ではuvも必要です。自動取得には初回のネット接続とダウンロード許可が必要で、制限環境での事前準備は[共通の導入手順](install/runtime-requirements.md#tei-readerの環境を準備する)を参照してください。Skillsの配置時には、Python環境の準備は実行されません。
@@ -253,7 +253,7 @@ npx --yes --package=jp-lit-mcp@0.19.0 jp-lit-tei-reader --help
 
 readerのヘルプが表示されたら、AIアプリを開き直して新しい対話を始め、`jp-lit-tei`とuvを利用できることを確認します。
 
-ここで指定した`0.19.0`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。既存のMCP設定はそのまま利用できます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.19.0へ揃えて使います。図版解析とOCRは[別途環境を準備](install/runtime-requirements.md#図版解析とくずし字ocrを追加する)します。原TEIの編集と本文校合は別に進めます。
+ここで指定した`0.19.1`はTEI reader、検索条件・調査方法export、任意IIIF比較画面を含む版です。既存のMCP設定はそのまま利用できます。TEIのfacs/surface/zone・改頁本文とIIIF領域の対応付けを利用するときは、CLIとSkillの版を0.19.1へ揃えて使います。図版解析とOCRは[別途環境を準備](install/runtime-requirements.md#図版解析とくずし字ocrを追加する)します。原TEIの編集と本文校合は別に進めます。
 
 導入後の読解は、XMLの保存先と読みたい内容をAIへ伝えて進めます。要求JSONの作成やreaderの呼び出しはAIが担当するため、利用者がPowerShell関数を書く必要はありません。CLIを直接使う場合や実装を確認する場合は[CLI技術資料](../packages/tei-reader/README.md)を参照してください。
 
