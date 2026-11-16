@@ -2,10 +2,10 @@
 
 ## CLIを固定して使う
 
-この手順は0.19.1向けです。Node.js22以上・npm・git・uvを用意し、要求JSONを次のように実行します。開発checkoutではbuildしたCLIを使います。
+この手順は0.19.2向けです。Node.js22以上・npm・git・uvを用意し、要求JSONを次のように実行します。開発checkoutではbuildしたCLIを使います。
 
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request 'J:/research/request.json'
+npx --yes --package=jp-lit-mcp@0.19.2 jp-lit-iiif --request 'J:/research/request.json'
 ```
 
 以下のcheckout向け`node scripts/iiif-workbench.mjs`は、この固定版npx起動へ置き換えられます。保存先は自分のtoolchain・研究directoryへ変更します。原画像・原出力・providerはrepo外で保管します。
@@ -13,7 +13,7 @@ npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request 'J:/research/request
 
 前近代の写本・版本を読む利用者向けに、[NDL古典籍OCR-Lite](https://github.com/ndl-lab/ndlkotenocr-lite)を任意のローカルengineとして接続します。[国会図書館の案内](https://lab.ndl.go.jp/news/2025/2026-02-24/)は、古典籍と近代活字の処理系を分けて紹介しています。ここで扱うのは古典籍用です。CPUで動き、実行時は保存済みのJPEG/PNGを読みます。通常の比較画面とMCPはNodeだけで使えます。
 
-OCR操作は0.19.1のCLIで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。通常は保存画像をローカルengineへ渡し、利用者がModal処理を指定した場合は[Modal手順](ocr-modal.md)で公開画像と送信先を固定します。
+OCR操作は0.19.2のCLIで使います。OCR engine・Python環境・モデルの導入は利用者が任意に行います。通常は保存画像をローカルengineへ渡し、利用者がModal処理を指定した場合は[Modal手順](ocr-modal.md)で公開画像と送信先を固定します。
 
 ### ローカルOCRと手動補助を選ぶ
 
@@ -35,7 +35,7 @@ PCで別方式の候補を得る補助経路には[KuroNetの公式ビューア]
 
 候補は作業JSONと領域の読解資料へ含めて保存できます。修訂は別IDの本文候補として保持し、原TEIへ自動統合しません。`evaluate_ocr`にもこの手動候補の`text_id`を指定できます。貼付本文hash・候補ID・出典snapshot・現在領域の整合性を確認し、参照翻刻との一致度を計算します。サービス側の原出力・画像同一性の独立検証は、この手動記録からは行えません。
 
-手動OCR候補を含む作業JSONは、0.19.1のCLIで保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
+手動OCR候補を含む作業JSONは、0.19.2のCLIで保存・再開します。旧版での再保存は新しいprovenanceを保持する保証がありません。領域を移動した場合は候補を履歴に残し、現在領域の読解exportから除外して診断を付けます。取込中の作業JSON・Annotation・テキストの読み込みは、保存完了後に行います。
 
 ### 任意のengineを導入する
 
@@ -190,7 +190,7 @@ reportは原文字列の`strict`と、NFC後にUnicode空白を除く`without_la
 人の回答とAIの判断を分け、未確認の条件はunknownまたはnullで保ちます。画像を開いただけの確認を人手の文字校合へ変換しません。
 ## 前提ツールと本文hash
 
-Windowsの前提ツールは[Node.js公式](https://nodejs.org/en/download)、[Git公式](https://git-scm.com/downloads/win)、[uv公式](https://docs.astral.sh/uv/getting-started/installation/)の案内で導入する。Node/npmはprojectのmise管理を優先し、既存環境の版を確認してから準備する。通常は上の0.19.1固定CLIを使う。開発checkoutは`https://github.com/itarunnn/jp-lit-mcp`から取得してbuildする。
+Windowsの前提ツールは[Node.js公式](https://nodejs.org/en/download)、[Git公式](https://git-scm.com/downloads/win)、[uv公式](https://docs.astral.sh/uv/getting-started/installation/)の案内で導入する。Node/npmはprojectのmise管理を優先し、既存環境の版を確認してから準備する。通常は上の0.19.2固定CLIを使う。開発checkoutは`https://github.com/itarunnn/jp-lit-mcp`から取得してbuildする。
 
 参照本文のhashはファイル全体のhashと区別する。JSONの`text`そのものをUTF-8へ変換し、改行・空白を保持したbytesから求める。次は評価JSONの第1caseの本文hashを設定する例で、原翻刻や原画像を変更しない。
 

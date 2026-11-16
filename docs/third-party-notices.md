@@ -8,6 +8,20 @@ IIIF比較画面は[Mirador](https://github.com/ProjectMirador/mirador)4.2.6の�
 
 NDL古典籍OCR-Liteは利用者が任意に導入する外部engineです。code・重みの許諾は[上流のCC BY 4.0](https://github.com/ndl-lab/ndlkotenocr-lite)を参照してください。このpackageはengine・重みを同梱せず、ローカル呼び出し用のadapterを提供します。原出力にはengineとモデルのhashを残します。
 
+## 0.19.2の依存監査
+
+2026-11-16の公開前監査では、依存lockを0.19.1から維持した状態で、high 1件・moderate 2件・low 3件（影響package数）が報告されました。今回の文書・Skill更新に伴う依存の追加・更新はありません。
+
+| package / lock版 | 重要度 | 監査結果と後続確認 |
+| --- | --- | --- |
+| Zod 3.25.76 | high | [資源消費advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)。下記の継続事項を引き継ぐ |
+| @hono/node-server 2.1.5 | moderate | [WebSocket処理](https://github.com/advisories/GHSA-qv5m-9pm6-hqp3)と[HTTP pathの扱い](https://github.com/advisories/GHSA-jpvv-r467-5p4w)に関する報告。SDKの推移依存として更新候補を確認する |
+| Hono 4.13.12 | moderate | [mountのmiddleware適用](https://github.com/advisories/GHSA-4m76-xfj5-7975)などHTTP経路に関する報告。SDKの推移依存として更新候補を確認する |
+| fast-xml-parser 5.10.1 | low | [閉じていないstop-nodeタグの走査](https://github.com/advisories/GHSA-474x-hrwr-fgx4)に関する報告。XML解析の互換性と修正版を後続で確認する |
+| Mirador 4.2.6 / deepmerge 4.3.1 | low（各1件） | [deepmergeのadvisory](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)。配布bundleと依存packageを分けて確認する |
+
+現行MCP serverはstdio transportを使い、repoのXMLParser生成箇所は `stopNodes` を設定していません。これは今回確認した利用経路の記録です。各advisoryの到達可能性と修正の検証は後続作業とし、監査報告の解消を今回のリリースに含めていません。
+
 ## 0.19.0の依存監査
 
 2026-10-31にSDKを1.32.2、Vitestを4.1.12へ更新し、互換範囲の依存修正版をlockへ反映しました。更新後のnpm auditはZod 3のhigh 1件と、Mirador／deepmergeのlow 2件を報告しています。production依存の報告はZodの1件です。

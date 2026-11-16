@@ -39,6 +39,7 @@ description: >-
 - cache は検索結果・取得 payload の保管場所であり、調査報告そのものではない。
 - 調査トレース報告 / handoff report は、主エージェントが統合判断するための人間可読な調査報告として扱う。低レベル trace とは分ける。
 - 調査目的、source 選択理由、検索試行、採用/保留/除外理由、本文確認範囲、未確認事項、次アクションは `jp_lit_update_session_trace` と `jp_lit_annotate_session.trace` に残す。
+- 取得失敗・アクセス停止・`source_errors` を含む部分成功では、[失敗時の手順](heuristics/failure-modes.md#取得失敗アクセス停止時の手順)を読む。経路・観測日時・応答・判断根拠・未確認範囲・次の行動を残し、検索entryがない場合は同じsessionの `open_questions` / `next_actions` に保存する。
 - 過去調査の棚卸し・一覧・再開候補確認では `jp_lit_list_sessions` を使う。主題・タイトル・メモなど明確な検索語がある場合は `jp_lit_find_sessions` を使う。
 - 独立した調査線が複数ある場合は、サブエージェント分担をデフォルト寄りに検討する。各担当は担当範囲・検索ログ・採否理由・未確認事項を trace に残し、主エージェントへ調査トレース報告 / handoff report を返す。サブエージェント使用時は handoff report を受け取るまで完了扱いにしない。
 - 長期調査では、compaction や後日再開に備えて rolling checkpoint を作る。主エージェントが統合判断を持ち続け、サブエージェントや sequential 担当単位は検索・候補整理・ノイズ判定の report を返す。
@@ -119,7 +120,7 @@ description: >-
 - `heuristics/source-selection.md`: DB 選択で迷う場合。
 - `heuristics/query-expansion.md`: 表記ゆれ、旧字、異体字、古語が重要な場合。
 - `heuristics/evidence-grading.md`: 文献価値や根拠の強さを評価する場合。
-- `heuristics/failure-modes.md`: 0 件、ノイズ過多、本文未確認、所蔵確認不成立の対処。
+- `heuristics/failure-modes.md`: 取得失敗・アクセス停止の経路判断と保存例、0 件、ノイズ過多、本文未確認、所蔵確認不成立の対処。
 - `heuristics/db-characteristics.md`: DB の特性説明が必要な場合。
 - `heuristics/clarifying-questions.md`: 検索前確認や曖昧さ解消が必要な場合。
 - `workflows/`: intent ごとの詳細手順が必要な場合。
@@ -179,6 +180,7 @@ description: >-
 - `今回の確認範囲` があるか。
 - `調査ログ` があるか。
 - 各検索の `total` / `取得件数` / `抽出件数` を分けたか。
+- 取得失敗・停止がある場合、正常0件と件数不明を分け、試した経路・観測日時・応答・判断根拠・未確認範囲・次の行動を報告し、同じsessionへ保存したか。
 - source 選択・検索試行・採否理由・未確認事項を session trace に残したか。
 - stateful tool の全呼び出しに対象調査の `session_id` を明示したか。
 - サブエージェント使用時は handoff report を受け取り、必要なら cache / session trace へ戻って確認したか。

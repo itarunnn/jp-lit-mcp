@@ -357,7 +357,7 @@ XML: J:\Research\tei\manyo.xml
 TEI readerを使うときは、基本環境に[uvを追加](docs/install/runtime-requirements.md#tei-readerの環境を準備する)して次を実行します。指定Python 3.13.15と専用環境は、初回起動時にuvが自動で準備します。
 
 ```sh
-npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-tei-reader --help
+npx --yes --package=jp-lit-mcp@0.19.2 jp-lit-tei-reader --help
 ```
 
 [TEIの使い方](docs/tei-reader.md)に、万葉集・延喜式の研究例と論文、廣瀬本での読解と文献調査の往復、漱石・源氏物語も含む公開資料の案内、jp-litでの検索例、導入とAIへの依頼・結果の確認をまとめています。手動実行や要求JSONは[CLI技術資料](packages/tei-reader/README.md)を参照してください。画像を見比べる作業には公開元のビューワを併用し、readerの抽出結果と画像の実見・校合を別々に記録します。

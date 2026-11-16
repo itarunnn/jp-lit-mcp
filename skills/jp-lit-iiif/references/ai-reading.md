@@ -1,8 +1,8 @@
 # 利用中AIアプリの読解を領域へ取り込む
 
-0.19.1の要求実行は
+0.19.2の要求実行は
 ```powershell
-npx --yes --package=jp-lit-mcp@0.19.1 jp-lit-iiif --request 'J:/research/request.json'
+npx --yes --package=jp-lit-mcp@0.19.2 jp-lit-iiif --request 'J:/research/request.json'
 ```
 を使える。開発checkoutでは下記のコマンドで実行する。
 

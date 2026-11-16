@@ -1,6 +1,6 @@
 # GitHub CLI で Skills を入れる
 
-IIIFのTEI連携・ローカルOCR・AI候補取込・図版比較は0.19.1で利用できる機能です。CLIとSkillを同じreleaseへ揃えて更新してください。以下の固定版コマンドはv0.19.1を使います。
+IIIFのTEI連携・ローカルOCR・AI候補取込・図版比較は0.19.2で利用できる機能です。CLIとSkillを同じreleaseへ揃えて更新してください。以下の固定版コマンドはv0.19.2を使います。
 
 `gh skill install` は、このrepoのSkillsをGitHubから導入し、取得元・版・更新を管理する方法です。GitHub CLIを既に使っている人や、Skillsの継続的な更新を管理したい人におすすめします。このページは `gh 2.94.0` で、公開release v0.17.0から4 Skillsの取得を確認しています。
 
@@ -11,7 +11,7 @@ SkillsはGitHub CLIとnpmのどちらからも導入できます。使うアプ�
 | 重視すること | おすすめの方法 | 導入後の更新 |
 | --- | --- | --- |
 | GitHub CLIを活用する、取得元・版を記録する、内容と更新を確認する | このページの `gh skill install` | `gh skill update`で更新を確認・適用する |
-| 追加ツールを減らす、npm packageに同梱された版を使う | 各アプリの導入ガイドにある `npx -y jp-lit-mcp install-skills <app>` | npmの導入コマンドを再実行する。特定版は `jp-lit-mcp@0.19.1` のように指定する |
+| 追加ツールを減らす、npm packageに同梱された版を使う | 各アプリの導入ガイドにある `npx -y jp-lit-mcp install-skills <app>` | npmの導入コマンドを再実行する。特定版は `jp-lit-mcp@0.19.2` のように指定する |
 
 GitHub経由では、取得元repository・ref・tree SHAがSkillsに記録され、`preview`、版固定、更新のdry-runを利用できます。GitHub CLIのSkills管理は現在public previewで、将来の仕様変更がありえます。[GitHub CLI公式manual](https://cli.github.com/manual/gh_skill)、[installの仕様](https://cli.github.com/manual/gh_skill_install)
 
@@ -56,7 +56,7 @@ Codexの個人用Skillsは、[現行OpenAI公式手順](https://learn.chatgpt.co
 1. repository の最新タグ付き release
 2. default branch の HEAD
 
-通常利用では公開releaseのSkillsを使います。`main`へ変更をpushした段階の内容を確認したい場合は、`jp-lit-research@main` のようにrefを明示してください。特定版へ固定する場合は、`jp-lit-research@v0.19.1` のようにタグを付けるか、`--pin v0.19.1` を使います。
+通常利用では公開releaseのSkillsを使います。`main`へ変更をpushした段階の内容を確認したい場合は、`jp-lit-research@main` のようにrefを明示してください。特定版へ固定する場合は、`jp-lit-research@v0.19.2` のようにタグを付けるか、`--pin v0.19.2` を使います。
 
 ## 使い方
 
@@ -100,14 +100,14 @@ IIIFの比較画面と画像読解は[IIIFガイド](../iiif-workbench.md)を参
 特定のversionを入れる場合は、Skill名に `@VERSION` を付けます。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.19.1 --dir "$HOME/.agents/skills"
-gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.19.1 --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-research@v0.19.2 --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp jp-lit-verification@v0.19.2 --dir "$HOME/.agents/skills"
 ```
 
 4 Skillsをまとめて同じreleaseへ固定する例です。
 
 ```bash
-gh skill install itarunnn/jp-lit-mcp --all --pin v0.19.1 --dir "$HOME/.agents/skills"
+gh skill install itarunnn/jp-lit-mcp --all --pin v0.19.2 --dir "$HOME/.agents/skills"
 ```
 
 開発中の default branch を一時的に確認したい場合は `@main` も使えます。ただし、通常利用では release tag をおすすめします。
@@ -127,7 +127,7 @@ version を指定して表示することもできます。
 
 ```bash
 gh skill preview itarunnn/jp-lit-mcp jp-lit-research@main
-gh skill preview itarunnn/jp-lit-mcp jp-lit-research@v0.19.1
+gh skill preview itarunnn/jp-lit-mcp jp-lit-research@v0.19.2
 ```
 
 ### 更新を確認して適用する
